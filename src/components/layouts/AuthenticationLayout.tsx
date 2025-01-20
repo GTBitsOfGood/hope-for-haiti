@@ -1,8 +1,8 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { UserProvider, useUser } from "../context/UserContext";
-import LoadingPage from "@/pages/LoadingPage";
+import { useUser } from "../context/UserContext";
+import LoadingPage from "@/screens/LoadingScreen";
 
 function AuthenticationLayout({
   children,
@@ -28,9 +28,7 @@ export default function RootAuthenticationLayout({
 }>) {
   return (
     <SessionProvider>
-      <UserProvider>
-        <AuthenticationLayout>{children}</AuthenticationLayout>
-      </UserProvider>
+      <AuthenticationLayout>{children}</AuthenticationLayout>
     </SessionProvider>
   );
 }
