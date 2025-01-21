@@ -6,6 +6,9 @@ import { UserType } from "@prisma/client";
 
 async function run() {
   await db.$transaction(async (tx) => {
+    await tx.requestedUnclaimedItem.deleteMany();
+    await tx.unclaimedItemRequest.deleteMany();
+    await tx.unclaimedItem.deleteMany();
     await tx.partnerDetails.deleteMany();
     await tx.user.deleteMany();
 
@@ -41,6 +44,34 @@ async function run() {
             email: "partner@test.com",
           },
         },
+      },
+    });
+
+    const banana = await tx.unclaimedItem.create({
+      data: { name: "Banana", quantity: 10, expirationDate: new Date() },
+    });
+
+    const apple = await tx.unclaimedItem.create({
+      data: { name: "Apple", quantity: 100, expirationDate: new Date() },
+    });
+
+    await tx.unclaimedItemRequest.create({
+      data: {
+        items: {
+          createMany: {
+            data: [
+              {
+                itemId: banana.id,
+                quantity: 5,
+              },
+              {
+                itemId: apple.id,
+                quantity: 10,
+              },
+            ],
+          },
+        },
+        partner: { connect: { email: "partner@test.com" } },
       },
     });
   });

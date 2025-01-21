@@ -20,7 +20,16 @@ model User {
   passwordHash String
   type         UserType
 
-  partnerDetails PartnerDetails?
+  // Partner-only fields
+  partnerDetails        PartnerDetails?
+  unclaimedItemRequests UnclaimedItemRequest[]
+}
+
+model UserInvite {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  email      String
+  expiration DateTime
 }
 
 model PartnerDetails {
@@ -28,4 +37,35 @@ model PartnerDetails {
 
   user   User @relation(fields: [userId], references: [id])
   userId Int  @unique
+}
+
+model UnclaimedItem {
+  id Int @id @default(autoincrement())
+
+  name                   String
+  quantity               Int
+  expirationDate         DateTime?
+  RequestedUnclaimedItem RequestedUnclaimedItem[]
+}
+
+model UnclaimedItemRequest {
+  id Int @id @default(autoincrement())
+
+  // Points to User, but only valid for `PARTNER` users
+  partner   User @relation(fields: [partnerId], references: [id])
+  partnerId Int
+
+  items RequestedUnclaimedItem[]
+}
+
+model RequestedUnclaimedItem {
+  id Int @id @default(autoincrement())
+
+  item   UnclaimedItem @relation(fields: [itemId], references: [id])
+  itemId Int
+
+  quantity Int
+
+  request   UnclaimedItemRequest @relation(fields: [requestId], references: [id])
+  requestId Int
 }
