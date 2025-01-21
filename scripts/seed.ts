@@ -2,7 +2,7 @@ import "dotenv/config";
 import { exit } from "process";
 import { db } from "@/db";
 import { hash } from "argon2";
-import { UserType } from "@prisma/client";
+import { OrganizationType, UserType } from "@prisma/client";
 
 async function run() {
   await db.$transaction(async (tx) => {
@@ -44,6 +44,8 @@ async function run() {
             email: "partner@test.com",
           },
         },
+        numberOfPatients: 10,
+        organizationType: OrganizationType.NON_PROFIT,
       },
     });
 

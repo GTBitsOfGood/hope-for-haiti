@@ -32,11 +32,20 @@ model UserInvite {
   expiration DateTime
 }
 
+enum OrganizationType {
+  NON_PROFIT
+  FOR_PROFIT
+  RELIGIOUS
+}
+
 model PartnerDetails {
   id Int @id @default(autoincrement())
 
   user   User @relation(fields: [userId], references: [id])
   userId Int  @unique
+
+  numberOfPatients Int
+  organizationType OrganizationType
 }
 
 model UnclaimedItem {
