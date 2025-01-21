@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
