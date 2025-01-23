@@ -1,11 +1,16 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} **/
 module.exports = {
   testEnvironment: "node",
-  transform: {
-    "^.+.tsx?$": ["ts-jest",{}],
-  },
+  preset: "ts-jest",
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  setupFilesAfterEnv: ["./src/test/dbMock.ts"]
+  setupFilesAfterEnv: ["./src/test/dbMock.ts", "./src/test/authMock.ts"],
+  transform: {
+    '^.+\\.(ts|tsx)?$': 'ts-jest',
+    '^.+\\.(js|jsx)$': 'babel-jest',
+  },
+  transformIgnorePatterns: [
+    "node_modules/(?!@auth)/"
+  ]
 };
