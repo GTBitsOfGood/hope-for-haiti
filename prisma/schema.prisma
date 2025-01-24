@@ -28,7 +28,8 @@ model User {
 model UserInvite {
   id         Int      @id @default(autoincrement())
   token      String   @unique
-  email      String
+  userType   UserType
+  email      String   @unique
   expiration DateTime
 }
 
