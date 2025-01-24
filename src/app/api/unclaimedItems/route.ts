@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+// import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { internalError, authenticationError, successResponse } from '@/util/responses';
 import { db } from '@/db';
@@ -38,8 +38,12 @@ export async function GET() {
         const unclaimedItems = await db.unclaimedItem.findMany();
 
         return successResponse({ unclaimedItems });
-    } catch (err: any) {
-        console.error(err?.message);
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            console.error(err.message);
+        } else {
+            console.error('An unknown error occurred');
+        }
         return internalError();
     }
 }

@@ -28,6 +28,6 @@ export function ok() {
   return NextResponse.json({ message: "OK" }, { status: 200 });
 }
 
-export function successResponse(data: any) {
+export function successResponse<T>(data: T) {
   return NextResponse.json(data, { status: 200 });
 }
