@@ -25,7 +25,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { userId } = await params;
     const session = await auth();
     if (!session) return authenticationError("Session required");
-    console.log(session.user.id);
     if (session.user.type === UserType.PARTNER && session.user.id !== userId) {
         return authorizationError("You are not allowed to view this");
     }
