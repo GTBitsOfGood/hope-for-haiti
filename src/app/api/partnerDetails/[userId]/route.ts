@@ -21,8 +21,8 @@ import { UserType } from "@prisma/client";
  *   "organizationType": "NON_PROFIT"
  * }
  */
-export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
-    const { userId } = params;
+export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+    const { userId } = await params;
     const session = await auth();
     if (!session) return authenticationError("Session required");
     console.log(session.user.id);
