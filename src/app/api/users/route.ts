@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { internalError, authenticationError, authorizationError, notFoundError } from "@/util/responses";
+import { authenticationError, authorizationError, notFoundError } from "@/util/responses";
 import { UserType } from "@prisma/client";
 import { NextResponse } from "next/server";
 
@@ -28,5 +28,4 @@ export async function GET() {
     }
 
     return NextResponse.json(users, { status: 200 });
-
 }
