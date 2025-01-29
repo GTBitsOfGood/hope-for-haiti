@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, context: { params: { userId: string
       return authorizationError("You are not allowed to modify this record");
     }
 
-    let bodyData: {};
+    let bodyData: unknown; //to fix ESLint error
 
     // check if form data (html) or json and parse for both
     const contentType = req.headers.get("content-type") || "";
