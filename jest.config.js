@@ -7,10 +7,15 @@ module.exports = {
   },
   setupFilesAfterEnv: ["./src/test/dbMock.ts", "./src/test/authMock.ts"],
   transform: {
-    "^.+\\.(ts|tsx)?$": "ts-jest",
-    "^.+\\.(js|jsx)$": ["babel-jest", { "configFile": "./babel.config.jest.js" }],
+    "^.+\\.(ts|tsx)?$": [
+      "ts-jest",
+      {
+        tsconfig: {
+          jsx: "react-jsx",
+        },
+      },
+    ],
+    "^.+\\.(js|jsx)$": ["babel-jest", { configFile: "./babel.config.jest.js" }],
   },
-  transformIgnorePatterns: [
-    "node_modules/(?!@auth)/"
-  ]
+  transformIgnorePatterns: ["node_modules/(?!@auth)/"],
 };
