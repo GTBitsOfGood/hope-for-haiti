@@ -1,9 +1,17 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { authenticationError, authorizationError, notFoundError } from "@/util/responses";
+import { authenticationError, authorizationError } from "@/util/responses";
 import { UserType } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+/**
+ * Retrieve a list of all User records.
+ * Only accessible to users with STAFF, ADMIN, or SUPER_ADMIN roles.
+ * 
+ * @returns 401 if the request is not authenticated
+ * @returns 403 if the user does not have the required role
+ * @returns 200 with a list of users, including their email and role type
+ */
 export async function GET() {
     const session = await auth();
     if (!session) return authenticationError("Session required");
@@ -22,10 +30,6 @@ export async function GET() {
             type: true
         }
     });
-
-    if (!users) {
-        return notFoundError("User details not found");
-    }
 
     return NextResponse.json(users, { status: 200 });
 }
