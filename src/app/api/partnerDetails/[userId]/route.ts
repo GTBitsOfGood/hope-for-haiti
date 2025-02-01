@@ -2,20 +2,21 @@ import { authenticationError, notFoundError, authorizationError, argumentError }
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import { z } from "zod";
+import { zfd } from "zod-form-data"; // <-- Added import from zod-form-data
 import { PrismaClient } from "@prisma/client"; 
 
 // new Prisma Client
 const prisma = new PrismaClient();
 
-// Zod schema for request validation
-const PartnerDetailsSchema = z.object({
-  numberOfPatients: z.number().min(1, "Number of patients must be positive"),
-  organizationType: z.enum(["NON_PROFIT", "FOR_PROFIT", "RELIGIOUS"]), 
+// Zod schema
+const PartnerDetailsFormSchema = zfd.formData({
+  numberOfPatients: zfd.numeric(z.number().min(1, "Number of patients must be positive")),
+  organizationType: zfd.text(z.enum(["NON_PROFIT", "FOR_PROFIT", "RELIGIOUS"])),
 });
 
 /**
  * Updates a user's partner details.
- * Accepts data as JSON or FormData.
+ * Accepts parameters as FormData.
  *
  * @param {NextRequest} req The incoming request object.
  * @param {Object} context The route parameters containing the user ID.
@@ -33,8 +34,9 @@ export async function POST(
   try {
     // authenticate the user session
     const session = await auth();
-    if (!session || !session.user) return authenticationError("Session required");
-
+    if (!session || !session.user) {
+      return authenticationError("Session required");
+    }
     const { user } = session;
 
     // await params and ensure params.userId exists
@@ -55,11 +57,9 @@ export async function POST(
       return authorizationError("You are not allowed to modify this record");
     }
 
-    // parse JSON request body
-    const bodyData = await req.json();
-
-    // validate request body
-    const parsedData = PartnerDetailsSchema.safeParse(bodyData);
+    // parse FormData
+    const formData = await req.formData();
+    const parsedData = PartnerDetailsFormSchema.safeParse(formData);
     if (!parsedData.success) {
       console.error("Invalid form data:", parsedData.error);
       return argumentError("Invalid form data");
