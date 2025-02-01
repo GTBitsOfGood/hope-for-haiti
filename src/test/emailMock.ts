@@ -1,5 +1,4 @@
 import { jest } from "@jest/globals";
-import open from "open-html";
 
 const sendEmailMock = jest
   .fn()

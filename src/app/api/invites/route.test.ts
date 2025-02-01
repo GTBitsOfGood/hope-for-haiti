@@ -1,12 +1,18 @@
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
-
+import * as emailModule from "@/util/email";
 import { expect, test } from "@jest/globals";
 import { dbMock } from "@/test/dbMock";
 import { authMock } from "@/test/authMock";
 import { UserType } from "@prisma/client";
+import * as uuid from "uuid";
+import openHtml from "open-html";
 
 jest.mock("@/util/email");
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 test("requires session", async () => {
   await testApiHandler({
@@ -110,9 +116,12 @@ test("test email html", async () => {
         expires: "",
       });
 
-      const uuidMock = jest.spyOn(require("uuid"), "v4");
+      const uuidMock = jest.spyOn(uuid, "v4");
       const mockToken = "mocked-uuid-token";
-      uuidMock.mockReturnValue(mockToken);
+      // Type assertion to fix string/Uint8Array mismatch
+      uuidMock.mockReturnValueOnce(mockToken as any);
+
+      const sendEmailMock = jest.spyOn(emailModule, "sendEmail");
 
       const formData = new FormData();
       formData.append("email", "test@test.com");
@@ -120,12 +129,9 @@ test("test email html", async () => {
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(200);
 
-      const sendEmail = require("@/util/email").sendEmail;
-      const emailHtml = sendEmail.mock.calls[0][2];
+      const emailHtml = sendEmailMock.mock.calls[0][2];
       const urlRegex = new RegExp(`register\\?token=${mockToken}`);
       expect(emailHtml).toMatch(urlRegex);
-
-      uuidMock.mockRestore();
     },
   });
 });
@@ -138,8 +144,6 @@ test("UserInvite expires in one day", async () => {
         user: { id: "1234", type: "SUPER_ADMIN" },
         expires: "",
       });
-
-      const sendEmailMock = jest.spyOn(require("@/util/email"), "sendEmail");
 
       const formData = new FormData();
       formData.append("email", "test@test.com");
@@ -156,11 +160,10 @@ test("UserInvite expires in one day", async () => {
         oneDayInMilliseconds,
         -2
       );
-
-      sendEmailMock.mockRestore();
     },
   });
 });
+
 test("show email", async () => {
   await testApiHandler({
     appHandler,
@@ -170,7 +173,7 @@ test("show email", async () => {
         expires: "",
       });
 
-      const sendEmailMock = jest.spyOn(require("@/util/email"), "sendEmail");
+      const sendEmailMock = jest.spyOn(emailModule, "sendEmail");
 
       const formData = new FormData();
       formData.append("email", "test@test.com");
@@ -179,10 +182,7 @@ test("show email", async () => {
       expect(res.status).toBe(200);
 
       const emailHtml = sendEmailMock.mock.calls[0][2];
-      const open = require("open-html");
-      open(emailHtml);
-
-      sendEmailMock.mockRestore();
+      openHtml(emailHtml);
     },
   });
 });
