@@ -1,12 +1,12 @@
 import { testApiHandler } from "next-test-api-route-handler";
-import * as appHandler from "./route";
-import * as emailModule from "@/util/email";
 import { expect, test } from "@jest/globals";
-import { dbMock } from "@/test/dbMock";
-import { authMock } from "@/test/authMock";
 import { UserType } from "@prisma/client";
 import * as uuid from "uuid";
-import openHtml from "open-html";
+
+import * as appHandler from "./route";
+import * as emailModule from "@/util/email";
+import { dbMock } from "@/test/dbMock";
+import { authMock } from "@/test/authMock";
 
 jest.mock("@/util/email");
 
@@ -164,7 +164,7 @@ test("UserInvite expires in one day", async () => {
   });
 });
 
-test("show email", async () => {
+test("verify sendEmail call", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
@@ -181,8 +181,7 @@ test("show email", async () => {
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(200);
 
-      const emailHtml = sendEmailMock.mock.calls[0][2];
-      openHtml(emailHtml);
+      expect(sendEmailMock).toHaveBeenCalled();
     },
   });
 });
