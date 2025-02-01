@@ -118,8 +118,8 @@ test("test email html", async () => {
 
       const uuidMock = jest.spyOn(uuid, "v4");
       const mockToken = "mocked-uuid-token";
-      // Type assertion to fix string/Uint8Array mismatch
-      uuidMock.mockReturnValueOnce(mockToken as any);
+      // @ts-expect-error: jest cannot deal with overloaded functions
+      uuidMock.mockReturnValueOnce(mockToken);
 
       const sendEmailMock = jest.spyOn(emailModule, "sendEmail");
 

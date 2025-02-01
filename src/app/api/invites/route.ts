@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const parsedData = schema.parse(formData);
     email = parsedData.email;
     userType = parsedData.userType;
-  } catch (error) {
+  } catch {
     return argumentError("Invalid form data");
   }
 
