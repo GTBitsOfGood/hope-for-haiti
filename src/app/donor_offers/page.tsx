@@ -1,9 +1,5 @@
 "use client";
 
-import LoadingScreen from "@/screens/LoadingScreen";
-import dynamic from "next/dynamic";
+import DonorOffersScreen from "@/screens/DonorOffersScreen";
 
-export default dynamic(() => import("@/screens/DonorOffersScreen"), {
-  ssr: false,
-  loading: LoadingScreen,
-});
+export default DonorOffersScreen;

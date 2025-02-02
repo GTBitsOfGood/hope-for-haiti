@@ -1,9 +1,5 @@
 "use client";
 
-import LoadingScreen from "@/screens/LoadingScreen";
-import dynamic from "next/dynamic";
+import MapScreen from "@/screens/MapScreen";
 
-export default dynamic(() => import("@/screens/MapScreen"), {
-  ssr: false,
-  loading: LoadingScreen,
-});
+export default MapScreen;
