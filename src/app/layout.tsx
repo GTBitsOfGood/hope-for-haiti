@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-import AuthenticationLayout from "@/components/layouts/AuthenticationLayout";
+import AuthenticationProvider from "@/components/AuthenticationProvider";
 import { Toaster } from "react-hot-toast";
+import NavbarLayout from "@/components/NavBarLayout";
 
 export const metadata: Metadata = {
   title: "Hope for Haiti",
@@ -16,12 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <AuthenticationLayout>
-        <body>
-          {children}
+      <body>
+        <AuthenticationProvider>
+          <NavbarLayout>{children}</NavbarLayout>
           <Toaster position="top-right" />
-        </body>
-      </AuthenticationLayout>
+        </AuthenticationProvider>
+      </body>
     </html>
   );
 }
