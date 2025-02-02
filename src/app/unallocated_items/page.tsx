@@ -1,9 +1,5 @@
 "use client";
 
-import LoadingScreen from "@/screens/LoadingScreen";
-import dynamic from "next/dynamic";
+import UnallocatedItemsScreen from "@/screens/UnallocatedItemsScreen";
 
-export default dynamic(() => import("@/screens/UnallocatedItemsScreen"), {
-  ssr: false,
-  loading: LoadingScreen,
-});
+export default UnallocatedItemsScreen;

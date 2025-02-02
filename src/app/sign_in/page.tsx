@@ -1,9 +1,5 @@
 "use client";
 
-import LoadingScreen from "@/screens/LoadingScreen";
-import dynamic from "next/dynamic";
+import SignInScreen from "@/screens/SignInScreen";
 
-export default dynamic(() => import("@/screens/SignInScreen"), {
-  ssr: false,
-  loading: LoadingScreen,
-});
+export default SignInScreen;
