@@ -50,6 +50,7 @@
     "next-test-api-route-handler": "^4.0.14",
     "open-html": "^1.0.1",
     "postcss": "^8",
+    "prettier": "^3.4.2",
     "prisma": "^6.2.1",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.2.5",
