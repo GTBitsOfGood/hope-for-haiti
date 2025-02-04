@@ -6,15 +6,12 @@ import { NextResponse } from "next/server";
 
 // Response for GET /api/unclaimedItems
 interface UnclaimedItemsResponse {
-  numberOfItems: number | 0;
-  unclaimedItems:
-    | {
-        id: number;
-        name: string;
-        quantity: number;
-        expirationDate: Date | null;
-      }[]
-    | [];
+  unclaimedItems: {
+    id: number;
+    name: string;
+    quantity: number;
+    expirationDate: Date | null;
+  }[];
 }
 
 /**
@@ -35,7 +32,6 @@ export async function GET() {
   const unclaimedItems = await db.unclaimedItem.findMany();
 
   return NextResponse.json({
-    numberOfItems: unclaimedItems?.length, // ?.length for when unclaimedItems is undefined
     unclaimedItems: unclaimedItems,
   } as UnclaimedItemsResponse);
 }

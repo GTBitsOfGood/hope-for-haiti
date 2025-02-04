@@ -44,7 +44,6 @@ test("Should give correct database queries", async () => {
 
       // Check that the response json was written correctly
       const expectedRet = {
-        numberOfItems: 3,
         unclaimedItems: await dbMock.unclaimedItem.findMany(),
       };
       const json = await res.json();
