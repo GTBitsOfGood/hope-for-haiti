@@ -14,6 +14,7 @@
     "db:view": "npx prisma studio"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.7",
     "@prisma/client": "^6.2.1",
     "@react-email/render": "1.0.3",
     "@sendgrid/mail": "^8.1.4",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
     "@babel/runtime": "^7.26.0",
     "@jest/globals": "^29.7.0",
