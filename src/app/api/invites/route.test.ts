@@ -89,13 +89,16 @@ test("check existing user", async () => {
       dbMock.user.findFirst.mockResolvedValue({
         id: 1,
         email: "test@test.com",
+        name: "name",
         type: UserType.ADMIN,
         passwordHash: "abc",
+        partnerDetails: null,
       });
 
       const formData = new FormData();
       formData.append("email", "test@test.com");
       formData.append("userType", "ADMIN");
+      formData.append("name", "test name");
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(409);
     },
@@ -121,6 +124,7 @@ test("test email html", async () => {
       const formData = new FormData();
       formData.append("email", "test@test.com");
       formData.append("userType", "ADMIN");
+      formData.append("name", "test name");
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(200);
 
@@ -145,6 +149,7 @@ test("UserInvite expires in one day", async () => {
       const formData = new FormData();
       formData.append("email", "test@test.com");
       formData.append("userType", "ADMIN");
+      formData.append("name", "test name");
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(200);
 
@@ -175,6 +180,7 @@ test("verify sendEmail call", async () => {
       const formData = new FormData();
       formData.append("email", "test@test.com");
       formData.append("userType", "ADMIN");
+      formData.append("name", "test name");
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(200);
 

@@ -18,35 +18,31 @@ async function run() {
           email: "superadmin@test.com",
           passwordHash: await hash("root"),
           type: UserType.SUPER_ADMIN,
+          name: "Super Admin",
         },
         {
           email: "admin@test.com",
           passwordHash: await hash("root"),
           type: UserType.ADMIN,
+          name: "Admin",
         },
         {
           email: "staff@test.com",
           passwordHash: await hash("root"),
           type: "STAFF",
+          name: "Staff",
         },
         {
           email: "partner@test.com",
           passwordHash: await hash("root"),
           type: "PARTNER",
-        },
-      ],
-    });
-
-    await tx.partnerDetails.create({
-      data: {
-        user: {
-          connect: {
-            email: "partner@test.com",
+          name: "Partner",
+          partnerDetails: {
+            numberOfPatients: 10,
+            organizationType: OrganizationType.NON_PROFIT,
           },
         },
-        numberOfPatients: 10,
-        organizationType: OrganizationType.NON_PROFIT,
-      },
+      ],
     });
 
     const banana = await tx.unclaimedItem.create({

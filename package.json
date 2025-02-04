@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx scripts/seed.ts",
+    "db:clear": "tsx scripts/clear.ts",
     "db:migrate": "npx prisma migrate dev",
     "db:view": "npx prisma studio"
   },

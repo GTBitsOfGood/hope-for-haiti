@@ -17,38 +17,77 @@ enum UserType {
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
+  name         String
   passwordHash String
   type         UserType
 
   // Partner-only fields
-  partnerDetails        PartnerDetails?
-  unclaimedItemRequests UnclaimedItemRequest[]
+  partnerDetails         Json?
+  unclaimedItemRequests  UnclaimedItemRequest[]
+  UnallocatedItemRequest UnallocatedItemRequest[]
 }
 
 model UserInvite {
-  id         Int      @id @default(autoincrement())
-  token      String   @unique
-  userType   UserType
-  email      String   @unique
-  expiration DateTime
+  id             Int      @id @default(autoincrement())
+  token          String   @unique
+  userType       UserType
+  email          String   @unique
+  name           String
+  partnerDetails Json?
+  expiration     DateTime
 }
 
+// Deprecated
 enum OrganizationType {
   NON_PROFIT
   FOR_PROFIT
   RELIGIOUS
 }
 
+// Deprecated
 model PartnerDetails {
   id Int @id @default(autoincrement())
 
-  user   User @relation(fields: [userId], references: [id])
-  userId Int  @unique
+  userId Int @unique
 
+  // Deprecated
   numberOfPatients Int
+  // Deprecated
   organizationType OrganizationType
 }
 
+model Item {
+  id Int @id @default(autoincrement())
+
+  title                  String
+  category               String
+  quantity               Int
+  expirationDate         DateTime?
+  unitSize               Int
+  unitType               String
+  datePosted             DateTime
+  lotNumber              Int
+  donorName              String
+  unitPrice              Float
+  maxRequestLimit        String
+  UnallocatedItemRequest UnallocatedItemRequest[]
+}
+
+model UnallocatedItemRequest {
+  id Int @id @default(autoincrement())
+
+  // Points to User, but only valid for `PARTNER` users
+  partner   User @relation(fields: [partnerId], references: [id])
+  partnerId Int
+
+  item   Item @relation(fields: [itemId], references: [id])
+  itemId Int
+
+  quantity Int
+  comments String
+}
+
+// Deprecated
 model UnclaimedItem {
   id Int @id @default(autoincrement())
 
@@ -58,6 +97,7 @@ model UnclaimedItem {
   RequestedUnclaimedItem RequestedUnclaimedItem[]
 }
 
+// Deprecated
 model UnclaimedItemRequest {
   id Int @id @default(autoincrement())
 
@@ -68,6 +108,7 @@ model UnclaimedItemRequest {
   items RequestedUnclaimedItem[]
 }
 
+// Deprecated
 model RequestedUnclaimedItem {
   id Int @id @default(autoincrement())
 

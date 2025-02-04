@@ -19,6 +19,7 @@ import {
 
 const schema = zfd.formData({
   email: zfd.text(z.string().email()),
+  name: zfd.text(z.string()),
   userType: zfd.text(z.nativeEnum(UserType)),
 });
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   if (!parseResult.success) {
     return argumentError("Invalid form data");
   }
-  const { email, userType } = parseResult.data;
+  const { email, name, userType } = parseResult.data;
 
   const existingUser = await db.user.findFirst({ where: { email } });
   if (existingUser) {
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
   await db.userInvite.create({
     data: {
       email,
+      name,
       token,
       expiration,
       userType,
