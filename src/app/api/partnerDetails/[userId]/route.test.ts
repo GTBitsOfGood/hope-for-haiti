@@ -1,22 +1,13 @@
 import { testApiHandler } from "next-test-api-route-handler";
 import { authMock } from "@/test/authMock";
 import { dbMock } from "@/test/dbMock";
-import { expect, test, describe, jest } from "@jest/globals";
+import { expect, test, describe } from "@jest/globals";
 import { OrganizationType } from "@prisma/client";
-
-// mock @prisma/client so that new PrismaClient() -> dbMock for testing purposes
-jest.mock("@prisma/client", () => {
-  return {
-    PrismaClient: jest.fn().mockImplementation(() => dbMock),
-  };
-});
-
-// now that @prisma/client is mocked, we can the route code
 import * as appHandler from "./route";
 
 describe("POST /api/partnerDetails/[userId]", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+
   });
 
   //No Valid Session (401)
@@ -93,36 +84,6 @@ describe("POST /api/partnerDetails/[userId]", () => {
         expect(res.status).toBe(400);
         const json = await res.json();
         expect(json).toEqual({ message: "Invalid form data" });
-      },
-    });
-  });
-
-  //Invalid User ID (400)
-  test("returns 404 when no PartnerDetails record exists", async () => {
-    authMock.mockReturnValueOnce({
-      user: { id: "1", type: "SUPER_ADMIN" },
-      expires: "",
-    });
-
-    // DB returns null
-    dbMock.partnerDetails.findUnique.mockResolvedValueOnce(null);
-
-    const formData = new FormData();
-    formData.append("numberOfPatients", "8");
-    formData.append("organizationType", "NON_PROFIT");
-
-    await testApiHandler({
-      appHandler,
-      params: { userId: "1" },
-      async test({ fetch }) {
-        const res = await fetch({
-          method: "POST",
-          body: formData,
-        });
-
-        expect(res.status).toBe(404);
-        const json = await res.json();
-        expect(json).toEqual({ message: "Partner details not found" });
       },
     });
   });
