@@ -66,5 +66,5 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(updatedPartnerDetails, { status: 200 });
+    return NextResponse.json(updatedPartnerDetails);
 }

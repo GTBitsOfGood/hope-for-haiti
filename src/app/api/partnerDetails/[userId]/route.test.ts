@@ -6,11 +6,7 @@ import { OrganizationType } from "@prisma/client";
 import * as appHandler from "./route";
 
 describe("POST /api/partnerDetails/[userId]", () => {
-  beforeEach(() => {
-
-  });
-
-  //No Valid Session (401)
+  // No Valid Session (401)
   test("returns 401 when there is no valid session", async () => {
     authMock.mockReturnValueOnce(null); //no valid session
 
@@ -34,7 +30,7 @@ describe("POST /api/partnerDetails/[userId]", () => {
     });
   });
 
-  //PARTNER user tries to modify another user's details (session user ID does not match the request user ID) (403)
+  // PARTNER user tries to modify another user's details (session user ID does not match the request user ID) (403)
   test("returns 403 when a PARTNER user tries to modify another user's record", async () => {
     authMock.mockReturnValueOnce({
       user: { id: "1", type: "PARTNER" },
@@ -61,7 +57,7 @@ describe("POST /api/partnerDetails/[userId]", () => {
     });
   });
 
-  //Invalid Form Data (400)
+  // Invalid Form Data (400)
   test("returns 400 when the form data is invalid", async () => {
     authMock.mockReturnValueOnce({
       user: { id: "1", type: "SUPER_ADMIN" },
@@ -88,7 +84,7 @@ describe("POST /api/partnerDetails/[userId]", () => {
     });
   });
 
-  //Valid Request (200)
+  // Valid Request (200)
   test("updates PartnerDetails and returns 200 for a valid request", async () => {
     authMock.mockReturnValueOnce({
       user: { id: "1", type: "SUPER_ADMIN" },
