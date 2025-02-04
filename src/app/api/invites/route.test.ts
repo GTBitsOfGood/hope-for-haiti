@@ -3,16 +3,11 @@ import { expect, test } from "@jest/globals";
 import { UserType } from "@prisma/client";
 import * as uuid from "uuid";
 
-import * as appHandler from "./route";
-import * as emailModule from "@/util/email";
 import { dbMock } from "@/test/dbMock";
 import { authMock } from "@/test/authMock";
+import { sendEmailMock } from "@/test/emailMock";
 
-jest.mock("@/util/email");
-
-beforeEach(() => {
-  jest.clearAllMocks();
-});
+import * as appHandler from "./route";
 
 test("requires session", async () => {
   await testApiHandler({
@@ -116,12 +111,12 @@ test("test email html", async () => {
         expires: "",
       });
 
+      sendEmailMock.mockImplementation(async () => {});
+
       const uuidMock = jest.spyOn(uuid, "v4");
       const mockToken = "mocked-uuid-token";
       // @ts-expect-error: jest cannot deal with overloaded functions
       uuidMock.mockReturnValueOnce(mockToken);
-
-      const sendEmailMock = jest.spyOn(emailModule, "sendEmail");
 
       const formData = new FormData();
       formData.append("email", "test@test.com");
@@ -129,9 +124,11 @@ test("test email html", async () => {
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(200);
 
-      const emailHtml = sendEmailMock.mock.calls[0][2];
-      const urlRegex = new RegExp(`register\\?token=${mockToken}`);
-      expect(emailHtml).toMatch(urlRegex);
+      expect(sendEmailMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.stringMatching(new RegExp(`register\\?token=${mockToken}`))
+      );
     },
   });
 });
@@ -173,7 +170,7 @@ test("verify sendEmail call", async () => {
         expires: "",
       });
 
-      const sendEmailMock = jest.spyOn(emailModule, "sendEmail");
+      sendEmailMock.mockImplementation(async () => {});
 
       const formData = new FormData();
       formData.append("email", "test@test.com");
