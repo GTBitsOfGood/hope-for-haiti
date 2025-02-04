@@ -108,6 +108,7 @@ export const partnerDetailsSchema = z
         "maternal_care",
         "lab_tests",
         "trauma_and_surgery",
+        "urology",
       ])
     ),
     otherMedicalServicesProvided: z.string(),
