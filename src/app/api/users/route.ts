@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { argumentError, conflictError, notFoundError, authenticationError, authorizationError } from "@/util/responses";
+import { argumentError, conflictError, notFoundError, authenticationError, authorizationError, ok } from "@/util/responses";
 import { UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { zfd } from "zod-form-data";
@@ -72,20 +72,16 @@ export async function POST(req: NextRequest) {
     } else if (userInvite.expiration < new Date()) {
         return argumentError("Invite has expired");
     }
-    const existingUser = await db.user.findUnique({
-        where: {
-            email: userInvite.email
-        }
-    });
-    if (existingUser) {
+    try {
+        await db.user.create({
+            data: {
+                email: userInvite.email,
+                passwordHash: await argon2.hash(password),
+                type: userInvite.userType
+            }
+        });
+    } catch {
         return conflictError("User already exists");
     }
-    const newUsers = await db.user.create({
-        data: {
-            email: userInvite.email,
-            passwordHash: await argon2.hash(password),
-            type: userInvite.userType
-        }
-    });
-    return NextResponse.json(newUsers, {status: 200});
+    return ok();
 }

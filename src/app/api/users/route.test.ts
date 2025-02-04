@@ -4,7 +4,7 @@ import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { dbMock } from "@/test/dbMock";
 import { authMock } from "@/test/authMock";
-import { User, UserType } from "@prisma/client";
+import { UserType } from "@prisma/client";
 
 test("returns 401 on unauthenticated requests", async () => {
     await testApiHandler({
@@ -89,16 +89,12 @@ test("bad form data", async () => {
   });
 });
 
-const goodFormData = new FormData();
-goodFormData.append('inviteToken', 'test_token');
-goodFormData.append('password', 'test_password');
-
-const mockUser: User = {
-    type: UserType.SUPER_ADMIN,
-    id: 0,
-    email: "test_email@test.com",
-    passwordHash: "hashed_test_password"
-};
+const getGoodFormData = () => {
+    const goodFormData = new FormData();
+    goodFormData.append('inviteToken', 'test_token');
+    goodFormData.append('password', 'test_password');
+    return goodFormData;
+}
 
 test("missing user invite", async () => {
     await testApiHandler({
@@ -106,7 +102,7 @@ test("missing user invite", async () => {
         async test({ fetch }) {
             dbMock.userInvite.findUnique.mockResolvedValue(null);
 
-            const res = await fetch({ method: "POST", body: goodFormData });
+            const res = await fetch({ method: "POST", body: getGoodFormData() });
             await expect(res.status).toEqual(404);
         },
     });
@@ -127,7 +123,7 @@ test("expired user invite", async () => {
                 expiration: yearAgo
             });
 
-            const res = await fetch({ method: "POST", body: goodFormData });
+            const res = await fetch({ method: "POST", body: getGoodFormData() });
             await expect(res.status).toEqual(400);
         },
     });
@@ -149,9 +145,11 @@ test("user already exists", async () => {
                 expiration: yearLater
             });
 
-            dbMock.user.findUnique.mockResolvedValue(mockUser);
+            dbMock.user.create.mockImplementation(() => {
+                throw new Error();
+            })
 
-            const res = await fetch({ method: "POST", body: goodFormData });
+            const res = await fetch({ method: "POST", body: getGoodFormData() });
             await expect(res.status).toEqual(409);
         },
     });
@@ -172,12 +170,8 @@ test("successful create", async () => {
                 expiration: yearLater
             });
 
-            dbMock.user.findUnique.mockResolvedValue(null);
-            dbMock.user.create.mockResolvedValue(mockUser);
-
-            const res = await fetch({ method: "POST", body: goodFormData });
+            const res = await fetch({ method: "POST", body: getGoodFormData() });
             await expect(res.status).toEqual(200);
-            await expect(res.json()).resolves.toStrictEqual(mockUser);
         },
     });
 });
