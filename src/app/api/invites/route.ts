@@ -42,13 +42,11 @@ export async function POST(request: NextRequest) {
   }
 
   const formData = await request.formData();
-  let email, userType;
-  const parsedData = schema.safeParse(formData);
-  if (!parsedData.success) {
+  const parseResult = schema.safeParse(formData);
+  if (!parseResult.success) {
     return argumentError("Invalid form data");
   }
-  email = parsedData.data.email;
-  userType = parsedData.data.userType;
+  const { email, userType } = parseResult.data;
 
   const existingUser = await db.user.findFirst({ where: { email } });
   if (existingUser) {
