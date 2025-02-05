@@ -1,9 +1,5 @@
 "use client";
 
-import LoadingPage from "@/screens/LoadingScreen";
-import dynamic from "next/dynamic";
+import HomeScreen from "@/screens/HomeScreen";
 
-export default dynamic(() => import("@/screens/HomeScreen"), {
-  ssr: false,
-  loading: LoadingPage,
-});
+export default HomeScreen;
