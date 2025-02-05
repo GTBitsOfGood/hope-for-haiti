@@ -5,6 +5,7 @@ import { UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { zfd } from "zod-form-data";
 import * as argon2 from 'argon2';
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const ALLOWED_USER_TYPES: UserType[] = [
     UserType.ADMIN,
@@ -79,8 +80,13 @@ export async function POST(req: NextRequest) {
                 type: userInvite.userType
             }
         });
-    } catch {
-        return conflictError("User already exists");
+    } catch (e) {
+        if (e instanceof PrismaClientKnownRequestError) {
+            if (e.code === 'P2002') {
+                return conflictError("User already exists");
+            }
+        }
+        throw e;
     }
     return ok();
 }

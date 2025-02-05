@@ -5,6 +5,7 @@ import { expect, test } from "@jest/globals";
 import { dbMock } from "@/test/dbMock";
 import { authMock } from "@/test/authMock";
 import { UserType } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 test("returns 401 on unauthenticated requests", async () => {
     await testApiHandler({
@@ -146,8 +147,16 @@ test("user already exists", async () => {
             });
 
             dbMock.user.create.mockImplementation(() => {
-                throw new Error();
-            })
+                throw new PrismaClientKnownRequestError(
+                    'violates uniqueness constraint', 
+                    {
+                        code: 'P2002', 
+                        clientVersion: 'mock', 
+                        meta: {}, 
+                        batchRequestIdx: 1
+                    }
+                );
+            });
 
             const res = await fetch({ method: "POST", body: getGoodFormData() });
             await expect(res.status).toEqual(409);
