@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
     try {
         await db.user.create({
             data: {
+                name: userInvite.name,
                 email: userInvite.email,
                 passwordHash: await argon2.hash(password),
                 type: userInvite.userType

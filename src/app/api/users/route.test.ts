@@ -121,7 +121,9 @@ test("expired user invite", async () => {
                 id: 0,
                 userType: UserType.SUPER_ADMIN,
                 email: "test_email@test.com",
-                expiration: yearAgo
+                expiration: yearAgo,
+                partnerDetails: null,
+                name: ""
             });
 
             const res = await fetch({ method: "POST", body: getGoodFormData() });
@@ -143,7 +145,9 @@ test("user already exists", async () => {
                 id: 0,
                 userType: UserType.SUPER_ADMIN,
                 email: "test_email@test.com",
-                expiration: yearLater
+                expiration: yearLater,
+                partnerDetails: null,
+                name: ""
             });
 
             dbMock.user.create.mockImplementation(() => {
@@ -176,7 +180,9 @@ test("successful create", async () => {
                 id: 0,
                 userType: UserType.SUPER_ADMIN,
                 email: "test_email@test.com",
-                expiration: yearLater
+                expiration: yearLater,
+                partnerDetails: null,
+                name: ""
             });
 
             const res = await fetch({ method: "POST", body: getGoodFormData() });
