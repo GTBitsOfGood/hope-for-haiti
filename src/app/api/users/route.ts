@@ -1,8 +1,11 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { authenticationError, authorizationError } from "@/util/responses";
+import { argumentError, conflictError, notFoundError, authenticationError, authorizationError, ok } from "@/util/responses";
 import { UserType } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { zfd } from "zod-form-data";
+import * as argon2 from 'argon2';
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const ALLOWED_USER_TYPES: UserType[] = [
     UserType.ADMIN,
@@ -35,4 +38,56 @@ export async function GET() {
     });
 
     return NextResponse.json(users, { status: 200 });
+}
+
+const schema = zfd.formData({
+    inviteToken: zfd.text(),
+    password: zfd.text()
+});
+
+/**
+ * Creates a new User record.
+ * Parameters are passed via form data.
+ * @param inviteToken Corresponds to token in existing UserInvite record
+ * @param password Password for new User account
+ * @returns 400 if bad form data or expired UserInvite
+ * @returns 404 if UserInvite does not exist
+ * @returns 409 if User record for corresponding UserInvite already exists
+ * @returns 200
+ */
+export async function POST(req: NextRequest) {
+    const parsed = schema.safeParse(await req.formData());
+    if (!parsed.success) {
+        return argumentError("Invalid user data");
+    }
+    
+    const { inviteToken, password } = parsed.data;
+    const userInvite = await db.userInvite.findUnique({
+        where: {
+            token: inviteToken
+        }
+    });
+    if (!userInvite) {
+        return notFoundError("Invite does not exist");
+    } else if (userInvite.expiration < new Date()) {
+        return argumentError("Invite has expired");
+    }
+    try {
+        await db.user.create({
+            data: {
+                name: userInvite.name,
+                email: userInvite.email,
+                passwordHash: await argon2.hash(password),
+                type: userInvite.userType
+            }
+        });
+    } catch (e) {
+        if (e instanceof PrismaClientKnownRequestError) {
+            if (e.code === 'P2002') {
+                return conflictError("User already exists");
+            }
+        }
+        throw e;
+    }
+    return ok();
 }
