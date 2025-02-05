@@ -22,9 +22,11 @@ model User {
   type         UserType
 
   // Partner-only fields
-  partnerDetails         Json?
-  unclaimedItemRequests  UnclaimedItemRequest[]
-  UnallocatedItemRequest UnallocatedItemRequest[]
+  partnerDetails          Json?
+  unallocatedItemRequests UnallocatedItemRequest[]
+
+  // Deprecated
+  unclaimedItemRequests UnclaimedItemRequest[]
 }
 
 model UserInvite {
@@ -59,18 +61,19 @@ model PartnerDetails {
 model Item {
   id Int @id @default(autoincrement())
 
-  title                  String
-  category               String
-  quantity               Int
-  expirationDate         DateTime?
-  unitSize               Int
-  unitType               String
-  datePosted             DateTime
-  lotNumber              Int
-  donorName              String
-  unitPrice              Float
-  maxRequestLimit        String
-  UnallocatedItemRequest UnallocatedItemRequest[]
+  title           String
+  category        String
+  quantity        Int
+  expirationDate  DateTime?
+  unitSize        Int
+  unitType        String
+  datePosted      DateTime
+  lotNumber       Int
+  donorName       String
+  unitPrice       Float
+  maxRequestLimit String
+
+  unallocatedItemRequests UnallocatedItemRequest[]
 }
 
 model UnallocatedItemRequest {
