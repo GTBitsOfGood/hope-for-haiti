@@ -1,5 +1,5 @@
 import { dbMock } from "@/test/dbMock";
-import { UnclaimedItem } from "@prisma/client";
+import { UnallocatedItemRequest, UnclaimedItem } from "@prisma/client";
 
 // Helper util methods for testing
 
@@ -33,4 +33,27 @@ export async function fillDbMockWithManyUnclaimedItems(
 
   dbMock.unclaimedItem.findMany.mockResolvedValue(items);
   return items;
+}
+
+export async function fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(
+  num: number
+) {
+  const numberOfItems = 10;
+  const numberOfPartners = 10;
+
+  const unallocatedItemRequests: UnallocatedItemRequest[] = [];
+
+  for (let i = 0; i < num; i++) {
+    unallocatedItemRequests.push({
+      id: i,
+      quantity: Math.floor(Math.random() * 1000),
+      partnerId: Math.floor(Math.random() * numberOfPartners),
+      itemId: Math.floor(Math.random() * numberOfItems),
+      comments: "Test unallocated item request " + i,
+    });
+  }
+
+  dbMock.unallocatedItemRequest.findMany.mockResolvedValue(
+    unallocatedItemRequests
+  );
 }
