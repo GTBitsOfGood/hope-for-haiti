@@ -23,6 +23,7 @@ interface UnallocatedItemRequestsResponse {
  * @param params - the item id to retrieve unallocated item requests for
  * @returns 401 if the session is invalid
  * @returns 403 if the user type isn't staff, admin, or super admin
+ * @returns 400 if the item id is not an integer
  * @returns 200 and a json response with the unallocated item requests
  */
 export async function GET(
