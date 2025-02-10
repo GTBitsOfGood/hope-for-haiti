@@ -48,7 +48,7 @@ export async function fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(
       id: i,
       quantity: Math.floor(Math.random() * 1000),
       partnerId: Math.floor(Math.random() * numberOfPartners),
-      itemId: Math.floor(Math.random() * numberOfItems),
+      itemId: 1,
       comments: "Test unallocated item request " + i,
     });
   }

@@ -3,6 +3,7 @@ import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
 import { fillDbMockWithUnallocatedItemRequestsForItemIdFiltering } from "@/test/util/dbMockUtils";
+import { dbMock } from "@/test/dbMock";
 
 test("Should return 401 for no session", async () => {
   await testApiHandler({
@@ -77,21 +78,25 @@ test("For an authorized session, should give all unallocated item requests point
     params: { unallocatedItemId: "1" },
     appHandler,
     async test({ fetch }) {
-      fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(100);
+      fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(10);
+
+      const unallocatedItemRequests =
+        await dbMock.unallocatedItemRequest.findMany();
 
       validateSession("STAFF");
       const res = await fetch({ method: "GET" });
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json).toEqual({
-        unallocatedItemRequests: [
-          {
-            id: expect.any(Number),
-            quantity: expect.any(Number),
-            comments: expect.any(String),
-          },
-        ],
-      });
+      expect(json).toEqual({ unallocatedItemRequests });
+      // expect(json).toEqual({
+      //   unallocatedItemRequests: unallocatedItemRequests.forEach((uir) => {
+      //     return {
+      //       id: uir.id,
+      //       quantity: uir.quantity,
+      //       comments: uir.comments,
+      //     };
+      //   }),
+      // });
     },
   });
 });
