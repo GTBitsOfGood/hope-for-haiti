@@ -38,7 +38,7 @@ export async function fillDbMockWithManyUnclaimedItems(
 export async function fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(
   num: number
 ) {
-  const numberOfItems = 10;
+  // const numberOfItems = 10;
   const numberOfPartners = 10;
 
   const unallocatedItemRequests: UnallocatedItemRequest[] = [];
