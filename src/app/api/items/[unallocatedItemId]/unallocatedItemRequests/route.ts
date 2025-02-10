@@ -4,7 +4,6 @@ import {
   argumentError,
   authenticationError,
   authorizationError,
-  ok,
 } from "@/util/responses";
 import { UserType } from "@prisma/client";
 import { NextResponse } from "next/server";
