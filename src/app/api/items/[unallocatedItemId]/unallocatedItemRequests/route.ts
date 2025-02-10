@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 interface UnallocatedItemRequestsResponse {
   unallocatedItemRequests: {
     id: number;
+    partnerId: number;
     quantity: number;
     comments: string;
   }[];
@@ -49,12 +50,13 @@ export async function GET(
     where: { itemId },
     select: {
       id: true,
+      partnerId: true,
       quantity: true,
       comments: true,
     },
   });
 
   return NextResponse.json({
-    unallocatedItemRequests: unallocatedItemRequests,
+    unallocatedItemRequests,
   } as UnallocatedItemRequestsResponse);
 }
