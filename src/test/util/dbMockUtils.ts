@@ -34,3 +34,24 @@ export async function fillDbMockWithManyUnclaimedItems(
   dbMock.unclaimedItem.findMany.mockResolvedValue(items);
   return items;
 }
+
+export async function fillDbMockWithUnallocatedItemRequestsForPartnerIdFilter(
+  num: number
+) {
+  const partnerId = 1;
+  const numOfItems = 10;
+
+  const unallocatedItemRequests = [];
+  for (let i = 0; i < num; i++) {
+    unallocatedItemRequests.push({
+      id: i,
+      partnerId: partnerId,
+      itemId: Math.floor(Math.random() * numOfItems),
+      quantity: Math.floor(Math.random() * 100),
+      comments: `Test comment ${i}`,
+    });
+  }
+  dbMock.unallocatedItemRequest.findMany.mockResolvedValue(
+    unallocatedItemRequests
+  );
+}
