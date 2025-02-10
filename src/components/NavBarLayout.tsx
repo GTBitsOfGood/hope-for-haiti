@@ -184,7 +184,7 @@ export default function NavbarLayout({
           <MobileNavbar />
         </>
       )}
-      <main className="flex-1 px-6 py-8">{children}</main>
+      <main className="flex-1">{children}</main>
     </div>
   );
 }
