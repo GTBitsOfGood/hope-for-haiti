@@ -74,7 +74,7 @@ export default function AccountManagementScreen() {
           <button
             key={tab}
             className={classNames(
-              "px-4 py-2 text-md font-medium relative -mb-px",
+              "px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none",
               {
                 "border-b-2 border-black bottom-[-1px]": activeTab === tab,
                 "text-gray-500": activeTab !== tab,
@@ -82,7 +82,7 @@ export default function AccountManagementScreen() {
             )}
             onClick={() => filterUsers(tab)}
           >
-            {tab}
+            <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
           </button>
         ))}
       </div>
@@ -92,7 +92,7 @@ export default function AccountManagementScreen() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <table className="min-w-full mt-4 rounded-lg overflow-hidden">
+        <table className="min-w-full mt-4 rounded-t-lg overflow-hidden">
           <thead>
             <tr className="bg-gray-100 border-b-2">
               <th className="px-4 py-2 text-left font-normal">Name</th>
@@ -111,17 +111,17 @@ export default function AccountManagementScreen() {
                   "bg-gray-50": index % 2 !== 0,
                 })}
               >
-                <td className="border px-4 py-2">{user.name}</td>
-                <td className="border px-4 py-2">{user.email}</td>
-                <td className="border px-4 py-2">
+                <td className="border-b px-4 py-2 w-1/5">{user.name}</td>
+                <td className="border-b px-4 py-2 w-1/5">{user.email}</td>
+                <td className="border-b px-4 py-2 w-1/5">
                   {formatUserType(user.type)}
                 </td>
-                <td className="border-b border-l px-4 py-2">
+                <td className="border-b px-4 py-2 w-1/5">
                   <span className="px-2 py-1 rounded bg-green-primary whitespace-nowrap">
                     Account created
                   </span>
                 </td>
-                <td className="border-b border-r w-2 px-2 py-2">
+                <td className="border-b px-4 py-2 w-12">
                   <div className="float-right">
                     <DotsThree
                       weight="bold"
