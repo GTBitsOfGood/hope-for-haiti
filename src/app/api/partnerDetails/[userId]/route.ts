@@ -96,17 +96,14 @@ export async function POST(
     return argumentError("Invalid form data");
   }
 
-  const { numberOfPatients, organizationType } = parsedData.data;
-
   // update PartnerDetails record
   const userIdNumber = Number(userId); //db schema accepts a number
-  const updatedPartnerDetails = await db.partnerDetails.update({
-    where: { userId: userIdNumber },
+  const updatedUser = await db.user.update({
+    where: { id: userIdNumber },
     data: {
-      numberOfPatients,
-      organizationType,
-    },
+      partnerDetails: parsedData.data
+    }
   });
 
-  return NextResponse.json(updatedPartnerDetails);
+  return NextResponse.json(updatedUser.partnerDetails);
 }

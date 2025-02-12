@@ -215,22 +215,21 @@ describe("POST /api/partnerDetails/[userId]", () => {
       expires: "",
     });
 
-    const existingPartnerDetails = {
-      userId: 1,
-      id: 1,
-      numberOfPatients: 8,
-      organizationType: "FOR_PROFIT" as OrganizationType,
-    };
-    dbMock.partnerDetails.findUnique.mockResolvedValueOnce(
-      existingPartnerDetails
-    );
-
     const updatedPartnerDetails = {
-      ...existingPartnerDetails,
       numberOfPatients: 5,
       organizationType: "NON_PROFIT" as OrganizationType,
     };
-    dbMock.partnerDetails.update.mockResolvedValueOnce(updatedPartnerDetails);
+
+    const updatedUser = {
+      id: 1,
+      email: "test_email",
+      name: "test_name",
+      passwordHash: "test_hash",
+      type: UserType.SUPER_ADMIN,
+      partnerDetails: updatedPartnerDetails
+    }
+
+    dbMock.user.update.mockResolvedValueOnce(updatedUser);
 
     const formData = new FormData();
     formData.append("numberOfPatients", "5");
