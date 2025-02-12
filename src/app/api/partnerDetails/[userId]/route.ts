@@ -47,7 +47,7 @@ export async function GET(
 }
 
 // Zod schema
-const PartnerDetailsFormSchema = zfd.formData({
+export const PartnerDetailsFormSchema = zfd.formData({
   numberOfPatients: zfd.numeric(
     z.number().min(1, "Number of patients must be positive")
   ),

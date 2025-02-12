@@ -16,11 +16,13 @@ import {
   conflictError,
   ok,
 } from "@/util/responses";
+import { PartnerDetailsFormSchema } from "../partnerDetails/[userId]/route";
 
 const schema = zfd.formData({
   email: zfd.text(z.string().email()),
   name: zfd.text(z.string()),
   userType: zfd.text(z.nativeEnum(UserType)),
+  partnerDetails: zfd.json(PartnerDetailsFormSchema).optional()
 });
 
 /**
@@ -47,11 +49,15 @@ export async function POST(request: NextRequest) {
   if (!parseResult.success) {
     return argumentError("Invalid form data");
   }
-  const { email, name, userType } = parseResult.data;
+  const { email, name, userType, partnerDetails } = parseResult.data;
 
   const existingUser = await db.user.findFirst({ where: { email } });
   if (existingUser) {
     return conflictError("Email already registered");
+  }
+
+  if (userType == UserType.PARTNER && !partnerDetails) {
+    return argumentError("Invalid partner details");
   }
 
   const token = uuidv4();
@@ -65,6 +71,7 @@ export async function POST(request: NextRequest) {
       token,
       expiration,
       userType,
+      partnerDetails
     },
   });
 

@@ -1,6 +1,6 @@
 import { testApiHandler } from "next-test-api-route-handler";
 import { expect, test } from "@jest/globals";
-import { UserType } from "@prisma/client";
+import { OrganizationType, UserType } from "@prisma/client";
 import * as uuid from "uuid";
 
 import { dbMock } from "@/test/dbMock";
@@ -185,6 +185,75 @@ test("verify sendEmail call", async () => {
       expect(res.status).toBe(200);
 
       expect(sendEmailMock).toHaveBeenCalled();
+    },
+  });
+});
+
+test("error when missing partner details for partner invite", async () => {
+  await testApiHandler({
+    appHandler,
+    async test({ fetch }) {
+      authMock.mockReturnValueOnce({
+        user: { id: "1234", type: "SUPER_ADMIN" },
+        expires: "",
+      });
+
+      const formData = new FormData();
+      formData.append("email", "test@test.com");
+      formData.append("userType", "PARTNER");
+      formData.append("name", "test name");
+      const res = await fetch({ method: "POST", body: formData });
+      expect(res.status).toBe(400);
+    },
+  });
+});
+
+test("error when invalid partner details for partner invite", async () => {
+  await testApiHandler({
+    appHandler,
+    async test({ fetch }) {
+      authMock.mockReturnValueOnce({
+        user: { id: "1234", type: "SUPER_ADMIN" },
+        expires: "",
+      });
+
+      const formData = new FormData();
+      formData.append("email", "test@test.com");
+      formData.append("userType", "PARTNER");
+      formData.append("name", "test name");
+      formData.append("partnerDetails", JSON.stringify({
+        numberOfPatients: 8,
+      }));
+      const res = await fetch({ method: "POST", body: formData });
+      expect(res.status).toBe(400);
+    },
+  });
+});
+
+test("success when valid partner details for partner invite", async () => {
+  await testApiHandler({
+    appHandler,
+    async test({ fetch }) {
+      authMock.mockReturnValueOnce({
+        user: { id: "1234", type: "SUPER_ADMIN" },
+        expires: "",
+      });
+      
+      const partnerDetails = {
+        numberOfPatients: 8,
+        organizationType: OrganizationType.FOR_PROFIT
+      };
+
+      const formData = new FormData();
+      formData.append("email", "test@test.com");
+      formData.append("userType", "PARTNER");
+      formData.append("name", "test name");
+      formData.append("partnerDetails", JSON.stringify(partnerDetails));
+      const res = await fetch({ method: "POST", body: formData });
+      expect(res.status).toBe(200);
+
+      const createdInvite = dbMock.userInvite.create.mock.calls[0][0].data;
+      expect(createdInvite.partnerDetails).toEqual(partnerDetails);
     },
   });
 });
