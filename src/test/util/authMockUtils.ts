@@ -1,6 +1,5 @@
 import { authMock } from "@/test/authMock";
 import { UserType } from "@prisma/client";
-import { v4 as uuidv4 } from "uuid";
 
 // Helper util methods for testing
 
@@ -13,7 +12,7 @@ export async function invalidateSession() {
 
 /**
  * Helper method for validating a session
- * @param user Optional, default is { id: "1234", type: "ADMIN" }
+ * @param user Optional, default is { id: randomId, type: "ADMIN" }
  * @param expires Optional, default is a day from now
  * @returns A session object with the user and expires fields
  */
@@ -23,7 +22,7 @@ export async function validateSession(
 ) {
   const createdSession = {
     user: {
-      id: uuidv4(),
+      id: "" + Math.floor(Math.random() * 10000),
       type: userType,
     },
     expires: expires.toISOString(),
