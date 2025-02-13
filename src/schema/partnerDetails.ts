@@ -186,7 +186,7 @@ export const partnerDetailsSchema = z
     otherSpecialityItemsNeeded: z.string(),
   })
   .refine(
-    (data) => data.registeredWithMssp && !data.proofOfRegistationWithMssp,
+    (data) => !(data.registeredWithMssp && !data.proofOfRegistationWithMssp),
     {
       message: "Proof of registration with MSSP is required",
       path: ["proofOfRegistationWithMssp"],
@@ -194,8 +194,8 @@ export const partnerDetailsSchema = z
   )
   .refine(
     (data) =>
-      data.emergencyMedicalRecordsSystemPresent &&
-      !data.emergencyMedicalRecordsSystemName,
+      !(data.emergencyMedicalRecordsSystemPresent &&
+      !data.emergencyMedicalRecordsSystemName),
     {
       message: "Name of emergency medical records system is required",
       path: ["emergencyMedicalRecordsSystemName"],
@@ -203,20 +203,20 @@ export const partnerDetailsSchema = z
   )
   .refine(
     (data) =>
-      data.communityMobileOutreachOffered &&
-      !data.communityMobileOutreachDescription,
+      !(data.communityMobileOutreachOffered &&
+      !data.communityMobileOutreachDescription),
     {
       message:
         "Description of how often and what services are offered for community/mobile outreach is required",
       path: ["communityMobileOutreachDescription"],
     }
   )
-  .refine((data) => data.cleanWaterAccessible && !data.cleanWaterDescription, {
+  .refine((data) => !(data.cleanWaterAccessible && !data.cleanWaterDescription), {
     message: "Description of accessible clean water is required",
     path: ["cleanWaterDescription"],
   })
   .refine(
-    (data) => !data.cleanWaterAccessible && !data.closestSourceOfCleanWater,
+    (data) => !(!data.cleanWaterAccessible && !data.closestSourceOfCleanWater),
     {
       message: "Closest source of clean water is required",
       path: ["closestSourceOfCleanWater"],
@@ -224,8 +224,8 @@ export const partnerDetailsSchema = z
   )
   .refine(
     (data) =>
-      data.sanitationFacilitiesPresent &&
-      !data.sanitationFacilitiesLockableFromInside,
+      !(data.sanitationFacilitiesPresent &&
+      !data.sanitationFacilitiesLockableFromInside),
     {
       message:
         "Whether sanitation facilities are lockable from inside is required",
@@ -234,49 +234,49 @@ export const partnerDetailsSchema = z
   )
   .refine(
     (data) =>
-      data.medicationDisposalProcessDefined &&
-      !data.medicationDisposalProcessDescription,
+      !(data.medicationDisposalProcessDefined &&
+      !data.medicationDisposalProcessDescription),
     {
       message: "Description of medication disposal process is required",
       path: ["medicationDisposalProcessDescription"],
     }
   )
-  .refine((data) => data.pickupVehiclePresent && !data.pickupVehicleType, {
+  .refine((data) => !(data.pickupVehiclePresent && !data.pickupVehicleType), {
     message: "Pick-up vehicle type is required",
     path: ["pickupVehicleType"],
   })
   .refine(
-    (data) => data.pickupVehiclePresent && data.pickupLocations.length === 0,
+    (data) => !(data.pickupVehiclePresent && data.pickupLocations.length === 0),
     {
       message: "At least one pick-up location required",
       path: ["pickupLocations"],
     }
   )
-  .refine((data) => data.anyMenServedLastYear && !data.menServedLastYear, {
+  .refine((data) => !(data.anyMenServedLastYear && !data.menServedLastYear), {
     message: "Must specify how many men (18+) were served last year",
     path: ["menServedLastYear"],
   })
-  .refine((data) => data.anyWomenServedLastYear && !data.womenServedLastYear, {
+  .refine((data) => !(data.anyWomenServedLastYear && !data.womenServedLastYear), {
     message: "Must specify how many women (18+) were served last year",
     path: ["womenServedLastYear"],
   })
-  .refine((data) => data.anyBoysServedLastYear && !data.boysServedLastYear, {
+  .refine((data) => !(data.anyBoysServedLastYear && !data.boysServedLastYear), {
     message: "Must specify how many boys (1-17) were served last year",
     path: ["boysServedLastYear"],
   })
-  .refine((data) => data.anyGirlsServedLastYear && !data.girlsServedLastYear, {
+  .refine((data) => !(data.anyGirlsServedLastYear && !data.girlsServedLastYear), {
     message: "Must specify how many girls (1-17) were served last year",
     path: ["girlsServedLastYear"],
   })
   .refine(
-    (data) => data.anyBabyBoysServedLastYear && !data.babyBoysServedLastYear,
+    (data) => !(data.anyBabyBoysServedLastYear && !data.babyBoysServedLastYear),
     {
       message: "Must specify how many baby boys (<1) were served last year",
       path: ["babyBoysServedLastYear"],
     }
   )
   .refine(
-    (data) => data.anyBabyGirlsServedLastYear && !data.babyGirlsServedLastYear,
+    (data) => !(data.anyBabyGirlsServedLastYear && !data.babyGirlsServedLastYear),
     {
       message: "Must specify how many baby girls (<1) were served last year",
       path: ["babyGirlsServedLastYear"],
