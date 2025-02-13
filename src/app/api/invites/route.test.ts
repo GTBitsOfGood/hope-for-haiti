@@ -1,6 +1,6 @@
 import { testApiHandler } from "next-test-api-route-handler";
 import { expect, test } from "@jest/globals";
-import { OrganizationType, UserType } from "@prisma/client";
+import { UserType } from "@prisma/client";
 import * as uuid from "uuid";
 
 import { dbMock } from "@/test/dbMock";
@@ -222,7 +222,7 @@ test("error when invalid partner details for partner invite", async () => {
       formData.append("userType", "PARTNER");
       formData.append("name", "test name");
       formData.append("partnerDetails", JSON.stringify({
-        numberOfPatients: 8,
+        siteName: 8,
       }));
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(400);
@@ -239,9 +239,169 @@ test("success when valid partner details for partner invite", async () => {
         expires: "",
       });
       
+      const testContact = {
+        firstName: "test_firstName",
+        lastName: "test_lastName",
+        orgTitle: "test_orgTitle",
+        primaryTelephone: "test_primaryTelephone",
+        secondaryTelephone: "test_secondaryTelephone"
+      };
+      
       const partnerDetails = {
-        numberOfPatients: 8,
-        organizationType: OrganizationType.FOR_PROFIT
+        // General
+        siteName: "test_siteName",
+        address: "test_address",
+        department: "test_department",
+        gpsCoordinates: "test_gpsCoordinates",
+        website: "test_website",
+        socialMedia: "test_socialMedia",
+    
+        // Contact
+        regionalContact: testContact,
+        medicalContact: testContact,
+        adminDirectorContact: testContact,
+        pharmacyContact: testContact,
+        contactWhatsAppName: "test_contactWhatsAppName",
+        contactWhatsAppNumber: "test_contactWhatsAppNumber",
+    
+        // Introduction
+        organizationHistory: "test_organizationHistory",
+        supportRequested: "mobile_clinic_support",
+        yearOrganizationEstablished: 2025,
+        registeredWithMssp: true,
+        proofOfRegistationWithMssp: "https://www.google.com/", // this is a URL to the file upload
+        programUpdatesSinceLastReport: "test_programUpdatesSinceLastReport",
+    
+        // Facility
+        facilityType: [
+          "birthing_center",
+          "clinic",
+          "hospital",
+          "elderly_care",
+          "rehabilitation_center",
+          "dispensary",
+          "orphanage",
+          "primary_care",
+          "health_center",
+          "community_health_education",
+          "nutrition_feeding",
+          "secondary_tertiary_healthcare",
+        ],
+        organizationType: ["non_profit", "for_profit", "faith_based"],
+        governmentRun: true,
+        emergencyMedicalRecordsSystemPresent: true,
+        emergencyMedicalRecordsSystemName: "test",
+        numberOfInpatientBeds: 10,
+        numberOfPatientsServedAnnually: 10,
+        communityMobileOutreachOffered: true,
+        communityMobileOutreachDescription: "test",
+    
+        // Infrastructure and Services
+        facilityDescription: "test",
+        cleanWaterAccessible: true,
+        cleanWaterDescription: "test",
+        closestSourceOfCleanWater: "test",
+        sanitationFacilitiesPresent: true,
+        sanitationFacilitiesLockableFromInside: true,
+        electricityAvailable: true,
+        accessibleByDisablePatients: true,
+        medicationDisposalProcessDefined: true,
+        medicationDisposalProcessDescription: "test",
+        pickupVehiclePresent: true,
+        pickupVehicleType: "test",
+        pickupLocations: ["les_cayes", "port_au_prince"],
+    
+        // Programs and Services Provided
+        medicalServicesProvided: [
+          "cancer",
+          "dentistry",
+          "dermatology",
+          "hematology",
+          "immunizations",
+          "parasitic_infections",
+          "acute_respiratory_infections",
+          "vector_borne_diseases",
+          "chronic_diseases",
+          "diarrheal_diseases",
+          "vaccine_preventable_diseases",
+          "infectious_diseases",
+          "neurology",
+          "malnutrition",
+          "ophthalmology",
+          "ears_nose_throat",
+          "orthopedics_and_rehabilitation",
+          "pediatrics",
+          "radiology",
+          "wound_care",
+          "maternal_care",
+          "lab_tests",
+          "trauma_and_surgery",
+          "urology",
+        ],
+        otherMedicalServicesProvided: "test",
+    
+        // Finances
+        patientsWhoCannotPay: "test",
+        percentageOfPatientsNeedingFinancialAid: 10,
+        percentageOfPatientsReceivingFreeTreatment: 10,
+        annualSpendingOnMedicationsAndMedicalSupplies: "5001_to_10000",
+        numberOfPrescriptionsPrescribedAnnuallyTracked: true,
+        numberOfTreatmentsPrescribedAnnually: 10,
+        anyMenServedLastYear: true,
+        menServedLastYear: 10,
+        anyWomenServedLastYear: true,
+        womenServedLastYear: 10,
+        anyBoysServedLastYear: true,
+        boysServedLastYear: 10,
+        anyGirlsServedLastYear: true,
+        girlsServedLastYear: 10,
+        anyBabyBoysServedLastYear: true,
+        babyBoysServedLastYear: 10,
+        anyBabyGirlsServedLastYear: true,
+        babyGirlsServedLastYear: 10,
+        totalPatientsServedLastYear: 10,
+    
+        // Staff
+        numberOfDoctors: 10,
+        numberOfNurses: 10,
+        numberOfMidwives: 10,
+        numberOfAuxilaries: 10,
+        numberOfStatisticians: 10,
+        numberOfPharmacists: 10,
+        numberOfCHW: 10,
+        numberOfAdministrative: 10,
+        numberOfHealthOfficers: 10,
+        totalNumberOfStaff: 10,
+        other: "test",
+    
+        // Medical Supplies
+        mostNeededMedicalSupplies: [
+          "anesthetics",
+          "antipyretics_nsaids",
+          "antiallergics",
+          "anti_infectives",
+          "antineoplastics",
+          "cardiovascular",
+          "dermatological",
+          "diagnostics",
+          "diuretics",
+          "gastrointestinal",
+          "ophthalmological",
+          "respiratory",
+          "replacements",
+          "vitamins_minerals",
+          "bandages",
+          "braces",
+          "hospital_consumables",
+          "dental",
+          "diagnostic",
+          "personal_care",
+          "Prosthetics",
+          "respiratory ",
+          "surgical ",
+          "syringes_needles",
+        ],
+        otherSpecialityItemsNeeded: "test",
       };
 
       const formData = new FormData();

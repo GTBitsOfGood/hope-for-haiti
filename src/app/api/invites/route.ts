@@ -16,13 +16,13 @@ import {
   conflictError,
   ok,
 } from "@/util/responses";
-import { PartnerDetailsFormSchema } from "../partnerDetails/[userId]/route";
+import { partnerDetailsSchema } from "@/schema/partnerDetails";
 
 const schema = zfd.formData({
   email: zfd.text(z.string().email()),
   name: zfd.text(z.string()),
   userType: zfd.text(z.nativeEnum(UserType)),
-  partnerDetails: zfd.json(PartnerDetailsFormSchema).optional()
+  partnerDetails: zfd.json(partnerDetailsSchema).optional()
 });
 
 /**
