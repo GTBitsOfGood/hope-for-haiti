@@ -23,7 +23,15 @@ const schema = zfd.formData({
   name: zfd.text(z.string()),
   userType: zfd.text(z.nativeEnum(UserType)),
   partnerDetails: zfd.json(partnerDetailsSchema).optional()
-});
+}).refine(
+  (data) =>
+    !(data.userType === UserType.PARTNER && !data.partnerDetails),
+  {
+    message:
+      "Partner details are required for PARTNER user type",
+    path: ["partnerDetails"],
+  }
+);
 
 /**
  * Create a new user invite (expires in 1 day) and sends email to user.
@@ -54,10 +62,6 @@ export async function POST(request: NextRequest) {
   const existingUser = await db.user.findFirst({ where: { email } });
   if (existingUser) {
     return conflictError("Email already registered");
-  }
-
-  if (userType == UserType.PARTNER && !partnerDetails) {
-    return argumentError("Invalid partner details");
   }
 
   const token = uuidv4();
