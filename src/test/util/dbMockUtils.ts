@@ -10,8 +10,13 @@ import { UnallocatedItemRequest, UnclaimedItem } from "@prisma/client";
  * @returns Array of UnclaimedItems returned by db.unclaimedItem.findMany mock
  */
 export async function fillDbMockWithManyUnclaimedItems(
-  num: number
+  num: number,
+  dates?: Date[]
 ): Promise<UnclaimedItem[]> {
+  if (dates && dates.length !== num) {
+    throw new Error("Number of dates must match number of items");
+  }
+
   const items: UnclaimedItem[] = [];
   const generatedIds = new Set<number>();
 
@@ -27,7 +32,9 @@ export async function fillDbMockWithManyUnclaimedItems(
       id: id,
       name: `Test Item ${id}`,
       quantity: Math.floor(Math.random() * 1000),
-      expirationDate: new Date(Date.now() + Math.floor(Math.random() * 10000)),
+      expirationDate: dates
+        ? dates[i]
+        : new Date(Date.now() + Math.floor(Math.random() * 10000)),
     });
   }
 

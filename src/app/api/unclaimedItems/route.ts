@@ -14,6 +14,18 @@ interface UnclaimedItemsResponse {
   }[];
 }
 
+function parseDate(dateString: string): Date | null {
+  // see https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
+  const date = new Date(dateString);
+  if (
+    Object.prototype.toString.call(date) === "[object Date]" &&
+    !isNaN(date.getTime())
+  ) {
+    return new Date(dateString);
+  }
+  return null;
+}
+
 /**
  * Handles GET requests to retrieve unclaimed items from the unclaimedItem database.
  * @returns 401 if the session is invalid
@@ -30,31 +42,26 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const expirationDateBefore = params.has("expirationDateBefore")
-    ? new Date(params.get("expirationDateBefore") as string)
+    ? parseDate(params.get("expirationDateBefore") as string)
     : undefined;
   const expirationDateAfter = params.has("expirationDateAfter")
-    ? new Date(params.get("expirationDateAfter") as string)
+    ? parseDate(params.get("expirationDateAfter") as string)
     : undefined;
 
-  if (
-    expirationDateBefore &&
-    expirationDateBefore.toISOString() !== params.get("expirationDateBefore")
-  ) {
+  if (expirationDateBefore === null) {
     return argumentError(
-      "expirationDateBefore is not a valid ISO-8601 timestamp"
+      "expirationDateBefore must be a valid ISO-8601 timestamp"
     );
   }
 
-  if (
-    expirationDateAfter &&
-    expirationDateAfter.toISOString() !== params.get("expirationDateAfter")
-  ) {
+  if (expirationDateAfter === null) {
     return argumentError(
-      "expirationDateAfter is not a valid ISO-8601 timestamp"
+      "expirationDateAfter must be a valid ISO-8601 timestamp"
     );
   }
 
   // Get all unclaimed items
+  console.log(expirationDateBefore, expirationDateAfter);
   const unclaimedItems = await db.unclaimedItem.findMany({
     where: {
       expirationDate: {
@@ -63,6 +70,8 @@ export async function GET(request: NextRequest) {
       },
     },
   });
+
+  console.log(unclaimedItems);
 
   return NextResponse.json({
     unclaimedItems: unclaimedItems,
