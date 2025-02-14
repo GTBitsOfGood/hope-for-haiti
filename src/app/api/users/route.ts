@@ -1,16 +1,23 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { argumentError, conflictError, notFoundError, authenticationError, authorizationError, ok } from "@/util/responses";
+import {
+  argumentError,
+  conflictError,
+  notFoundError,
+  authenticationError,
+  authorizationError,
+  ok,
+} from "@/util/responses";
 import { UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { zfd } from "zod-form-data";
-import * as argon2 from 'argon2';
+import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const ALLOWED_USER_TYPES: UserType[] = [
-    UserType.ADMIN,
-    UserType.STAFF,
-    UserType.SUPER_ADMIN,
+  UserType.ADMIN,
+  UserType.STAFF,
+  UserType.SUPER_ADMIN,
 ];
 
 /**
@@ -22,27 +29,28 @@ const ALLOWED_USER_TYPES: UserType[] = [
  * @returns 200 with a list of users, including their email and role type
  */
 export async function GET() {
-    const session = await auth();
-    if (!session?.user) return authenticationError("Session required");
+  const session = await auth();
+  if (!session?.user) return authenticationError("Session required");
 
-    const { user } = session;
-    if (!ALLOWED_USER_TYPES.includes(user.type)) {
-        return authorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+  const { user } = session;
+  if (!ALLOWED_USER_TYPES.includes(user.type)) {
+    return authorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+  }
 
-    const users = await db.user.findMany({
-        select: {
-            email: true,
-            type: true,
-        },
-    });
+  const users = await db.user.findMany({
+    select: {
+      email: true,
+      type: true,
+      name: true,
+    },
+  });
 
-    return NextResponse.json(users, { status: 200 });
+  return NextResponse.json(users, { status: 200 });
 }
 
 const schema = zfd.formData({
-    inviteToken: zfd.text(),
-    password: zfd.text()
+  inviteToken: zfd.text(),
+  password: zfd.text(),
 });
 
 /**
@@ -56,38 +64,38 @@ const schema = zfd.formData({
  * @returns 200
  */
 export async function POST(req: NextRequest) {
-    const parsed = schema.safeParse(await req.formData());
-    if (!parsed.success) {
-        return argumentError("Invalid user data");
-    }
-    
-    const { inviteToken, password } = parsed.data;
-    const userInvite = await db.userInvite.findUnique({
-        where: {
-            token: inviteToken
-        }
+  const parsed = schema.safeParse(await req.formData());
+  if (!parsed.success) {
+    return argumentError("Invalid user data");
+  }
+
+  const { inviteToken, password } = parsed.data;
+  const userInvite = await db.userInvite.findUnique({
+    where: {
+      token: inviteToken,
+    },
+  });
+  if (!userInvite) {
+    return notFoundError("Invite does not exist");
+  } else if (userInvite.expiration < new Date()) {
+    return argumentError("Invite has expired");
+  }
+  try {
+    await db.user.create({
+      data: {
+        name: userInvite.name,
+        email: userInvite.email,
+        passwordHash: await argon2.hash(password),
+        type: userInvite.userType,
+      },
     });
-    if (!userInvite) {
-        return notFoundError("Invite does not exist");
-    } else if (userInvite.expiration < new Date()) {
-        return argumentError("Invite has expired");
+  } catch (e) {
+    if (e instanceof PrismaClientKnownRequestError) {
+      if (e.code === "P2002") {
+        return conflictError("User already exists");
+      }
     }
-    try {
-        await db.user.create({
-            data: {
-                name: userInvite.name,
-                email: userInvite.email,
-                passwordHash: await argon2.hash(password),
-                type: userInvite.userType
-            }
-        });
-    } catch (e) {
-        if (e instanceof PrismaClientKnownRequestError) {
-            if (e.code === 'P2002') {
-                return conflictError("User already exists");
-            }
-        }
-        throw e;
-    }
-    return ok();
+    throw e;
+  }
+  return ok();
 }

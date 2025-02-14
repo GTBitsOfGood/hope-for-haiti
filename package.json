@@ -21,6 +21,7 @@
     "@react-email/render": "1.0.3",
     "@sendgrid/mail": "^8.1.4",
     "argon2": "^0.41.1",
+    "classnames": "^2.5.1",
     "next": "15.0.4",
     "next-auth": "^5.0.0-beta.25",
     "react": "^19.0.0",
