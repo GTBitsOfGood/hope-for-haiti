@@ -7,15 +7,10 @@ import {
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { NextResponse, NextRequest } from "next/server";
-import { OrganizationType, UserType } from "@prisma/client";
+import { UserType } from "@prisma/client";
 
-import { z } from "zod";
 import { zfd } from "zod-form-data";
-
-interface PartnerDetails {
-  numberOfPatients: number;
-  organizationType: OrganizationType;
-}
+import { partnerDetailsSchema } from "@/schema/partnerDetails";
 
 /**
  * Retrieves the current user's partner details from the partnerDetails database.
@@ -28,7 +23,7 @@ interface PartnerDetails {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: Promise<{ userId: string }> },
 ): Promise<NextResponse> {
   const { userId } = await params;
   const session = await auth();
@@ -37,21 +32,17 @@ export async function GET(
     return authorizationError("You are not allowed to view this");
   }
 
-  const partnerDetails: PartnerDetails | null =
-    await db.partnerDetails.findUnique({
-      where: { userId: parseInt(userId) },
-      select: { numberOfPatients: true, organizationType: true },
-    });
-  if (!partnerDetails) return notFoundError("Partner details not found");
-  return NextResponse.json(partnerDetails);
+  const userPartnerDetails = await db.user.findUnique({
+    where: { id: parseInt(userId) },
+    select: { partnerDetails: true },
+  });
+  if (!userPartnerDetails) return notFoundError("Partner details not found");
+  return NextResponse.json(userPartnerDetails.partnerDetails);
 }
 
 // Zod schema
 const PartnerDetailsFormSchema = zfd.formData({
-  numberOfPatients: zfd.numeric(
-    z.number().min(1, "Number of patients must be positive")
-  ),
-  organizationType: zfd.text(z.enum(["NON_PROFIT", "FOR_PROFIT", "RELIGIOUS"])),
+  partnerDetails: zfd.json(partnerDetailsSchema),
 });
 
 /**
@@ -69,7 +60,7 @@ const PartnerDetailsFormSchema = zfd.formData({
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   // authenticate the user session
   const session = await auth();
@@ -96,17 +87,14 @@ export async function POST(
     return argumentError("Invalid form data");
   }
 
-  const { numberOfPatients, organizationType } = parsedData.data;
-
   // update PartnerDetails record
   const userIdNumber = Number(userId); //db schema accepts a number
-  const updatedPartnerDetails = await db.partnerDetails.update({
-    where: { userId: userIdNumber },
+  const updatedUser = await db.user.update({
+    where: { id: userIdNumber },
     data: {
-      numberOfPatients,
-      organizationType,
+      partnerDetails: parsedData.data,
     },
   });
 
-  return NextResponse.json(updatedPartnerDetails);
+  return NextResponse.json(updatedUser.partnerDetails);
 }
