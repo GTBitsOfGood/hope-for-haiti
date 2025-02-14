@@ -12,12 +12,14 @@ const item = {
   title: "Some item",
   category: "Some category",
   quantity: 2,
-  expiration: new Date(1000),
+  expirationDate: new Date(1000),
   unitSize: 64,
+  unitType: "bunches",
   datePosted: new Date(1000),
   lotNumber: 2,
   donorName: "John Doe",
   unitPrice: 7,
+  maxRequestLimit: "5",
 };
 const invalidItem = {
   title: "foobar",
@@ -35,8 +37,8 @@ const itemOutput = {
   lotNumber: 2,
   donorName: "John Doe",
   unitPrice: 7,
-  unitType: "",
-  maxRequestLimit: "",
+  unitType: "bunches",
+  maxRequestLimit: "5",
 };
 
 test("returns 401 on invalid session", async () => {
