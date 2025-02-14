@@ -122,12 +122,11 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
       const res = await fetch({ method: "GET" });
       await expect(res.status).toBe(200);
 
-      // Check that the response json was written correctly
       const expectedRet = {
         unclaimedItems: await dbMock.unclaimedItem.findMany(),
       };
       const json = await res.json();
-      await expect(json).toEqual(JSON.parse(JSON.stringify(expectedRet))); // Needed to stringify and parse because the expiration field would cause an error because Date != ISOstring
+      await expect(json).toEqual(JSON.parse(JSON.stringify(expectedRet)));
     },
   });
 });
@@ -152,12 +151,11 @@ test("Should be successful when both expirationDateBefore valid, expirationDateA
       const res = await fetch({ method: "GET" });
       await expect(res.status).toBe(200);
 
-      // Check that the response json was written correctly
       const expectedRet = {
         unclaimedItems: await dbMock.unclaimedItem.findMany(),
       };
       const json = await res.json();
-      await expect(json).toEqual(JSON.parse(JSON.stringify(expectedRet))); // Needed to stringify and parse because the expiration field would cause an error because Date != ISOstring
+      await expect(json).toEqual(JSON.parse(JSON.stringify(expectedRet)));
     },
   });
 });
@@ -182,12 +180,11 @@ test("Should be successful when both expirationDateBefore missing, expirationDat
       const res = await fetch({ method: "GET" });
       await expect(res.status).toBe(200);
 
-      // Check that the response json was written correctly
       const expectedRet = {
         unclaimedItems: await dbMock.unclaimedItem.findMany(),
       };
       const json = await res.json();
-      await expect(json).toEqual(JSON.parse(JSON.stringify(expectedRet))); // Needed to stringify and parse because the expiration field would cause an error because Date != ISOstring
+      await expect(json).toEqual(JSON.parse(JSON.stringify(expectedRet)));
     },
   });
 });
