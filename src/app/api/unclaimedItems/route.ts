@@ -22,8 +22,8 @@ interface ItemsResponse {
 }
 
 /**
- *
- * @params dateString
+ * Takes a date string, validates it, and parses it into a Date object.
+ * @params dateString: the date string to parse
  * @returns the parsed date string or null if the date string is invalid
  */
 function parseDate(dateString: string): Date | null {
