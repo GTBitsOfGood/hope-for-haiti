@@ -18,20 +18,20 @@ import {
 } from "@/util/responses";
 import { partnerDetailsSchema } from "@/schema/partnerDetails";
 
-const schema = zfd.formData({
-  email: zfd.text(z.string().email()),
-  name: zfd.text(z.string()),
-  userType: zfd.text(z.nativeEnum(UserType)),
-  partnerDetails: zfd.json(partnerDetailsSchema).optional()
-}).refine(
-  (data) =>
-    !(data.userType === UserType.PARTNER && !data.partnerDetails),
-  {
-    message:
-      "Partner details are required for PARTNER user type",
-    path: ["partnerDetails"],
-  }
-);
+const schema = zfd
+  .formData({
+    email: zfd.text(z.string().email()),
+    name: zfd.text(z.string()),
+    userType: zfd.text(z.nativeEnum(UserType)),
+    partnerDetails: zfd.json(partnerDetailsSchema).optional(),
+  })
+  .refine(
+    (data) => !(data.userType === UserType.PARTNER && !data.partnerDetails),
+    {
+      message: "Partner details are required for PARTNER user type",
+      path: ["partnerDetails"],
+    },
+  );
 
 /**
  * Create a new user invite (expires in 1 day) and sends email to user.
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       token,
       expiration,
       userType,
-      partnerDetails
+      partnerDetails,
     },
   });
 

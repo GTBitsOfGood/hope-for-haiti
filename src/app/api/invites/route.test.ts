@@ -131,7 +131,7 @@ test("test email html", async () => {
       expect(sendEmailMock).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        expect.stringMatching(new RegExp(`register\\?token=${mockToken}`))
+        expect.stringMatching(new RegExp(`register\\?token=${mockToken}`)),
       );
     },
   });
@@ -160,7 +160,7 @@ test("UserInvite expires in one day", async () => {
 
       expect(expirationDate.getTime() - currentDate.getTime()).toBeCloseTo(
         oneDayInMilliseconds,
-        -2
+        -2,
       );
     },
   });
@@ -221,9 +221,12 @@ test("error when invalid partner details for partner invite", async () => {
       formData.append("email", "test@test.com");
       formData.append("userType", "PARTNER");
       formData.append("name", "test name");
-      formData.append("partnerDetails", JSON.stringify({
-        siteName: 8,
-      }));
+      formData.append(
+        "partnerDetails",
+        JSON.stringify({
+          siteName: 8,
+        }),
+      );
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(400);
     },
@@ -238,15 +241,15 @@ test("success when valid partner details for partner invite", async () => {
         user: { id: "1234", type: "SUPER_ADMIN" },
         expires: "",
       });
-      
+
       const testContact = {
         firstName: "test_firstName",
         lastName: "test_lastName",
         orgTitle: "test_orgTitle",
         primaryTelephone: "test_primaryTelephone",
-        secondaryTelephone: "test_secondaryTelephone"
+        secondaryTelephone: "test_secondaryTelephone",
       };
-      
+
       const partnerDetails = {
         // General
         siteName: "test_siteName",
@@ -255,7 +258,7 @@ test("success when valid partner details for partner invite", async () => {
         gpsCoordinates: "test_gpsCoordinates",
         website: "test_website",
         socialMedia: "test_socialMedia",
-    
+
         // Contact
         regionalContact: testContact,
         medicalContact: testContact,
@@ -263,7 +266,7 @@ test("success when valid partner details for partner invite", async () => {
         pharmacyContact: testContact,
         contactWhatsAppName: "test_contactWhatsAppName",
         contactWhatsAppNumber: "test_contactWhatsAppNumber",
-    
+
         // Introduction
         organizationHistory: "test_organizationHistory",
         supportRequested: "mobile_clinic_support",
@@ -271,7 +274,7 @@ test("success when valid partner details for partner invite", async () => {
         registeredWithMssp: true,
         proofOfRegistationWithMssp: "https://www.google.com/", // this is a URL to the file upload
         programUpdatesSinceLastReport: "test_programUpdatesSinceLastReport",
-    
+
         // Facility
         facilityType: [
           "birthing_center",
@@ -295,7 +298,7 @@ test("success when valid partner details for partner invite", async () => {
         numberOfPatientsServedAnnually: 10,
         communityMobileOutreachOffered: true,
         communityMobileOutreachDescription: "test",
-    
+
         // Infrastructure and Services
         facilityDescription: "test",
         cleanWaterAccessible: true,
@@ -310,7 +313,7 @@ test("success when valid partner details for partner invite", async () => {
         pickupVehiclePresent: true,
         pickupVehicleType: "test",
         pickupLocations: ["les_cayes", "port_au_prince"],
-    
+
         // Programs and Services Provided
         medicalServicesProvided: [
           "cancer",
@@ -339,7 +342,7 @@ test("success when valid partner details for partner invite", async () => {
           "urology",
         ],
         otherMedicalServicesProvided: "test",
-    
+
         // Finances
         patientsWhoCannotPay: "test",
         percentageOfPatientsNeedingFinancialAid: 10,
@@ -360,7 +363,7 @@ test("success when valid partner details for partner invite", async () => {
         anyBabyGirlsServedLastYear: true,
         babyGirlsServedLastYear: 10,
         totalPatientsServedLastYear: 10,
-    
+
         // Staff
         numberOfDoctors: 10,
         numberOfNurses: 10,
@@ -373,7 +376,7 @@ test("success when valid partner details for partner invite", async () => {
         numberOfHealthOfficers: 10,
         totalNumberOfStaff: 10,
         other: "test",
-    
+
         // Medical Supplies
         mostNeededMedicalSupplies: [
           "anesthetics",
