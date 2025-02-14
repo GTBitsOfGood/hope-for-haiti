@@ -1,4 +1,3 @@
-// import { NextRequest } from 'next/server';
 import { auth } from "@/auth";
 import { authenticationError, argumentError } from "@/util/responses";
 import { db } from "@/db";
@@ -28,8 +27,11 @@ function parseDate(dateString: string): Date | null {
 
 /**
  * Handles GET requests to retrieve unclaimed items from the unclaimedItem database.
+ * Parameters are passed in the URL query string.
+ * @params expirationDateBefore: ISO-8601 timestamp that returned items expire before
+ * @params expirationDateAfter: ISO-8601 timestamp that returned items expire after
  * @returns 401 if the session is invalid
- * @returns 500 if an unknown error occurs
+ * @returns 400 if expirationDateAfter or expirationDateBefore are invalid ISO-8601 timestamps
  * @returns 200 and a json response with the unclaimed items
  */
 export async function GET(request: NextRequest) {
