@@ -57,6 +57,7 @@ const schema = zfd.formData({
  */
 export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(await req.formData());
+    console.log(parsed)
     if (!parsed.success) {
         return argumentError("Invalid user data");
     }

@@ -17,11 +17,11 @@ interface Response {
  */
 export async function GET(
   _: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ tokenId: string }> }
 ) {
-  const { token } = await params;
+  const { tokenId } = await params;
   const invite = await db.userInvite.findUnique({
-    where: { token },
+    where: { token: tokenId },
     select: { email: true, name: true, expiration: true },
   });
   if (!invite || invite.expiration < new Date())
