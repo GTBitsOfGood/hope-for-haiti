@@ -4,15 +4,28 @@ import { db } from "@/db";
 import { NextRequest, NextResponse } from "next/server";
 
 // Response for GET /api/unclaimedItems
-interface UnclaimedItemsResponse {
-  unclaimedItems: {
+interface ItemsResponse {
+  items: {
     id: number;
-    name: string;
+    title: string;
+    category: string;
     quantity: number;
     expirationDate: Date | null;
+    unitSize: number;
+    unitType: string;
+    datePosted: Date;
+    lotNumber: number;
+    donorName: string;
+    unitPrice: number;
+    maxRequestLimit: string;
   }[];
 }
 
+/**
+ *
+ * @params dateString
+ * @returns the parsed date string or null if the date string is invalid
+ */
 function parseDate(dateString: string): Date | null {
   // see https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
   const date = new Date(dateString);
@@ -62,9 +75,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Get all unclaimed items
-  console.log(expirationDateBefore, expirationDateAfter);
-  const unclaimedItems = await db.unclaimedItem.findMany({
+  // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
+  const items = await db.item.findMany({
     where: {
       expirationDate: {
         gt: expirationDateAfter,
@@ -73,9 +85,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  console.log(unclaimedItems);
-
   return NextResponse.json({
-    unclaimedItems: unclaimedItems,
-  } as UnclaimedItemsResponse);
+    items: items,
+  } as ItemsResponse);
 }
