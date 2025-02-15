@@ -131,7 +131,7 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
   });
 });
 
-test("Should be successful when both expirationDateBefore valid, expirationDateAfter missing", async () => {
+test("Should be successful when expirationDateBefore valid, expirationDateAfter missing", async () => {
   await testApiHandler({
     appHandler,
     requestPatcher(request) {
@@ -160,7 +160,7 @@ test("Should be successful when both expirationDateBefore valid, expirationDateA
   });
 });
 
-test("Should be successful when both expirationDateBefore missing, expirationDateAfter valid", async () => {
+test("Should be successful when expirationDateBefore missing, expirationDateAfter valid", async () => {
   await testApiHandler({
     appHandler,
     requestPatcher(request) {

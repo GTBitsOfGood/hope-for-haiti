@@ -24,10 +24,17 @@ interface ItemsResponse {
 /**
  * Takes a date string, validates it, and parses it into a Date object.
  * @params dateString: the date string to parse
- * @returns the parsed date string or null if the date string is invalid
+ * @returns undefined if the date string is undefined/null
+ * @returns null if the date string is defined but invalid
+ * @returns a Date object if the date string is valid
  */
-function parseDate(dateString: string): Date | null {
+function parseDateIfDefined(
+  dateString: string | null
+): Date | null | undefined {
   // see https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
+  if (!dateString) {
+    return undefined;
+  }
   const date = new Date(dateString);
   if (
     Object.prototype.toString.call(date) === "[object Date]" &&
@@ -56,12 +63,12 @@ export async function GET(request: NextRequest) {
   }
 
   const params = request.nextUrl.searchParams;
-  const expirationDateBefore = params.has("expirationDateBefore")
-    ? parseDate(params.get("expirationDateBefore") as string)
-    : undefined;
-  const expirationDateAfter = params.has("expirationDateAfter")
-    ? parseDate(params.get("expirationDateAfter") as string)
-    : undefined;
+  const expirationDateBefore = parseDateIfDefined(
+    params.get("expirationDateBefore")
+  );
+  const expirationDateAfter = parseDateIfDefined(
+    params.get("expirationDateAfter")
+  );
 
   if (expirationDateBefore === null) {
     return argumentError(
