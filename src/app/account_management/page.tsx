@@ -2,4 +2,6 @@
 
 import AccountManagementScreen from "@/screens/AccountManagementScreen";
 
-export default AccountManagementScreen;
+export default function AccountManagementPage() {
+  return <AccountManagementScreen />;
+}
