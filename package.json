@@ -12,7 +12,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:clear": "tsx scripts/clear.ts",
     "db:migrate": "npx prisma migrate dev",
-    "db:view": "npx prisma studio"
+    "db:view": "npx prisma studio",
+    "prepare": "husky"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",
