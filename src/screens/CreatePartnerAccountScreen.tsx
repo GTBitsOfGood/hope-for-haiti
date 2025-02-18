@@ -43,13 +43,12 @@ export default function CreatePartnerAccountScreen() {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("API Error:", errorText);
           throw new Error(errorText || "Failed to send invite.");
         }
 
         //go back to account management after
         router.push("/account_management");
-      } catch (error) {
+      } catch {
         setErrorMessage("Failed to send invite. Please try again.");
       } finally {
         setSendingInvite(false);

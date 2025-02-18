@@ -52,7 +52,7 @@ export default function InviteUserForm({ closeModal, onSubmit }: InviteUserFormP
 
       setSuccess(true);
       onSubmit(role as UserType);
-    } catch (error) {
+    } catch {
       setErrorMessage("Couldn't send invite. Please try again.");
     }
   };
