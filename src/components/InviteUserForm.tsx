@@ -75,7 +75,7 @@ export default function InviteUserForm({ closeModal, onSubmit }: InviteUserFormP
             </div>
 
             <button
-                className="bg-mediumRed text-white px-6 py-3 rounded-[4px] font-semibold w-full"
+                className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold w-full"
                 onClick={closeModal}
             >
                 Back to account management
