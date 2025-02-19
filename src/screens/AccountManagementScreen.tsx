@@ -6,6 +6,21 @@ import { CgSpinner } from "react-icons/cg";
 import { User, UserType } from "@prisma/client";
 import classNames from "classnames";
 
+enum UserFilterKey {
+  ALL = "All",
+  STAFF = "Hope for Haiti Staff",
+  PARTNERS = "Partners",
+}
+
+const filterMap: Record<UserFilterKey, (user: User) => boolean> = {
+  [UserFilterKey.ALL]: () => true,
+  [UserFilterKey.STAFF]: (user) =>
+    user.type === UserType.STAFF ||
+    user.type === UserType.ADMIN ||
+    user.type === UserType.SUPER_ADMIN,
+  [UserFilterKey.PARTNERS]: (user) => user.type === UserType.PARTNER,
+};
+
 function formatUserType(type: UserType): string {
   return type
     .toLowerCase()
@@ -13,12 +28,6 @@ function formatUserType(type: UserType): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
-
-const filterMap: Record<string, (user: User) => boolean> = {
-  All: () => true,
-  "Hope for Haiti Staff": (user) => user.type === UserType.STAFF,
-  Partners: (user) => user.type === UserType.PARTNER,
-};
 
 export default function AccountManagementScreen() {
   const [users, setUsers] = useState<User[]>([]);
@@ -45,7 +54,7 @@ export default function AccountManagementScreen() {
     fetchUsers();
   }, []);
 
-  const filterUsers = (type: string) => {
+  const filterUsers = (type: UserFilterKey) => {
     setActiveTab(type);
     setFilteredUsers(users.filter(filterMap[type]));
   };
@@ -70,21 +79,22 @@ export default function AccountManagementScreen() {
         </button>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
-        {Object.keys(filterMap).map((tab) => (
-          <button
-            key={tab}
-            className={classNames(
-              "px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none",
-              {
-                "border-b-2 border-black bottom-[-1px]": activeTab === tab,
-                "text-gray-500": activeTab !== tab,
-              }
-            )}
-            onClick={() => filterUsers(tab)}
-          >
-            <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
-          </button>
-        ))}
+        {Object.keys(filterMap).map((tab) => {
+          const key = tab as UserFilterKey;
+
+          return (
+            <button
+              key={tab}
+              data-active={activeTab === tab}
+              className={classNames(
+                "px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
+              )}
+              onClick={() => filterUsers(key)}
+            >
+              <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
+            </button>
+          );
+        })}
       </div>
 
       {isLoading ? (
@@ -106,10 +116,8 @@ export default function AccountManagementScreen() {
             {filteredUsers.map((user, index) => (
               <tr
                 key={index}
-                className={classNames({
-                  "bg-white": index % 2 === 0,
-                  "bg-gray-50": index % 2 !== 0,
-                })}
+                data-odd={index % 2 !== 0}
+                className="bg-white data-[odd=true]:bg-gray-50"
               >
                 <td className="border-b px-4 py-2 w-1/5">{user.name}</td>
                 <td className="border-b px-4 py-2 w-1/5">{user.email}</td>
