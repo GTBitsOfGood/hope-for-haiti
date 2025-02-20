@@ -60,7 +60,7 @@ export default function AccountManagementScreen() {
   };
 
   return (
-    <div>
+    <>
       <h1 className="text-2xl font-semibold">Account Management</h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
@@ -102,47 +102,49 @@ export default function AccountManagementScreen() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <table className="min-w-full mt-4 rounded-t-lg overflow-hidden">
-          <thead>
-            <tr className="bg-gray-100 border-b-2">
-              <th className="px-4 py-2 text-left font-normal">Name</th>
-              <th className="px-4 py-2 text-left font-normal">Email</th>
-              <th className="px-4 py-2 text-left font-normal">Role</th>
-              <th className="px-4 py-2 text-left font-normal">Status</th>
-              <th className="px-4 py-2 text-left font-normal">Manage</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((user, index) => (
-              <tr
-                key={index}
-                data-odd={index % 2 !== 0}
-                className="bg-white data-[odd=true]:bg-gray-50"
-              >
-                <td className="border-b px-4 py-2 w-1/5">{user.name}</td>
-                <td className="border-b px-4 py-2 w-1/5">{user.email}</td>
-                <td className="border-b px-4 py-2 w-1/5">
-                  {formatUserType(user.type)}
-                </td>
-                <td className="border-b px-4 py-2 w-1/5">
-                  <span className="px-2 py-1 rounded bg-green-primary whitespace-nowrap">
-                    Account created
-                  </span>
-                </td>
-                <td className="border-b px-4 py-2 w-12">
-                  <div className="float-right">
-                    <DotsThree
-                      weight="bold"
-                      className="cursor-pointer"
-                      onClick={() => {}}
-                    />
-                  </div>
-                </td>
+        <div className="overflow-x-scroll">
+          <table className="mt-4 rounded-t-lg overflow-hidden">
+            <thead>
+              <tr className="bg-gray-100 border-b-2">
+                <th className="px-4 py-2 text-left font-normal">Name</th>
+                <th className="px-4 py-2 text-left font-normal">Email</th>
+                <th className="px-4 py-2 text-left font-normal">Role</th>
+                <th className="px-4 py-2 text-left font-normal">Status</th>
+                <th className="px-4 py-2 text-left font-normal">Manage</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredUsers.map((user, index) => (
+                <tr
+                  key={index}
+                  data-odd={index % 2 !== 0}
+                  className="bg-white data-[odd=true]:bg-gray-50"
+                >
+                  <td className="border-b px-4 py-2 w-1/5">{user.name}</td>
+                  <td className="border-b px-4 py-2 w-1/5">{user.email}</td>
+                  <td className="border-b px-4 py-2 w-1/5">
+                    {formatUserType(user.type)}
+                  </td>
+                  <td className="border-b px-4 py-2 w-1/5">
+                    <span className="px-2 py-1 rounded bg-green-primary whitespace-nowrap">
+                      Account created
+                    </span>
+                  </td>
+                  <td className="border-b px-4 py-2 w-12">
+                    <div className="float-right">
+                      <DotsThree
+                        weight="bold"
+                        className="cursor-pointer"
+                        onClick={() => {}}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </>
   );
 }

@@ -182,7 +182,7 @@ export default function NavbarLayout({
         <>
           <DesktopNavbar />
           <MobileNavbar />
-          <main className="flex-1 px-6 py-8">{children}</main>
+          <main className="flex-1 px-6 py-8 overflow-scroll">{children}</main>
         </>
       ) : (
         <>{children}</>
