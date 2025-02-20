@@ -32,8 +32,7 @@ export async function GET(
 ) {
   // Validate session
   const session = await auth();
-  if (!session) return authenticationError("Session required");
-  if (!session?.user) return authenticationError("User not found");
+  if (!session?.user) return authenticationError("Session required");
   if (
     session.user.type !== UserType.STAFF &&
     session.user.type !== UserType.ADMIN &&
