@@ -2,16 +2,14 @@ import "dotenv/config";
 import { exit } from "process";
 import { db } from "@/db";
 import { hash } from "argon2";
-import { OrganizationType, UserType } from "@prisma/client";
+import { UserType } from "@prisma/client";
 
 async function run() {
   await db.$transaction(async (tx) => {
-    await tx.requestedUnclaimedItem.deleteMany();
-    await tx.unclaimedItemRequest.deleteMany();
-    await tx.unclaimedItem.deleteMany();
-    await tx.partnerDetails.deleteMany();
     await tx.user.deleteMany();
     await tx.userInvite.deleteMany();
+    await tx.item.deleteMany();
+    await tx.unallocatedItemRequest.deleteMany();
 
     await tx.user.createMany({
       data: [
@@ -38,40 +36,9 @@ async function run() {
           passwordHash: await hash("root"),
           type: "PARTNER",
           name: "Partner",
-          partnerDetails: {
-            numberOfPatients: 10,
-            organizationType: OrganizationType.NON_PROFIT,
-          },
+          partnerDetails: {},
         },
       ],
-    });
-
-    const banana = await tx.unclaimedItem.create({
-      data: { name: "Banana", quantity: 10, expirationDate: new Date() },
-    });
-
-    const apple = await tx.unclaimedItem.create({
-      data: { name: "Apple", quantity: 100, expirationDate: new Date() },
-    });
-
-    await tx.unclaimedItemRequest.create({
-      data: {
-        items: {
-          createMany: {
-            data: [
-              {
-                itemId: banana.id,
-                quantity: 5,
-              },
-              {
-                itemId: apple.id,
-                quantity: 10,
-              },
-            ],
-          },
-        },
-        partner: { connect: { email: "partner@test.com" } },
-      },
     });
 
     await tx.userInvite.create({

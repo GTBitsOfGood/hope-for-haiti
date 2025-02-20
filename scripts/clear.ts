@@ -4,14 +4,10 @@ import { db } from "@/db";
 
 async function run() {
   await db.$transaction(async (tx) => {
-    await tx.unallocatedItemRequest.deleteMany();
-    await tx.item.deleteMany();
-    await tx.requestedUnclaimedItem.deleteMany();
-    await tx.unclaimedItemRequest.deleteMany();
-    await tx.unclaimedItem.deleteMany();
-    await tx.userInvite.deleteMany();
-    await tx.partnerDetails.deleteMany();
     await tx.user.deleteMany();
+    await tx.userInvite.deleteMany();
+    await tx.item.deleteMany();
+    await tx.unallocatedItemRequest.deleteMany();
   });
 }
 
