@@ -6,7 +6,7 @@ import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { dbMock } from "@/test/dbMock";
 import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
-import { UserType } from "@prisma/client";
+import { Prisma, UserType } from "@prisma/client";
 
 const item = {
   title: "Some item",
@@ -17,8 +17,10 @@ const item = {
   unitType: "bunches",
   datePosted: new Date(1000),
   lotNumber: 2,
+  palletNumber: 3,
+  boxNumber: 4,
   donorName: "John Doe",
-  unitPrice: 7,
+  unitPrice: new Prisma.Decimal(1234),
   maxRequestLimit: "5",
 };
 const invalidItem = {

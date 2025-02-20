@@ -6,7 +6,7 @@ import {
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { NextResponse, NextRequest } from "next/server";
-import { UserType } from "@prisma/client";
+import { Prisma, UserType } from "@prisma/client";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 
@@ -24,9 +24,12 @@ const ItemFormSchema = zfd.formData({
   unitType: zfd.text(),
   datePosted: z.coerce.date(),
   lotNumber: zfd.numeric(z.number().int().min(0)),
+  palletNumber: zfd.numeric(z.number().int().min(0)),
+  boxNumber: zfd.numeric(z.number().int().min(0)),
   donorName: zfd.text(),
   unitPrice: zfd.numeric(z.number().min(0)),
   maxRequestLimit: zfd.text(),
+  visible: zfd.checkbox(),
 });
 
 interface ItemResponse {
@@ -37,10 +40,13 @@ interface ItemResponse {
   unitSize: number;
   datePosted: Date;
   lotNumber: number;
+  palletNumber: number;
+  boxNumber: number;
   donorName: string;
-  unitPrice: number;
+  unitPrice: Prisma.Decimal;
   unitType: string;
   maxRequestLimit: string;
+  visible: boolean;
 }
 
 /**

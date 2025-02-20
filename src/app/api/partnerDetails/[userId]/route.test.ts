@@ -259,6 +259,7 @@ test("returns 200 and correct details on success when partner + id matches", asy
         email: "test_email@test.com",
         name: "tester",
         passwordHash: "test_hash",
+        enabled: true,
       });
 
       const res = await fetch({ method: "GET", body: null });
@@ -286,6 +287,7 @@ test("returns 200 and correct details on success when staff matches", async () =
         email: "test_email@test.com",
         name: "tester",
         passwordHash: "test_hash",
+        enabled: true,
       });
 
       const res = await fetch({ method: "GET", body: null });
@@ -384,6 +386,7 @@ describe("POST /api/partnerDetails/[userId]", () => {
       passwordHash: "test_hash",
       type: UserType.SUPER_ADMIN,
       partnerDetails: updatedPartnerDetails,
+      enabled: true,
     };
 
     dbMock.user.update.mockResolvedValueOnce(updatedUser);
