@@ -1,5 +1,5 @@
 import { dbMock } from "@/test/dbMock";
-import { UnallocatedItemRequest, UnclaimedItem } from "@prisma/client";
+import { UnallocatedItemRequest, Item } from "@prisma/client";
 
 // Helper util methods for testing
 
@@ -9,10 +9,15 @@ import { UnallocatedItemRequest, UnclaimedItem } from "@prisma/client";
  * @param num Number of items to create
  * @returns Array of UnclaimedItems returned by db.unclaimedItem.findMany mock
  */
-export async function fillDbMockWithManyUnclaimedItems(
-  num: number
-): Promise<UnclaimedItem[]> {
-  const items: UnclaimedItem[] = [];
+export async function fillDbMockWithManyItems(
+  num: number,
+  dates?: Date[]
+): Promise<Item[]> {
+  if (dates && dates.length !== num) {
+    throw new Error("Number of dates must match number of items");
+  }
+
+  const items: Item[] = [];
   const generatedIds = new Set<number>();
 
   for (let i = 0; i < num; i++) {
@@ -25,13 +30,23 @@ export async function fillDbMockWithManyUnclaimedItems(
 
     items.push({
       id: id,
-      name: `Test Item ${id}`,
+      title: `Test Item ${id}`,
+      category: `Test Category ${Math.floor(Math.random() * 3)}`,
       quantity: Math.floor(Math.random() * 1000),
-      expirationDate: new Date(Date.now() + Math.floor(Math.random() * 10000)),
+      expirationDate: dates
+        ? dates[i]
+        : new Date(Date.now() + Math.floor(Math.random() * 10000)),
+      unitSize: Math.floor(Math.random() * 100),
+      unitType: `Unit Type ${Math.floor(Math.random() * 3)}`,
+      datePosted: new Date(Date.now() + Math.floor(Math.random() * 10000)),
+      lotNumber: Math.floor(Math.random() * 100),
+      donorName: "Chris Evans <3",
+      unitPrice: Math.random() * 100,
+      maxRequestLimit: "abc",
     });
   }
 
-  dbMock.unclaimedItem.findMany.mockResolvedValue(items);
+  dbMock.item.findMany.mockResolvedValue(items);
   return items;
 }
 
