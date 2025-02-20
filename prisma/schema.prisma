@@ -58,8 +58,6 @@ model Item {
   maxRequestLimit String
 
   visible Boolean
-
-  unallocatedItemRequests UnallocatedItemRequest[]
 }
 
 model UnallocatedItemRequest {
@@ -69,8 +67,10 @@ model UnallocatedItemRequest {
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   partnerId Int
 
-  item   Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  itemId Int
+  title          String
+  category       String
+  expirationDate DateTime?
+  unitSize       Int
 
   quantity Int
   comments String
