@@ -64,7 +64,7 @@ export default function RegistrationScreen() {
 
   return (
     <main className="bg-gradient-to-tr from-[#4AA6EB] to-[#F0424E] w-screen h-screen flex flex-col justify-center items-center">
-      <div className="bg-white py-6 px-6 rounded-xl w-[580]">
+      <div className="bg-white py-6 px-6 rounded-xl w-96 sm:w-[580]">
         {!error ? (
           <div>
             <h1 className="mb-1 text-xl font-semibold">Create Account</h1>
