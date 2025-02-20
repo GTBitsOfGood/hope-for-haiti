@@ -13,6 +13,12 @@ export default {
           light: "#f6f7ff",
           dark: "#ced8fa",
         },
+        green: {
+          primary: "#b7e394",
+        },
+        yellow: {
+          primary: "#ffeeB0",
+        },
       },
     },
   },
