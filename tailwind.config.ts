@@ -14,8 +14,15 @@ export default {
           dark: "#ced8fa",
         },
         mainRed: "#E63946",
+        green: {
+          primary: "#b7e394",
+        },
+        yellow: {
+          primary: "#ffeeB0",
+        },
       },
     },
   },
-  plugins: [],
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  plugins: [require("@tailwindcss/forms")],
 } satisfies Config;

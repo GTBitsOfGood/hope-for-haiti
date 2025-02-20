@@ -178,13 +178,15 @@ export default function NavbarLayout({
 
   return (
     <div className="flex">
-      {user && (
+      {user ? (
         <>
           <DesktopNavbar />
           <MobileNavbar />
+          <main className="flex-1 px-6 py-8 overflow-scroll">{children}</main>
         </>
+      ) : (
+        <>{children}</>
       )}
-      <main className="flex-1 px-6 py-8">{children}</main>
     </div>
   );
 }

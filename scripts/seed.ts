@@ -11,6 +11,7 @@ async function run() {
     await tx.unclaimedItem.deleteMany();
     await tx.partnerDetails.deleteMany();
     await tx.user.deleteMany();
+    await tx.userInvite.deleteMany();
 
     await tx.user.createMany({
       data: [
@@ -70,6 +71,16 @@ async function run() {
           },
         },
         partner: { connect: { email: "partner@test.com" } },
+      },
+    });
+
+    await tx.userInvite.create({
+      data: {
+        email: "new-admin@test.com",
+        expiration: new Date("July 24, 3000"),
+        name: "New Admin",
+        token: "1234",
+        userType: "ADMIN",
       },
     });
   });
