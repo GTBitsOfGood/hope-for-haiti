@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const inviteUrl = `${request.nextUrl}register?token=${token}`;
+  const inviteUrl = `${request.nextUrl.origin}/register?token=${token}`;
   const html = await render(UserInviteTemplate({ inviteUrl }));
   await sendEmail(email, "Your Invite Link", html);
 

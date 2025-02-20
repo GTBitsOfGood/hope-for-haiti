@@ -43,7 +43,9 @@ export default function Template({ inviteUrl }: { inviteUrl: string }) {
     <div style={styles.container}>
       <div style={styles.box}>
         <h1 style={styles.header}>Your invite link</h1>
-        <p style={styles.text}>{inviteUrl}</p>
+        <a style={styles.text} href={inviteUrl}>
+          Click here to register
+        </a>
       </div>
     </div>
   );
