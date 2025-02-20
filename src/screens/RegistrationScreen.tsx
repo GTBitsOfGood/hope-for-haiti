@@ -10,7 +10,6 @@ export default function RegistrationScreen() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -18,7 +17,7 @@ export default function RegistrationScreen() {
 
     const fetchData = async () => {
       try {
-        const response = await fetch(`${baseUrl}api/invites/${token}`);
+        const response = await fetch(`api/invites/${token}`);
         if (response.status === 400) {
           setError("Invalid or expired invite");
         }
@@ -30,7 +29,7 @@ export default function RegistrationScreen() {
       }
     };
     fetchData();
-  }, [searchParams, router, baseUrl]);
+  }, [searchParams, router]);
 
   const handleSubmit = submitHandler(async (formData: FormData) => {
     if (formData.get("password") !== formData.get("confirm")) {
@@ -40,7 +39,7 @@ export default function RegistrationScreen() {
     formData.delete("confirm");
     formData.append("inviteToken", searchParams.get("token") || "");
 
-    const response = await fetch(`${baseUrl}/api/users`, {
+    const response = await fetch(`api/users`, {
       method: "POST",
       body: formData,
     });
