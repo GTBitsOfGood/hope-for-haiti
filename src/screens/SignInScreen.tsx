@@ -36,7 +36,7 @@ export default function SignInScreen() {
             Please enter your credentials.
           </h2>
         </div>
-        <form onSubmit={handleSubmit} className="w-80">
+        <form onSubmit={handleSubmit} className="w-64 sm:w-80">
           <div className="mb-4">
             <label
               className="block text-gray-800 text-sm mb-2 font-light"
