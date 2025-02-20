@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { User, UserType } from "@prisma/client";
+import { useRouter } from "next/navigation";
+import InviteUserForm from "@/components/InviteUserForm";
 
 enum UserFilterKey {
   ALL = "All",
@@ -58,6 +60,18 @@ export default function AccountManagementScreen() {
     setFilteredUsers(users.filter(filterMap[type]));
   };
 
+  const router = useRouter();
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
+
+  const handleInviteSubmit = (role: UserType) => {
+    if (role === "PARTNER") {
+      setInviteModalOpen(false);
+      router.push("/create-partner-account");
+    } else {
+      console.log("Sending invite link for", role);
+    }
+  };
+
   return (
     <>
       <h1 className="text-2xl font-semibold">Account Management</h1>
@@ -73,7 +87,10 @@ export default function AccountManagementScreen() {
             className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
           />
         </div>
-        <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+        <button
+          className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+          onClick={() => setInviteModalOpen(true)}
+        >
           <Plus size={18} /> Add account
         </button>
       </div>
@@ -141,6 +158,13 @@ export default function AccountManagementScreen() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {isInviteModalOpen && (
+        <InviteUserForm
+          closeModal={() => setInviteModalOpen(false)}
+          onSubmit={handleInviteSubmit}
+        />
       )}
     </>
   );

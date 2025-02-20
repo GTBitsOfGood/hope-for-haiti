@@ -13,6 +13,7 @@ export default {
           light: "#f6f7ff",
           dark: "#ced8fa",
         },
+        mainRed: "#E63946",
         green: {
           primary: "#b7e394",
         },
