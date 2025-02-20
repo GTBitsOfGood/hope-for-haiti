@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { User, UserType } from "@prisma/client";
-import classNames from "classnames";
 
 enum UserFilterKey {
   ALL = "All",
@@ -86,9 +85,7 @@ export default function AccountManagementScreen() {
             <button
               key={tab}
               data-active={activeTab === tab}
-              className={classNames(
-                "px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
-              )}
+              className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
               onClick={() => filterUsers(key)}
             >
               <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
