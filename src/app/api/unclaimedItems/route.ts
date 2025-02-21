@@ -2,23 +2,11 @@ import { auth } from "@/auth";
 import { authenticationError, argumentError } from "@/util/responses";
 import { db } from "@/db";
 import { NextRequest, NextResponse } from "next/server";
+import { Item } from "@prisma/client";
 
 // Response for GET /api/unclaimedItems
 interface ItemsResponse {
-  items: {
-    id: number;
-    title: string;
-    category: string;
-    quantity: number;
-    expirationDate: Date | null;
-    unitSize: number;
-    unitType: string;
-    datePosted: Date;
-    lotNumber: number;
-    donorName: string;
-    unitPrice: number;
-    maxRequestLimit: string;
-  }[];
+  items: Item[];
 }
 
 /**

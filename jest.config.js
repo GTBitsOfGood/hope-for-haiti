@@ -5,7 +5,7 @@ module.exports = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
-  setupFilesAfterEnv: ["./src/test/dbMock.ts", "./src/test/authMock.ts"],
+  setupFilesAfterEnv: ["./src/test/authMock.ts"],
   transform: {
     "^.+\\.(ts|tsx)?$": [
       "ts-jest",

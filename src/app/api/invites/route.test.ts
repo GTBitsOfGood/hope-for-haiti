@@ -1,9 +1,10 @@
+import { dbMock } from "@/test/dbMock";
+
 import { testApiHandler } from "next-test-api-route-handler";
 import { expect, test } from "@jest/globals";
 import { UserType } from "@prisma/client";
 import * as uuid from "uuid";
 
-import { dbMock } from "@/test/dbMock";
 import { authMock } from "@/test/authMock";
 import { sendEmailMock } from "@/test/emailMock";
 

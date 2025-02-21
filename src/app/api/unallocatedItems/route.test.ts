@@ -1,8 +1,9 @@
+import { dbMock } from "@/test/dbMock";
+
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
-import { dbMock } from "@/test/dbMock";
 import { createUnclaimedItem } from "@/test/util/dbMockUtils";
 
 /**

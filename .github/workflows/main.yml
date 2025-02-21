@@ -10,8 +10,20 @@ on:
     branches: ["main"]
 
 jobs:
-  lint-test:
+  lint-and-test:
     runs-on: ubuntu-latest
+    container: node:22-alpine
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -22,4 +34,8 @@ jobs:
           cache: "npm"
       - run: npm install
       - run: npm run lint
-      - run: npm test
+      - run: npm run ci:db:migrate
+      - run: npm run ci:test
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432?sslmode=disable
