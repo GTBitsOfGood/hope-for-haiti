@@ -46,7 +46,7 @@ export async function GET(
 
   // Get all unallocated item requests for the specified item
   const unallocatedItemRequests = await db.unallocatedItemRequest.findMany({
-    where: { itemId },
+    // where: { itemId },
     select: {
       id: true,
       partnerId: true,
