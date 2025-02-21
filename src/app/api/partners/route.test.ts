@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 //Lint gets angry when "as any" is used, but it is necessary for mocking Prisma responses using the "select" parameter (for now).
+import { dbMock } from "@/test/dbMock";
+
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
-import { dbMock } from "@/test/dbMock";
 import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
 import { UserType } from "@prisma/client";
 

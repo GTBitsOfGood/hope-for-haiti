@@ -1,10 +1,11 @@
+import { dbMock } from "@/test/dbMock";
+
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 // import { authMock } from "@/test/authMock";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
 import { fillDbMockWithManyItems } from "@/test/util/dbMockUtils";
-import { dbMock } from "@/test/dbMock";
 
 test("Should return 401 for invalid session", async () => {
   await testApiHandler({

@@ -47,7 +47,7 @@ export async function GET(
     where: { partnerId },
     select: {
       id: true,
-      itemId: true,
+      // itemId: true,
       quantity: true,
       comments: true,
     },

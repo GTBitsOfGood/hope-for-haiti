@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { exit } from "process";
 import { db } from "@/db";
 

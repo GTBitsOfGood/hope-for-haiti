@@ -1,9 +1,9 @@
+import { dbMock } from "@/test/dbMock";
+
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
-import { fillDbMockWithUnallocatedItemRequestsForItemIdFiltering } from "@/test/util/dbMockUtils";
-import { dbMock } from "@/test/dbMock";
 
 test("Should return 401 for no session", async () => {
   await testApiHandler({
@@ -78,8 +78,6 @@ test("For an authorized session, should give all unallocated item requests point
     params: { unallocatedItemId: "1" },
     appHandler,
     async test({ fetch }) {
-      fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(10);
-
       const unallocatedItemRequests =
         await dbMock.unallocatedItemRequest.findMany();
 

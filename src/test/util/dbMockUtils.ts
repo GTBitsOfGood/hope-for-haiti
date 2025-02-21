@@ -1,5 +1,5 @@
 import { dbMock } from "@/test/dbMock";
-import { UnallocatedItemRequest, Item } from "@prisma/client";
+import { Item, Prisma } from "@prisma/client";
 
 // Helper util methods for testing
 
@@ -40,9 +40,12 @@ export async function fillDbMockWithManyItems(
       unitType: `Unit Type ${Math.floor(Math.random() * 3)}`,
       datePosted: new Date(Date.now() + Math.floor(Math.random() * 10000)),
       lotNumber: Math.floor(Math.random() * 100),
+      palletNumber: Math.floor(Math.random() * 100),
+      boxNumber: Math.floor(Math.random() * 100),
       donorName: "Chris Evans <3",
-      unitPrice: Math.random() * 100,
+      unitPrice: new Prisma.Decimal(Math.random() * 100),
       maxRequestLimit: "abc",
+      visible: true,
     });
   }
 
@@ -50,45 +53,45 @@ export async function fillDbMockWithManyItems(
   return items;
 }
 
-export async function fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(
-  num: number
-) {
-  // const numberOfItems = 10;
-  const numberOfPartners = 10;
+// export async function fillDbMockWithUnallocatedItemRequestsForItemIdFiltering(
+//   num: number
+// ) {
+//   // const numberOfItems = 10;
+//   const numberOfPartners = 10;
 
-  const unallocatedItemRequests: UnallocatedItemRequest[] = [];
+//   const unallocatedItemRequests: UnallocatedItemRequest[] = [];
 
-  for (let i = 0; i < num; i++) {
-    unallocatedItemRequests.push({
-      id: i,
-      quantity: Math.floor(Math.random() * 1000),
-      partnerId: Math.floor(Math.random() * numberOfPartners),
-      itemId: 1,
-      comments: "Test unallocated item request " + i,
-    });
-  }
-}
+//   for (let i = 0; i < num; i++) {
+//     unallocatedItemRequests.push({
+//       id: i,
+//       quantity: Math.floor(Math.random() * 1000),
+//       partnerId: Math.floor(Math.random() * numberOfPartners),
+//       itemId: 1,
+//       comments: "Test unallocated item request " + i,
+//     });
+//   }
+// }
 
-export async function fillDbMockWithUnallocatedItemRequestsForPartnerIdFilter(
-  num: number
-) {
-  const partnerId = 1;
-  const numOfItems = 10;
+// export async function fillDbMockWithUnallocatedItemRequestsForPartnerIdFilter(
+//   num: number
+// ) {
+//   const partnerId = 1;
+//   const numOfItems = 10;
 
-  const unallocatedItemRequests = [];
-  for (let i = 0; i < num; i++) {
-    unallocatedItemRequests.push({
-      id: i,
-      partnerId: partnerId,
-      itemId: Math.floor(Math.random() * numOfItems),
-      quantity: Math.floor(Math.random() * 100),
-      comments: `Test comment ${i}`,
-    });
-  }
-  dbMock.unallocatedItemRequest.findMany.mockResolvedValue(
-    unallocatedItemRequests
-  );
-}
+//   const unallocatedItemRequests = [];
+//   for (let i = 0; i < num; i++) {
+//     unallocatedItemRequests.push({
+//       id: i,
+//       partnerId: partnerId,
+//       itemId: Math.floor(Math.random() * numOfItems),
+//       quantity: Math.floor(Math.random() * 100),
+//       comments: `Test comment ${i}`,
+//     });
+//   }
+//   dbMock.unallocatedItemRequest.findMany.mockResolvedValue(
+//     unallocatedItemRequests
+//   );
+// }
 
 /**
  * Helper method for creating a single unclaimed item.
@@ -103,10 +106,13 @@ export async function createUnclaimedItem({
   unitSize = 1,
   unitType = "Test Unit",
   datePosted = new Date(),
+  palletNumber = Math.floor(Math.random() * 10000),
   lotNumber = Math.floor(Math.random() * 10000),
+  boxNumber = Math.floor(Math.random() * 10000),
   donorName = "Test Donor",
-  unitPrice = 0,
+  unitPrice = new Prisma.Decimal(1),
   maxRequestLimit = "1",
+  visible = true,
 }: {
   id?: number;
   title?: string;
@@ -116,10 +122,13 @@ export async function createUnclaimedItem({
   unitSize?: number;
   unitType?: string;
   datePosted?: Date;
+  palletNumber?: number;
   lotNumber?: number;
+  boxNumber?: number;
   donorName?: string;
-  unitPrice?: number;
+  unitPrice?: Prisma.Decimal;
   maxRequestLimit?: string;
+  visible?: boolean;
 }): Promise<Item> {
   return {
     id,
@@ -131,8 +140,11 @@ export async function createUnclaimedItem({
     unitType,
     datePosted,
     lotNumber,
+    palletNumber,
+    boxNumber,
     donorName,
     unitPrice,
     maxRequestLimit,
+    visible,
   };
 }

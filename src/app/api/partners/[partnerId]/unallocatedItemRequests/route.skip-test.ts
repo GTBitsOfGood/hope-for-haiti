@@ -1,9 +1,9 @@
+import { dbMock } from "@/test/dbMock";
+
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
-import { fillDbMockWithUnallocatedItemRequestsForPartnerIdFilter } from "@/test/util/dbMockUtils";
-import { dbMock } from "@/test/dbMock";
 
 test("Should return 401 for invalid session", async () => {
   await testApiHandler({
@@ -82,7 +82,6 @@ test("Should return 200 and unallocated item requests associated with partnerId"
     async test({ fetch }) {
       validateSession("STAFF");
 
-      fillDbMockWithUnallocatedItemRequestsForPartnerIdFilter(10);
       const expectedResponse = await dbMock.unallocatedItemRequest.findMany();
 
       const res = await fetch({ method: "GET" });

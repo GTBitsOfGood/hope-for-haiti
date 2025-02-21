@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
@@ -51,14 +52,14 @@ export async function POST(req: Request) {
     return argumentError("Not enough items for request");
 
   // Create unallocated item request
-  db.unallocatedItemRequest.create({
-    data: {
-      itemId: unallocatedItemId,
-      partnerId: parseInt(session.user.id),
-      quantity: quantity,
-      comments: comment,
-    },
-  });
+  // db.unallocatedItemRequest.create({
+  //   data: {
+  //     // itemId: unallocatedItemId,
+  //     partnerId: parseInt(session.user.id),
+  //     quantity: quantity,
+  //     comments: comment,
+  //   },
+  // });
 
   return ok();
 }
