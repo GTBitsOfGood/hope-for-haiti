@@ -12,6 +12,7 @@ export default {
         blue: {
           light: "#f6f7ff",
           dark: "#ced8fa",
+          primary: "#2774AE",
         },
         mainRed: "#E63946",
         green: {
