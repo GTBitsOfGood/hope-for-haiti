@@ -35,6 +35,14 @@ const expirationFilterMap: Record<
   },
 };
 
+type PartnerRequest = {
+  partner: string;
+  dateRequested: string;
+  requestedQuantity: number;
+  allocatedQuantity: number;
+  allocatedSummary: string;
+};
+
 export default function UnallocatedItemsScreen() {
   const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
   const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
@@ -44,9 +52,9 @@ export default function UnallocatedItemsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedIndices, setExpandedIndices] = useState<number[]>([]);
   const [loadingIndices, setLoadingIndices] = useState<number[]>([]);
-  const [partnerRequests, setPartnerRequests] = useState<Record<number, any>>(
-    {}
-  );
+  const [partnerRequests, setPartnerRequests] = useState<
+    Record<number, PartnerRequest[]>
+  >({});
 
   useEffect(() => {
     setTimeout(() => {
@@ -123,14 +131,17 @@ export default function UnallocatedItemsScreen() {
       setExpandedIndices([...expandedIndices, index]);
       if (!partnerRequests[index]) {
         setLoadingIndices([...loadingIndices, index]);
-        const requests = await getPartnerRequests(filteredItems[index]);
-        setPartnerRequests((prev) => ({ ...prev, [index]: requests }));
+        const requests = await getPartnerRequests();
+        setPartnerRequests((prev) => ({
+          ...prev,
+          [index]: requests as PartnerRequest[],
+        }));
         setLoadingIndices((prev) => prev.filter((i) => i !== index));
       }
     }
   };
 
-  const getPartnerRequests = async (item: UnallocatedItemRequest) => {
+  const getPartnerRequests = async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve([
@@ -271,7 +282,10 @@ export default function UnallocatedItemsScreen() {
                               </thead>
                               <tbody>
                                 {partnerRequests[index]?.map(
-                                  (request: any, reqIndex: number) => (
+                                  (
+                                    request: PartnerRequest,
+                                    reqIndex: number
+                                  ) => (
                                     <tr key={reqIndex}>
                                       <td className="px-4 py-2">
                                         {request.partner}
