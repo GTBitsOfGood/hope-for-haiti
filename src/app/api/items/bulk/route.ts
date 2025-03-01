@@ -1,8 +1,12 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { authenticationError, authorizationError, ok } from "@/util/responses";
+import {
+  argumentError,
+  authenticationError,
+  authorizationError,
+} from "@/util/responses";
 import { UserType } from "@prisma/client";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 
@@ -11,7 +15,7 @@ const AUTHORIZED_USER_TYPES = [
   UserType.SUPER_ADMIN,
 ] as UserType[];
 
-const SingleItemSchema = zfd.formData({
+const SingleItemSchema = z.object({
   title: zfd.text(),
   category: zfd.text(),
   quantity: zfd.numeric(z.number().int().min(0)),
@@ -28,10 +32,16 @@ const SingleItemSchema = zfd.formData({
   visible: zfd.checkbox(),
 });
 
-const ItemsFormSchema = zfd.formData({
-  items: z.array(SingleItemSchema),
-});
+const ItemsFormSchema = z.array(SingleItemSchema);
 
+/**
+ * Bulk create items in the Items database.
+ * @param request With the body of a JSON array of items, refer to ItemsFormSchema for the structure.
+ * @returns 400 if invalid form data
+ * @returns 401 if session is invalid
+ * @returns 403 if session is not ADMIN or SUPER_ADMIN
+ * @returns 200 with the created items
+ */
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session) {
@@ -45,15 +55,16 @@ export async function POST(request: NextRequest) {
     return authorizationError("Session required");
   }
 
-  const formData = await request.formData();
-  const parseResult = ItemsFormSchema.safeParse(formData);
-  if (!parseResult.success) {
-    return authorizationError("Invalid form data");
+  const data = await request.json();
+  const dataItems = data.items;
+  const parsed = ItemsFormSchema.safeParse(dataItems);
+  if (!parsed.success) {
+    return argumentError("Invalid form data");
   }
-  const { items } = parseResult.data;
-  db.item.createMany({
+  const items = parsed.data;
+  await db.item.createMany({
     data: items,
   });
 
-  return ok();
+  return NextResponse.json(items);
 }
