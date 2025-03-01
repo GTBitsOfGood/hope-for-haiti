@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { User } from "@prisma/client";
 import GeneralInfo from "./PartnerProfilePageTabs/GeneralInfo";
 import ContactInformation from "./PartnerProfilePageTabs/ContactInformation";
 import Introduction from "./PartnerProfilePageTabs/Introduction";
@@ -9,6 +10,10 @@ import InfrastructureServices from "./PartnerProfilePageTabs/InfrastructureServi
 import ProgramServices from "./PartnerProfilePageTabs/ProgramServices";
 import Finances from "./PartnerProfilePageTabs/Finances";
 import StaffInformation from "./PartnerProfilePageTabs/StaffInformation";
+
+interface PartnerProfileScreenProps {
+  user: User;
+}
 
 const TABS: string[] = [
   "General information",
@@ -21,7 +26,9 @@ const TABS: string[] = [
   "Staff Information",
 ];
 
-export default function ProfileScreenPartner() {
+export default function ProfileScreenPartner({
+  user,
+}: PartnerProfileScreenProps) {
   const [activeTab, setActiveTab] = useState("General information");
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingOrg, setIsEditingOrg] = useState(false);
@@ -30,6 +37,13 @@ export default function ProfileScreenPartner() {
     email: "example@gmail.com",
     password: "********",
   });
+
+  useEffect(() => {
+    setUserData({
+      email: user.email,
+      password: "********",
+    });
+  }, [user]);
 
   const [orgData, setOrgData] = useState({
     siteName: "partner org name",
