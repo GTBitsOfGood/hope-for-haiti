@@ -21,7 +21,7 @@ const TABS: string[] = [
   "Staff Information",
 ];
 
-export default function ProfileScreen() {
+export default function ProfileScreenPartner() {
   const [activeTab, setActiveTab] = useState("General information");
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingOrg, setIsEditingOrg] = useState(false);
@@ -111,7 +111,6 @@ export default function ProfileScreen() {
         Profile
       </h1>
 
-      {/* USER SECTION */}
       <div className="mt-6">
         <div className="flex justify-between items-center">
           <h2 className="text-[20px] font-bold leading-[28px] text-[#22070B]">
@@ -140,6 +139,7 @@ export default function ProfileScreen() {
           ) : (
             <p className="text-[16px] text-[#22070B]">{userData.email}</p>
           )}
+
           <p className="text-[18px] font-semibold text-[#22070B]">Password</p>
           {isEditingUser ? (
             <input
