@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
-import { UnallocatedItemRequest } from "@prisma/client";
+import { Item } from "@prisma/client";
 import React from "react";
 
 enum ExpirationFilterKey {
@@ -18,17 +18,18 @@ enum UnallocatedItemsTab {
   MY_REQUESTS = "My Requests",
 }
 
-function withinMonths(item: UnallocatedItemRequest, months: number) {
+function withinMonths(item: Item, months: number) {
   if (!item.expirationDate) return false;
   const now = new Date();
-  const date = new Date(item.expirationDate);
-  date.setMonth(now.getMonth() + months);
-  return item.expirationDate >= now && item.expirationDate <= date;
+  const limit = new Date();
+  const expirationDate = new Date(item.expirationDate);
+  limit.setMonth(now.getMonth() + months);
+  return expirationDate >= now && expirationDate <= limit;
 }
 
 const expirationFilterMap: Record<
   ExpirationFilterKey,
-  (item: UnallocatedItemRequest) => boolean
+  (item: Item) => boolean
 > = {
   [ExpirationFilterKey.ALL]: () => true,
   [ExpirationFilterKey.ZERO_TO_THREE]: (item) => withinMonths(item, 3),
@@ -41,73 +42,21 @@ const expirationFilterMap: Record<
 };
 
 export default function UnallocatedItemsScreen() {
-  const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
-  const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
-    []
-  );
+  const [items, setItems] = useState<Item[]>([]);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [activeItemTab, setActiveItemTab] =
     useState<string>("Unallocated Items"); //this is for the upper row of tabs
   const [activeTab, setActiveTab] = useState<string>("All"); //this is for the row of tabs for table filtering
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => {
-      // !! TODO: Replace this with actual API call to fetch unallocated item requests !!
-      const dummyData: UnallocatedItemRequest[] = [
-        {
-          id: 1,
-          title: "Canned Soup",
-          category: "Type",
-          quantity: 24,
-          unitSize: 1,
-          comments: "Comments",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-        },
-        {
-          id: 2,
-          title: "Rice",
-          category: "Type",
-          quantity: 50,
-          unitSize: 1,
-          comments: "White rice, 1lb bags",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 120),
-        },
-        {
-          id: 3,
-          title: "Pasta",
-          category: "Type",
-          quantity: 100,
-          unitSize: 1,
-          comments: "Spaghetti, 1lb boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 180),
-        },
-        {
-          id: 4,
-          title: "Canned Beans",
-          category: "Type",
-          quantity: 36,
-          unitSize: 1,
-          comments: "Black beans and pinto beans",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 240),
-        },
-        {
-          id: 5,
-          title: "Cereal",
-          category: "Type",
-          quantity: 20,
-          unitSize: 1,
-          comments: "Various types, family size boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60),
-        },
-      ];
-
-      setItems(dummyData);
-      setFilteredItems(dummyData);
+    setTimeout(async () => {
+      const response = await fetch("api/unclaimedItems", {
+        method: "GET",
+      });
+      const data = await response.json();
+      setItems(data.items);
+      setFilteredItems(data.items);
       setIsLoading(false);
     }, 1000);
   }, []);
@@ -119,15 +68,17 @@ export default function UnallocatedItemsScreen() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Unallocated Items</h1>
+      <h1 className="text-2xl font-semibold text-gray-primary">
+        Unallocated Items
+      </h1>
 
-      <div className="flex space-x-4 mt-4 border-b-2">
+      <div className="flex space-x-4 mt-4 border-b-2 border-gray-primary border-opacity-10">
         {Object.values(UnallocatedItemsTab).map((tab) => {
           return (
             <button
               key={tab}
               data-active={activeItemTab === tab}
-              className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
+              className="px-2 py-1 text-md font-medium text-gray-primary text-opacity-70 relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-gray-primary data-[active=true]:bottom-[-1px] data-[active=true]:text-opacity-100"
               onClick={() => {
                 setActiveItemTab(tab);
               }} // !! TODO: Implement tab switching when My Requests screen is implemented !!
@@ -138,7 +89,7 @@ export default function UnallocatedItemsScreen() {
         })}
       </div>
 
-      <div className="flex justify-between items-center w-full py-4">
+      <div className="flex justify-between items-center w-full py-4 mt-3">
         <div className="relative w-1/3">
           <MagnifyingGlass
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
@@ -147,7 +98,7 @@ export default function UnallocatedItemsScreen() {
           <input
             type="text"
             placeholder="Search"
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
+            className="pl-10 pr-4 py-2 w-full border border-gray-primary border-opacity-10 rounded-lg bg-gray-100 text-gray-primary focus:outline-none focus:border-gray-400"
           />
         </div>
         <div className="flex gap-4">
@@ -159,14 +110,14 @@ export default function UnallocatedItemsScreen() {
           </button>
         </div>
       </div>
-      <div className="flex space-x-4 mt-4 border-b-2">
+      <div className="flex space-x-4 mt-4 border-b-2 border-gray-primary border-opacity-10">
         {Object.keys(expirationFilterMap).map((tab) => {
           const key = tab as ExpirationFilterKey;
           return (
             <button
               key={tab}
               data-active={activeTab === tab}
-              className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
+              className="px-2 py-1 text-md font-medium text-gray-primary text-opacity-70 relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-gray-primary data-[active=true]:bottom-[-1px] data-[active=true]:text-opacity-100"
               onClick={() => filterItems(key)}
             >
               <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
@@ -181,10 +132,10 @@ export default function UnallocatedItemsScreen() {
         </div>
       ) : (
         <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden min-w-full">
+          <table className="mt-4 rounded-t-lg overflow-hidden table-fixed w-full">
             <thead>
-              <tr className="bg-gray-primary bg-opacity-5 text-gray-primary text-opacity-70 border-b-2">
-                <th className="px-4 py-2 text-left font-bold"></th>
+              <tr className="bg-gray-primary bg-opacity-5 text-gray-primary text-opacity-70 border-b-2 break-words">
+                <th className="px-4 py-2 w-[48px]"></th>
                 <th className="px-4 py-2 text-left font-bold">Title</th>
                 <th className="px-4 py-2 text-left font-bold">Type</th>
                 <th className="px-4 py-2 text-left font-bold">Quantity</th>
@@ -198,7 +149,7 @@ export default function UnallocatedItemsScreen() {
                 <React.Fragment key={index}>
                   <tr
                     data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50`}
+                    className={`bg-white data-[odd=true]:bg-gray-50 break-words`}
                   >
                     <td className="px-4 py-2">
                       <input
@@ -207,15 +158,17 @@ export default function UnallocatedItemsScreen() {
                         name={`item-${index}`}
                       />
                     </td>
-                    <td className="px-4 py-2 w-1/6">{item.title}</td>
-                    <td className="px-4 py-2 w-1/6">{item.category}</td>
-                    <td className="px-4 py-2 w-1/6">{item.quantity}</td>
-                    <td className="px-4 py-2 w-1/6">
+                    <td className="px-4 py-2">{item.title}</td>
+                    <td className="px-4 py-2">{item.category}</td>
+                    <td className="px-4 py-2">{item.quantity}</td>
+                    <td className="px-4 py-2">
                       {item.expirationDate
                         ? new Date(item.expirationDate).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td className="px-4 py-2 w-1/6">{item.unitSize}</td>
+                    <td className="px-4 py-2">
+                      {item.unitSize.toString() + item.unitType}
+                    </td>
                     <td className="px-4 py-2">
                       {false ? ( // !! TODO: Make this conditional based on item requested status !!
                         <div className="px-2 py-0.5 inline-block rounded bg-amber-primary bg-opacity-20 text-gray-primary">
