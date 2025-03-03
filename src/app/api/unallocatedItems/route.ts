@@ -5,7 +5,6 @@ import {
   argumentError,
   authenticationError,
   authorizationError,
-  notFoundError,
   ok,
 } from "@/util/responses";
 import { UserType } from "@prisma/client";
@@ -13,10 +12,13 @@ import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 const schema = zfd.formData({
-  unallocatedItemId: zfd.numeric(z.number().int()),
+  title: zfd.text(),
+  category: zfd.text(),
+  expirationDate: z.coerce.date().optional(),
+  unitSize: zfd.numeric(z.number().int()),
   //   priority: zfd.numeric(),        Uncomment when priority is added to the schema
   quantity: zfd.numeric(z.number().int().min(1)), // Requesting 0 items would be stupid
-  comment: zfd.text(),
+  comments: zfd.text(),
 });
 
 /**
@@ -27,7 +29,6 @@ const schema = zfd.formData({
  * @returns 400 if the form data is invalid or there are not enough items for the request
  * @returns 401 if the session is invalid
  * @returns 403 if the user type isn't a partner
- * @returns 404 if the unallocated item is not found
  */
 export async function POST(req: Request) {
   const session = await auth();
@@ -38,28 +39,20 @@ export async function POST(req: Request) {
 
   const parsed = schema.safeParse(await req.formData());
   if (!parsed.success) return argumentError("Invalid form data");
-  //   const { unallocatedItemId, priority, quantity, comment } = parsed.data;
-  const { unallocatedItemId, quantity, comment } = parsed.data;
+  const { title, category, expirationDate, unitSize, quantity, comments } =
+    parsed.data;
 
-  // Find unallocated item by id
-  const unallocatedItem = await db.item.findUnique({
-    where: { id: unallocatedItemId },
+  db.unallocatedItemRequest.create({
+    data: {
+      title,
+      category,
+      expirationDate,
+      unitSize,
+      quantity,
+      comments,
+      partnerId: parseInt(session.user.id),
+    },
   });
-  if (!unallocatedItem) return notFoundError("Unallocated item not found");
-
-  // Check if there are enough items to request
-  if (quantity > unallocatedItem.quantity)
-    return argumentError("Not enough items for request");
-
-  // Create unallocated item request
-  // db.unallocatedItemRequest.create({
-  //   data: {
-  //     // itemId: unallocatedItemId,
-  //     partnerId: parseInt(session.user.id),
-  //     quantity: quantity,
-  //     comments: comment,
-  //   },
-  // });
 
   return ok();
 }
