@@ -12,6 +12,7 @@ export default {
         blue: {
           light: "#f6f7ff",
           dark: "#ced8fa",
+          primary: "#2774AE",
         },
         mainRed: "#E63946",
         green: {
@@ -19,6 +20,12 @@ export default {
         },
         yellow: {
           primary: "#ffeeB0",
+        },
+        gray: {
+          primary: "#22070B",
+        },
+        amber: {
+          primary: "#8F6C1A",
         },
       },
     },

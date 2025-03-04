@@ -1,14 +1,21 @@
-import Link from "next/link";
+"use client";
+
+import React from "react";
+import { useSession } from "next-auth/react";
+import PartnerUnallocatedItemsScreen from "./PartnerUnallocatedItemsScreen";
+import AdminUnallocatedItemsScreen from "./AdminUnallocatedItemsScreen";
 
 export default function UnallocatedItemsScreen() {
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">Unallocated Items</h1>
-      <Link href={"/bulk_add_items"}>
-      <button className="bg-red-500 hover:bg-red-700 text-white py-1 px-4 mt-7 rounded focus:outline-none focus:shadow-outline">
-        Bulk Add Items
-      </button>
-      </Link>
-    </>
-  );
+  const { data: session } = useSession();
+
+  switch (session?.user.type) {
+    case "PARTNER":
+      return <PartnerUnallocatedItemsScreen />;
+    case "STAFF":
+    case "ADMIN":
+    case "SUPER_ADMIN":
+      return <AdminUnallocatedItemsScreen />;
+    default:
+      return <></>;
+  }
 }
