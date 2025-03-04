@@ -5,6 +5,7 @@ import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
+import Link from "next/link";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -176,9 +177,11 @@ export default function AdminUnallocatedItemsScreen() {
           <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
             <Plus size={18} /> Filter
           </button>
-          <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
-            <Plus size={18} /> Add Item
-          </button>
+          <Link href="/bulk_add_items">
+            <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+              <Plus size={18} /> Add Item
+            </button>
+          </Link>
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
