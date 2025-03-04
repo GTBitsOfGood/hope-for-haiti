@@ -21,6 +21,12 @@ export default {
         yellow: {
           primary: "#ffeeB0",
         },
+        gray: {
+          primary: "#22070B",
+        },
+        amber: {
+          primary: "#8F6C1A",
+        },
       },
     },
   },

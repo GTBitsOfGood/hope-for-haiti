@@ -4,29 +4,42 @@ import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
-import { createUnclaimedItem } from "@/test/util/dbMockUtils";
 
 /**
  * Form data: {
- *   unallocatedItemId: "1",
+ *   title: "test-title",
+ *   category: "test-category",
+ *   expirationDate: undefined,
+ *   unitSize: "10",
  *   quantity: "1",
- *   comment: "comment"
+ *   comments: "comments",
  * }
  * @returns FormData with good data by default, but can be modified
  */
 function getFormData({
-  unallocatedItemId = "1",
+  title = "test-title",
+  category = "test-category",
+  expirationDate = undefined,
+  unitSize = "10",
   quantity = "1",
-  comment = "comment",
+  comments = "comments",
 }: {
-  unallocatedItemId?: string;
+  title?: string;
+  category?: string;
+  expirationDate?: string;
+  unitSize?: string;
   quantity?: string;
-  comment?: string;
+  comments?: string;
 } = {}) {
   const formData = new FormData();
-  formData.append("unallocatedItemId", unallocatedItemId);
+  formData.append("title", title);
+  formData.append("category", category);
+  if (expirationDate) {
+    formData.append("expirationDate", expirationDate);
+  }
+  formData.append("unitSize", unitSize);
   formData.append("quantity", quantity);
-  formData.append("comment", comment);
+  formData.append("comments", comments);
   return formData;
 }
 
@@ -58,32 +71,13 @@ test("Should return 403 if not a partner", async () => {
   });
 });
 
-test("Should return 404 if unallocated item not found", async () => {
-  await testApiHandler({
-    appHandler,
-    async test({ fetch }) {
-      validateSession("PARTNER");
-
-      dbMock.item.findUnique.mockResolvedValue(null);
-
-      const res = await fetch({ method: "POST", body: getFormData() });
-      expect(res.status).toBe(404);
-      const json = await res.json();
-      expect(json).toEqual({ message: "Unallocated item not found" });
-    },
-  });
-});
-
 test("Should return 400 for bad form data", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
       validateSession("PARTNER");
 
-      const badFormData = new FormData();
-      badFormData.append("unallocatedItemIdBad", "1");
-      badFormData.append("quantity", "1");
-      badFormData.append("comment", "comment");
+      const badFormData = getFormData({ expirationDate: "bad-date" });
 
       const res = await fetch({ method: "POST", body: badFormData });
       expect(res.status).toBe(400);
@@ -110,36 +104,11 @@ test("Should return 400 for too low quantity", async () => {
   });
 });
 
-test("Should return 400 for requesting too many items", async () => {
-  await testApiHandler({
-    appHandler,
-    async test({ fetch }) {
-      validateSession("PARTNER");
-
-      dbMock.item.findUnique.mockResolvedValue(
-        await createUnclaimedItem({ id: 1, quantity: 1 })
-      );
-
-      const res = await fetch({
-        method: "POST",
-        body: getFormData({ quantity: "2" }),
-      });
-      expect(res.status).toBe(400);
-      const json = await res.json();
-      expect(json).toEqual({ message: "Not enough items for request" });
-    },
-  });
-});
-
 test("Should return 200 for successful request", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
       validateSession("PARTNER");
-
-      dbMock.item.findUnique.mockResolvedValue(
-        await createUnclaimedItem({ id: 1, quantity: 2 })
-      );
 
       const res = await fetch({ method: "POST", body: getFormData() });
       expect(res.status).toBe(200);
@@ -153,16 +122,10 @@ test("Should create unallocated item request on success", async () => {
     async test({ fetch }) {
       const session = await validateSession("PARTNER");
 
-      dbMock.item.findUnique.mockResolvedValue(
-        await createUnclaimedItem({ id: 1, quantity: 2 })
-      );
-
       const res = await fetch({
         method: "POST",
         body: getFormData({
-          unallocatedItemId: "1",
-          quantity: "1",
-          comment: "comment",
+          expirationDate: "2025-02-10T20:21:11+00:00",
         }),
       });
       expect(res.status).toBe(200);
@@ -170,10 +133,13 @@ test("Should create unallocated item request on success", async () => {
       // For now, this is the only way I know to check if the create method was called
       expect(dbMock.unallocatedItemRequest.create).toHaveBeenCalledWith({
         data: {
-          itemId: 1,
-          partnerId: parseInt(session.user.id),
+          title: "test-title",
+          category: "test-category",
+          expirationDate: new Date("2025-02-10T20:21:11+00:00"),
+          unitSize: 10,
           quantity: 1,
-          comments: "comment",
+          comments: "comments",
+          partnerId: parseInt(session.user.id),
         },
       });
     },
