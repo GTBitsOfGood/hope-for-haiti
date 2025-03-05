@@ -5,7 +5,7 @@ import {
   authenticationError,
   authorizationError,
 } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { ItemCategory, UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
@@ -17,7 +17,8 @@ const AUTHORIZED_USER_TYPES = [
 
 const SingleItemSchema = z.object({
   title: zfd.text(),
-  category: zfd.text(),
+  type: zfd.text(),
+  category: zfd.text(z.nativeEnum(ItemCategory)),
   quantity: zfd.numeric(z.number().int().min(0)),
   expirationDate: z.coerce.date().optional(),
   unitSize: zfd.numeric(z.number().int().min(0)),
@@ -30,6 +31,8 @@ const SingleItemSchema = z.object({
   unitPrice: zfd.numeric(z.number().min(0)),
   maxRequestLimit: zfd.text(),
   visible: zfd.checkbox(),
+  allowAllocations: zfd.checkbox(),
+  gik: zfd.checkbox(),
 });
 
 const ItemsFormSchema = z.array(SingleItemSchema);

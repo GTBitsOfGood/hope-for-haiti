@@ -7,11 +7,12 @@ import * as appHandler from "./route";
 
 import { expect, test } from "@jest/globals";
 import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
-import { Prisma, UserType } from "@prisma/client";
+import { ItemCategory, Prisma, UserType } from "@prisma/client";
 
 const item = {
   title: "Some item",
-  category: "Some category",
+  type: "doo dad",
+  category: ItemCategory.MEDICAL_SUPPLY,
   quantity: 2,
   expirationDate: new Date(1000),
   unitSize: 64,
@@ -32,7 +33,8 @@ const invalidItem = {
 };
 const itemOutput = {
   title: "Some item",
-  category: "Some category",
+  type: "doo dad",
+  category: ItemCategory.MEDICAL_SUPPLY,
   quantity: 2,
   expirationDate: new Date(1000).toISOString(),
   unitSize: 64,
@@ -52,7 +54,7 @@ test("returns 401 on invalid session", async () => {
       invalidateSession();
       const itemFormData = new FormData();
       Object.entries(item).forEach(([key, value]) =>
-        itemFormData.append(key, value.toString()),
+        itemFormData.append(key, value.toString())
       );
       const res = await fetch({ method: "POST", body: itemFormData });
       await expect(res.status).toBe(401);
@@ -70,7 +72,7 @@ test("returns 403 on unauthorized (partner)", async () => {
       validateSession(UserType.PARTNER);
       const itemFormData = new FormData();
       Object.entries(item).forEach(([key, value]) =>
-        itemFormData.append(key, value.toString()),
+        itemFormData.append(key, value.toString())
       );
       const res = await fetch({ method: "POST", body: itemFormData });
       await expect(res.status).toBe(403);
@@ -88,7 +90,7 @@ test("returns 403 on unauthorized (staff)", async () => {
       validateSession(UserType.STAFF);
       const itemFormData = new FormData();
       Object.entries(item).forEach(([key, value]) =>
-        itemFormData.append(key, value.toString()),
+        itemFormData.append(key, value.toString())
       );
       const res = await fetch({ method: "POST", body: itemFormData });
       await expect(res.status).toBe(403);
@@ -106,7 +108,7 @@ test("returns 400 on bad form data", async () => {
       validateSession(UserType.ADMIN);
       const itemFormData = new FormData();
       Object.entries(invalidItem).forEach(([key, value]) =>
-        itemFormData.append(key, value.toString()),
+        itemFormData.append(key, value.toString())
       );
       const res = await fetch({ method: "POST", body: itemFormData });
       await expect(res.status).toBe(400);
@@ -124,7 +126,7 @@ test("returns 200 and correctly creates item (admin)", async () => {
       validateSession(UserType.ADMIN);
       const itemFormData = new FormData();
       Object.entries(item).forEach(([key, value]) =>
-        itemFormData.append(key, value.toString()),
+        itemFormData.append(key, value.toString())
       );
       dbMock.item.create.mockResolvedValueOnce(itemOutput as any);
       const res = await fetch({ method: "POST", body: itemFormData });

@@ -7,13 +7,14 @@ import {
   authorizationError,
   ok,
 } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { RequestPriority, UserType } from "@prisma/client";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 const schema = zfd.formData({
   title: zfd.text(),
-  category: zfd.text(),
+  type: zfd.text(),
+  priority: zfd.text(z.nativeEnum(RequestPriority)),
   expirationDate: z.coerce.date().optional(),
   unitSize: zfd.numeric(z.number().int()),
   //   priority: zfd.numeric(),        Uncomment when priority is added to the schema
@@ -39,13 +40,21 @@ export async function POST(req: Request) {
 
   const parsed = schema.safeParse(await req.formData());
   if (!parsed.success) return argumentError("Invalid form data");
-  const { title, category, expirationDate, unitSize, quantity, comments } =
-    parsed.data;
+  const {
+    title,
+    type,
+    priority,
+    expirationDate,
+    unitSize,
+    quantity,
+    comments,
+  } = parsed.data;
 
   db.unallocatedItemRequest.create({
     data: {
       title,
-      category,
+      type,
+      priority,
       expirationDate,
       unitSize,
       quantity,

@@ -6,17 +6,18 @@ import { expect, test } from "@jest/globals";
 // import { authMock } from "@/test/authMock";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
 import { db } from "@/db";
-import { Prisma } from "@prisma/client";
+import { Item, ItemCategory, Prisma } from "@prisma/client";
 
 beforeEach(async () => {
   const createMockItem = (
     title: string,
-    category: string,
+    type: string,
+    category: ItemCategory,
     quantity: number,
     expirationDate: Date,
     unitSize: number,
-    visible: boolean,
-  ) => {
+    visible: boolean
+  ): Item => {
     const generatedIds = new Set<number>();
 
     let id: number;
@@ -29,10 +30,15 @@ beforeEach(async () => {
     return {
       id: id,
       title,
+      type,
       category,
       quantity,
       expirationDate,
       unitSize,
+      visible,
+      quantityPerUnit: null,
+      donorShippingNumber: null,
+      hfhShippingNumber: null,
       unitType: `Unit Type ${Math.floor(Math.random() * 3)}`,
       datePosted: new Date(Date.now() + Math.floor(Math.random() * 10000)),
       lotNumber: Math.floor(Math.random() * 100),
@@ -41,7 +47,8 @@ beforeEach(async () => {
       donorName: "Chris Evans <3",
       unitPrice: new Prisma.Decimal(Math.random() * 100),
       maxRequestLimit: "abc",
-      visible,
+      allowAllocations: false,
+      gik: false,
     };
   };
 
@@ -50,10 +57,42 @@ beforeEach(async () => {
   const date3 = new Date("2000-01-01");
 
   const items = [
-    createMockItem("test_title", "test_category", 100, date1, 5, true),
-    createMockItem("test_title", "other_category", 20, date2, 6, true),
-    createMockItem("test_title", "test_category", 1, date3, 7, false),
-    createMockItem("test_title", "test_category", 15, date1, 5, false),
+    createMockItem(
+      "test_title",
+      "test_type",
+      "MEDICAL_SUPPLY",
+      100,
+      date1,
+      5,
+      true
+    ),
+    createMockItem(
+      "test_title",
+      "test_type",
+      "MEDICAL_SUPPLY",
+      20,
+      date2,
+      6,
+      true
+    ),
+    createMockItem(
+      "test_title",
+      "test_type",
+      "MEDICAL_SUPPLY",
+      1,
+      date3,
+      7,
+      false
+    ),
+    createMockItem(
+      "test_title",
+      "test_type",
+      "MEDICAL_SUPPLY",
+      15,
+      date1,
+      5,
+      false
+    ),
   ];
   await db.item.deleteMany({});
   await db.item.createMany({
@@ -100,21 +139,21 @@ test("Should give correct database queries", async () => {
       const expectedRet = [
         {
           title: "test_title",
-          category: "test_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "other_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
         },
         {
           title: "test_title",
-          category: "test_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 1,
           expirationDate: new Date("2000-01-01"),
           unitSize: 7,
@@ -122,7 +161,7 @@ test("Should give correct database queries", async () => {
       ];
       const json = await res.json();
       await expect(json.items).toEqual(
-        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet))),
+        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet)))
       ); // Needed to stringify and parse because the expiration field would cause an error because Date != ISOstring
     },
   });
@@ -135,7 +174,7 @@ test("Should return 400 on invalid expirationDateAfter", async () => {
       request.nextUrl.searchParams.set("expirationDateAfter", "foo");
       request.nextUrl.searchParams.set(
         "expirationDateBefore",
-        "2025-02-10T20:21:11+00:00",
+        "2025-02-10T20:21:11+00:00"
       );
     },
     async test({ fetch }) {
@@ -156,7 +195,7 @@ test("Should return 400 on invalid expirationDateBefore", async () => {
     requestPatcher(request) {
       request.nextUrl.searchParams.set(
         "expirationDateAfter",
-        "2025-02-10T20:21:11+00:00",
+        "2025-02-10T20:21:11+00:00"
       );
       request.nextUrl.searchParams.set("expirationDateBefore", "foo");
     },
@@ -178,11 +217,11 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
     requestPatcher(request) {
       request.nextUrl.searchParams.set(
         "expirationDateAfter",
-        "2025-02-10T00:00:00.000Z",
+        "2025-02-10T00:00:00.000Z"
       );
       request.nextUrl.searchParams.set(
         "expirationDateBefore",
-        "2025-02-14T00:00:00.000Z",
+        "2025-02-14T00:00:00.000Z"
       );
     },
     async test({ fetch }) {
@@ -194,14 +233,14 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
       const expectedRet = [
         {
           title: "test_title",
-          category: "test_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "other_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -209,7 +248,7 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
       ];
       const json = await res.json();
       await expect(json.items).toEqual(
-        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet))),
+        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet)))
       );
     },
   });
@@ -221,7 +260,7 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
     requestPatcher(request) {
       request.nextUrl.searchParams.set(
         "expirationDateBefore",
-        "2025-02-14T00:00:00.000Z",
+        "2025-02-14T00:00:00.000Z"
       );
     },
     async test({ fetch }) {
@@ -233,14 +272,14 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
       const expectedRet = [
         {
           title: "test_title",
-          category: "test_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "other_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -248,7 +287,7 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
       ];
       const json = await res.json();
       await expect(json.items).toEqual(
-        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet))),
+        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet)))
       );
     },
   });
@@ -260,7 +299,7 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
     requestPatcher(request) {
       request.nextUrl.searchParams.set(
         "expirationDateAfter",
-        "2025-02-10T00:00:00.000Z",
+        "2025-02-10T00:00:00.000Z"
       );
     },
     async test({ fetch }) {
@@ -272,14 +311,14 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
       const expectedRet = [
         {
           title: "test_title",
-          category: "test_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "other_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -287,7 +326,7 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
       ];
       const json = await res.json();
       await expect(json.items).toEqual(
-        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet))),
+        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet)))
       );
     },
   });
@@ -305,14 +344,14 @@ test("Should hide visible = false when requested by partner", async () => {
       const expectedRet = [
         {
           title: "test_title",
-          category: "test_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 100,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "other_category",
+          category: "MEDICAL_SUPPLY",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -320,7 +359,7 @@ test("Should hide visible = false when requested by partner", async () => {
       ];
       const json = await res.json();
       await expect(json.items).toEqual(
-        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet))),
+        expect.arrayContaining(JSON.parse(JSON.stringify(expectedRet)))
       );
     },
   });
