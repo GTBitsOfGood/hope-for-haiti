@@ -29,7 +29,7 @@ export default function BulkAddSuccessModal({
         <div className="flex justify-center mt-4">
           <CheckCircle size={128} color="#2774AE" weight="fill" />
         </div>
-        <Link href={"/unallocated_items"}>
+        <Link href={"/unallocatedItems"}>
           <button className="mt-6 w-full bg-red-500 text-white py-2 rounded-md shadow-md hover:bg-red-600 transition">
             Back to unallocated items
           </button>

@@ -47,7 +47,7 @@ export default function CreatePartnerAccountScreen() {
         }
 
         //go back to account management after
-        router.push("/account_management");
+        router.push("/accountManagement");
       } catch {
         setErrorMessage("Failed to send invite. Please try again.");
       } finally {
@@ -62,7 +62,7 @@ export default function CreatePartnerAccountScreen() {
   const handleCancelClick = () => setShowConfirmCancel(true);
   const confirmCancel = () => {
     setShowConfirmCancel(false);
-    router.push("/account_management");
+    router.push("/accountManagement");
   };
 
   return (

@@ -85,7 +85,7 @@ export default function SignInScreen() {
               </label>
             </div>
             <div>
-              <Link href={"/sign_in"} className="text-red-500 text-xs">
+              <Link href={"/signIn"} className="text-red-500 text-xs">
                 Forgot Password
               </Link>
             </div>

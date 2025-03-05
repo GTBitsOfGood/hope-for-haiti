@@ -80,7 +80,7 @@ export default function StepTen({}: StepTenProps) {
         <button
           className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold w-[320px] text-center"
           onClick={() => {
-            router.push("/account_management");
+            router.push("/accountManagement");
           }}
           disabled={sendingInvite}
         >

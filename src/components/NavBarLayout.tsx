@@ -58,13 +58,13 @@ function NavLinks() {
       <NavLink href="/" label="Home" icon={<House size={22} />} />
       {isStaff && (
         <NavLink
-          href="/account_management"
+          href="/accountManagement"
           label="Account Management"
           icon={<UserList size={22} />}
         />
       )}
       <NavLink
-        href="/unallocated_items"
+        href="/unallocatedItems"
         label="Unallocated Items"
         icon={<Cube size={22} />}
       />
@@ -72,7 +72,7 @@ function NavLinks() {
         <NavLink href="/map" label="Map" icon={<MapTrifold size={22} />} />
       )}
       <NavLink
-        href="/donor_offers"
+        href="/donorOffers"
         label="Donor Offers"
         icon={<HandHeart size={22} />}
       />
