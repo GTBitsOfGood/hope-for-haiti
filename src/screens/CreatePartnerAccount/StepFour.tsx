@@ -8,7 +8,11 @@ interface StepFourProps {
   handleCancelClick: () => void;
 }
 
-export default function StepFour({ prevStep, nextStep, handleCancelClick }: StepFourProps) {
+export default function StepFour({
+  prevStep,
+  nextStep,
+  handleCancelClick,
+}: StepFourProps) {
   return (
     <>
       <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
@@ -24,13 +28,31 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          ["Birthing center", "Clinic", "Hospital", "Elderly care", "Rehabilitation center"],
-          ["Dispensary", "Orphanage", "Primary care", "Nutrition/feeding", "Health center"],
-          ["Community health education", "Secondary/tertiary healthcare (including surgery)"],
+          [
+            "Birthing center",
+            "Clinic",
+            "Hospital",
+            "Elderly care",
+            "Rehabilitation center",
+          ],
+          [
+            "Dispensary",
+            "Orphanage",
+            "Primary care",
+            "Nutrition/feeding",
+            "Health center",
+          ],
+          [
+            "Community health education",
+            "Secondary/tertiary healthcare (including surgery)",
+          ],
         ].map((column, index) => (
           <div key={index} className="space-y-2">
             {column.map((facility) => (
-              <label key={facility} className="flex items-center text-[16px] text-[#22070B]">
+              <label
+                key={facility}
+                className="flex items-center text-[16px] text-[#22070B]"
+              >
                 <input type="checkbox" className="mr-2" />
                 {facility}
               </label>
@@ -44,7 +66,10 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
       </p>
       <div className="space-y-2 mb-8">
         {["Non-profit", "For profit", "Faith-based"].map((ftype) => (
-          <label key={ftype} className="flex items-center text-[16px] text-[#22070B]">
+          <label
+            key={ftype}
+            className="flex items-center text-[16px] text-[#22070B]"
+          >
             <input type="checkbox" className="mr-2" />
             {ftype}
           </label>
@@ -63,7 +88,6 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
         </label>
       </div>
 
-
       <label className="block text-[16px] text-[#22070B] mb-2">
         Do you have an Emergency Medical Records (EMR) System?
       </label>
@@ -72,7 +96,9 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
           <input type="radio" name="emrSystem" className="mr-2" /> Yes
         </label>
         <div className="ml-6 mb-5">
-          <label className="block text-[16px] text-[#22070B] mb-2">Input name</label>
+          <label className="block text-[16px] text-[#22070B] mb-2">
+            Input name
+          </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
@@ -84,7 +110,6 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
         </label>
       </div>
 
-
       <label className="block text-[16px] text-[#22070B] mb-2">
         Number of inpatient beds
       </label>
@@ -93,7 +118,6 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
         placeholder="Number"
       />
-
 
       <label className="block text-[16px] text-[#22070B] mb-2">
         Number of patients served annually
@@ -104,7 +128,9 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
         placeholder="Number"
       />
 
-      <p className="text-[16px] text-[#22070B] mb-2">Do you offer community/mobile outreach?</p>
+      <p className="text-[16px] text-[#22070B] mb-2">
+        Do you offer community/mobile outreach?
+      </p>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
           <input type="radio" name="communityOutreach" className="mr-2" /> Yes
@@ -125,7 +151,10 @@ export default function StepFour({ prevStep, nextStep, handleCancelClick }: Step
       </div>
 
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>

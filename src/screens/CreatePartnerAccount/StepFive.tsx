@@ -8,7 +8,11 @@ interface StepFiveProps {
   handleCancelClick: () => void;
 }
 
-export default function StepFive({ prevStep, nextStep, handleCancelClick }: StepFiveProps) {
+export default function StepFive({
+  prevStep,
+  nextStep,
+  handleCancelClick,
+}: StepFiveProps) {
   return (
     <>
       <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
@@ -19,7 +23,8 @@ export default function StepFive({ prevStep, nextStep, handleCancelClick }: Step
       </h3>
 
       <label className="block text-[16px] text-[#22070B] mb-2">
-        Please provide a general description of your facility including the type and number of buildings.
+        Please provide a general description of your facility including the type
+        and number of buildings.
       </label>
       <textarea
         className="w-full h-[160px] p-3 border border-[#22070B]/10 bg-[#F9F9F9] 
@@ -36,7 +41,9 @@ export default function StepFive({ prevStep, nextStep, handleCancelClick }: Step
           <input type="radio" name="cleanWater" className="mr-2" /> Yes
         </label>
         <div className="ml-6 mb-5">
-          <label className="block text-[16px] text-[#22070B] mb-2">Please specify how</label>
+          <label className="block text-[16px] text-[#22070B] mb-2">
+            Please specify how
+          </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
@@ -53,10 +60,13 @@ export default function StepFive({ prevStep, nextStep, handleCancelClick }: Step
       </label>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="sanitationFacilities" className="mr-2" /> Yes
+          <input type="radio" name="sanitationFacilities" className="mr-2" />{" "}
+          Yes
         </label>
         <div className="ml-6 mb-5">
-          <label className="block text-[16px] text-[#22070B] mb-2">Do they lock from the inside?</label>
+          <label className="block text-[16px] text-[#22070B] mb-2">
+            Do they lock from the inside?
+          </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
@@ -76,7 +86,9 @@ export default function StepFive({ prevStep, nextStep, handleCancelClick }: Step
           <input type="radio" name="medDisposal" className="mr-2" /> Yes
         </label>
         <div className="ml-6 mb-5">
-          <label className="block text-[16px] text-[#22070B] mb-2">Please describe the process</label>
+          <label className="block text-[16px] text-[#22070B] mb-2">
+            Please describe the process
+          </label>
           <textarea
             className="w-full h-[160px] p-3 border border-[#22070B]/10 bg-[#F9F9F9] 
             text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
@@ -97,7 +109,9 @@ export default function StepFive({ prevStep, nextStep, handleCancelClick }: Step
           <input type="radio" name="vehicleDepot" className="mr-2" /> Yes
         </label>
         <div className="ml-6 mb-5">
-          <label className="block text-[16px] text-[#22070B] mb-2">Specify type of vehicle</label>
+          <label className="block text-[16px] text-[#22070B] mb-2">
+            Specify type of vehicle
+          </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
@@ -112,10 +126,12 @@ export default function StepFive({ prevStep, nextStep, handleCancelClick }: Step
         </label>
         <div className="space-y-2">
           <label className="flex items-center text-[16px] text-[#22070B]">
-            <input type="radio" name="supplyPickup" className="mr-2" /> Les Cayes
+            <input type="radio" name="supplyPickup" className="mr-2" /> Les
+            Cayes
           </label>
           <label className="flex items-center text-[16px] text-[#22070B]">
-            <input type="radio" name="supplyPickup" className="mr-2" /> Port-au-Prince
+            <input type="radio" name="supplyPickup" className="mr-2" />{" "}
+            Port-au-Prince
           </label>
         </div>
       </div>
@@ -125,7 +141,10 @@ export default function StepFive({ prevStep, nextStep, handleCancelClick }: Step
       </label>
 
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>

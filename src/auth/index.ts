@@ -51,7 +51,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const passwordsMatch = await verify(
           user.passwordHash,
-          credentials.password as string
+          credentials.password as string,
         );
         if (!passwordsMatch) throw new InvalidCredentialsError();
 

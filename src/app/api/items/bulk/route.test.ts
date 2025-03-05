@@ -166,7 +166,7 @@ test("Should create items for valid form data", async () => {
         ({ id, visible, ...rest }) => ({
           ...rest,
           unitPrice: rest.unitPrice.toNumber(),
-        })
+        }),
       );
       expect(createdItems).toHaveLength(preLength + 2);
       expect(createdItems).toEqual(items);

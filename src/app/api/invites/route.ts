@@ -30,7 +30,7 @@ const schema = zfd
     {
       message: "Partner details are required for PARTNER user type",
       path: ["partnerDetails"],
-    }
+    },
   );
 
 /**

@@ -46,7 +46,6 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           placeholder="Department"
         />
 
-
         <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
           GPS coordinates
         </label>
@@ -55,7 +54,6 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="GPS coordinates"
         />
-
 
         <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
           Website

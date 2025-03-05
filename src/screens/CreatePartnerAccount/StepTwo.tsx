@@ -8,7 +8,11 @@ interface StepTwoProps {
   handleCancelClick: () => void;
 }
 
-export default function StepTwo({ prevStep, nextStep, handleCancelClick }: StepTwoProps) {
+export default function StepTwo({
+  prevStep,
+  nextStep,
+  handleCancelClick,
+}: StepTwoProps) {
   return (
     <>
       <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
@@ -18,8 +22,16 @@ export default function StepTwo({ prevStep, nextStep, handleCancelClick }: StepT
         Contact information
       </h3>
 
-      {["Regional Contact", "Medical Contact", "Admin Director", "Pharmacy"].map((section, index) => (
-        <div key={section} className={`mb-8 ${index > 0 ? "border-t border-[#22070B]/10 mt-6 pt-6" : ""}`}>
+      {[
+        "Regional Contact",
+        "Medical Contact",
+        "Admin Director",
+        "Pharmacy",
+      ].map((section, index) => (
+        <div
+          key={section}
+          className={`mb-8 ${index > 0 ? "border-t border-[#22070B]/10 mt-6 pt-6" : ""}`}
+        >
           <h4 className="text-[18px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
             {section}
           </h4>
@@ -72,7 +84,10 @@ export default function StepTwo({ prevStep, nextStep, handleCancelClick }: StepT
         />
       </div>
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>

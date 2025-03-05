@@ -11,7 +11,7 @@ import { Item, Prisma } from "@prisma/client";
  */
 export async function fillDbMockWithManyItems(
   num: number,
-  dates?: Date[]
+  dates?: Date[],
 ): Promise<Item[]> {
   if (dates && dates.length !== num) {
     throw new Error("Number of dates must match number of items");

@@ -47,7 +47,7 @@ type PartnerRequest = {
 export default function AdminUnallocatedItemsScreen() {
   const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
   const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
-    []
+    [],
   );
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isLoading, setIsLoading] = useState(true);
@@ -287,7 +287,7 @@ export default function AdminUnallocatedItemsScreen() {
                                 {partnerRequests[index]?.map(
                                   (
                                     request: PartnerRequest,
-                                    reqIndex: number
+                                    reqIndex: number,
                                   ) => (
                                     <tr key={reqIndex}>
                                       <td className="px-4 py-2">
@@ -306,7 +306,7 @@ export default function AdminUnallocatedItemsScreen() {
                                         {request.allocatedSummary}
                                       </td>
                                     </tr>
-                                  )
+                                  ),
                                 )}
                               </tbody>
                             </table>

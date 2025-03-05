@@ -28,13 +28,43 @@ export default function StepSix({
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          ["Cancer", "Dentistry", "Dermatology", "Hematology", "Immunizations", "Parasitic infections", "Acute respiratory infections", "Vector-borne diseases"],
-          ["Chronic diseases", "Diarrheal diseases", "Vaccine-preventable diseases", "Infectious diseases", "Neurology", "Malnutrition", "Ophthalmology", "Ears-nose-throat"],
-          ["Orthopedics and rehabilitation", "Pediatrics", "Radiology", "Wound care", "Maternal care", "Lab tests", "Trauma and surgery", "Urology"],
+          [
+            "Cancer",
+            "Dentistry",
+            "Dermatology",
+            "Hematology",
+            "Immunizations",
+            "Parasitic infections",
+            "Acute respiratory infections",
+            "Vector-borne diseases",
+          ],
+          [
+            "Chronic diseases",
+            "Diarrheal diseases",
+            "Vaccine-preventable diseases",
+            "Infectious diseases",
+            "Neurology",
+            "Malnutrition",
+            "Ophthalmology",
+            "Ears-nose-throat",
+          ],
+          [
+            "Orthopedics and rehabilitation",
+            "Pediatrics",
+            "Radiology",
+            "Wound care",
+            "Maternal care",
+            "Lab tests",
+            "Trauma and surgery",
+            "Urology",
+          ],
         ].map((column, index) => (
           <div key={index} className="space-y-2">
             {column.map((service) => (
-              <label key={service} className="flex items-center text-[16px] text-[#22070B]">
+              <label
+                key={service}
+                className="flex items-center text-[16px] text-[#22070B]"
+              >
                 <input type="checkbox" className="mr-2" />
                 {service}
               </label>
@@ -54,7 +84,10 @@ export default function StepSix({
       />
 
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>

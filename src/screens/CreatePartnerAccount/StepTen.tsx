@@ -9,8 +9,7 @@ interface StepTenProps {
   handleCancelClick: () => void;
 }
 
-export default function StepTen({
-}: StepTenProps) {
+export default function StepTen({}: StepTenProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sendingInvite, setSendingInvite] = useState(true);
@@ -68,7 +67,8 @@ export default function StepTen({
       ) : (
         <>
           <p className="text-[16px] text-[#22070B]/70 mb-4">
-            An email has been sent to the other party to finalize account creation. This account is currently pending.
+            An email has been sent to the other party to finalize account
+            creation. This account is currently pending.
           </p>
           <p className="text-[16px] text-[#22070B]/70 mb-8">
             You can view the current status from the account management page.
