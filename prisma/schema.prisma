@@ -38,6 +38,7 @@ model User {
   // Partner-only fields
   partnerDetails          Json?
   unallocatedItemRequests UnallocatedItemRequest[]
+  donorOfferVisibilities  DonorOfferPartnerVisibility[]
 }
 
 model UserInvite {
@@ -114,14 +115,22 @@ model UnallocatedItemRequestAllocation {
   unallocatedItem Item @relation(fields: [itemId], references: [id])
 }
 
+enum DonorOfferState {
+  UNFINALIZED
+  FINALIZED
+  ARCHIVED
+}
+
 model DonorOffer {
   id Int @id @default(autoincrement())
 
+  state            DonorOfferState
   offerName        String
   donorName        String
   responseDeadline DateTime
 
-  items DonorOfferItem[]
+  items               DonorOfferItem[]
+  partnerVisibilities DonorOfferPartnerVisibility[]
 }
 
 model DonorOfferItem {
@@ -148,4 +157,14 @@ model DonorOfferItemRequest {
   quantity Int
   comments String
   priority RequestPriority
+}
+
+model DonorOfferPartnerVisibility {
+  id Int @id @default(autoincrement())
+
+  donorOfferId Int
+  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id])
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
 }
