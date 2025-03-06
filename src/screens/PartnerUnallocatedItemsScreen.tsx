@@ -51,7 +51,7 @@ export default function PartnerUnallocatedItemsScreen() {
 
   useEffect(() => {
     setTimeout(async () => {
-      const response = await fetch("api/unclaimedItems", {
+      const response = await fetch("api/unallocatedItems", {
         method: "GET",
       });
       const data = await response.json();

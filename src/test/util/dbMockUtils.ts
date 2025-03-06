@@ -5,9 +5,9 @@ import { Item, ItemCategory, Prisma } from "@prisma/client";
 
 /**
  * Helper method for creating unclaimed items
- * Defines the db.unclaimedItem.findMany mock
+ * Defines the db.item.findMany mock
  * @param num Number of items to create
- * @returns Array of UnclaimedItems returned by db.unclaimedItem.findMany mock
+ * @returns Array of items returned by db.item.findMany mock
  */
 export async function fillDbMockWithManyItems(
   num: number,
@@ -103,7 +103,7 @@ export async function fillDbMockWithManyItems(
  * Helper method for creating a single unclaimed item.
  * Only the id and title are 100% untouchable by caller.
  */
-export async function createUnclaimedItem({
+export async function createItem({
   id = Math.floor(Math.random() * 10000),
   title = `Test Item ${id}`,
   type = "Test Type",
