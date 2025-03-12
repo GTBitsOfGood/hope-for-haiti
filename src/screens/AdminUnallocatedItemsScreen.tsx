@@ -57,6 +57,8 @@ export default function AdminUnallocatedItemsScreen() {
     Record<number, PartnerRequest[]>
   >({});
 
+  const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
+
   useEffect(() => {
     setTimeout(() => {
       const dummyData: UnallocatedItemRequest[] = [
@@ -187,11 +189,28 @@ export default function AdminUnallocatedItemsScreen() {
           <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
             <Plus size={18} /> Filter
           </button>
-          <Link href="/bulkAddItems">
-            <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+          <div className="relative">
+            <button
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+              onClick={() => {
+                setAddItemExpanded(!addItemExpanded);
+              }}
+            >
               <Plus size={18} /> Add Item
             </button>
-          </Link>
+            {addItemExpanded ? (
+              <div className="flex flex-col gap-y-1 items-center absolute left-0 z-10 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
+                <button className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5">
+                  Single item
+                </button>
+                <Link href="/bulkAddItems">
+                  <button className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5">
+                    Bulk items
+                  </button>
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
