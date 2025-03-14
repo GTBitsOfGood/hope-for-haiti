@@ -7,6 +7,31 @@ import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
 import { db } from "@/db";
 import { DonorOfferState } from "@prisma/client";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let snapshot: any;
+
+beforeEach(async () => {
+  snapshot = [
+    await db.donorOfferItem.findMany(),
+    await db.donorOffer.findMany(),
+  ];
+
+  await db.donorOfferItem.deleteMany();
+  await db.donorOffer.deleteMany();
+});
+
+afterEach(async () => {
+  await db.donorOfferItem.deleteMany();
+  await db.donorOffer.deleteMany();
+
+  await db.donorOffer.createMany({
+    data: snapshot[1],
+  });
+  await db.donorOfferItem.createMany({
+    data: snapshot[0],
+  });
+});
+
 test("Should return 401 if session is invalid", async () => {
   await testApiHandler({
     appHandler,
@@ -64,9 +89,6 @@ test("Should return 404 if donor offer does not exist", async () => {
 });
 
 test("Should return donor offer items", async () => {
-  await db.donorOfferItem.deleteMany(); //
-  await db.donorOffer.deleteMany(); //
-
   // Create donor offers
   await db.donorOffer.createMany({
     data: [
