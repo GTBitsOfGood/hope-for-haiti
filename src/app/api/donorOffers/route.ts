@@ -4,6 +4,7 @@ import { authenticationError, authorizationError } from "@/util/responses";
 import { DonorOfferState, UserType } from "@prisma/client";
 import { DateTime } from "next-auth/providers/kakao";
 import { NextResponse } from "next/server";
+import { format } from "date-fns";
 
 interface DonorOffer {
   donorOffer: string;
@@ -29,7 +30,7 @@ export async function GET() {
   const formattedDonorOffers = donorOffers.map((offer) => ({
     offerName: offer.offerName,
     donorName: offer.donorName,
-    responseDeadline: offer.responseDeadline,
+    responseDeadline: format(offer.responseDeadline, "MM/dd/yyyy"),
     state: offer.state,
   }));
 

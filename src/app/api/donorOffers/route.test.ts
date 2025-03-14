@@ -6,6 +6,7 @@ import { expect, test } from "@jest/globals";
 import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
 import { db } from "@/db";
 import { DonorOfferState, UserType } from "@prisma/client";
+import { format } from "date-fns";
 
 test("Should return 401 for no session", async () => {
   await testApiHandler({
@@ -87,7 +88,7 @@ test("Should return donor offers for PARTNER", async () => {
           return {
             offerName: offer.offerName,
             donorName: offer.donorName,
-            responseDeadline: offer.responseDeadline.toISOString(),
+            responseDeadline: format(offer.responseDeadline, "MM/dd/yyyy"),
             state: offer.state,
           };
         })
