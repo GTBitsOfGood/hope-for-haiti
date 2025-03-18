@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
-import { UnallocatedItemRequest } from "@prisma/client";
+import { Item } from "@prisma/client";
 import React from "react";
+import toast from "react-hot-toast";
 import Link from "next/link";
 
 enum ExpirationFilterKey {
@@ -13,28 +14,7 @@ enum ExpirationFilterKey {
   THREE_TO_SIX = "3-6 Months",
   SIX_PLUS = "6+ Months",
 }
-
-function withinMonths(item: UnallocatedItemRequest, months: number) {
-  if (!item.expirationDate) return false;
-  const now = new Date();
-  const date = new Date(item.expirationDate);
-  date.setMonth(now.getMonth() + months);
-  return item.expirationDate >= now && item.expirationDate <= date;
-}
-
-const expirationFilterMap: Record<
-  ExpirationFilterKey,
-  (item: UnallocatedItemRequest) => boolean
-> = {
-  [ExpirationFilterKey.ALL]: () => true,
-  [ExpirationFilterKey.ZERO_TO_THREE]: (item) => withinMonths(item, 3),
-  [ExpirationFilterKey.THREE_TO_SIX]: (item) =>
-    !withinMonths(item, 3) && withinMonths(item, 6),
-  [ExpirationFilterKey.SIX_PLUS]: (item) => {
-    const hasExpiration = Boolean(item.expirationDate);
-    return hasExpiration && !withinMonths(item, 6);
-  },
-};
+const expirationFilterTabs = ["0-3 Months", "3-6 Months", "6+ Months"] as const;
 
 type PartnerRequest = {
   partner: string;
@@ -45,8 +25,7 @@ type PartnerRequest = {
 };
 
 export default function AdminUnallocatedItemsScreen() {
-  const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
-  const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
+  const [filteredItems, setFilteredItems] = useState<Item[]>(
     []
   );
   const [activeTab, setActiveTab] = useState<string>("All");
@@ -58,82 +37,63 @@ export default function AdminUnallocatedItemsScreen() {
   >({});
 
   useEffect(() => {
-    setTimeout(() => {
-      const dummyData: UnallocatedItemRequest[] = [
-        {
-          id: 1,
-          title: "Canned Soup",
-          type: "Type",
-          priority: "HIGH",
-          quantity: 24,
-          unitSize: 1,
-          comments: "Comments",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-          createdAt: new Date(),
-        },
-        {
-          id: 2,
-          title: "Rice",
-          type: "Type",
-          priority: "MEDIUM",
-          quantity: 50,
-          unitSize: 1,
-          comments: "White rice, 1lb bags",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 120),
-          createdAt: new Date(),
-        },
-        {
-          id: 3,
-          title: "Pasta",
-          type: "Type",
-          priority: "LOW",
-          quantity: 100,
-          unitSize: 1,
-          comments: "Spaghetti, 1lb boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 180),
-          createdAt: new Date(),
-        },
-        {
-          id: 4,
-          title: "Canned Beans",
-          type: "Type",
-          priority: "MEDIUM",
-          quantity: 36,
-          unitSize: 1,
-          comments: "Black beans and pinto beans",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 240),
-          createdAt: new Date(),
-        },
-        {
-          id: 5,
-          title: "Cereal",
-          type: "Type",
-          priority: "LOW",
-          quantity: 20,
-          unitSize: 1,
-          comments: "Various types, family size boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60),
-          createdAt: new Date(),
-        },
-      ];
+    const fetchItems = async () => {
+      try {
+        const res = await fetch("/api/unallocatedItems");
+        if (!res.ok) {
+          throw new Error(`Error: ${res.status} ${res.statusText}`);
+        }
+        const data = await res.json();
+        setFilteredItems(data.items);
+      } catch (error) {
+        toast.error("An error occurred while fetching data");
+        console.error("Fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      setItems(dummyData);
-      setFilteredItems(dummyData);
-      setIsLoading(false);
-    }, 1000);
+    fetchItems();
   }, []);
 
-  const filterItems = (key: ExpirationFilterKey) => {
+  const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
-    setFilteredItems(items.filter(expirationFilterMap[key]));
-    setExpandedIndices([]);
-    setLoadingIndices([]);
+    setIsLoading(true); 
+  
+    let expirationDateBefore: string | null = null;
+    let expirationDateAfter: string | null = null;
+    const today = new Date();
+    
+    if (key === "0-3 Months") {
+      expirationDateBefore = new Date(today.setMonth(today.getMonth() + 3)).toISOString();
+    } else if (key === "3-6 Months") {
+      expirationDateAfter = new Date(today.setMonth(today.getMonth() + 3)).toISOString();
+      expirationDateBefore = new Date(today.setMonth(today.getMonth() + 6)).toISOString();
+    } else if (key === "6+ Months") {
+      expirationDateAfter = new Date(today.setMonth(today.getMonth() + 6)).toISOString();
+    }
+  
+    const url = new URL("/api/unallocatedItems", window.location.origin);
+    if (expirationDateBefore) url.searchParams.append("expirationDateBefore", expirationDateBefore);
+    if (expirationDateAfter) url.searchParams.append("expirationDateAfter", expirationDateAfter);
+  
+    try {
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        throw new Error(`Error: ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+      setFilteredItems(data.items); // Update UI with API data
+    } catch (error) {
+      toast.error("Failed to fetch items");
+      console.error("Filter fetch error:", error);
+    } finally {
+      setIsLoading(false);
+      setExpandedIndices([]);
+      setLoadingIndices([]);
+    }
   };
+  
 
   const toggleExpand = async (index: number) => {
     if (expandedIndices.includes(index)) {
@@ -195,7 +155,7 @@ export default function AdminUnallocatedItemsScreen() {
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
-        {Object.keys(expirationFilterMap).map((tab) => {
+        {expirationFilterTabs.map((tab) => {
           const key = tab as ExpirationFilterKey;
 
           return (
@@ -245,7 +205,7 @@ export default function AdminUnallocatedItemsScreen() {
                       </button>
                     </td>
                     <td className="px-4 py-2 w-1/6">{item.title}</td>
-                    <td className="px-4 py-2 w-1/6">{item.type}</td>
+                    <td className="px-4 py-2 w-1/6">{item.category}</td>
                     <td className="px-4 py-2 w-1/6">{item.quantity}</td>
                     <td className="px-4 py-2 w-1/6">
                       {item.expirationDate
