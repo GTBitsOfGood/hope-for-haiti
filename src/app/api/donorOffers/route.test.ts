@@ -109,6 +109,7 @@ test("Should return donor offers for PARTNER", async () => {
       expect(body).toEqual(
         donorOffers.map((offer) => {
           return {
+            donorOfferId: expect.any(Number),
             offerName: offer.offerName,
             donorName: offer.donorName,
             responseDeadline: format(offer.responseDeadline, "MM/dd/yyyy"),

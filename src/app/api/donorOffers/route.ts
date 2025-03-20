@@ -7,10 +7,11 @@ import { NextResponse } from "next/server";
 import { format } from "date-fns";
 
 interface DonorOffer {
-  donorOffer: string;
+  donorOfferId: number;
+  offerName: string;
   donorName: string;
   responseDeadline: DateTime;
-  status: DonorOfferState;
+  state: DonorOfferState;
 }
 
 /**
@@ -27,12 +28,16 @@ export async function GET() {
     return authorizationError("Wrong user type");
 
   const donorOffers = await db.donorOffer.findMany();
-  const formattedDonorOffers = donorOffers.map((offer) => ({
-    offerName: offer.offerName,
-    donorName: offer.donorName,
-    responseDeadline: format(offer.responseDeadline, "MM/dd/yyyy"),
-    state: offer.state,
-  }));
+  const formattedDonorOffers = donorOffers.map(
+    (offer) =>
+      ({
+        donorOfferId: offer.id,
+        offerName: offer.offerName,
+        donorName: offer.donorName,
+        responseDeadline: format(offer.responseDeadline, "MM/dd/yyyy"),
+        state: offer.state,
+      }) as DonorOffer
+  );
 
-  return NextResponse.json(formattedDonorOffers as unknown as DonorOffer[]);
+  return NextResponse.json(formattedDonorOffers as DonorOffer[]);
 }

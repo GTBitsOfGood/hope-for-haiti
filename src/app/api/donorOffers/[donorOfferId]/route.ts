@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 interface DonorOfferItem {
   title: string;
   type: string;
-  expiration?: DateTime;
+  expiration?: DateTime | null;
   quantity: number;
   unitSize: string;
 }
@@ -46,13 +46,16 @@ export async function GET(
     await db.donorOfferItem.findMany({
       where: { donorOfferId: donorOfferId },
     })
-  ).map((item) => ({
-    title: item.title,
-    type: item.type,
-    expiration: item.expiration,
-    quantity: item.quantity,
-    unitSize: item.unitSize,
-  }));
+  ).map(
+    (item) =>
+      ({
+        title: item.title,
+        type: item.type,
+        expiration: item.expiration,
+        quantity: item.quantity,
+        unitSize: item.unitSize,
+      }) as DonorOfferItem
+  );
 
   return NextResponse.json(donorOfferItems as unknown as DonorOfferItem[]);
 }
