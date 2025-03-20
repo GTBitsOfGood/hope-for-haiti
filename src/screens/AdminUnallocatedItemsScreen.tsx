@@ -5,7 +5,8 @@ import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import AddItemModal from "@/components/AddItemModal";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -45,6 +46,7 @@ type PartnerRequest = {
 };
 
 export default function AdminUnallocatedItemsScreen() {
+  const router = useRouter();
   const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
   const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
     []
@@ -58,7 +60,7 @@ export default function AdminUnallocatedItemsScreen() {
   >({});
 
   const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
-
+  const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
   useEffect(() => {
     setTimeout(() => {
       const dummyData: UnallocatedItemRequest[] = [
@@ -172,6 +174,7 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
+      {isModalOpen ? <AddItemModal setIsOpen={setIsModalOpen} /> : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
@@ -199,15 +202,22 @@ export default function AdminUnallocatedItemsScreen() {
               <Plus size={18} /> Add Item
             </button>
             {addItemExpanded ? (
-              <div className="flex flex-col gap-y-1 items-center absolute left-0 z-10 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
-                <button className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5">
+              <div className="flex flex-col gap-y-1 items-center absolute left-0 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
+                <button
+                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                  onClick={() => {
+                    setIsModalOpen(true);
+                    setAddItemExpanded(false);
+                  }}
+                >
                   Single item
                 </button>
-                <Link href="/bulkAddItems">
-                  <button className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5">
-                    Bulk items
-                  </button>
-                </Link>
+                <button
+                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                  onClick={() => router.push("/bulkAddItems")}
+                >
+                  Bulk items
+                </button>
               </div>
             ) : null}
           </div>
