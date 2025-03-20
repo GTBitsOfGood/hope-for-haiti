@@ -1,6 +1,8 @@
 import { X } from "@phosphor-icons/react";
 import ModalTextField from "./ModalTextField";
 import ModalFormRow from "./ModalFormRow";
+import ModalLongTextField from "./ModalLongTextField";
+import ModalToggleField from "./ModalToggleField";
 
 interface AddItemModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
@@ -9,7 +11,7 @@ interface AddItemModalProps {
 export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-[600px] relative">
+      <div className="flex flex-col bg-white p-8 rounded-lg shadow-lg w-[600px] relative max-h-[90vh]">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold">Add new item</h2>
           <X
@@ -22,7 +24,7 @@ export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
           Fields marked with <span className="text-red-500">*</span> are
           required
         </p>
-        <div className="max-h-[80vh] overflow-auto pr-4">
+        <form className="overflow-auto pr-4 flex flex-col gap-y-4">
           <ModalFormRow>
             <ModalTextField label="Item title" required />
             <ModalTextField label="Donor name" required />
@@ -46,27 +48,66 @@ export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
             {/* To be replaced with numeric field */}
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Quantity" />
+            <ModalTextField label="Quantity" required />
             {/* To be replaced with numeric field */}
-            <ModalTextField label="Unit type" />
+            <ModalTextField label="Unit type" required />
             {/* To be replaced with special dropdown */}
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Unit price" />
-            <ModalTextField label="Quantity per unit" />
+            <ModalTextField label="Unit price" required />
+            <ModalTextField label="Quantity per unit" required />
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Pallet number" />
-            <ModalTextField label="Box number" />
+            <ModalTextField label="Pallet number" required />
+            <ModalTextField label="Box number" required />
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Donor shipping number" />
-            <ModalTextField label="HfH shipping number" />
+            <ModalTextField label="Donor shipping number" required />
+            <ModalTextField label="HfH shipping number" required />
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Maximum limit requested" />
+            <ModalTextField label="Maximum limit requested" required />
           </ModalFormRow>
-        </div>
+          <ModalFormRow>
+            <ModalLongTextField
+              label="Notes"
+              placeholder="Add additional notes about this item here."
+            />
+          </ModalFormRow>
+          <ModalFormRow>
+            <ModalToggleField
+              label="Make item visible to partners?"
+              description="Once visible, partners will be able to request this item in their distribution."
+            />
+          </ModalFormRow>
+          <ModalFormRow>
+            <ModalToggleField
+              label="Allow allocations?"
+              description="Once allowed, item can be added to a partner's pending distribution."
+            />
+          </ModalFormRow>
+          <ModalFormRow>
+            <ModalToggleField
+              label="Mark item as GIK?"
+              description="GIK items are (definition of GIK items)."
+            />
+            {/* Description to be updated with actual definition */}
+          </ModalFormRow>
+          <ModalFormRow>
+            <button
+              className="block grow border border-red-500 text-center text-red-500 bg-white py-1 px-4 rounded-lg font-medium hover:bg-red-50 transition"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="block grow bg-red-500 text-center text-white py-1 px-4 rounded-lg font-medium hover:bg-red-600 transition"
+            >
+              Add item
+            </button>
+          </ModalFormRow>
+        </form>
       </div>
     </div>
   );

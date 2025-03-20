@@ -5,5 +5,5 @@ interface ModalFormRowProps {
 }
 
 export default function ModalFormRow({ children }: ModalFormRowProps) {
-  return <div className="flex space-x-2">{children}</div>;
+  return <div className="flex gap-x-2">{children}</div>;
 }
