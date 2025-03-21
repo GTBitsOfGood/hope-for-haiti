@@ -13,7 +13,7 @@ test("returns 401 on invalid session", async () => {
     appHandler,
     async test({ fetch }) {
       // Mock invalid session
-      invalidateSession();
+      await invalidateSession();
       const res = await fetch({ method: "GET", body: null });
       await expect(res.status).toBe(401);
       await expect(res.json()).resolves.toStrictEqual({

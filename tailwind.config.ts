@@ -27,6 +27,7 @@ export default {
         amber: {
           primary: "#8F6C1A",
         },
+        sunken: "#F9F9F9",
       },
     },
   },

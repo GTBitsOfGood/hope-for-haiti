@@ -52,6 +52,8 @@ export async function fillDbMockWithManyItems(
       hfhShippingNumber: "",
       allowAllocations: false,
       gik: false,
+      ndc: "",
+      notes: "",
     });
   }
 
@@ -125,6 +127,8 @@ export async function createItem({
   hfhShippingNumber = "",
   allowAllocations = false,
   gik = false,
+  ndc = "",
+  notes = "",
 }: {
   id?: number;
   title?: string;
@@ -147,6 +151,8 @@ export async function createItem({
   hfhShippingNumber?: string;
   allowAllocations?: boolean;
   gik?: boolean;
+  ndc: string;
+  notes: string;
 }): Promise<Item> {
   return {
     id,
@@ -170,5 +176,7 @@ export async function createItem({
     hfhShippingNumber,
     allowAllocations,
     gik,
+    ndc,
+    notes,
   };
 }
