@@ -49,6 +49,8 @@ beforeEach(async () => {
       maxRequestLimit: "abc",
       allowAllocations: false,
       gik: false,
+      ndc: "",
+      notes: "",
     };
   };
 
