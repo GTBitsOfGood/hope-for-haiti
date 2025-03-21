@@ -6,8 +6,8 @@ import {
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { NextResponse, NextRequest } from "next/server";
-import { ItemCategory, Prisma, UserType } from "@prisma/client";
-import { ItemFormSchema, ItemForm } from "@/schema/itemForm";
+import { UserType } from "@prisma/client";
+import { ItemFormSchema } from "@/schema/itemForm";
 
 const AUTHORIZED_USER_TYPES = [
   UserType.ADMIN,
