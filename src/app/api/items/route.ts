@@ -7,50 +7,12 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { NextResponse, NextRequest } from "next/server";
 import { ItemCategory, Prisma, UserType } from "@prisma/client";
-import { z } from "zod";
-import { zfd } from "zod-form-data";
+import { ItemFormSchema, ItemForm } from "@/schema/itemForm";
 
 const AUTHORIZED_USER_TYPES = [
   UserType.ADMIN,
   UserType.SUPER_ADMIN,
 ] as UserType[];
-
-const ItemFormSchema = zfd.formData({
-  title: zfd.text(),
-  type: zfd.text(),
-  category: zfd.text(z.nativeEnum(ItemCategory)),
-  quantity: zfd.numeric(z.number().int().min(0)),
-  expirationDate: z.coerce.date(),
-  unitSize: zfd.numeric(z.number().int().min(0)),
-  unitType: zfd.text(),
-  datePosted: z.coerce.date(),
-  lotNumber: zfd.numeric(z.number().int().min(0)),
-  palletNumber: zfd.numeric(z.number().int().min(0)),
-  boxNumber: zfd.numeric(z.number().int().min(0)),
-  donorName: zfd.text(),
-  unitPrice: zfd.numeric(z.number().min(0)),
-  maxRequestLimit: zfd.text(),
-  visible: zfd.checkbox(),
-  allowAllocations: zfd.checkbox(),
-  gik: zfd.checkbox(),
-});
-
-interface ItemResponse {
-  title: string;
-  category: string;
-  quantity: number;
-  expirationDate: Date;
-  unitSize: number;
-  datePosted: Date;
-  lotNumber: number;
-  palletNumber: number;
-  boxNumber: number;
-  donorName: string;
-  unitPrice: Prisma.Decimal;
-  unitType: string;
-  maxRequestLimit: string;
-  visible: boolean;
-}
 
 /**
  * Creates a new item in the Items database.
@@ -82,8 +44,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!validatedForm.success) return argumentError("Invalid form data");
 
   const createdItem = await db.item.create({
-    data: validatedForm.data,
+    data: {
+      ...validatedForm.data,
+      unitSize: -1, //This is a placeholder--will change as additional info is needed
+      //Note: why do we need both quantityPerUnit and unitSize?
+    },
   });
 
-  return NextResponse.json(createdItem as ItemResponse);
+  return NextResponse.json(createdItem);
 }
