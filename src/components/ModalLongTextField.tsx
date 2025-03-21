@@ -2,7 +2,7 @@ interface ModalTextFieldProps {
   label: string;
   placeholder: string;
   required?: boolean;
-  name?: string;
+  name: string;
 }
 export default function ModalTextField({
   label,

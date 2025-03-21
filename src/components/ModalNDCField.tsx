@@ -2,6 +2,7 @@ interface ModalNDCFieldProps {
   required?: boolean;
   name?: string;
 }
+// NOTE: only accounts for 4-4-2 NDCs, not other types
 export default function ModalNDCField({ required, name }: ModalNDCFieldProps) {
   const formatNDC = (value: string) => {
     // Remove all non-digit characters

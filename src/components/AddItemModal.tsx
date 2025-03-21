@@ -7,7 +7,6 @@ import { ItemFormSchema } from "@/schema/itemForm";
 import submitHandler from "@/util/formAction";
 import ModalDateField from "./ModalDateField";
 import toast from "react-hot-toast";
-import ModalNDCField from "./ModalNDCField";
 
 interface AddItemModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
@@ -87,7 +86,7 @@ export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
             {/* To be replaced with date field */}
           </ModalFormRow>
           <ModalFormRow>
-            <ModalNDCField name="ndc" />
+            <ModalTextField label="NDC" name="ndc" placeholder="xxxx-xxxx-xx" />
             {/* To be replaced with numeric field; note that this is currently not being tracked in the db*/}
           </ModalFormRow>
           <ModalFormRow>
@@ -135,7 +134,8 @@ export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
             <ModalLongTextField
               label="Notes"
               placeholder="Add additional notes about this item here."
-            />{" "}
+              name="notes"
+            />
             {/* need to add column in database schema for this?*/}
           </ModalFormRow>
           <ModalFormRow>
