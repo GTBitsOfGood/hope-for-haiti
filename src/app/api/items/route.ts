@@ -41,7 +41,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
   const validatedForm = ItemFormSchema.safeParse(await request.formData());
 
-  if (!validatedForm.success) return argumentError("Invalid form data");
+  if (!validatedForm.success) {
+    //console.log(validatedForm.error.format());
+    return argumentError("Invalid form data");
+  }
 
   const createdItem = await db.item.create({
     data: {
