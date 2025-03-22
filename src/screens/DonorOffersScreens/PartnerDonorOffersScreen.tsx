@@ -1,30 +1,20 @@
 "use client";
 
+import { DonorOfferDTO } from "@/app/api/donorOffers/types";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { DonorOfferState } from "@prisma/client";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { CgSpinner } from "react-icons/cg";
 
-interface ModifiedDonorOffer {
-  id: number;
-  state: string;
-  offerName: string;
-  donorName: string;
-  responseDeadline: string; // This is the modified part, where it is MM/DD/YYYY
-}
-
-interface ExpectedDonorOffer {
-  donorOfferId: number;
-  offerName: string;
-  donorName: string;
-  responseDeadline: string;
-  state: DonorOfferState;
-}
+/**
+ * Search bar covers the menu bar when looking at mobile view.
+ *  - It's because of the z-layer of the search bar is too high.
+ */
 
 export default function PartnerDonorOffersScreen() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [donorOffers, setDonorOffers] = useState<ModifiedDonorOffer[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // Manage table loading state
+  const [donorOffers, setDonorOffers] = useState<DonorOfferDTO[]>([]); // Hold donor offers
 
   // Get donor offers react hook (I think that's the right term)
   useEffect(() => {
@@ -33,14 +23,14 @@ export default function PartnerDonorOffersScreen() {
         method: "GET",
       });
       const data = await response.json();
-      const formattedData = data.map((offer: ExpectedDonorOffer) => {
+      const formattedData = data.map((offer: DonorOfferDTO) => {
         return {
-          id: offer.donorOfferId,
+          donorOfferId: offer.donorOfferId,
           state: offer.state,
           offerName: offer.offerName,
           donorName: offer.donorName,
           responseDeadline: offer.responseDeadline,
-        } as ModifiedDonorOffer;
+        } as DonorOfferDTO;
       });
       setDonorOffers(formattedData);
       setIsLoading(false);
@@ -57,7 +47,7 @@ export default function PartnerDonorOffersScreen() {
       <h1 className="text-2xl font-semibold">Donor Offers (Partner View)</h1>
 
       {/* search bar */}
-      <div className="flex w-full py-4 mt-3 relative -z-40">
+      <div className="flex items-center w-full py-4 mt-3 relative">
         <div className="relative w-2/3">
           <MagnifyingGlass
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
@@ -96,6 +86,7 @@ export default function PartnerDonorOffersScreen() {
               </tr>
             </thead>
             <tbody>
+              {/* Render donor offers */}
               {donorOffers.map((offer, index) => (
                 <React.Fragment key={index}>
                   <tr
@@ -103,7 +94,7 @@ export default function PartnerDonorOffersScreen() {
                     className={`bg-white data-[odd=true]:bg-gray-100 break-words`}
                   >
                     <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      <Link href={`/donorOffers/${offer.id}`}>
+                      <Link href={`/donorOffers/${offer.donorOfferId}`}>
                         {offer.offerName}
                       </Link>
                     </td>
@@ -114,17 +105,17 @@ export default function PartnerDonorOffersScreen() {
                       {offer.responseDeadline}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {offer.state === "UNFINALIZED" && (
+                      {offer.state === DonorOfferState.UNFINALIZED && (
                         <div className="inline-block bg-clip-padding p-1 bg-orange-200 rounded-md">
                           Awaiting response
                         </div>
                       )}
-                      {offer.state === "FINALIZED" && (
+                      {offer.state === DonorOfferState.FINALIZED && (
                         <div className="inline-block bg-clip-padding p-1 bg-green-200 rounded-md">
                           Response submitted
                         </div>
                       )}
-                      {offer.state === "ARCHIVED" && (
+                      {offer.state === DonorOfferState.ARCHIVED && (
                         <div className="inline-block bg-clip-padding p-1 bg-red-200 rounded-md">
                           Offer closed
                         </div>

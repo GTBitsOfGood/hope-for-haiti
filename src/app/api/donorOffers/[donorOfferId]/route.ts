@@ -6,25 +6,23 @@ import {
   notFoundError,
 } from "@/util/responses";
 import { UserType } from "@prisma/client";
-import { DateTime } from "next-auth/providers/kakao";
+import { format } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
-
-interface DonorOfferItem {
-  title: string;
-  type: string;
-  expiration?: DateTime | null;
-  quantity: number;
-  unitSize: string;
-}
+import {
+  DonorOfferItemDTO,
+  DonorOfferItemsRequestsDTO,
+  DonorOfferItemsRequestsResponse,
+} from "./types";
 
 /**
- *
+ * Gets the item requests under the donor offer's id from the dynamic parameter.
+ * First gets the donor offer from the database, then gets the items under the donor offer, then gets the requests under each item.
  * @param _ Not needed, place holder
  * @param param1 donorOfferId: string, the dynamic route parameter
  * @returns 401 if session is invalid
  * @returns 403 if session is not a partner
  * @returns 404 if donor offer does not exist
- * @returns 200 with the donor offer items. Look at DonorOfferItem for the structure.
+ * @returns 200 with the donor offer items. Look at DonorOfferItemsRequestsResponse for the structure.
  */
 export async function GET(
   _: NextRequest,
@@ -49,13 +47,41 @@ export async function GET(
   ).map(
     (item) =>
       ({
+        id: item.id,
+        title: item.title,
+        type: item.type,
+        expiration:
+          item.expiration === null
+            ? null
+            : format(item.expiration, "MM/dd/yyyy"),
+        quantity: item.quantity,
+        unitSize: item.unitSize,
+      }) as DonorOfferItemDTO
+  );
+
+  const donorOfferItemsRequests: DonorOfferItemsRequestsDTO[] = [];
+  for (const item of donorOfferItems) {
+    donorOfferItemsRequests.push(
+      ...(
+        await db.donorOfferItemRequest.findMany({
+          where: { donorOfferItemId: item.id },
+        })
+      ).map((request) => ({
+        requestId: request.id,
         title: item.title,
         type: item.type,
         expiration: item.expiration,
         quantity: item.quantity,
         unitSize: item.unitSize,
-      }) as DonorOfferItem
-  );
+        quantityRequested: request.quantity,
+        comments: request.comments,
+        priority: request.priority,
+      }))
+    );
+  }
 
-  return NextResponse.json(donorOfferItems as unknown as DonorOfferItem[]);
+  return NextResponse.json({
+    donorOfferName: donorOffer.offerName,
+    donorOfferItemsRequests: donorOfferItemsRequests,
+  } as DonorOfferItemsRequestsResponse);
 }
