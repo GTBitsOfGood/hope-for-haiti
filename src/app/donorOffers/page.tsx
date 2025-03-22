@@ -1,5 +1,5 @@
 "use client";
 
-import DonorOffersScreen from "@/screens/DonorOffersScreen";
+import DonorOffersScreen from "@/screens/DonorOffersScreens/DonorOffersScreen";
 
 export default DonorOffersScreen;
