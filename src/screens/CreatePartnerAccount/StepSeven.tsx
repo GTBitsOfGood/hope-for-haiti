@@ -60,7 +60,8 @@ export default function StepSeven({
       />
 
       <p className="text-[16px] text-[#22070B] mb-2">
-        Annual spending on medications and medical supplies (select a range in USD)
+        Annual spending on medications and medical supplies (select a range in
+        USD)
       </p>
       <div className="space-y-2 mb-8">
         {[
@@ -71,16 +72,19 @@ export default function StepSeven({
           "$50,001 - $100,000",
           "$100,001+",
         ].map((range) => (
-          <label key={range} className="flex items-center text-[16px] text-[#22070B]">
+          <label
+            key={range}
+            className="flex items-center text-[16px] text-[#22070B]"
+          >
             <input type="radio" name="annualSpending" className="mr-2" />
             {range}
           </label>
         ))}
       </div>
 
-
       <p className="text-[16px] text-[#22070B] mb-2">
-        Does your organization track the number of prescriptions prescribed each year?
+        Does your organization track the number of prescriptions prescribed each
+        year?
       </p>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
@@ -118,7 +122,10 @@ export default function StepSeven({
                 type="checkbox"
                 className="mr-2"
                 onChange={(e) =>
-                  setPatientCounts((prev) => ({ ...prev, [key]: e.target.checked }))
+                  setPatientCounts((prev) => ({
+                    ...prev,
+                    [key]: e.target.checked,
+                  }))
                 }
               />
               <span className="text-[16px] text-[#22070B]">{label}</span>
@@ -135,7 +142,6 @@ export default function StepSeven({
         ))}
       </div>
 
-
       <label className="block text-[16px] text-[#22070B] mb-2">
         Total number of patients served
       </label>
@@ -146,7 +152,10 @@ export default function StepSeven({
       />
 
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>

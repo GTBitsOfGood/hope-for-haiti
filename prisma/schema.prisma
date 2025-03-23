@@ -7,6 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ItemCategory {
+  MEDICATION
+  MEDICAL_SUPPLY
+  NON_MEDICAL
+  PURCHASES
+}
+
 enum UserType {
   SUPER_ADMIN
   ADMIN
@@ -25,6 +38,7 @@ model User {
   // Partner-only fields
   partnerDetails          Json?
   unallocatedItemRequests UnallocatedItemRequest[]
+  donorOfferVisibilities  DonorOfferPartnerVisibility[]
 }
 
 model UserInvite {
@@ -42,22 +56,32 @@ model Item {
 
   // Columns that define a general item
   title          String
-  category       String
+  type           String
   expirationDate DateTime?
   unitSize       Int
 
   // Columns that define a unique line item
-  donorName       String
-  quantity        Int
-  lotNumber       Int
-  palletNumber    Int
-  boxNumber       Int
-  unitType        String
-  datePosted      DateTime
-  unitPrice       Decimal  @db.Money
-  maxRequestLimit String
+  category            ItemCategory
+  donorName           String
+  quantity            Int
+  lotNumber           Int
+  palletNumber        Int
+  boxNumber           Int
+  quantityPerUnit     String?
+  unitType            String?
+  unitPrice           Decimal      @db.Money
+  maxRequestLimit     String?
+  donorShippingNumber String?
+  hfhShippingNumber   String?
+  datePosted          DateTime     @default(now())
+  ndc                 String?
+  notes               String?
 
-  visible Boolean
+  allowAllocations Boolean
+  visible          Boolean
+  gik              Boolean
+
+  unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
 }
 
 model UnallocatedItemRequest {
@@ -68,10 +92,81 @@ model UnallocatedItemRequest {
   partnerId Int
 
   title          String
-  category       String
+  type           String
   expirationDate DateTime?
   unitSize       Int
 
+  priority RequestPriority
   quantity Int
   comments String
+
+  createdAt DateTime @default(now())
+
+  allocations UnallocatedItemRequestAllocation[]
+}
+
+model UnallocatedItemRequestAllocation {
+  id Int @id @default(autoincrement())
+
+  quantity Int
+
+  unallocatedItemRequestId Int
+  unallocatedItemRequest   UnallocatedItemRequest @relation(fields: [unallocatedItemRequestId], references: [id])
+
+  itemId          Int
+  unallocatedItem Item @relation(fields: [itemId], references: [id])
+}
+
+enum DonorOfferState {
+  UNFINALIZED
+  FINALIZED
+  ARCHIVED
+}
+
+model DonorOffer {
+  id Int @id @default(autoincrement())
+
+  state            DonorOfferState
+  offerName        String
+  donorName        String
+  responseDeadline DateTime
+
+  items               DonorOfferItem[]
+  partnerVisibilities DonorOfferPartnerVisibility[]
+}
+
+model DonorOfferItem {
+  id Int @id @default(autoincrement())
+
+  donorOfferId Int
+  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id])
+
+  title      String
+  type       String
+  expiration DateTime?
+  quantity   Int
+  unitSize   String
+
+  requests DonorOfferItemRequest[]
+}
+
+model DonorOfferItemRequest {
+  id Int @id @default(autoincrement())
+
+  donorOfferItemId Int
+  donorOfferItem   DonorOfferItem @relation(fields: [donorOfferItemId], references: [id])
+
+  quantity Int
+  comments String
+  priority RequestPriority
+}
+
+model DonorOfferPartnerVisibility {
+  id Int @id @default(autoincrement())
+
+  donorOfferId Int
+  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id])
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
 }

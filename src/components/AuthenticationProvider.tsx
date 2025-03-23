@@ -15,12 +15,12 @@ function VerifyAuthentication({
   const { loading, user } = useUser();
   const router = useRouter();
 
-  const onAuthPages = pathName === "/sign_in" || pathName === "/register";
+  const onAuthPages = pathName === "/signIn" || pathName === "/register";
 
   useEffect(() => {
     if (loading) return;
     if (onAuthPages && user) router.replace("/");
-    if (!onAuthPages && !user) router.replace("/sign_in");
+    if (!onAuthPages && !user) router.replace("/signIn");
   }, [onAuthPages, loading, user, router]);
 
   if (loading)

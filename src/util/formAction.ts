@@ -9,7 +9,7 @@ import { FormEventHandler, startTransition } from "react";
  */
 export default function submitHandler(
   // eslint-disable-next-line
-  formAction: (formData: FormData) => any
+  formAction: (formData: FormData) => any,
 ): FormEventHandler<HTMLFormElement> {
   return (event) => {
     event.preventDefault();

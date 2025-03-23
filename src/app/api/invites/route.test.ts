@@ -133,7 +133,7 @@ test("test email html", async () => {
       expect(sendEmailMock).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        expect.stringMatching(new RegExp(`register\\?token=${mockToken}`))
+        expect.stringMatching(new RegExp(`register\\?token=${mockToken}`)),
       );
     },
   });
@@ -162,7 +162,7 @@ test("UserInvite expires in one day", async () => {
 
       expect(expirationDate.getTime() - currentDate.getTime()).toBeCloseTo(
         oneDayInMilliseconds,
-        -2
+        -2,
       );
     },
   });
@@ -227,7 +227,7 @@ test("error when invalid partner details for partner invite", async () => {
         "partnerDetails",
         JSON.stringify({
           siteName: 8,
-        })
+        }),
       );
       const res = await fetch({ method: "POST", body: formData });
       expect(res.status).toBe(400);

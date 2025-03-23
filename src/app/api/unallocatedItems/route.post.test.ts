@@ -4,11 +4,13 @@ import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
+import { RequestPriority } from "@prisma/client";
 
 /**
  * Form data: {
  *   title: "test-title",
- *   category: "test-category",
+ *   type: "doo dad",
+ *   priority: "HIGH",
  *   expirationDate: undefined,
  *   unitSize: "10",
  *   quantity: "1",
@@ -18,14 +20,16 @@ import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
  */
 function getFormData({
   title = "test-title",
-  category = "test-category",
+  type = "doo dad",
+  priority = RequestPriority.HIGH,
   expirationDate = undefined,
   unitSize = "10",
   quantity = "1",
   comments = "comments",
 }: {
   title?: string;
-  category?: string;
+  type?: string;
+  priority?: RequestPriority;
   expirationDate?: string;
   unitSize?: string;
   quantity?: string;
@@ -33,7 +37,8 @@ function getFormData({
 } = {}) {
   const formData = new FormData();
   formData.append("title", title);
-  formData.append("category", category);
+  formData.append("type", type);
+  formData.append("priority", priority);
   if (expirationDate) {
     formData.append("expirationDate", expirationDate);
   }
@@ -134,7 +139,8 @@ test("Should create unallocated item request on success", async () => {
       expect(dbMock.unallocatedItemRequest.create).toHaveBeenCalledWith({
         data: {
           title: "test-title",
-          category: "test-category",
+          type: "doo dad",
+          priority: RequestPriority.HIGH,
           expirationDate: new Date("2025-02-10T20:21:11+00:00"),
           unitSize: 10,
           quantity: 1,

@@ -1,13 +1,13 @@
 import { dbMock } from "@/test/dbMock";
-import { Item, Prisma } from "@prisma/client";
+import { Item, ItemCategory, Prisma } from "@prisma/client";
 
 // Helper util methods for testing
 
 /**
  * Helper method for creating unclaimed items
- * Defines the db.unclaimedItem.findMany mock
+ * Defines the db.item.findMany mock
  * @param num Number of items to create
- * @returns Array of UnclaimedItems returned by db.unclaimedItem.findMany mock
+ * @returns Array of items returned by db.item.findMany mock
  */
 export async function fillDbMockWithManyItems(
   num: number,
@@ -31,7 +31,8 @@ export async function fillDbMockWithManyItems(
     items.push({
       id: id,
       title: `Test Item ${id}`,
-      category: `Test Category ${Math.floor(Math.random() * 3)}`,
+      type: "asdsa",
+      category: ItemCategory.MEDICAL_SUPPLY,
       quantity: Math.floor(Math.random() * 1000),
       expirationDate: dates
         ? dates[i]
@@ -46,6 +47,11 @@ export async function fillDbMockWithManyItems(
       unitPrice: new Prisma.Decimal(Math.random() * 100),
       maxRequestLimit: "abc",
       visible: true,
+      quantityPerUnit: "",
+      donorShippingNumber: "",
+      hfhShippingNumber: "",
+      allowAllocations: false,
+      gik: false,
     });
   }
 
@@ -97,10 +103,11 @@ export async function fillDbMockWithManyItems(
  * Helper method for creating a single unclaimed item.
  * Only the id and title are 100% untouchable by caller.
  */
-export async function createUnclaimedItem({
+export async function createItem({
   id = Math.floor(Math.random() * 10000),
   title = `Test Item ${id}`,
-  category = "Test Category",
+  type = "Test Type",
+  category = ItemCategory.MEDICAL_SUPPLY,
   quantity = 10,
   expirationDate = new Date(Date.now() + Math.floor(Math.random() * 10000)),
   unitSize = 1,
@@ -113,10 +120,16 @@ export async function createUnclaimedItem({
   unitPrice = new Prisma.Decimal(1),
   maxRequestLimit = "1",
   visible = true,
+  quantityPerUnit = "",
+  donorShippingNumber = "",
+  hfhShippingNumber = "",
+  allowAllocations = false,
+  gik = false,
 }: {
   id?: number;
   title?: string;
-  category?: string;
+  type?: string;
+  category?: ItemCategory;
   quantity?: number;
   expirationDate?: Date;
   unitSize?: number;
@@ -129,10 +142,16 @@ export async function createUnclaimedItem({
   unitPrice?: Prisma.Decimal;
   maxRequestLimit?: string;
   visible?: boolean;
+  quantityPerUnit?: string;
+  donorShippingNumber?: string;
+  hfhShippingNumber?: string;
+  allowAllocations?: boolean;
+  gik?: boolean;
 }): Promise<Item> {
   return {
     id,
     title,
+    type,
     category,
     quantity,
     expirationDate,
@@ -146,5 +165,10 @@ export async function createUnclaimedItem({
     unitPrice,
     maxRequestLimit,
     visible,
+    quantityPerUnit,
+    donorShippingNumber,
+    hfhShippingNumber,
+    allowAllocations,
+    gik,
   };
 }

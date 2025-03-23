@@ -6,6 +6,7 @@ import { CgSpinner } from "react-icons/cg";
 import { UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -53,52 +54,62 @@ export default function AdminUnallocatedItemsScreen() {
         {
           id: 1,
           title: "Canned Soup",
-          category: "Type",
+          type: "Type",
+          priority: "HIGH",
           quantity: 24,
           unitSize: 1,
           comments: "Comments",
           partnerId: 1,
           expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+          createdAt: new Date(),
         },
         {
           id: 2,
           title: "Rice",
-          category: "Type",
+          type: "Type",
+          priority: "MEDIUM",
           quantity: 50,
           unitSize: 1,
           comments: "White rice, 1lb bags",
           partnerId: 1,
           expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 120),
+          createdAt: new Date(),
         },
         {
           id: 3,
           title: "Pasta",
-          category: "Type",
+          type: "Type",
+          priority: "LOW",
           quantity: 100,
           unitSize: 1,
           comments: "Spaghetti, 1lb boxes",
           partnerId: 1,
           expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 180),
+          createdAt: new Date(),
         },
         {
           id: 4,
           title: "Canned Beans",
-          category: "Type",
+          type: "Type",
+          priority: "MEDIUM",
           quantity: 36,
           unitSize: 1,
           comments: "Black beans and pinto beans",
           partnerId: 1,
           expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 240),
+          createdAt: new Date(),
         },
         {
           id: 5,
           title: "Cereal",
-          category: "Type",
+          type: "Type",
+          priority: "LOW",
           quantity: 20,
           unitSize: 1,
           comments: "Various types, family size boxes",
           partnerId: 1,
           expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60),
+          createdAt: new Date(),
         },
       ];
 
@@ -132,9 +143,11 @@ export default function AdminUnallocatedItemsScreen() {
           <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
             <Plus size={18} /> Filter
           </button>
-          <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
-            <Plus size={18} /> Add Item
-          </button>
+          <Link href="/bulkAddItems">
+            <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+              <Plus size={18} /> Add Item
+            </button>
+          </Link>
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
@@ -189,7 +202,7 @@ export default function AdminUnallocatedItemsScreen() {
                     }
                   >
                     <td className="px-4 py-2 w-1/6">{item.title}</td>
-                    <td className="px-4 py-2 w-1/6">{item.category}</td>
+                    <td className="px-4 py-2 w-1/6">{item.type}</td>
                     <td className="px-4 py-2 w-1/6">{item.quantity}</td>
                     <td className="px-4 py-2 w-1/6">
                       {item.expirationDate

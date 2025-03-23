@@ -36,7 +36,9 @@ export default function StepEight({
         "Other staff not listed",
       ].map((label, index) => (
         <div key={index} className="mb-5">
-          <label className="block text-[16px] text-[#22070B] mb-2">{label}</label>
+          <label className="block text-[16px] text-[#22070B] mb-2">
+            {label}
+          </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
@@ -46,7 +48,10 @@ export default function StepEight({
       ))}
 
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>

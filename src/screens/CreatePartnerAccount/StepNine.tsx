@@ -23,7 +23,8 @@ export default function StepNine({
       </h3>
 
       <p className="text-[16px] text-[#22070B] mb-8">
-        Please select all categories of medications and medical supplies most needed.
+        Please select all categories of medications and medical supplies most
+        needed.
       </p>
       <h4 className="font-bold text-[16px] text-[#22070B] mb-2">Medications</h4>
       <div className="grid grid-cols-3 gap-2 mb-8">
@@ -43,13 +44,18 @@ export default function StepNine({
           "Replacements",
           "Vitamins/minerals",
         ].map((medication) => (
-          <label key={medication} className="flex items-center text-[16px] text-[#22070B]">
+          <label
+            key={medication}
+            className="flex items-center text-[16px] text-[#22070B]"
+          >
             <input type="checkbox" className="mr-2" />
             {medication}
           </label>
         ))}
       </div>
-      <h4 className="font-bold text-[16px] text-[#22070B] mb-2">Medical supplies</h4>
+      <h4 className="font-bold text-[16px] text-[#22070B] mb-2">
+        Medical supplies
+      </h4>
       <div className="grid grid-cols-3 gap-2 mb-8">
         {[
           "Bandages",
@@ -63,13 +69,15 @@ export default function StepNine({
           "Surgical",
           "Syringes/Needles",
         ].map((supply) => (
-          <label key={supply} className="flex items-center text-[16px] text-[#22070B]">
+          <label
+            key={supply}
+            className="flex items-center text-[16px] text-[#22070B]"
+          >
             <input type="checkbox" className="mr-2" />
             {supply}
           </label>
         ))}
       </div>
-
 
       <label className="block text-[16px] text-[#22070B] mb-2">
         Please specify other specialty items not listed above
@@ -81,9 +89,11 @@ export default function StepNine({
         placeholder="List"
       />
 
-
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>

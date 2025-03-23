@@ -47,7 +47,7 @@ export default function CreatePartnerAccountScreen() {
         }
 
         //go back to account management after
-        router.push("/account_management");
+        router.push("/accountManagement");
       } catch {
         setErrorMessage("Failed to send invite. Please try again.");
       } finally {
@@ -62,7 +62,7 @@ export default function CreatePartnerAccountScreen() {
   const handleCancelClick = () => setShowConfirmCancel(true);
   const confirmCancel = () => {
     setShowConfirmCancel(false);
-    router.push("/account_management");
+    router.push("/accountManagement");
   };
 
   return (
@@ -79,13 +79,19 @@ export default function CreatePartnerAccountScreen() {
                 <div
                   className="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium relative"
                   style={{
-                    backgroundColor: isActive ? "rgba(239, 51, 64, 1)" : "rgba(239, 51, 64, 0.2)",
+                    backgroundColor: isActive
+                      ? "rgba(239, 51, 64, 1)"
+                      : "rgba(239, 51, 64, 0.2)",
                     border: "2px solid rgba(239, 51, 64, 0.2)",
                     color: "#FFF",
                   }}
                 >
                   {isCompleted ? (
-                    <img src="/assets/progress_checkmark.svg" alt="Checkmark" className="w-4 h-4" />
+                    <img
+                      src="/assets/progress_checkmark.svg"
+                      alt="Checkmark"
+                      className="w-4 h-4"
+                    />
                   ) : (
                     index
                   )}
@@ -94,7 +100,9 @@ export default function CreatePartnerAccountScreen() {
                   <div
                     className="flex-1 h-[2px]"
                     style={{
-                      backgroundColor: isCompleted ? "rgba(239, 51, 64, 0.8)" : "rgba(239, 51, 64, 0.2)",
+                      backgroundColor: isCompleted
+                        ? "rgba(239, 51, 64, 0.8)"
+                        : "rgba(239, 51, 64, 0.2)",
                     }}
                   />
                 )}
@@ -104,30 +112,100 @@ export default function CreatePartnerAccountScreen() {
         </div>
 
         {/* Steps */}
-        {step === 1 && <StepOne nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 2 && <StepTwo prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 3 && <StepThree prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 4 && <StepFour prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 5 && <StepFive prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 6 && <StepSix prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 7 && <StepSeven prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 8 && <StepEight prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 9 && <StepNine prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
-        {step === 10 && <StepTen prevStep={prevStep} nextStep={nextStep} handleCancelClick={handleCancelClick} />}
+        {step === 1 && (
+          <StepOne nextStep={nextStep} handleCancelClick={handleCancelClick} />
+        )}
+        {step === 2 && (
+          <StepTwo
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 3 && (
+          <StepThree
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 4 && (
+          <StepFour
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 5 && (
+          <StepFive
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 6 && (
+          <StepSix
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 7 && (
+          <StepSeven
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 8 && (
+          <StepEight
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 9 && (
+          <StepNine
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
+        {step === 10 && (
+          <StepTen
+            prevStep={prevStep}
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+          />
+        )}
 
-        {sendingInvite && <p className="text-red-500 text-sm mt-2">Sending invite...</p>}
-        {errorMessage && <p className="text-red-500 text-sm mt-2">{errorMessage}</p>}
+        {sendingInvite && (
+          <p className="text-red-500 text-sm mt-2">Sending invite...</p>
+        )}
+        {errorMessage && (
+          <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
+        )}
 
         {showConfirmCancel && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
-              <h2 className="text-xl font-bold mb-4">Cancel Account Creation</h2>
-              <p className="mb-4">Are you sure you want to cancel creating this partner account?</p>
+              <h2 className="text-xl font-bold mb-4">
+                Cancel Account Creation
+              </h2>
+              <p className="mb-4">
+                Are you sure you want to cancel creating this partner account?
+              </p>
               <div className="flex justify-between">
-                <button className="border border-gray-500 px-4 py-2 rounded-lg" onClick={() => setShowConfirmCancel(false)}>
+                <button
+                  className="border border-gray-500 px-4 py-2 rounded-lg"
+                  onClick={() => setShowConfirmCancel(false)}
+                >
                   No, go back
                 </button>
-                <button className="bg-mainRed text-white px-4 py-2 rounded-lg" onClick={confirmCancel}>
+                <button
+                  className="bg-mainRed text-white px-4 py-2 rounded-lg"
+                  onClick={confirmCancel}
+                >
                   Yes, cancel
                 </button>
               </div>

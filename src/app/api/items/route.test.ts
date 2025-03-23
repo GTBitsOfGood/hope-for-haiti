@@ -7,11 +7,12 @@ import * as appHandler from "./route";
 
 import { expect, test } from "@jest/globals";
 import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
-import { Prisma, UserType } from "@prisma/client";
+import { ItemCategory, Prisma, UserType } from "@prisma/client";
 
 const item = {
   title: "Some item",
-  category: "Some category",
+  type: "doo dad",
+  category: ItemCategory.MEDICAL_SUPPLY,
   quantity: 2,
   expirationDate: new Date(1000),
   unitSize: 64,
@@ -32,7 +33,8 @@ const invalidItem = {
 };
 const itemOutput = {
   title: "Some item",
-  category: "Some category",
+  type: "doo dad",
+  category: ItemCategory.MEDICAL_SUPPLY,
   quantity: 2,
   expirationDate: new Date(1000).toISOString(),
   unitSize: 64,

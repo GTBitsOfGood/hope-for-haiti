@@ -52,17 +52,17 @@ export default function ProfileScreen() {
 
       if (session.user.email) {
         currentUser = data.find(
-          (u: FetchedUser) => u.email === session.user.email
+          (u: FetchedUser) => u.email === session.user.email,
         );
       }
       if (!currentUser && session.user.name) {
         currentUser = data.find(
-          (u: FetchedUser) => u.name === session.user.name
+          (u: FetchedUser) => u.name === session.user.name,
         );
       }
       if (!currentUser && session.user.type) {
         const matchingUsers = data.filter(
-          (u: FetchedUser) => u.type === session.user.type
+          (u: FetchedUser) => u.type === session.user.type,
         );
         if (matchingUsers.length >= 1) {
           currentUser = matchingUsers[0];

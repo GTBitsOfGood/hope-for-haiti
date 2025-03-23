@@ -8,7 +8,11 @@ interface StepThreeProps {
   handleCancelClick: () => void;
 }
 
-export default function StepThree({ prevStep, nextStep, handleCancelClick }: StepThreeProps) {
+export default function StepThree({
+  prevStep,
+  nextStep,
+  handleCancelClick,
+}: StepThreeProps) {
   return (
     <>
       <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
@@ -27,13 +31,20 @@ export default function StepThree({ prevStep, nextStep, handleCancelClick }: Ste
         placeholder="Organization history"
       />
 
-
       <p className="text-[16px] text-[#22070B] font-[Open_Sans] mb-2">
         Type of support requested
       </p>
       <div className="space-y-2 mb-7">
-        {["Ongoing support", "Mobile clinic support", "One-time request", "Project support"].map((option) => (
-          <label key={option} className="flex items-center text-[16px] text-[#22070B] font-[Open_Sans]">
+        {[
+          "Ongoing support",
+          "Mobile clinic support",
+          "One-time request",
+          "Project support",
+        ].map((option) => (
+          <label
+            key={option}
+            className="flex items-center text-[16px] text-[#22070B] font-[Open_Sans]"
+          >
             <input type="radio" name="supportType" className="mr-2" />
             {option}
           </label>
@@ -58,16 +69,20 @@ export default function StepThree({ prevStep, nextStep, handleCancelClick }: Ste
           <input type="radio" name="msspRegistration" className="mr-2" /> Yes
         </label>
 
-
         <div className="ml-6">
           <label className="block text-[16px] text-[#22070B] font-[Open_Sans] mb-1">
             Please provide a copy of the license
           </label>
           <div className="relative w-full">
-            <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-            <div className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
+            <input
+              type="file"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div
+              className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
               text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] 
-              border-solid border-[1px]">
+              border-solid border-[1px]"
+            >
               Upload File
             </div>
           </div>
@@ -89,7 +104,10 @@ export default function StepThree({ prevStep, nextStep, handleCancelClick }: Ste
       />
 
       <div className="flex justify-between mt-6">
-        <button className="text-mainRed font-semibold font-[Open_Sans]" onClick={handleCancelClick}>
+        <button
+          className="text-mainRed font-semibold font-[Open_Sans]"
+          onClick={handleCancelClick}
+        >
           Cancel account creation
         </button>
         <div>
