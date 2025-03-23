@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
+import { useRouter } from "next/navigation";
 
 enum ExpirationFilterKey {
   ALL = "All",
-  ZERO_TO_THREE = "0-3 Months",
-  THREE_TO_SIX = "3-6 Months",
-  SIX_PLUS = "6+ Months",
+  ZERO_TO_THREE = "Expiring (0-3 Months)",
+  THREE_TO_SIX = "Expiring (3-6 Months)",
+  SIX_PLUS = "Expiring (6+ Months)",
 }
 
 function withinMonths(item: UnallocatedItemRequest, months: number) {
@@ -35,26 +36,16 @@ const expirationFilterMap: Record<
   },
 };
 
-type PartnerRequest = {
-  partner: string;
-  dateRequested: string;
-  requestedQuantity: number;
-  allocatedQuantity: number;
-  allocatedSummary: string;
-};
-
 export default function AdminUnallocatedItemsScreen() {
+  const router = useRouter();
+
   const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
   const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
     []
   );
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedIndices, setExpandedIndices] = useState<number[]>([]);
-  const [loadingIndices, setLoadingIndices] = useState<number[]>([]);
-  const [partnerRequests, setPartnerRequests] = useState<
-    Record<number, PartnerRequest[]>
-  >({});
+  const [manageIndex, setManageIndex] = useState(-1);
 
   useEffect(() => {
     setTimeout(() => {
@@ -120,41 +111,6 @@ export default function AdminUnallocatedItemsScreen() {
   const filterItems = (key: ExpirationFilterKey) => {
     setActiveTab(key);
     setFilteredItems(items.filter(expirationFilterMap[key]));
-    setExpandedIndices([]);
-    setLoadingIndices([]);
-  };
-
-  const toggleExpand = async (index: number) => {
-    if (expandedIndices.includes(index)) {
-      setExpandedIndices(expandedIndices.filter((i) => i !== index));
-    } else {
-      setExpandedIndices([...expandedIndices, index]);
-      if (!partnerRequests[index]) {
-        setLoadingIndices([...loadingIndices, index]);
-        const requests = await getPartnerRequests();
-        setPartnerRequests((prev) => ({
-          ...prev,
-          [index]: requests as PartnerRequest[],
-        }));
-        setLoadingIndices((prev) => prev.filter((i) => i !== index));
-      }
-    }
-  };
-
-  const getPartnerRequests = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            partner: "Partner A",
-            dateRequested: "12/12/2025",
-            requestedQuantity: 10,
-            allocatedQuantity: 10,
-            allocatedSummary: "4 - 23456, 2 - 23456",
-          },
-        ]);
-      }, 100);
-    });
   };
 
   return (
@@ -207,7 +163,6 @@ export default function AdminUnallocatedItemsScreen() {
           <table className="mt-4 rounded-t-lg overflow-hidden min-w-full">
             <thead>
               <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-                <th className="px-4 py-2 text-left font-bold"></th>
                 <th className="px-4 py-2 text-left font-bold">Title</th>
                 <th className="px-4 py-2 text-left font-bold">Type</th>
                 <th className="px-4 py-2 text-left font-bold">Quantity</th>
@@ -221,16 +176,18 @@ export default function AdminUnallocatedItemsScreen() {
                 <React.Fragment key={index}>
                   <tr
                     data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 ${expandedIndices.includes(index) ? "" : "border-b"}`}
+                    className={`bg-white data-[odd=true]:bg-gray-50 border-b data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100 cursor-pointer transition-colors`}
+                    onClick={() =>
+                      router.push(
+                        `/unallocatedItems/requests?${new URLSearchParams({
+                          title: item.title,
+                          type: item.category,
+                          expiration: item.expirationDate?.toISOString() || "",
+                          unitSize: item.unitSize.toString(),
+                        }).toString()}`
+                      )
+                    }
                   >
-                    <td className="px-4 py-2 w-1/12">
-                      <button
-                        onClick={() => toggleExpand(index)}
-                        className="focus:outline-none"
-                      >
-                        {expandedIndices.includes(index) ? "▼" : "▶"}
-                      </button>
-                    </td>
                     <td className="px-4 py-2 w-1/6">{item.title}</td>
                     <td className="px-4 py-2 w-1/6">{item.category}</td>
                     <td className="px-4 py-2 w-1/6">{item.quantity}</td>
@@ -240,78 +197,46 @@ export default function AdminUnallocatedItemsScreen() {
                         : "N/A"}
                     </td>
                     <td className="px-4 py-2 w-1/6">{item.unitSize}</td>
-                    <td className="px-4 py-2">
-                      <div className="float-right">
+                    <td
+                      className="px-4 py-2 w-1/12"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="float-right relative">
                         <DotsThree
                           weight="bold"
                           className="cursor-pointer"
-                          onClick={() => {}}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setManageIndex(manageIndex === index ? -1 : index);
+                          }}
                         />
+                        {manageIndex === index && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setManageIndex(-1)}
+                            />
+                            <div className="absolute right-0 mt-2 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                              <div className="py-1">
+                                <button
+                                  className="block w-full px-2 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  <Eye
+                                    className="inline-block mr-2"
+                                    size={22}
+                                  />
+                                  View unique items
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
-                  {expandedIndices.includes(index) && (
-                    <tr className="border-b">
-                      <td colSpan={7}>
-                        <div className="py-4 px-8">
-                          <h2 className="font-semibold">Partner Requests</h2>
-                          {loadingIndices.includes(index) ? (
-                            <div className="flex justify-center items-center mt-4">
-                              <CgSpinner className="w-8 h-8 animate-spin opacity-50" />
-                            </div>
-                          ) : (
-                            <table className="rounded-t-lg min-w-full mt-2">
-                              <thead>
-                                <tr className="bg-blue-primary text-blue-primary bg-opacity-5">
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Partner
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Date requested
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Requested quantity
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Allocated quantity
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Allocated summary (lot, pallet, box)
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {partnerRequests[index]?.map(
-                                  (
-                                    request: PartnerRequest,
-                                    reqIndex: number
-                                  ) => (
-                                    <tr key={reqIndex}>
-                                      <td className="px-4 py-2">
-                                        {request.partner}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.dateRequested}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.requestedQuantity}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.allocatedQuantity}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.allocatedSummary}
-                                      </td>
-                                    </tr>
-                                  )
-                                )}
-                              </tbody>
-                            </table>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </React.Fragment>
               ))}
             </tbody>
