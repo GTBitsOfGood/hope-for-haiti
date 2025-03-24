@@ -57,7 +57,7 @@ export default function AdminUnallocatedItemsScreen() {
         tenYearsFromNow.setFullYear(now.getFullYear() + 10);
 
         const response = await fetch(
-          `/api/unallocatedItems?expirationDateAfter=${now.toISOString()}&expirationDateBefore=${tenYearsFromNow.toISOString()}`
+          `/api/unallocatedItems?expirationDateAfter`
         );
 
         if (!response.ok) {
