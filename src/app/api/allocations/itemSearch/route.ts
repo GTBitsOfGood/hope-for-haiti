@@ -1,28 +1,23 @@
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
-  argumentError,
   authenticationError,
+  argumentError,
   authorizationError,
 } from "@/util/responses";
 import { UserType } from "@prisma/client";
-import { NextResponse, NextRequest } from "next/server";
 
-interface UnallocatedItemRequestsResponse {
-  unallocatedItemRequests: Array<{
-    id: number;
-    partnerId: number;
-    quantity: number;
-    comments: string;
-  }>;
-}
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ unallocatedItemId: string }> },
-): Promise<NextResponse> {
-  const { unallocatedItemId } = await params;
-
+/**
+ * GET: Search for items matching the title, type, expiration and unitSize
+ *
+ * @param {NextRequest} request The incoming HTTP request (query params in URL)
+ * @returns 401 if session is invalid
+ * @returns 403 if user is not staff/admin/superadmin
+ * @returns 400 if required query params are missing or invalid
+ * @returns 200 with a JSON object containing donorNames, lotNumbers, palletNumbers, boxNumbers
+ */
+export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return authenticationError("Session required");
@@ -35,22 +30,80 @@ export async function GET(
     return authorizationError("Unauthorized");
   }
 
-  const itemId = parseInt(unallocatedItemId, 10);
-  if (isNaN(itemId)) {
-    return argumentError("Item ID must be an integer");
+  const url = new URL(request.url);
+  const title = url.searchParams.get("title");
+  const type = url.searchParams.get("type");
+  const expiration = url.searchParams.get("expiration");
+  const unitSizeStr = url.searchParams.get("unitSize");
+  const donorName = url.searchParams.get("donorName");
+  const lotNumberStr = url.searchParams.get("lotNumber");
+  const palletNumberStr = url.searchParams.get("palletNumber");
+  const boxNumberStr = url.searchParams.get("boxNumber");
+
+
+// make sure they exist
+  if (!title || !type || !expiration || !unitSizeStr) {
+    return argumentError(
+      "Missing required query params: title, type, expiration, unitSize"
+    );
   }
 
-  const unallocatedItemRequests = await db.unallocatedItemRequest.findMany({
-    select: {
-      id: true,
-      partnerId: true,
-      quantity: true,
-      comments: true,
-    },
+  const unitSize = parseInt(unitSizeStr, 10);
+  if (isNaN(unitSize)) {
+    return argumentError("unitSize must be an integer");
+  }
+
+  const whereClause: any = {
+    title,
+    type,
+    expirationDate: new Date(expiration),
+    unitSize,
+  };
+
+  if (donorName) {
+    whereClause.donorName = donorName;
+  }
+  if (lotNumberStr) {
+    const parsedLotNumber = parseInt(lotNumberStr, 10);
+    if (!isNaN(parsedLotNumber)) {
+      whereClause.lotNumber = parsedLotNumber;
+    }
+  }
+  if (palletNumberStr) {
+    const parsedPalletNumber = parseInt(palletNumberStr, 10);
+    if (!isNaN(parsedPalletNumber)) {
+      whereClause.palletNumber = parsedPalletNumber;
+    }
+  }
+  if (boxNumberStr) {
+    const parsedBoxNumber = parseInt(boxNumberStr, 10);
+    if (!isNaN(parsedBoxNumber)) {
+      whereClause.boxNumber = parsedBoxNumber;
+    }
+  }
+
+  // query the DB for matching items
+  const items = await db.item.findMany({
+    where: whereClause,
   });
 
-  const responseBody: UnallocatedItemRequestsResponse = {
-    unallocatedItemRequests,
-  };
-  return NextResponse.json(responseBody);
+  // build sets of unique donor/lot/pallet/box values
+  const donorNames = new Set<string>();
+  const lotNumbers = new Set<number>();
+  const palletNumbers = new Set<number>();
+  const boxNumbers = new Set<number>();
+
+  for (const item of items) {
+    donorNames.add(item.donorName);
+    lotNumbers.add(item.lotNumber);
+    palletNumbers.add(item.palletNumber);
+    boxNumbers.add(item.boxNumber);
+  }
+
+  return NextResponse.json({
+    donorNames: Array.from(donorNames),
+    lotNumbers: Array.from(lotNumbers),
+    palletNumbers: Array.from(palletNumbers),
+    boxNumbers: Array.from(boxNumbers),
+  });
 }

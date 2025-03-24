@@ -7,6 +7,8 @@ import { UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
 import Link from "next/link";
 
+import NewAllocationModal from "@/components/NewAllocationModal";
+
 enum ExpirationFilterKey {
   ALL = "All",
   ZERO_TO_THREE = "0-3 Months",
@@ -44,6 +46,13 @@ type PartnerRequest = {
   allocatedSummary: string;
 };
 
+interface AllocationSearchResults {
+  donorNames: string[];
+  lotNumbers: number[];
+  palletNumbers: number[];
+  boxNumbers: number[];
+}
+
 export default function AdminUnallocatedItemsScreen() {
   const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
   const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
@@ -57,7 +66,19 @@ export default function AdminUnallocatedItemsScreen() {
     Record<number, PartnerRequest[]>
   >({});
 
-  useEffect(() => {
+  const [menuOpenIndex, setMenuOpenIndex] = useState<number | null>(null);
+  const [viewingItemIndex, setViewingItemIndex] = useState<number | null>(null);
+  const [showNewAllocationModal, setShowNewAllocationModal] = useState(false);
+
+  const [allocationSearchResults, setAllocationSearchResults] =
+    useState<AllocationSearchResults>({
+      donorNames: [],
+      lotNumbers: [],
+      palletNumbers: [],
+      boxNumbers: [],
+    });
+
+  useEffect(() => {    // simulate loading data from an API
     setTimeout(() => {
       const dummyData: UnallocatedItemRequest[] = [
         {
@@ -65,24 +86,24 @@ export default function AdminUnallocatedItemsScreen() {
           title: "Canned Soup",
           type: "Type",
           priority: "HIGH",
-          quantity: 24,
+          quantity: 100,
           unitSize: 1,
-          comments: "Comments",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-          createdAt: new Date(),
+          comments: "Can of soup",
+          partnerId: 4,
+          expirationDate: new Date("2025-12-12T00:00:00.000Z"),
+          createdAt: new Date("2024-12-12T00:00:00.000Z"),
         },
         {
           id: 2,
-          title: "Rice",
+          title: "Canned Soup",
           type: "Type",
-          priority: "MEDIUM",
-          quantity: 50,
+          priority: "HIGH",
+          quantity: 100,
           unitSize: 1,
-          comments: "White rice, 1lb bags",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 120),
-          createdAt: new Date(),
+          comments: "rice",
+          partnerId: 4,
+          expirationDate: new Date("2025-12-12T00:00:00.000Z"),
+          createdAt: new Date("2024-12-13T00:00:00.000Z"),
         },
         {
           id: 3,
@@ -167,6 +188,120 @@ export default function AdminUnallocatedItemsScreen() {
       }, 100);
     });
   };
+  async function handleOpenNewAllocationModal(item: UnallocatedItemRequest) {
+    console.log(
+      "[AdminUnallocatedItemsScreen] handleOpenNewAllocationModal for item:",
+      item
+    );
+    try {
+      const query = new URLSearchParams({
+        title: item.title,
+        type: item.type,
+        expiration: item.expirationDate?.toISOString() || "",
+        unitSize: String(item.unitSize),
+      }).toString();
+
+      const url = "/api/allocations/itemSearch?" + query;
+      console.log(
+        "[AdminUnallocatedItemsScreen] Will fetch itemSearch at:",
+        url
+      );
+
+      const res = await fetch(url);
+      console.log(
+        "[AdminUnallocatedItemsScreen] itemSearch status:",
+        res.status
+      );
+      if (!res.ok) {
+        throw new Error(`Failed to fetch itemSearch: ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log(
+        "[AdminUnallocatedItemsScreen] Fetched itemSearch results:",
+        data
+      );
+      setAllocationSearchResults(data);
+
+      setShowNewAllocationModal(true);
+    } catch (err) {
+      console.error(
+        "[AdminUnallocatedItemsScreen] handleOpenNewAllocationModal error:",
+        err
+      );
+      alert("Failed to fetch search results. See console for details.");
+    }
+  }
+
+  // if we're viewing a particular item ("Item Name": Partner Requests)
+  if (viewingItemIndex !== null) {
+    const item = filteredItems[viewingItemIndex] || null;
+    if (!item) {
+      setViewingItemIndex(null);
+      return null;
+    }
+
+    return (
+      <div className="p-4">
+        <button
+          onClick={() => setViewingItemIndex(null)}
+          className="mb-4 text-blue-600 hover:underline"
+        >
+          &larr; Back to Unallocated Items
+        </button>
+
+        <div>
+          <h2 className="text-xl font-bold mb-2">
+            "{item.title}": Partner Requests
+          </h2>
+          {/* Placeholder table */}
+          <table className="min-w-full border">
+            <thead>
+              <tr className="bg-gray-100 text-left">
+                <th className="px-4 py-2">Partner</th>
+                <th className="px-4 py-2">Date requested</th>
+                <th className="px-4 py-2">Requested quantity</th>
+                <th className="px-4 py-2">Allocated quantity</th>
+                <th className="px-4 py-2">Allocated summary</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border px-4 py-2">Name</td>
+                <td className="border px-4 py-2">12/12/2025</td>
+                <td className="border px-4 py-2">10</td>
+                <td className="border px-4 py-2">10</td>
+                <td className="border px-4 py-2">4 - 23456, 2 - 23456</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="mt-4">
+            <button
+              className="border-2 border-dashed border-[#22070B]/40 text-sm text-[#22070B]/40 px-2 py-1 rounded-md"
+              onClick={() => handleOpenNewAllocationModal(item)}
+            >
+              New Allocation
+            </button>
+          </div>
+
+          {showNewAllocationModal && (
+            <NewAllocationModal
+              onClose={() => setShowNewAllocationModal(false)}
+              unallocatedItemRequestId={String(item.id)}
+              title={item.title}
+              type={item.type}
+              expiration={
+                item.expirationDate ? item.expirationDate.toISOString() : ""
+              }
+              unitSize={String(item.unitSize)}
+              searchResults={allocationSearchResults}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -188,10 +323,10 @@ export default function AdminUnallocatedItemsScreen() {
             <Plus size={18} /> Filter
           </button>
           <Link href="/bulkAddItems">
-            <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
-              <Plus size={18} /> Add Item
-            </button>
-          </Link>
+          <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+            <Plus size={18} /> Add Item
+          </button>
+        </Link>
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
@@ -258,8 +393,25 @@ export default function AdminUnallocatedItemsScreen() {
                         <DotsThree
                           weight="bold"
                           className="cursor-pointer"
-                          onClick={() => {}}
+                          onClick={() =>
+                            setMenuOpenIndex(
+                              menuOpenIndex === index ? null : index
+                            )
+                          }
                         />
+                        {menuOpenIndex === index && (
+                          <div className="absolute right-0 mt-2 w-32 bg-white border shadow-md rounded z-10 p-1">
+                            <button
+                              className="block text-left px-4 py-2 text-gray-700 hover:bg-gray-100 w-full"
+                              onClick={() => {
+                                setViewingItemIndex(index);
+                                setMenuOpenIndex(null);
+                              }}
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
