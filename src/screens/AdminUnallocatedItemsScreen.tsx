@@ -49,74 +49,40 @@ export default function AdminUnallocatedItemsScreen() {
   const [manageIndex, setManageIndex] = useState(-1);
 
   useEffect(() => {
-    setTimeout(() => {
-      const dummyData: UnallocatedItemRequest[] = [
-        {
-          id: 1,
-          title: "Canned Soup",
-          type: "Type",
-          priority: "HIGH",
-          quantity: 24,
-          unitSize: 1,
-          comments: "Comments",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-          createdAt: new Date(),
-        },
-        {
-          id: 2,
-          title: "Rice",
-          type: "Type",
-          priority: "MEDIUM",
-          quantity: 50,
-          unitSize: 1,
-          comments: "White rice, 1lb bags",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 120),
-          createdAt: new Date(),
-        },
-        {
-          id: 3,
-          title: "Pasta",
-          type: "Type",
-          priority: "LOW",
-          quantity: 100,
-          unitSize: 1,
-          comments: "Spaghetti, 1lb boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 180),
-          createdAt: new Date(),
-        },
-        {
-          id: 4,
-          title: "Canned Beans",
-          type: "Type",
-          priority: "MEDIUM",
-          quantity: 36,
-          unitSize: 1,
-          comments: "Black beans and pinto beans",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 240),
-          createdAt: new Date(),
-        },
-        {
-          id: 5,
-          title: "Cereal",
-          type: "Type",
-          priority: "LOW",
-          quantity: 20,
-          unitSize: 1,
-          comments: "Various types, family size boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60),
-          createdAt: new Date(),
-        },
-      ];
+    const fetchData = async () => {
+      try {
+        const now = new Date();
+        // arbitarily late end date
+        const tenYearsFromNow = new Date();
+        tenYearsFromNow.setFullYear(now.getFullYear() + 10);
 
-      setItems(dummyData);
-      setFilteredItems(dummyData);
-      setIsLoading(false);
-    }, 1000);
+        const response = await fetch(
+          `/api/unallocatedItems?expirationDateAfter=${now.toISOString()}&expirationDateBefore=${tenYearsFromNow.toISOString()}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch unallocated items");
+        }
+
+        const data = await response.json();
+        const itemsWithDates = data.items.map(
+          (item: UnallocatedItemRequest) => ({
+            ...item,
+            expirationDate: item.expirationDate
+              ? new Date(item.expirationDate)
+              : null,
+          })
+        );
+        setItems(itemsWithDates);
+        setFilteredItems(itemsWithDates);
+      } catch (error) {
+        console.error("Error fetching unallocated items:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const filterItems = (key: ExpirationFilterKey) => {
@@ -194,7 +160,7 @@ export default function AdminUnallocatedItemsScreen() {
                       router.push(
                         `/unallocatedItems/requests?${new URLSearchParams({
                           title: item.title,
-                          type: item.category,
+                          type: item.type,
                           expiration: item.expirationDate?.toISOString() || "",
                           unitSize: item.unitSize.toString(),
                         }).toString()}`
