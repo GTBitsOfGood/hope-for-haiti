@@ -44,7 +44,6 @@ export default function NewAllocationPage() {
     if (unitSize) params.append("unitSize", unitSize);
 
     async function fetchItemSearch() {
-      try {
         const res = await fetch(
           `/api/allocations/itemSearch?${params.toString()}`
         );
@@ -54,8 +53,7 @@ export default function NewAllocationPage() {
         const data = await res.json();
         setSearchResults(data);
         setIsLoading(false);
-      } catch (err) {
-      }
+    
     }
 
     fetchItemSearch();

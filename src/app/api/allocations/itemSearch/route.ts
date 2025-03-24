@@ -6,7 +6,7 @@ import {
   argumentError,
   authorizationError,
 } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { UserType, Prisma } from "@prisma/client";
 
 /**
  * GET: Search for items matching the title, type, expiration and unitSize
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     return argumentError("unitSize must be an integer");
   }
 
-  const whereClause: any = {
+  const whereClause: Prisma.ItemWhereInput = {
     title,
     type,
     expirationDate: new Date(expiration),

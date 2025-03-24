@@ -78,7 +78,8 @@ export default function AdminUnallocatedItemsScreen() {
       boxNumbers: [],
     });
 
-  useEffect(() => {    // simulate loading data from an API
+  useEffect(() => {
+    // simulate loading data from an API
     setTimeout(() => {
       const dummyData: UnallocatedItemRequest[] = [
         {
@@ -252,7 +253,7 @@ export default function AdminUnallocatedItemsScreen() {
 
         <div>
           <h2 className="text-xl font-bold mb-2">
-            "{item.title}": Partner Requests
+            &quot;{item.title}&quot;: Partner Requests
           </h2>
           {/* Placeholder table */}
           <table className="min-w-full border">
@@ -323,10 +324,10 @@ export default function AdminUnallocatedItemsScreen() {
             <Plus size={18} /> Filter
           </button>
           <Link href="/bulkAddItems">
-          <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
-            <Plus size={18} /> Add Item
-          </button>
-        </Link>
+            <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+              <Plus size={18} /> Add Item
+            </button>
+          </Link>
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
