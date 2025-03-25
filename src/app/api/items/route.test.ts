@@ -15,7 +15,7 @@ const item = {
   category: ItemCategory.MEDICAL_SUPPLY,
   quantity: 2,
   expirationDate: new Date(1000),
-  unitSize: 64,
+  quantityPerUnit: "64",
   unitType: "bunches",
   datePosted: new Date(1000),
   lotNumber: 2,
@@ -24,6 +24,10 @@ const item = {
   donorName: "John Doe",
   unitPrice: new Prisma.Decimal(1234),
   maxRequestLimit: "5",
+  donorShippingNumber: "123456",
+  hfhShippingNumber: "654321",
+  visible: "on",
+  allowAllocations: "on",
 };
 const invalidItem = {
   title: "foobar",

@@ -8,7 +8,7 @@ import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
 import { db } from "@/db";
 import { Item, ItemCategory, Prisma } from "@prisma/client";
 
-beforeEach(async () => {
+const setup = async () => {
   const createMockItem = (
     title: string,
     type: string,
@@ -49,6 +49,8 @@ beforeEach(async () => {
       maxRequestLimit: "abc",
       allowAllocations: false,
       gik: false,
+      ndc: "",
+      notes: "",
     };
   };
 
@@ -98,12 +100,13 @@ beforeEach(async () => {
   await db.item.createMany({
     data: items,
   });
-});
+};
 
 test("Should return 401 for invalid session", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       invalidateSession();
 
       const res = await fetch({ method: "GET" });
@@ -118,6 +121,7 @@ test("Should return 200 for valid session", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -130,6 +134,7 @@ test("Should give correct database queries", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -139,21 +144,21 @@ test("Should give correct database queries", async () => {
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 1,
           expirationDate: new Date("2000-01-01"),
           unitSize: 7,
@@ -178,6 +183,7 @@ test("Should return 400 on invalid expirationDateAfter", async () => {
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -200,6 +206,7 @@ test("Should return 400 on invalid expirationDateBefore", async () => {
       request.nextUrl.searchParams.set("expirationDateBefore", "foo");
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -225,6 +232,7 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -233,14 +241,14 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -264,6 +272,7 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -272,14 +281,14 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -303,6 +312,7 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -311,14 +321,14 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -336,6 +346,7 @@ test("Should hide visible = false when requested by partner", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       validateSession("PARTNER");
 
       const res = await fetch({ method: "GET" });
@@ -344,14 +355,14 @@ test("Should hide visible = false when requested by partner", async () => {
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 100,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,

@@ -1,50 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
-import { UnallocatedItemRequest } from "@prisma/client";
+import { Item, UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
-import Link from "next/link";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import AddItemModal from "@/components/AddItemModal";
 
 import NewAllocationModal from "@/components/NewAllocationModal";
 
 enum ExpirationFilterKey {
-  ALL = "All",
-  ZERO_TO_THREE = "0-3 Months",
-  THREE_TO_SIX = "3-6 Months",
-  SIX_PLUS = "6+ Months",
+  ZERO_TO_THREE = "Expiring (0-3 Months)",
+  THREE_TO_SIX = "Expiring (3-6 Months)",
+  SIX_PLUS = "Expiring (6+ Months)",
 }
-
-function withinMonths(item: UnallocatedItemRequest, months: number) {
-  if (!item.expirationDate) return false;
-  const now = new Date();
-  const date = new Date(item.expirationDate);
-  date.setMonth(now.getMonth() + months);
-  return item.expirationDate >= now && item.expirationDate <= date;
-}
-
-const expirationFilterMap: Record<
-  ExpirationFilterKey,
-  (item: UnallocatedItemRequest) => boolean
-> = {
-  [ExpirationFilterKey.ALL]: () => true,
-  [ExpirationFilterKey.ZERO_TO_THREE]: (item) => withinMonths(item, 3),
-  [ExpirationFilterKey.THREE_TO_SIX]: (item) =>
-    !withinMonths(item, 3) && withinMonths(item, 6),
-  [ExpirationFilterKey.SIX_PLUS]: (item) => {
-    const hasExpiration = Boolean(item.expirationDate);
-    return hasExpiration && !withinMonths(item, 6);
-  },
-};
-
-type PartnerRequest = {
-  partner: string;
-  dateRequested: string;
-  requestedQuantity: number;
-  allocatedQuantity: number;
-  allocatedSummary: string;
-};
+const expirationFilterTabs = [
+  ExpirationFilterKey.ZERO_TO_THREE,
+  ExpirationFilterKey.THREE_TO_SIX,
+  ExpirationFilterKey.SIX_PLUS,
+] as const;
 
 interface AllocationSearchResults {
   donorNames: string[];
@@ -54,19 +30,14 @@ interface AllocationSearchResults {
 }
 
 export default function AdminUnallocatedItemsScreen() {
-  const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
-  const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
-    []
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<string>(
+    ExpirationFilterKey.ZERO_TO_THREE
   );
-  const [activeTab, setActiveTab] = useState<string>("All");
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedIndices, setExpandedIndices] = useState<number[]>([]);
-  const [loadingIndices, setLoadingIndices] = useState<number[]>([]);
-  const [partnerRequests, setPartnerRequests] = useState<
-    Record<number, PartnerRequest[]>
-  >({});
+  const [manageIndex, setManageIndex] = useState(-1);
 
-  const [menuOpenIndex, setMenuOpenIndex] = useState<number | null>(null);
   const [viewingItemIndex, setViewingItemIndex] = useState<number | null>(null);
   const [showNewAllocationModal, setShowNewAllocationModal] = useState(false);
 
@@ -78,118 +49,107 @@ export default function AdminUnallocatedItemsScreen() {
       boxNumbers: [],
     });
 
+  const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
+  const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
   useEffect(() => {
-    // simulate loading data from an API
-    setTimeout(() => {
-      const dummyData: UnallocatedItemRequest[] = [
-        {
-          id: 1,
-          title: "Canned Soup",
-          type: "Type",
-          priority: "HIGH",
-          quantity: 100,
-          unitSize: 1,
-          comments: "Can of soup",
-          partnerId: 4,
-          expirationDate: new Date("2025-12-12T00:00:00.000Z"),
-          createdAt: new Date("2024-12-12T00:00:00.000Z"),
-        },
-        {
-          id: 2,
-          title: "Canned Soup",
-          type: "Type",
-          priority: "HIGH",
-          quantity: 100,
-          unitSize: 1,
-          comments: "rice",
-          partnerId: 4,
-          expirationDate: new Date("2025-12-12T00:00:00.000Z"),
-          createdAt: new Date("2024-12-13T00:00:00.000Z"),
-        },
-        {
-          id: 3,
-          title: "Pasta",
-          type: "Type",
-          priority: "LOW",
-          quantity: 100,
-          unitSize: 1,
-          comments: "Spaghetti, 1lb boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 180),
-          createdAt: new Date(),
-        },
-        {
-          id: 4,
-          title: "Canned Beans",
-          type: "Type",
-          priority: "MEDIUM",
-          quantity: 36,
-          unitSize: 1,
-          comments: "Black beans and pinto beans",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 240),
-          createdAt: new Date(),
-        },
-        {
-          id: 5,
-          title: "Cereal",
-          type: "Type",
-          priority: "LOW",
-          quantity: 20,
-          unitSize: 1,
-          comments: "Various types, family size boxes",
-          partnerId: 1,
-          expirationDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60),
-          createdAt: new Date(),
-        },
-      ];
+    const fetchItems = async () => {
+      try {
+        const res = await fetch("/api/unallocatedItems");
+        if (!res.ok) {
+          throw new Error(`Error: ${res.status} ${res.statusText}`);
+        }
+        const data = await res.json();
+        setFilteredItems(data.items);
+      } catch (error) {
+        toast.error("An error occurred while fetching data");
+        console.error("Fetch error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchItems();
 
-      setItems(dummyData);
-      setFilteredItems(dummyData);
-      setIsLoading(false);
-    }, 1000);
+    const fetchData = async () => {
+      try {
+        const now = new Date();
+        // arbitarily late end date
+        const tenYearsFromNow = new Date();
+        tenYearsFromNow.setFullYear(now.getFullYear() + 10);
+
+        const response = await fetch(
+          `/api/unallocatedItems?expirationDateAfter`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch unallocated items");
+        }
+
+        const data = await response.json();
+        const itemsWithDates = data.items.map(
+          (item: UnallocatedItemRequest) => ({
+            ...item,
+            expirationDate: item.expirationDate
+              ? new Date(item.expirationDate)
+              : null,
+          })
+        );
+        setFilteredItems(itemsWithDates);
+      } catch (error) {
+        console.error("Error fetching unallocated items:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  const filterItems = (key: ExpirationFilterKey) => {
+  const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
-    setFilteredItems(items.filter(expirationFilterMap[key]));
-    setExpandedIndices([]);
-    setLoadingIndices([]);
-  };
+    setIsLoading(true);
 
-  const toggleExpand = async (index: number) => {
-    if (expandedIndices.includes(index)) {
-      setExpandedIndices(expandedIndices.filter((i) => i !== index));
-    } else {
-      setExpandedIndices([...expandedIndices, index]);
-      if (!partnerRequests[index]) {
-        setLoadingIndices([...loadingIndices, index]);
-        const requests = await getPartnerRequests();
-        setPartnerRequests((prev) => ({
-          ...prev,
-          [index]: requests as PartnerRequest[],
-        }));
-        setLoadingIndices((prev) => prev.filter((i) => i !== index));
+    let expirationDateBefore: string | null = null;
+    let expirationDateAfter: string | null = null;
+    const today = new Date();
+
+    if (key === ExpirationFilterKey.ZERO_TO_THREE) {
+      expirationDateBefore = new Date(
+        today.setMonth(today.getMonth() + 3)
+      ).toISOString();
+    } else if (key === ExpirationFilterKey.THREE_TO_SIX) {
+      expirationDateAfter = new Date(
+        today.setMonth(today.getMonth() + 3)
+      ).toISOString();
+      expirationDateBefore = new Date(
+        today.setMonth(today.getMonth() + 6)
+      ).toISOString();
+    } else if (key === ExpirationFilterKey.SIX_PLUS) {
+      expirationDateAfter = new Date(
+        today.setMonth(today.getMonth() + 6)
+      ).toISOString();
+    }
+
+    const url = new URL("/api/unallocatedItems", window.location.origin);
+    if (expirationDateBefore)
+      url.searchParams.append("expirationDateBefore", expirationDateBefore);
+    if (expirationDateAfter)
+      url.searchParams.append("expirationDateAfter", expirationDateAfter);
+
+    try {
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        throw new Error(`Error: ${res.status} ${res.statusText}`);
       }
+      const data = await res.json();
+      setFilteredItems(data.items); // Update UI with API data
+    } catch (error) {
+      toast.error("Failed to fetch items");
+      console.error("Filter fetch error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const getPartnerRequests = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            partner: "Partner A",
-            dateRequested: "12/12/2025",
-            requestedQuantity: 10,
-            allocatedQuantity: 10,
-            allocatedSummary: "4 - 23456, 2 - 23456",
-          },
-        ]);
-      }, 100);
-    });
-  };
-  async function handleOpenNewAllocationModal(item: UnallocatedItemRequest) {
+  async function handleOpenNewAllocationModal(item: Item) {
     console.log(
       "[AdminUnallocatedItemsScreen] handleOpenNewAllocationModal for item:",
       item
@@ -306,6 +266,7 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
+      {isModalOpen ? <AddItemModal setIsOpen={setIsModalOpen} /> : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
@@ -323,15 +284,39 @@ export default function AdminUnallocatedItemsScreen() {
           <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
             <Plus size={18} /> Filter
           </button>
-          <Link href="/bulkAddItems">
-            <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+          <div className="relative">
+            <button
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+              onClick={() => {
+                setAddItemExpanded(!addItemExpanded);
+              }}
+            >
               <Plus size={18} /> Add Item
             </button>
-          </Link>
+            {addItemExpanded ? (
+              <div className="flex flex-col gap-y-1 items-center absolute left-0 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
+                <button
+                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                  onClick={() => {
+                    setIsModalOpen(true);
+                    setAddItemExpanded(false);
+                  }}
+                >
+                  Single item
+                </button>
+                <button
+                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                  onClick={() => router.push("/bulkAddItems")}
+                >
+                  Bulk items
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
-        {Object.keys(expirationFilterMap).map((tab) => {
+        {expirationFilterTabs.map((tab) => {
           const key = tab as ExpirationFilterKey;
 
           return (
@@ -356,7 +341,6 @@ export default function AdminUnallocatedItemsScreen() {
           <table className="mt-4 rounded-t-lg overflow-hidden min-w-full">
             <thead>
               <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-                <th className="px-4 py-2 text-left font-bold"></th>
                 <th className="px-4 py-2 text-left font-bold">Title</th>
                 <th className="px-4 py-2 text-left font-bold">Type</th>
                 <th className="px-4 py-2 text-left font-bold">Quantity</th>
@@ -370,18 +354,21 @@ export default function AdminUnallocatedItemsScreen() {
                 <React.Fragment key={index}>
                   <tr
                     data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 ${expandedIndices.includes(index) ? "" : "border-b"}`}
+                    className={`bg-white data-[odd=true]:bg-gray-50 border-b data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100 cursor-pointer transition-colors`}
+                    onClick={() => {
+                      router.push(
+                        `/unallocatedItems/requests?${new URLSearchParams({
+                          title: item.title,
+                          type: item.type,
+                          expiration:
+                            (item.expirationDate as unknown as string) || "",
+                          unitSize: item.unitSize.toString(),
+                        }).toString()}`
+                      );
+                    }}
                   >
-                    <td className="px-4 py-2 w-1/12">
-                      <button
-                        onClick={() => toggleExpand(index)}
-                        className="focus:outline-none"
-                      >
-                        {expandedIndices.includes(index) ? "▼" : "▶"}
-                      </button>
-                    </td>
                     <td className="px-4 py-2 w-1/6">{item.title}</td>
-                    <td className="px-4 py-2 w-1/6">{item.type}</td>
+                    <td className="px-4 py-2 w-1/6">{item.category}</td>
                     <td className="px-4 py-2 w-1/6">{item.quantity}</td>
                     <td className="px-4 py-2 w-1/6">
                       {item.expirationDate
@@ -389,95 +376,46 @@ export default function AdminUnallocatedItemsScreen() {
                         : "N/A"}
                     </td>
                     <td className="px-4 py-2 w-1/6">{item.unitSize}</td>
-                    <td className="px-4 py-2">
-                      <div className="float-right">
+                    <td
+                      className="px-4 py-2 w-1/12"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="float-right relative">
                         <DotsThree
                           weight="bold"
                           className="cursor-pointer"
-                          onClick={() =>
-                            setMenuOpenIndex(
-                              menuOpenIndex === index ? null : index
-                            )
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setManageIndex(manageIndex === index ? -1 : index);
+                          }}
                         />
-                        {menuOpenIndex === index && (
-                          <div className="absolute right-0 mt-2 w-32 bg-white border shadow-md rounded z-10 p-1">
-                            <button
-                              className="block text-left px-4 py-2 text-gray-700 hover:bg-gray-100 w-full"
-                              onClick={() => {
-                                setViewingItemIndex(index);
-                                setMenuOpenIndex(null);
-                              }}
-                            >
-                              View Details
-                            </button>
-                          </div>
+                        {manageIndex === index && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => setManageIndex(-1)}
+                            />
+                            <div className="absolute right-0 mt-2 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                              <div className="py-1">
+                                <button
+                                  className="block w-full px-2 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  <Eye
+                                    className="inline-block mr-2"
+                                    size={22}
+                                  />
+                                  View unique items
+                                </button>
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     </td>
                   </tr>
-                  {expandedIndices.includes(index) && (
-                    <tr className="border-b">
-                      <td colSpan={7}>
-                        <div className="py-4 px-8">
-                          <h2 className="font-semibold">Partner Requests</h2>
-                          {loadingIndices.includes(index) ? (
-                            <div className="flex justify-center items-center mt-4">
-                              <CgSpinner className="w-8 h-8 animate-spin opacity-50" />
-                            </div>
-                          ) : (
-                            <table className="rounded-t-lg min-w-full mt-2">
-                              <thead>
-                                <tr className="bg-blue-primary text-blue-primary bg-opacity-5">
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Partner
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Date requested
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Requested quantity
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Allocated quantity
-                                  </th>
-                                  <th className="px-4 py-2 text-left font-normal">
-                                    Allocated summary (lot, pallet, box)
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {partnerRequests[index]?.map(
-                                  (
-                                    request: PartnerRequest,
-                                    reqIndex: number
-                                  ) => (
-                                    <tr key={reqIndex}>
-                                      <td className="px-4 py-2">
-                                        {request.partner}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.dateRequested}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.requestedQuantity}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.allocatedQuantity}
-                                      </td>
-                                      <td className="px-4 py-2">
-                                        {request.allocatedSummary}
-                                      </td>
-                                    </tr>
-                                  )
-                                )}
-                              </tbody>
-                            </table>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </React.Fragment>
               ))}
             </tbody>
