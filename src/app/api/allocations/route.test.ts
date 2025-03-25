@@ -38,6 +38,8 @@ type FullItem = {
   unallocatedItemRequestAllocations: UnallocatedItemRequestAllocation[];
   createdAt?: Date;
   updatedAt?: Date;
+  ndc: string | null;
+  notes: string | null;
 };
 
 function getValidFormData() {
@@ -128,6 +130,8 @@ describe("POST /api/allocations", () => {
       unallocatedItemRequestAllocations: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      ndc: null,
+      notes: null,
     };
 
     dbMock.item.findFirst.mockResolvedValueOnce(mockItem);

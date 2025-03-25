@@ -60,7 +60,6 @@ describe("GET /api/allocations/itemSearch", () => {
     });
   });
 
-
   test("returns 200 and correct arrays on success", async () => {
     authMock.mockReturnValueOnce({
       user: { id: "1", type: UserType.SUPER_ADMIN },
@@ -90,6 +89,8 @@ describe("GET /api/allocations/itemSearch", () => {
         allowAllocations: true,
         visible: true,
         gik: false,
+        ndc: null,
+        notes: null,
       },
       {
         id: 2,
@@ -113,6 +114,8 @@ describe("GET /api/allocations/itemSearch", () => {
         allowAllocations: true,
         visible: true,
         gik: false,
+        ndc: null,
+        notes: null,
       },
     ]);
 
