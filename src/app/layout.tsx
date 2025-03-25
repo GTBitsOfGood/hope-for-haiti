@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "react-tooltip/dist/react-tooltip.css";
 
 import AuthenticationProvider from "@/components/AuthenticationProvider";
 import { Toaster } from "react-hot-toast";
