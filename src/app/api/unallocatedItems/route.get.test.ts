@@ -141,21 +141,21 @@ test("Should give correct database queries", async () => {
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 1,
           expirationDate: new Date("2000-01-01"),
           unitSize: 7,
@@ -235,14 +235,14 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -274,14 +274,14 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -313,14 +313,14 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
@@ -346,14 +346,14 @@ test("Should hide visible = false when requested by partner", async () => {
       const expectedRet = [
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 100,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
         },
         {
           title: "test_title",
-          category: "MEDICAL_SUPPLY",
+          type: "test_type",
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,

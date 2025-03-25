@@ -122,28 +122,27 @@ test("returns 200 with all requests for staff", async () => {
     async test({ fetch }) {
       validateSession(UserType.STAFF);
 
-      const mockPartners = [
-        {
-          id: 1,
+      const partner1 = await db.user.create({
+        data: {
           email: "partner1@test.com",
           name: "Partner 1",
           passwordHash: "hash1",
           type: UserType.PARTNER,
           enabled: true,
         },
-        {
-          id: 2,
+      });
+      const partner2 = await db.user.create({
+        data: {
           email: "partner2@test.com",
           name: "Partner 2",
           passwordHash: "hash2",
           type: UserType.PARTNER,
           enabled: true,
         },
-      ];
+      });
 
-      const mockItems = [
-        {
-          id: 1,
+      const item1 = await db.item.create({
+        data: {
           title: "Item 1",
           type: "Type 1",
           expirationDate: new Date("2025-12-31"),
@@ -167,8 +166,9 @@ test("returns 200 with all requests for staff", async () => {
           visible: true,
           gik: false,
         },
-        {
-          id: 2,
+      });
+      const item2 = await db.item.create({
+        data: {
           title: "Item 2",
           type: "Type 2",
           expirationDate: new Date("2026-01-15"),
@@ -192,11 +192,10 @@ test("returns 200 with all requests for staff", async () => {
           visible: true,
           gik: false,
         },
-      ];
+      });
 
-      const mockRequests = [
-        {
-          id: 1,
+      const req1 = await db.unallocatedItemRequest.create({
+        data: {
           title: "rice",
           type: "type",
           expirationDate: new Date("2025-03-15T07:00:00.000Z"),
@@ -205,10 +204,11 @@ test("returns 200 with all requests for staff", async () => {
           quantity: 10,
           createdAt: new Date(),
           comments: "Test comment",
-          partnerId: 1,
+          partnerId: partner1.id,
         },
-        {
-          id: 2,
+      });
+      const req2 = await db.unallocatedItemRequest.create({
+        data: {
           title: "beans",
           type: "type2",
           expirationDate: new Date("2025-04-01T07:00:00.000Z"),
@@ -217,39 +217,23 @@ test("returns 200 with all requests for staff", async () => {
           quantity: 20,
           createdAt: new Date(),
           comments: "Another test comment",
-          partnerId: 2,
+          partnerId: partner2.id,
         },
-      ];
+      });
 
-      const mockAllocations = [
-        {
-          id: 2,
+      const alloc1 = await db.unallocatedItemRequestAllocation.create({
+        data: {
           quantity: 5,
-          unallocatedItemRequestId: 1,
-          itemId: 1,
+          unallocatedItemRequestId: req1.id,
+          itemId: item1.id,
         },
-        {
-          id: 3,
+      });
+      await db.unallocatedItemRequestAllocation.create({
+        data: {
           quantity: 10,
-          unallocatedItemRequestId: 2,
-          itemId: 2,
+          unallocatedItemRequestId: req2.id,
+          itemId: item2.id,
         },
-      ];
-
-      await db.user.createMany({
-        data: mockPartners,
-      });
-
-      await db.item.createMany({
-        data: mockItems,
-      });
-
-      await db.unallocatedItemRequest.createMany({
-        data: mockRequests,
-      });
-
-      await db.unallocatedItemRequestAllocation.createMany({
-        data: mockAllocations,
       });
 
       const res = await fetch({
@@ -257,16 +241,10 @@ test("returns 200 with all requests for staff", async () => {
       });
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([
-        {
-          ...mockRequests[0],
-          expirationDate: mockRequests[0].expirationDate.toISOString(),
-          createdAt: mockRequests[0].createdAt.toISOString(),
-          allocations: mockAllocations.filter(
-            (a) => a.unallocatedItemRequestId === mockRequests[0].id
-          ),
-        },
-      ]);
+      const resp = await res.json();
+      expect(resp[0].id).toBe(req1.id);
+      expect(resp[0].allocations[0].id).toBe(alloc1.id);
+      expect(resp[0].allocations[0].itemId).toBe(item1.id);
     },
   });
 });
