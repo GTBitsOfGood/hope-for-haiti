@@ -8,7 +8,7 @@ import { validateSession, invalidateSession } from "@/test/util/authMockUtils";
 import { db } from "@/db";
 import { Item, ItemCategory, Prisma } from "@prisma/client";
 
-beforeEach(async () => {
+const setup = async () => {
   const createMockItem = (
     title: string,
     type: string,
@@ -100,12 +100,13 @@ beforeEach(async () => {
   await db.item.createMany({
     data: items,
   });
-});
+};
 
 test("Should return 401 for invalid session", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       invalidateSession();
 
       const res = await fetch({ method: "GET" });
@@ -120,6 +121,7 @@ test("Should return 200 for valid session", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -132,6 +134,7 @@ test("Should give correct database queries", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -180,6 +183,7 @@ test("Should return 400 on invalid expirationDateAfter", async () => {
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -202,6 +206,7 @@ test("Should return 400 on invalid expirationDateBefore", async () => {
       request.nextUrl.searchParams.set("expirationDateBefore", "foo");
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -227,6 +232,7 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -266,6 +272,7 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -305,6 +312,7 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
       );
     },
     async test({ fetch }) {
+      await setup();
       validateSession("ADMIN");
 
       const res = await fetch({ method: "GET" });
@@ -338,6 +346,7 @@ test("Should hide visible = false when requested by partner", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
+      await setup();
       validateSession("PARTNER");
 
       const res = await fetch({ method: "GET" });
