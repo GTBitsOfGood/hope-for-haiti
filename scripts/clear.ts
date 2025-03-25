@@ -3,6 +3,10 @@ import { db } from "@/db";
 
 async function run() {
   await db.$transaction(async (tx) => {
+    await tx.donorOfferPartnerVisibility.deleteMany();
+    await tx.donorOfferItemRequest.deleteMany();
+    await tx.donorOfferItem.deleteMany();
+    await tx.donorOffer.deleteMany();
     await tx.unallocatedItemRequestAllocation.deleteMany();
     await tx.unallocatedItemRequest.deleteMany();
     await tx.user.deleteMany();

@@ -86,12 +86,11 @@ export default function PartnerDynamicDonorOfferScreen() {
         return;
       }
       const goodResponse = data as DonorOfferItemsRequestsResponse;
-      console.log(data);
       setDonorOfferName(goodResponse.donorOfferName);
       setDonorOfferItemsRequests(goodResponse.donorOfferItemsRequests);
       setIsLoading(false);
     }, 1000);
-  });
+  }, []);
   // ---------------------------------------------------------------------------
 
   // Open and close comment window hooks

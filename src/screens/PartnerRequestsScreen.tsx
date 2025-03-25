@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { MagnifyingGlass, ChatTeardropText } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import React from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Item,
@@ -43,6 +43,7 @@ const Priority = ({ priority }: { priority: string }) => {
 };
 
 export default function PartnerRequestsScreen() {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const itemName = searchParams.get("title");
@@ -168,12 +169,42 @@ export default function PartnerRequestsScreen() {
                               {`${alloc.quantity} - ${alloc.unallocatedItem.lotNumber}, ${alloc.unallocatedItem.palletNumber}, ${alloc.unallocatedItem.boxNumber}`}
                             </div>
                           ))}
-                          <button className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70">
+                          <button
+                            onClick={() => {
+                              router.push(
+                                `/newAllocation?${new URLSearchParams({
+                                  unallocatedItemRequestId: item.id.toString(),
+                                  title: item.title,
+                                  type: item.type,
+                                  expiration:
+                                    (item.expirationDate as unknown as string) ||
+                                    "",
+                                  unitSize: item.unitSize.toString(),
+                                }).toString()}`
+                              );
+                            }}
+                            className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70"
+                          >
                             + Add
                           </button>
                         </>
                       ) : (
-                        <button className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100">
+                        <button
+                          onClick={() => {
+                            router.push(
+                              `/newAllocation?${new URLSearchParams({
+                                unallocatedItemRequestId: item.id.toString(),
+                                title: item.title,
+                                type: item.type,
+                                expiration:
+                                  (item.expirationDate as unknown as string) ||
+                                  "",
+                                unitSize: item.unitSize.toString(),
+                              }).toString()}`
+                            );
+                          }}
+                          className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100"
+                        >
                           + Add Allocation
                         </button>
                       )}

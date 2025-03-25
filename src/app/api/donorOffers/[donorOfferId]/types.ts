@@ -8,7 +8,7 @@ export interface DonorOfferItemDTO {
   type: string;
   expiration?: string | null;
   quantity: number;
-  unitSize: string;
+  unitSize: number;
 }
 
 export interface DonorOfferItemsRequestsDTO {
@@ -17,7 +17,7 @@ export interface DonorOfferItemsRequestsDTO {
   type: string;
   expiration?: string | null;
   quantity: number;
-  unitSize: string;
+  unitSize: number;
   quantityRequested: number;
   comments: string;
   priority: RequestPriority;

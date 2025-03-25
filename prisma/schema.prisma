@@ -145,7 +145,7 @@ model DonorOfferItem {
   type       String
   expiration DateTime?
   quantity   Int
-  unitSize   String
+  unitSize   Int
 
   requests DonorOfferItemRequest[]
 }
