@@ -1,7 +1,8 @@
+import { dbMock } from "@/test/dbMock";
+jest.mock("@/db", () => ({ db: dbMock }));
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test, describe } from "@jest/globals";
-import { dbMock } from "@/test/dbMock";
 import { authMock } from "@/test/authMock";
 import { UserType, Prisma } from "@prisma/client";
 
