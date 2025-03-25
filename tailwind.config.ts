@@ -17,6 +17,7 @@ export default {
         mainRed: "#E63946",
         green: {
           primary: "#b7e394",
+          dark: "#0a7b40",
         },
         yellow: {
           primary: "#ffeeB0",
@@ -28,6 +29,12 @@ export default {
           primary: "#8F6C1A",
         },
         sunken: "#F9F9F9",
+        red: {
+          primary: "#ef3340",
+        },
+        orange: {
+          primary: "#ec610b",
+        },
       },
     },
   },
