@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
   const items = (
     await db.item.groupBy({
-      by: ["title", "category", "expirationDate", "unitSize"],
+      by: ["title", "type", "expirationDate", "unitSize"],
       _sum: {
         quantity: true,
       },

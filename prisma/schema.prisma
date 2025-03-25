@@ -74,6 +74,8 @@ model Item {
   donorShippingNumber String?
   hfhShippingNumber   String?
   datePosted          DateTime     @default(now())
+  ndc                 String?
+  notes               String?
 
   allowAllocations Boolean
   visible          Boolean

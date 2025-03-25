@@ -1,113 +1,86 @@
 import { useState } from "react";
-import Papa from "papaparse";
-import * as XLSX from "xlsx";
-import BulkAddFileUpload from "@/components/BulkAddFileUpload";
-import BulkAddTable from "@/components/BulkAddTable";
+import BulkAddFileUpload from "@/components/BulkAdd/BulkAddFileUpload";
+import BulkAddTable from "@/components/BulkAdd/BulkAddTable";
 import { WarningCircle, X } from "@phosphor-icons/react";
-import BulkAddSuccessModal from "@/components/BulkAddSuccessModal";
+import BulkAddSuccessModal from "@/components/BulkAdd/BulkAddSuccessModal";
+import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
+import BulkAddErrorModal from "@/components/BulkAdd/BulkAddErrorModal";
 
 type DataItem = {
   title: string;
-  donor_name: string;
-  category: string;
+  donorName: string;
   type: string;
+  category: string;
   quantity: string;
-  expiration: string;
-  unit_size: string;
-  quantity_per_unit: string;
-  lot_number: string;
-  pallet_number: string;
-  box_number: string;
-  unit_price: string;
-  visible: string;
-  allocatable: string;
-  comments: string;
-  max_limit_requestable: string;
+  expirationDate: string;
+  unitSize: string;
+  unitType: string;
+  datePosted: string;
+  lotNumber: string;
+  palletNumber: string;
+  boxNumber: string;
+  unitPrice: string;
+  maxRequestLimit: string;
+  visible: boolean;
+  allowAllocations: boolean;
+  gik: boolean;
 };
+
 
 export default function BulkAddItemsScreen() {
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState(0);
-  const [data, setData] = useState<DataItem[]>([]);
   const [fileError, setFileError] = useState(false);
   const [fileUploaded, setFileUploaded] = useState(false);
-  const [preview, setPreview] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
+  const [data, setData] = useState<DataItem[]>([]);
+  const [preview, setPreview] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<File>();
+
   const [isOpen, setIsOpen] = useState(false);
-
-  const requiredKeys = [
-    "title",
-    "donor_name",
-    "category",
-    "type",
-    "quantity",
-    "expiration",
-    "unit_size",
-    "quantity_per_unit",
-    "lot_number",
-    "pallet_number",
-    "box_number",
-    "unit_price",
-    "visible",
-    "allocatable",
-    "comments",
-    "max_limit_requestable",
-  ];
-
-  const containsRequiredKeys = (fields?: string[]) =>
-    fields ? requiredKeys.every((key) => fields.includes(key)) : false;
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+    setUploadedFile(file);
     setFileLoading(true);
     setFileName(file.name);
     setFileSize(file.size);
     setFileError(false);
+    setErrors([]);
 
     try {
-      if (file.type !== "text/csv") {
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const csvText = XLSX.utils.sheet_to_csv(sheet);
-        parseCSV(csvText);
-      } else {
-        const reader = new FileReader();
-        reader.onload = (event) =>
-          event.target?.result && parseCSV(event.target.result as string);
-        reader.onerror = () => {
-          console.error("Error reading file");
-          setFileError(true);
-          setFileLoading(false);
-        };
-        reader.readAsText(file);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Sending file to the server for preview
+      const response = await fetch("/api/items/bulk?preview=true", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const { errors } = await response.json();
+        setErrors(errors);
+        setFileUploaded(false);
+        setFileError(true);
+        setFileLoading(false);
+        return;
       }
+
+      const { items } = await response.json();
+      setData(items);
+      setPreview(false);
+      setFileUploaded(true);
+      setFileLoading(false);
     } catch (error) {
       console.error("File processing error:", error);
       setFileError(true);
       setFileLoading(false);
     }
-  };
-
-  const parseCSV = (csvText: string) => {
-    const { data, meta } = Papa.parse(csvText, { header: true });
-    if (!meta.fields || !Array.isArray(meta.fields)) {
-      setFileError(true);
-      setFileLoading(false);
-      return;
-    }
-
-    if (containsRequiredKeys(meta.fields)) {
-      setFileUploaded(true);
-      setData(data as DataItem[]);
-    } else {
-      setFileError(true);
-      setFileUploaded(false);
-      setPreview(false);
-    }
-    setFileLoading(false);
   };
 
   const showPreview = () => {
@@ -121,6 +94,35 @@ export default function BulkAddItemsScreen() {
     setFileName("");
     setFileLoading(false);
     setIsOpen(false);
+    setErrors([]);
+  };
+
+  const handleAddItems = async () => {
+    console.log(uploadedFile)
+    if (!uploadedFile) return;
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+
+      const response = await fetch("/api/items/bulk", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        setIsLoading(false);
+        setIsOpen(true);
+      } else {
+        setIsLoading(false);
+        setErrorOpen(true);
+        return;
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error("Error creating items:", error);
+      setErrors(["An error occurred while creating items. Please try again."]);
+    }
   };
 
   return (
@@ -179,6 +181,17 @@ export default function BulkAddItemsScreen() {
           </div>
         )}
       </div>
+
+      {errors && errors.length > 0 && (
+        <div className="mt-4">
+          {errors.map((error, index) => (
+            <div key={index} className="bg-red-100 text-red-500 p-3 mb-2 rounded">
+              {error}
+            </div>
+          ))}
+        </div>
+      )}
+
       {preview && <BulkAddTable data={data} />}
       <div className="flex justify-end mt-4">
         <button
@@ -189,7 +202,7 @@ export default function BulkAddItemsScreen() {
         </button>
         {preview ? (
           <button
-            onClick={() => setIsOpen(true)}
+            onClick={handleAddItems}
             className="bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
           >
             Add Items
@@ -208,7 +221,9 @@ export default function BulkAddItemsScreen() {
           </button>
         )}
       </div>
-      {isOpen && <BulkAddSuccessModal setIsOpen={setIsOpen} />}
+      {isLoading && <BulkAddLoadingModal />}
+      {isOpen && <BulkAddSuccessModal setIsOpen={setIsOpen} resetUpload={resetUpload}/>}
+      {errorOpen && <BulkAddErrorModal setErrorOpen={setErrorOpen} resetUpload={resetUpload}/>}
     </div>
   );
 }
