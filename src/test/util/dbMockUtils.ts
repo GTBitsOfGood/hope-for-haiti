@@ -151,8 +151,8 @@ export async function createItem({
   hfhShippingNumber?: string;
   allowAllocations?: boolean;
   gik?: boolean;
-  ndc?: string;
-  notes?: string;
+  ndc: string;
+  notes: string;
 }): Promise<Item> {
   return {
     id,

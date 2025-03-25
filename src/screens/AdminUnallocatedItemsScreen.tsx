@@ -6,7 +6,7 @@ import { CgSpinner } from "react-icons/cg";
 import { UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import AddItemModal from "@/components/AddItemModal";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -39,7 +39,6 @@ const expirationFilterMap: Record<
 
 export default function AdminUnallocatedItemsScreen() {
   const router = useRouter();
-
   const [items, setItems] = useState<UnallocatedItemRequest[]>([]);
   const [filteredItems, setFilteredItems] = useState<UnallocatedItemRequest[]>(
     []
@@ -48,6 +47,8 @@ export default function AdminUnallocatedItemsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [manageIndex, setManageIndex] = useState(-1);
 
+  const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
+  const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -92,6 +93,7 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
+      {isModalOpen ? <AddItemModal setIsOpen={setIsModalOpen} /> : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
@@ -109,11 +111,35 @@ export default function AdminUnallocatedItemsScreen() {
           <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
             <Plus size={18} /> Filter
           </button>
-          <Link href="/bulkAddItems">
-            <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
+          <div className="relative">
+            <button
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+              onClick={() => {
+                setAddItemExpanded(!addItemExpanded);
+              }}
+            >
               <Plus size={18} /> Add Item
             </button>
-          </Link>
+            {addItemExpanded ? (
+              <div className="flex flex-col gap-y-1 items-center absolute left-0 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
+                <button
+                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                  onClick={() => {
+                    setIsModalOpen(true);
+                    setAddItemExpanded(false);
+                  }}
+                >
+                  Single item
+                </button>
+                <button
+                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                  onClick={() => router.push("/bulkAddItems")}
+                >
+                  Bulk items
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
       <div className="flex space-x-4 mt-4 border-b-2">
