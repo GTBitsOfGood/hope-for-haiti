@@ -14,13 +14,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hideNav = pathname.startsWith("/create-partner-account");
+  const hideNav = pathname.startsWith("/createPartnerAccount");
 
   return (
     <html lang="en" className={openSans.className}>
       <body>
         {hideNav ? (
-          //if the path starts with /create-partner-account, render children ONLY
+          //if the path starts with /createPartnerAccount, render children ONLY
           children
         ) : (
           //else wrap everything in NavBarLayout

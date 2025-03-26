@@ -39,7 +39,7 @@ export default function InviteUserForm({
     if (role === "PARTNER") {
       closeModal();
       router.push(
-        `/create-partner-account?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`,
+        `/createPartnerAccount?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`
       );
       return;
     }
@@ -175,7 +175,7 @@ export default function InviteUserForm({
                         >
                           {option}
                         </div>
-                      ),
+                      )
                     )}
                   </div>
                 )}

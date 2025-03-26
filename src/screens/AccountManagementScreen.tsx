@@ -66,7 +66,7 @@ export default function AccountManagementScreen() {
   const handleInviteSubmit = (role: UserType) => {
     if (role === "PARTNER") {
       setInviteModalOpen(false);
-      router.push("/create-partner-account");
+      router.push("/createPartnerAccount");
     } else {
       console.log("Sending invite link for", role);
     }
