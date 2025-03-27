@@ -345,7 +345,8 @@ export default function AdminUnallocatedItemsScreen() {
                 <th className="px-4 py-2 text-left font-bold">Type</th>
                 <th className="px-4 py-2 text-left font-bold">Quantity</th>
                 <th className="px-4 py-2 text-left font-bold">Expiration</th>
-                <th className="px-4 py-2 text-left font-bold">Unit size</th>
+                <th className="px-4 py-2 text-left font-bold">Unit type</th>
+                <th className="px-4 py-2 text-left font-bold">Qty/Unit</th>
                 <th className="pl-4 py-2 text-left font-bold">Manage</th>
               </tr>
             </thead>
@@ -368,13 +369,14 @@ export default function AdminUnallocatedItemsScreen() {
                     }}
                   >
                     <td className="px-4 py-2 w-1/6">{item.title}</td>
-                    <td className="px-4 py-2 w-1/6">{item.category}</td>
+                    <td className="px-4 py-2 w-1/6">{item.type}</td>
                     <td className="px-4 py-2 w-1/6">{item.quantity}</td>
                     <td className="px-4 py-2 w-1/6">
                       {item.expirationDate
                         ? new Date(item.expirationDate).toLocaleDateString()
                         : "N/A"}
                     </td>
+                    <td className="px-4 py-2 w-1/6">{item.unitType}</td>
                     <td className="px-4 py-2 w-1/6">{item.unitSize}</td>
                     <td
                       className="px-4 py-2 w-1/12"
