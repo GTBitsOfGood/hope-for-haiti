@@ -9,6 +9,7 @@ export const ItemFormSchema = zfd.formData({
   quantity: zfd.numeric(z.number().int().min(0)),
   expirationDate: z.coerce.date(),
   quantityPerUnit: zfd.text(),
+  unitSize: zfd.numeric(z.number().int().min(0)),
   unitType: zfd.text(),
   datePosted: z.coerce.date(),
   lotNumber: zfd.numeric(z.number().int().min(0)),
