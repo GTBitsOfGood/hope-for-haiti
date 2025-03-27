@@ -18,7 +18,7 @@ const paramSchema = z.object({
 });
 
 /**
- * Handles GET requests to retrieve unallocated line items
+ * Handles GET requests to retrieve unallocated line items.
  * @param request - the incoming request (unused)
  * @param params - the item id to retrieve unallocated item requests for
  * @returns 400 if the search params are missing or invalid
