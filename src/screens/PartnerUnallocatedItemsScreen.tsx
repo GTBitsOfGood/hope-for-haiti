@@ -140,7 +140,8 @@ export default function PartnerUnallocatedItemsScreen() {
                 <th className="px-4 py-2 text-left font-bold">Type</th>
                 <th className="px-4 py-2 text-left font-bold">Quantity</th>
                 <th className="px-4 py-2 text-left font-bold">Expiration</th>
-                <th className="px-4 py-2 text-left font-bold">Unit size</th>
+                <th className="px-4 py-2 text-left font-bold">Unit type</th>
+                <th className="px-4 py-2 text-left font-bold">Qty/Unit</th>
                 <th className="pl-4 py-2 text-left font-bold">Request</th>
               </tr>
             </thead>
@@ -166,9 +167,8 @@ export default function PartnerUnallocatedItemsScreen() {
                         ? new Date(item.expirationDate).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td className="px-4 py-2">
-                      {item.unitSize.toString() + item.unitType}
-                    </td>
+                    <td className="px-4 py-2">{item.unitType}</td>
+                    <td className="px-4 py-2">{item.unitSize}</td>
                     <td className="px-4 py-2">
                       {false ? ( // !! TODO: Make this conditional based on item requested status !!
                         <div className="px-2 py-0.5 inline-block rounded bg-amber-primary bg-opacity-20 text-gray-primary">

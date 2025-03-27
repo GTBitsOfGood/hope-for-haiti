@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
   const items = (
     await db.item.groupBy({
-      by: ["title", "type", "expirationDate", "unitSize"],
+      by: ["title", "type", "expirationDate", "unitType", "unitSize"],
       _sum: {
         quantity: true,
       },
@@ -112,7 +112,6 @@ const schema = zfd.formData({
   priority: zfd.text(z.nativeEnum(RequestPriority)),
   expirationDate: z.coerce.date().optional(),
   unitSize: zfd.numeric(z.number().int()),
-  //   priority: zfd.numeric(),        Uncomment when priority is added to the schema
   quantity: zfd.numeric(z.number().int().min(1)), // Requesting 0 items would be stupid
   comments: zfd.text(),
 });
