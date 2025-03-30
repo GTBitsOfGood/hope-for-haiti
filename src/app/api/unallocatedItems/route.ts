@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     session.user.type === UserType.PARTNER ? { visible: true } : {};
 
   // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
-  const items = (
+  const tableItems = (
     await db.item.groupBy({
       by: ["title", "type", "expirationDate", "unitSize"],
       _sum: {
@@ -101,8 +101,21 @@ export async function GET(request: NextRequest) {
     return copy;
   });
 
+  const unitTypesSet = new Set<string>();
+  const donorNamesSet = new Set<string>();
+  const itemTypesSet = new Set<string>();
+  const items = await db.item.findMany();
+  items.forEach((item) => {
+    if (item.unitType) unitTypesSet.add(item.unitType);
+    donorNamesSet.add(item.donorName);
+    itemTypesSet.add(item.type);
+  });
+
   return NextResponse.json({
-    items,
+    items: tableItems,
+    unitTypes: Array.from(unitTypesSet).sort(),
+    donorNames: Array.from(donorNamesSet).sort(),
+    itemTypes: Array.from(itemTypesSet).sort(),
   });
 }
 

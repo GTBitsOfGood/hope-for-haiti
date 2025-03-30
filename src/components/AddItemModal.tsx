@@ -7,15 +7,31 @@ import { ItemFormSchema } from "@/schema/itemForm";
 import submitHandler from "@/util/formAction";
 import ModalDateField from "./ModalDateField";
 import toast from "react-hot-toast";
+import ModalDropDown, { StringToModalDropDownOption } from "./ModalDropDown";
+import { ItemCategory } from "@prisma/client";
+import ModalAutoTextField from "./ModalAutoTextField";
+import { useState } from "react";
 
 interface AddItemModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
+  unitTypes: string[]; // All the unit types
+  donorNames: string[]; // All the donor names
+  itemTypes: string[]; // All the item types
 }
 
-export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
+export default function BulkAddSuccessModal({
+  setIsOpen,
+  unitTypes,
+  donorNames,
+  itemTypes,
+}: AddItemModalProps) {
   const submitItem = submitHandler(async (data: FormData) => {
     console.log(Object.fromEntries(data)); // Log the form data for
     data.append("datePosted", new Date().toISOString()); // Add datePosted to the form data
+
+    // Purely because as of coding this, unit size is used instead of quantity per unit
+    data.append("unitSize", data.get("quantityPerUnit") as string);
+
     const validatedForm = ItemFormSchema.safeParse(data);
     console.log(validatedForm);
 
@@ -65,25 +81,41 @@ export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
         >
           <ModalFormRow>
             <ModalTextField label="Item title" name="title" required />
-            <ModalTextField label="Donor name" name="donorName" required />
-            {/* To be replaced with dropdown */}
+            <ModalDropDown
+              label="Donor name"
+              name="donorName"
+              options={StringToModalDropDownOption(donorNames)}
+              required
+            />
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Item category" name="category" required />
-            {/* To be replaced with dropdown */}
-            <ModalTextField label="Item type" name="type" required />
-            {/* To be replaced with dropdown */}
+            <ModalDropDown
+              label="Item category"
+              name="category"
+              options={[
+                { label: "medication", value: ItemCategory.MEDICATION },
+                { label: "medical supply", value: ItemCategory.MEDICAL_SUPPLY },
+                { label: "non medical", value: ItemCategory.NON_MEDICAL },
+                { label: "purchases", value: ItemCategory.PURCHASES },
+              ]}
+              required
+            />
+            <ModalDropDown
+              label="Item type"
+              name="type"
+              options={StringToModalDropDownOption(itemTypes)}
+              required
+            />
           </ModalFormRow>
           <ModalFormRow>
             <ModalTextField label="Lot number" name="lotNumber" required />
           </ModalFormRow>
           <ModalFormRow>
             <ModalDateField
-              label="Expiration date"
+              label="Expiration Date"
               name="expirationDate"
               required
             />
-            {/* To be replaced with date field */}
           </ModalFormRow>
           <ModalFormRow>
             <ModalTextField label="NDC" name="ndc" placeholder="xxxx-xxxx-xx" />
@@ -92,8 +124,12 @@ export default function BulkAddSuccessModal({ setIsOpen }: AddItemModalProps) {
           <ModalFormRow>
             <ModalTextField label="Quantity" name="quantity" required />
             {/* To be replaced with numeric field */}
-            <ModalTextField label="Unit type" name="unitType" required />
-            {/* To be replaced with special dropdown */}
+            <ModalAutoTextField
+              label="Unit type"
+              name="unitType"
+              required
+              options={unitTypes}
+            />
           </ModalFormRow>
           <ModalFormRow>
             <ModalTextField label="Unit price" name="unitPrice" required />

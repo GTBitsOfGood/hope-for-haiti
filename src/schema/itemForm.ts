@@ -23,8 +23,8 @@ export const ItemFormSchema = zfd.formData({
   gik: zfd.checkbox(),
   donorShippingNumber: zfd.text(),
   hfhShippingNumber: zfd.text(),
-  ndc: zfd.text().optional(),
-  notes: zfd.text().optional(),
+  ndc: zfd.text(z.string().optional()),
+  notes: zfd.text(z.string().optional()),
 });
 
 export type ItemForm = z.infer<typeof ItemFormSchema>;

@@ -51,6 +51,11 @@ export default function AdminUnallocatedItemsScreen() {
 
   const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
   const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
+
+  const [unitTypes, setUnitTypes] = useState<string[]>([]); // All the unit types
+  const [donorNames, setDonorNames] = useState<string[]>([]); // All the donor names
+  const [itemTypes, setItemTypes] = useState<string[]>([]); // All the item types
+
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -60,6 +65,10 @@ export default function AdminUnallocatedItemsScreen() {
         }
         const data = await res.json();
         setFilteredItems(data.items);
+
+        setUnitTypes(data.unitTypes);
+        setDonorNames(data.donorNames);
+        setItemTypes(data.itemTypes);
       } catch (error) {
         toast.error("An error occurred while fetching data");
         console.error("Fetch error:", error);
@@ -266,7 +275,14 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
-      {isModalOpen ? <AddItemModal setIsOpen={setIsModalOpen} /> : null}
+      {isModalOpen ? (
+        <AddItemModal
+          setIsOpen={setIsModalOpen}
+          unitTypes={unitTypes}
+          donorNames={donorNames}
+          itemTypes={itemTypes}
+        />
+      ) : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
