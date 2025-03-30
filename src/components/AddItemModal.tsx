@@ -10,7 +10,6 @@ import toast from "react-hot-toast";
 import ModalDropDown, { StringToModalDropDownOption } from "./ModalDropDown";
 import { ItemCategory } from "@prisma/client";
 import ModalAutoTextField from "./ModalAutoTextField";
-import { useState } from "react";
 
 interface AddItemModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
