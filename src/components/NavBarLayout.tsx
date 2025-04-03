@@ -11,6 +11,7 @@ import {
   X,
   UserList,
   MapTrifold,
+  ChartBar,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -70,6 +71,9 @@ function NavLinks() {
       />
       {isStaff && (
         <NavLink href="/map" label="Map" icon={<MapTrifold size={22} />} />
+      )}
+      {isStaff && (
+        <NavLink href="/analytics" label="Analytics" icon={<ChartBar size={22} />} />
       )}
       <NavLink
         href="/donorOffers"
