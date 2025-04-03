@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { db } from "@/db";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,
@@ -17,7 +15,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { format, parse, parseISO, subMonths, startOfYear, endOfYear, startOfMonth, endOfMonth, getMonth, getYear } from "date-fns";
+import { startOfYear, endOfYear, getMonth, getYear } from "date-fns";
 
 // Define the ItemCategory enum to match the Prisma schema
 enum ItemCategory {
