@@ -36,7 +36,7 @@ export const partnerDetailsSchema = z
     ]),
     yearOrganizationEstablished: z.number(),
     registeredWithMssp: z.boolean(),
-    proofOfRegistationWithMssp: z.string().url(), // this is a URL to the file upload
+    proofOfRegistationWithMssp: z.string(), // name of the blob containing the proof of registration
     programUpdatesSinceLastReport: z.string(),
 
     // Facility
@@ -54,10 +54,10 @@ export const partnerDetailsSchema = z
         "community_health_education",
         "nutrition_feeding",
         "secondary_tertiary_healthcare",
-      ]),
+      ])
     ),
     organizationType: z.array(
-      z.enum(["non_profit", "for_profit", "faith_based"]),
+      z.enum(["non_profit", "for_profit", "faith_based"])
     ),
     governmentRun: z.boolean(),
     emergencyMedicalRecordsSystemPresent: z.boolean(),
@@ -109,7 +109,7 @@ export const partnerDetailsSchema = z
         "lab_tests",
         "trauma_and_surgery",
         "urology",
-      ]),
+      ])
     ),
     otherMedicalServicesProvided: z.string(),
 
@@ -181,7 +181,7 @@ export const partnerDetailsSchema = z
         "respiratory ",
         "surgical ",
         "syringes_needles",
-      ]),
+      ])
     ),
     otherSpecialityItemsNeeded: z.string(),
   })
@@ -190,7 +190,7 @@ export const partnerDetailsSchema = z
     {
       message: "Proof of registration with MSSP is required",
       path: ["proofOfRegistationWithMssp"],
-    },
+    }
   )
   .refine(
     (data) =>
@@ -201,7 +201,7 @@ export const partnerDetailsSchema = z
     {
       message: "Name of emergency medical records system is required",
       path: ["emergencyMedicalRecordsSystemName"],
-    },
+    }
   )
   .refine(
     (data) =>
@@ -213,21 +213,21 @@ export const partnerDetailsSchema = z
       message:
         "Description of how often and what services are offered for community/mobile outreach is required",
       path: ["communityMobileOutreachDescription"],
-    },
+    }
   )
   .refine(
     (data) => !(data.cleanWaterAccessible && !data.cleanWaterDescription),
     {
       message: "Description of accessible clean water is required",
       path: ["cleanWaterDescription"],
-    },
+    }
   )
   .refine(
     (data) => !(!data.cleanWaterAccessible && !data.closestSourceOfCleanWater),
     {
       message: "Closest source of clean water is required",
       path: ["closestSourceOfCleanWater"],
-    },
+    }
   )
   .refine(
     (data) =>
@@ -239,7 +239,7 @@ export const partnerDetailsSchema = z
       message:
         "Whether sanitation facilities are lockable from inside is required",
       path: ["sanitationFacilitiesLockableFromInside"],
-    },
+    }
   )
   .refine(
     (data) =>
@@ -250,7 +250,7 @@ export const partnerDetailsSchema = z
     {
       message: "Description of medication disposal process is required",
       path: ["medicationDisposalProcessDescription"],
-    },
+    }
   )
   .refine((data) => !(data.pickupVehiclePresent && !data.pickupVehicleType), {
     message: "Pick-up vehicle type is required",
@@ -261,7 +261,7 @@ export const partnerDetailsSchema = z
     {
       message: "At least one pick-up location required",
       path: ["pickupLocations"],
-    },
+    }
   )
   .refine((data) => !(data.anyMenServedLastYear && !data.menServedLastYear), {
     message: "Must specify how many men (18+) were served last year",
@@ -272,7 +272,7 @@ export const partnerDetailsSchema = z
     {
       message: "Must specify how many women (18+) were served last year",
       path: ["womenServedLastYear"],
-    },
+    }
   )
   .refine((data) => !(data.anyBoysServedLastYear && !data.boysServedLastYear), {
     message: "Must specify how many boys (1-17) were served last year",
@@ -283,14 +283,14 @@ export const partnerDetailsSchema = z
     {
       message: "Must specify how many girls (1-17) were served last year",
       path: ["girlsServedLastYear"],
-    },
+    }
   )
   .refine(
     (data) => !(data.anyBabyBoysServedLastYear && !data.babyBoysServedLastYear),
     {
       message: "Must specify how many baby boys (<1) were served last year",
       path: ["babyBoysServedLastYear"],
-    },
+    }
   )
   .refine(
     (data) =>
@@ -298,7 +298,7 @@ export const partnerDetailsSchema = z
     {
       message: "Must specify how many baby girls (<1) were served last year",
       path: ["babyGirlsServedLastYear"],
-    },
+    }
   );
 
 export type PartnerDetails = z.infer<typeof partnerDetailsSchema>;
