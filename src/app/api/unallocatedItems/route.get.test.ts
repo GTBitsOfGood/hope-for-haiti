@@ -39,7 +39,7 @@ const setup = async () => {
       quantityPerUnit: null,
       donorShippingNumber: null,
       hfhShippingNumber: null,
-      unitType: `Unit Type ${Math.floor(Math.random() * 3)}`,
+      unitType: `Unit Type ${1}`,
       datePosted: new Date(Date.now() + Math.floor(Math.random() * 10000)),
       lotNumber: Math.floor(Math.random() * 100),
       palletNumber: Math.floor(Math.random() * 100),
@@ -148,6 +148,7 @@ test("Should give correct database queries", async () => {
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
+          unitType: "Unit Type 1",
         },
         {
           title: "test_title",
@@ -155,6 +156,7 @@ test("Should give correct database queries", async () => {
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
+          unitType: "Unit Type 1",
         },
         {
           title: "test_title",
@@ -162,6 +164,7 @@ test("Should give correct database queries", async () => {
           quantity: 1,
           expirationDate: new Date("2000-01-01"),
           unitSize: 7,
+          unitType: "Unit Type 1",
         },
       ];
       const json = await res.json();
@@ -245,6 +248,7 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
+          unitType: "Unit Type 1",
         },
         {
           title: "test_title",
@@ -252,6 +256,7 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
+          unitType: "Unit Type 1",
         },
       ];
       const json = await res.json();
@@ -285,6 +290,7 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
+          unitType: "Unit Type 1",
         },
         {
           title: "test_title",
@@ -292,6 +298,7 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
+          unitType: "Unit Type 1",
         },
       ];
       const json = await res.json();
@@ -325,6 +332,7 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
           quantity: 115,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
+          unitType: "Unit Type 1",
         },
         {
           title: "test_title",
@@ -332,6 +340,7 @@ test("Should be successful when expirationDateBefore missing, expirationDateAfte
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
+          unitType: "Unit Type 1",
         },
       ];
       const json = await res.json();
@@ -359,6 +368,7 @@ test("Should hide visible = false when requested by partner", async () => {
           quantity: 100,
           expirationDate: new Date("2025-02-11"),
           unitSize: 5,
+          unitType: "Unit Type 1",
         },
         {
           title: "test_title",
@@ -366,6 +376,7 @@ test("Should hide visible = false when requested by partner", async () => {
           quantity: 20,
           expirationDate: new Date("2025-02-12"),
           unitSize: 6,
+          unitType: "Unit Type 1",
         },
       ];
       const json = await res.json();
