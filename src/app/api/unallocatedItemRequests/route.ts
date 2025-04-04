@@ -6,6 +6,8 @@ import {
   authorizationError,
 } from "@/util/responses";
 import { UserType } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { UnallocatedItem } from "./types";
 
 /**
  * Handles GET requests to fetch unallocated item requests.
@@ -16,7 +18,7 @@ import { UserType } from "@prisma/client";
  * @returns 401 if the session is invalid
  * @returns 403 if the user is not staff, admin, or super-admin
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return authenticationError("Session required");
   if (!session?.user) return authenticationError("User not found");
@@ -34,6 +36,7 @@ export async function GET(req: Request) {
   const type = url.searchParams.get("type");
   const expiration = url.searchParams.get("expiration");
   const unitSizeParam = url.searchParams.get("unitSize");
+  const unitType = url.searchParams.get("unitType");
   if (!title || !type || !expiration || unitSizeParam === null) {
     return argumentError("Missing required query parameters");
   }
@@ -75,12 +78,41 @@ export async function GET(req: Request) {
         });
       })
     );
-    return Response.json(
-      requests.map((request, index) => ({
+
+    const items = await db.item.findMany({
+      where: {
+        title: title,
+        type: type,
+        expirationDate: expirationDate,
+        unitSize: unitSize,
+        unitType: unitType,
+      },
+    });
+    const modifiedItems: UnallocatedItem[] = await Promise.all(
+      items.map(async (item) => {
+        const quantityAllocated =
+          await db.unallocatedItemRequestAllocation.aggregate({
+            _sum: {
+              quantity: true,
+            },
+            where: {
+              itemId: item.id,
+            },
+          });
+        return {
+          ...item,
+          quantityLeft: item.quantity - (quantityAllocated._sum.quantity || 0),
+        };
+      })
+    );
+
+    return NextResponse.json({
+      requests: requests.map((request, index) => ({
         ...request,
         allocations: allocations[index],
-      }))
-    );
+      })),
+      items: modifiedItems,
+    });
   } catch (error) {
     console.error("Error fetching unallocated item requests:", error);
     return argumentError("Failed to fetch unallocated item requests");

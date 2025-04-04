@@ -24,7 +24,7 @@ export default function UnallocatedItemsLineItemsScreen() {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `/api/unallocatedItems/lineItems?title=${encodeURIComponent(itemName ?? "")}&type=${encodeURIComponent(itemType ?? "")}&expiration=${encodeURIComponent(itemExpiration ?? "")}&unitSize=${encodeURIComponent(unitSize ?? "")}`,
+          `/api/unallocatedItems/lineItems?title=${encodeURIComponent(itemName ?? "")}&type=${encodeURIComponent(itemType ?? "")}&expiration=${encodeURIComponent(itemExpiration ?? "")}&unitSize=${encodeURIComponent(unitSize ?? "")}`
         );
 
         if (!response.ok) {
@@ -64,7 +64,7 @@ export default function UnallocatedItemsLineItemsScreen() {
           </span>
         </div>
         <Link href="/unallocatedItems">
-          <button className="flex items-center border border-red-500 gap-2 text-center text-red-500 border-red-500 bg-white text-red-500 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
+          <button className="flex items-center border gap-2 text-center text-red-500 border-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
             Back to Unallocated Items
           </button>
         </Link>
@@ -83,6 +83,7 @@ export default function UnallocatedItemsLineItemsScreen() {
             <thead>
               <tr className="bg-blue-primary opacity-80 text-white border-b-2">
                 <th className="px-4 py-2 text-left font-bold">Quantity</th>
+                <th className="px-4 py-2 text-left font-bold">Qty/Unit</th>
                 <th className="px-4 py-2 text-left font-bold">Donor name</th>
                 <th className="px-4 py-2 text-left font-bold">Pallet number</th>
                 <th className="px-4 py-2 text-left font-bold">Box number</th>
@@ -106,6 +107,7 @@ export default function UnallocatedItemsLineItemsScreen() {
                     className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
                   >
                     <td className="px-4 py-2">{item.quantity}</td>
+                    <td className="px-4 py-2">{item.quantityPerUnit}</td>
                     <td className="px-4 py-2">{item.donorName}</td>
                     <td className="px-4 py-2">{item.palletNumber}</td>
                     <td className="px-4 py-2">{item.boxNumber}</td>

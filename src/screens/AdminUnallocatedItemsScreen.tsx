@@ -380,6 +380,10 @@ export default function AdminUnallocatedItemsScreen() {
                           expiration:
                             (item.expirationDate as unknown as string) || "",
                           unitSize: item.unitSize.toString(),
+                          quantityPerUnit: item.quantityPerUnit
+                            ? item.quantityPerUnit
+                            : "",
+                          unitType: item.unitType ? item.unitType : "",
                         }).toString()}`
                       );
                     }}

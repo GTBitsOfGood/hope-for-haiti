@@ -6,6 +6,8 @@ interface ModalAutoTextFieldProps {
   name: string;
   placeholder?: string;
   options: string[];
+  defaultValue?: string;
+  onInputChange?: (value: string) => void;
 }
 
 export default function ModalAutoTextField({
@@ -14,16 +16,24 @@ export default function ModalAutoTextField({
   name,
   placeholder = label,
   options,
+  defaultValue,
+  onInputChange,
 }: ModalAutoTextFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState<string[]>(options);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(""); // State to manage the input value
   const dropdownRef = useRef<HTMLDivElement>(null); // Ref for the dropdown container
 
   const handleSelect = (option: string) => {
-    setInputValue(option);
+    changeInputValue(option);
     setIsOpen(false);
   };
+
+  useEffect(() => {
+    if (defaultValue) {
+      setInputValue(defaultValue);
+    }
+  }, [defaultValue]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,12 +55,23 @@ export default function ModalAutoTextField({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = event.target.value;
-    setInputValue(value);
+    changeInputValue(value);
+  };
+
+  useEffect(() => {
     setFilteredOptions(
       options.filter((option) =>
-        option.toLowerCase().includes(value.toLowerCase())
+        option.toLowerCase().includes(inputValue.toLowerCase())
       )
     );
+  }, [options, inputValue]);
+
+  const changeInputValue = (value: string) => {
+    setInputValue(value);
+
+    if (onInputChange) {
+      onInputChange(value);
+    }
   };
 
   return (

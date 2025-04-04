@@ -8,6 +8,7 @@ import {
   notFoundError,
 } from "@/util/responses";
 import { UserType } from "@prisma/client";
+import { editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
 
 /**
  * POST: Create an UnallocatedItemRequestAllocation.
@@ -118,4 +119,125 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({ message: "Allocation created", allocation });
+}
+
+/**
+ * Editting an existing unallocated item request allocation.
+ * @param req
+ * @returns
+ */
+export async function PUT(request: NextRequest) {
+  const session = await auth();
+  if (!session) return authenticationError("Session required");
+  if (!session?.user) return authenticationError("User not found");
+
+  if (
+    session.user.type !== UserType.STAFF &&
+    session.user.type !== UserType.ADMIN &&
+    session.user.type !== UserType.SUPER_ADMIN
+  ) {
+    return authorizationError("Unauthorized");
+  }
+
+  // Handle PUT request logic here
+  const form = await request.formData();
+  const parsedForm = editAllocationFormSchema.safeParse(form);
+  if (!parsedForm.success) {
+    return argumentError("Invalid form data: " + parsedForm.error.format());
+  }
+
+  const {
+    allocationId,
+    title,
+    type,
+    expiration,
+    unitSize,
+    donorName,
+    lotNumber,
+    palletNumber,
+    boxNumber,
+    quantity,
+  } = parsedForm.data;
+
+  const allocation = await db.unallocatedItemRequestAllocation.findUnique({
+    where: {
+      id: allocationId,
+    },
+    include: {
+      unallocatedItemRequest: true,
+    },
+  });
+  if (!allocation) {
+    return notFoundError("Allocation not found");
+  }
+
+  // Find the item
+  const item = await db.item.findFirst({
+    where: {
+      title,
+      type,
+      expirationDate: expiration,
+      unitSize,
+      donorName,
+      lotNumber,
+      palletNumber,
+      boxNumber,
+    },
+  });
+
+  if (!item) {
+    return notFoundError("Item not found with the specified attributes.");
+  }
+
+  // Check if there are enough items in the inventory
+  const totalAllocated = await db.unallocatedItemRequestAllocation.aggregate({
+    _sum: {
+      quantity: true,
+    },
+    where: {
+      itemId: item.id,
+      NOT: {
+        id: allocationId,
+      },
+    },
+  });
+  if (
+    totalAllocated._sum.quantity &&
+    item.quantity - totalAllocated._sum.quantity < quantity
+  ) {
+    return argumentError(
+      "Not enough items in inventory to fulfill the allocation request."
+    );
+  }
+
+  // Update the allocation
+  const updatedAllocation = await db.unallocatedItemRequestAllocation.update({
+    where: {
+      id: allocationId,
+    },
+    data: {
+      itemId: item.id,
+      quantity: quantity,
+    },
+  });
+  if (!updatedAllocation) {
+    return notFoundError("Allocation not found");
+  }
+
+  // Update the quantity for unallocated item request
+  // const updatedUnallocatedItemRequest = await db.unallocatedItemRequest.update({
+  //   where: {
+  //     id: allocation.unallocatedItemRequestId,
+  //   },
+  //   data: {
+  //     quantity: {
+  //       increment: quantity,
+  //     },
+  //   },
+  // });
+
+  return NextResponse.json({
+    message: "Allocation request modified",
+    unallocatedItemRequestAllocation: updatedAllocation,
+  });
 }

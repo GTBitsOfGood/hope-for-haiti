@@ -13,6 +13,8 @@ import {
 } from "@prisma/client";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
+import EditAllocationModal from "@/components/EditAllocationModal";
+import { UnallocatedItem } from "@/app/api/unallocatedItemRequests/types";
 
 type RequestWithAllocations = UnallocatedItemRequest & {
   allocations: (UnallocatedItemRequestAllocation & {
@@ -49,39 +51,76 @@ export default function PartnerRequestsScreen() {
   const itemName = searchParams.get("title");
   const itemType = searchParams.get("type");
   const itemExpiration = searchParams.get("expiration");
+  // const quantityPerUnit = searchParams.get("quantityPerUnit");
   const unitSize = searchParams.get("unitSize");
+  const unitType = searchParams.get("unitType");
 
   const [requests, setRequests] = useState<RequestWithAllocations[]>([]);
+  const [items, setItems] = useState<UnallocatedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `/api/unallocatedItemRequests?title=${itemName}&type=${itemType}&expiration=${itemExpiration}&unitSize=${unitSize}`
-        );
+  const [isEditAllocationModalIsOpen, setIsEditAllocationModalIsOpen] =
+    useState(false);
+  const [selectedAllocation, setSelectedAllocation] = useState<
+    (UnallocatedItemRequestAllocation & { unallocatedItem: Item }) | null
+  >(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-        if (!response.ok) {
-          throw new Error();
-        }
+  const fetchData = React.useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/unallocatedItemRequests?title=${itemName}&type=${itemType}&expiration=${itemExpiration}&unitSize=${unitSize}&unitType=${unitType}`
+      );
 
-        const data = await response.json();
-        setRequests(data);
-      } catch (e) {
-        toast.error("Error fetching unallocated item requests", {
-          position: "bottom-right",
-        });
-        console.log(e);
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error();
       }
-    };
 
+      const data = await response.json();
+      setRequests(data.requests);
+      setItems(data.items);
+      console.log(data.requests);
+      console.log(data.items);
+    } catch (e) {
+      toast.error("Error fetching unallocated item requests", {
+        position: "bottom-right",
+      });
+      console.log(e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [itemName, itemType, itemExpiration, unitSize, unitType]);
+
+  useEffect(() => {
     fetchData();
-  }, [itemName, itemType, itemExpiration, unitSize]);
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success("Allocation updated successfully", {
+        position: "bottom-right",
+      });
+      setIsSuccess(false);
+
+      fetchData();
+    }
+  }, [fetchData, isSuccess]);
 
   return (
     <>
+      {isEditAllocationModalIsOpen && (
+        <EditAllocationModal
+          setIsOpen={setIsEditAllocationModalIsOpen}
+          items={items}
+          allocation={selectedAllocation}
+          unitSize={unitSize}
+          unitType={unitType}
+          expiration={new Date(itemExpiration || "")}
+          title={itemName}
+          type={itemType}
+          setIsSuccess={setIsSuccess}
+        />
+      )}
       <div className="flex items-center gap-1 mb-4">
         <Link
           href="/unallocatedItems"
@@ -142,7 +181,7 @@ export default function PartnerRequestsScreen() {
                 <React.Fragment key={index}>
                   <tr
                     data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
+                    className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors hover:bg-gray-100`}
                   >
                     <td className="px-4 py-2">{item.partner.name}</td>
                     <td className="px-4 py-2">
@@ -162,15 +201,24 @@ export default function PartnerRequestsScreen() {
                       )}
                     </td>
                     <td className="px-4 py-2">
+                      {item.allocations.map((alloc) => (
+                        <div
+                          key={alloc.id}
+                          className="hover:text-red-500"
+                          onClick={() => {
+                            setIsSuccess(false);
+                            setSelectedAllocation(alloc);
+                            setIsEditAllocationModalIsOpen(true);
+                          }}
+                        >
+                          {`${alloc.quantity} - ${alloc.unallocatedItem.lotNumber}, ${alloc.unallocatedItem.palletNumber}, ${alloc.unallocatedItem.boxNumber}`}
+                        </div>
+                      ))}
                       {item.allocations && item.allocations.length > 0 ? (
                         <>
-                          {item.allocations.map((alloc) => (
-                            <div key={alloc.id}>
-                              {`${alloc.quantity} - ${alloc.unallocatedItem.lotNumber}, ${alloc.unallocatedItem.palletNumber}, ${alloc.unallocatedItem.boxNumber}`}
-                            </div>
-                          ))}
                           <button
-                            onClick={() => {
+                            onClick={(event) => {
+                              event.stopPropagation();
                               router.push(
                                 `/newAllocation?${new URLSearchParams({
                                   unallocatedItemRequestId: item.id.toString(),
@@ -190,7 +238,8 @@ export default function PartnerRequestsScreen() {
                         </>
                       ) : (
                         <button
-                          onClick={() => {
+                          onClick={(event) => {
+                            event.stopPropagation();
                             router.push(
                               `/newAllocation?${new URLSearchParams({
                                 unallocatedItemRequestId: item.id.toString(),
