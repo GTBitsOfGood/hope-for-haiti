@@ -107,7 +107,7 @@ test("Should return donor offer items", async () => {
       type: "type 1",
       expiration: new Date(1000000),
       quantity: 1,
-      unitSize: "unitSize",
+      unitSize: 4,
     },
     {
       id: 103,
@@ -115,7 +115,7 @@ test("Should return donor offer items", async () => {
       type: "type 2",
       expiration: new Date(2000000),
       quantity: 5,
-      unitSize: "unitSize",
+      unitSize: 4,
     },
   ];
 
@@ -126,7 +126,7 @@ test("Should return donor offer items", async () => {
       type: "type 3",
       expiration: new Date(3000000),
       quantity: 1,
-      unitSize: "unitSize",
+      unitSize: 4,
     },
     {
       id: 125,
@@ -134,7 +134,7 @@ test("Should return donor offer items", async () => {
       type: "type 4",
       expiration: new Date(4000000),
       quantity: 5,
-      unitSize: "unitSize",
+      unitSize: 4,
     },
   ];
 
@@ -161,6 +161,7 @@ test("Should return donor offer items", async () => {
       quantity: 1,
       comments: "comments 1",
       priority: RequestPriority.HIGH,
+      unitSize: 4,
     },
     {
       id: 403,
@@ -168,6 +169,7 @@ test("Should return donor offer items", async () => {
       quantity: 1,
       comments: "comments 1",
       priority: RequestPriority.MEDIUM,
+      unitSize: 4,
     },
     {
       id: 234,
@@ -175,6 +177,7 @@ test("Should return donor offer items", async () => {
       quantity: 5,
       comments: "comments 2",
       priority: RequestPriority.LOW,
+      unitSize: 4,
     },
   ];
   const notReturnRequests = [
@@ -184,6 +187,7 @@ test("Should return donor offer items", async () => {
       quantity: 1,
       comments: "comments 3",
       priority: RequestPriority.HIGH,
+      unitSize: 4,
     },
   ];
 
