@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
     BlobServiceClient.fromConnectionString(connectionString);
   const containerClient = blobServiceClient.getContainerClient(containerName);
   const blobClient = containerClient.getBlockBlobClient(blobName);
-  blobClient.generateSasUrl;
   const sasOptions = {
     containerName,
     blobName,
