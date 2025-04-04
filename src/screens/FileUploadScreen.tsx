@@ -6,6 +6,8 @@ export default function FileUploadScreen() {
   const [error, setError] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const handleUpload = submitHandler(async (data: FormData) => {
+    setError("");
+    setFileUrl("");
     const file = data.get("file") as File;
     if (file.name === "") {
       console.error("No file selected");
@@ -21,8 +23,8 @@ export default function FileUploadScreen() {
     }
 
     const body = await response.json();
-    console.log("Upload URL:", body.uploadUrl);
-    const uploadResponse = await fetch(body.uploadUrl, {
+    console.log("Upload URL:", body.sas);
+    const uploadResponse = await fetch(body.sas, {
       method: "PUT",
       headers: {
         "Content-Type": file.type,
@@ -49,7 +51,8 @@ export default function FileUploadScreen() {
       return;
     }
     const fileUrlBody = await fileUrlResponse.json();
-    setFileUrl(fileUrlBody.fileURL);
+    console.log(fileUrlBody);
+    setFileUrl(fileUrlBody.sas);
   });
 
   return (
@@ -73,7 +76,7 @@ export default function FileUploadScreen() {
         </button>
       </form>
       <div className="text-red-500">{error}</div>
-      <Link href={fileUrl}>{fileUrl ? "View file here" : null}</Link>
+      {fileUrl && <Link href={fileUrl}>View file here</Link>}
     </div>
   );
 }
