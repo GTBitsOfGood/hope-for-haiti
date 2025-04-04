@@ -16,6 +16,7 @@ interface AddItemModalProps {
   unitTypes: string[]; // All the unit types
   donorNames: string[]; // All the donor names
   itemTypes: string[]; // All the item types
+  formSuccess: (formSuccess: boolean) => void;
 }
 
 export default function BulkAddSuccessModal({
@@ -23,6 +24,7 @@ export default function BulkAddSuccessModal({
   unitTypes,
   donorNames,
   itemTypes,
+  formSuccess,
 }: AddItemModalProps) {
   const submitItem = submitHandler(async (data: FormData) => {
     console.log(Object.fromEntries(data)); // Log the form data for
@@ -50,6 +52,7 @@ export default function BulkAddSuccessModal({
       const json = await response.json();
       console.log(json); // Log the response from the server
       toast.success("Item added successfully!");
+      formSuccess(true); // Call the formSuccess function with true
       setIsOpen(false); // Close the modal on success
     } else if (response.status === 400) {
       toast.error("Invalid form data. Please check your inputs.");

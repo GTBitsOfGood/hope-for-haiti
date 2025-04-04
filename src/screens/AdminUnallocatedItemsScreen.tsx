@@ -56,7 +56,9 @@ export default function AdminUnallocatedItemsScreen() {
   const [donorNames, setDonorNames] = useState<string[]>([]); // All the donor names
   const [itemTypes, setItemTypes] = useState<string[]>([]); // All the item types
 
-  useEffect(() => {
+  const [formSuccess, setFormSuccess] = useState(false); // whether the form was submitted successfully or not
+
+  const dataFetch = React.useCallback(() => {
     const fetchItems = async () => {
       try {
         const res = await fetch("/api/unallocatedItems");
@@ -112,6 +114,13 @@ export default function AdminUnallocatedItemsScreen() {
 
     fetchData();
   }, []);
+  useEffect(dataFetch, []);
+
+  useEffect(() => {
+    if (formSuccess) {
+      dataFetch();
+    }
+  }, [formSuccess]);
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
@@ -281,6 +290,7 @@ export default function AdminUnallocatedItemsScreen() {
           unitTypes={unitTypes}
           donorNames={donorNames}
           itemTypes={itemTypes}
+          formSuccess={setFormSuccess}
         />
       ) : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
