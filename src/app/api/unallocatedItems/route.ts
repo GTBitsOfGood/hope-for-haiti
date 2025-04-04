@@ -7,34 +7,11 @@ import {
   authorizationError,
   ok,
 } from "@/util/responses";
+import { parseDateIfDefined } from "@/util/util";
 import { RequestPriority, UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
-
-/**
- * Takes a date string, validates it, and parses it into a Date object.
- * @params dateString: the date string to parse
- * @returns undefined if the date string is undefined/null
- * @returns null if the date string is defined but invalid
- * @returns a Date object if the date string is valid
- */
-function parseDateIfDefined(
-  dateString: string | null
-): Date | null | undefined {
-  // see https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
-  if (!dateString) {
-    return undefined;
-  }
-  const date = new Date(dateString);
-  if (
-    Object.prototype.toString.call(date) === "[object Date]" &&
-    !isNaN(date.getTime())
-  ) {
-    return new Date(dateString);
-  }
-  return null;
-}
 
 /**
  * Handles GET requests to retrieve unallocated items from the items table.
@@ -55,21 +32,21 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const expirationDateBefore = parseDateIfDefined(
-    params.get("expirationDateBefore")
+    params.get("expirationDateBefore"),
   );
   const expirationDateAfter = parseDateIfDefined(
-    params.get("expirationDateAfter")
+    params.get("expirationDateAfter"),
   );
 
   if (expirationDateBefore === null) {
     return argumentError(
-      "expirationDateBefore must be a valid ISO-8601 timestamp"
+      "expirationDateBefore must be a valid ISO-8601 timestamp",
     );
   }
 
   if (expirationDateAfter === null) {
     return argumentError(
-      "expirationDateAfter must be a valid ISO-8601 timestamp"
+      "expirationDateAfter must be a valid ISO-8601 timestamp",
     );
   }
 
