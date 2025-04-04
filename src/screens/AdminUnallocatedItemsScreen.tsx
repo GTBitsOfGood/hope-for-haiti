@@ -114,13 +114,13 @@ export default function AdminUnallocatedItemsScreen() {
 
     fetchData();
   }, []);
-  useEffect(dataFetch, []);
+  useEffect(dataFetch, [dataFetch]);
 
   useEffect(() => {
     if (formSuccess) {
       dataFetch();
     }
-  }, [formSuccess]);
+  }, [dataFetch, formSuccess]);
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
