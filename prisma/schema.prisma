@@ -148,7 +148,7 @@ model DonorOfferItem {
   unitSize        Int
   quantityPerUnit String?
 
-  quantity Int?
+  quantity Int
 
   requests DonorOfferItemRequest[]
 }
