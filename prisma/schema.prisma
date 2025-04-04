@@ -142,11 +142,13 @@ model DonorOfferItem {
   donorOfferId Int
   donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id])
 
-  title      String
-  type       String
-  expiration DateTime?
-  quantity   Int
-  unitSize   Int
+  title           String
+  type            String
+  expiration      DateTime?
+  unitSize        Int
+  quantityPerUnit String?
+
+  quantity Int?
 
   requests DonorOfferItemRequest[]
 }
