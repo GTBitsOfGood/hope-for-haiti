@@ -39,6 +39,7 @@ model User {
   partnerDetails          Json?
   unallocatedItemRequests UnallocatedItemRequest[]
   donorOfferVisibilities  DonorOfferPartnerVisibility[]
+  donorOfferItemRequests  DonorOfferItemRequest[]
 }
 
 model UserInvite {
@@ -158,6 +159,9 @@ model DonorOfferItemRequest {
 
   donorOfferItemId Int
   donorOfferItem   DonorOfferItem @relation(fields: [donorOfferItemId], references: [id])
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
 
   quantity Int
   comments String
