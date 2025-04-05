@@ -155,7 +155,6 @@ export default function DonorOfferLineItemsScreen() {
                   <th className="px-4 py-2 min-w-32 rounded-tl-lg text-left">
                     Quantity
                   </th>
-                  <th className="px-4 py-2 min-w-32 text-left">Qty/Unit</th>
                   <th className="px-4 py-2 min-w-32 text-left">Donor name</th>
                   <th className="px-4 py-2 min-w-32 text-left">
                     Pallet number
@@ -188,9 +187,6 @@ export default function DonorOfferLineItemsScreen() {
                     >
                       <td className="px-4 py-2">
                         {formatTableValue(item.quantity)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.quantityPerUnit)}
                       </td>
                       <td className="px-4 py-2">
                         {formatTableValue(item.donorName)}
