@@ -148,6 +148,7 @@ model DonorOfferItem {
   type            String
   expiration      DateTime?
   unitSize        Int
+  unitType        String?
   quantityPerUnit String?
 
   quantity Int
