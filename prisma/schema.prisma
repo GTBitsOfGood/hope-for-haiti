@@ -128,10 +128,11 @@ enum DonorOfferState {
 model DonorOffer {
   id Int @id @default(autoincrement())
 
-  state            DonorOfferState
-  offerName        String
-  donorName        String
-  responseDeadline DateTime
+  state                   DonorOfferState
+  offerName               String
+  donorName               String
+  partnerResponseDeadline DateTime
+  donorResponseDeadline   DateTime
 
   items               DonorOfferItem[]
   partnerVisibilities DonorOfferPartnerVisibility[]
