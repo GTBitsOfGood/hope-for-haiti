@@ -16,6 +16,7 @@ const item = {
   quantity: 2,
   expirationDate: new Date(1000),
   quantityPerUnit: "64",
+  unitSize: 64,
   unitType: "bunches",
   datePosted: new Date(1000),
   lotNumber: 2,

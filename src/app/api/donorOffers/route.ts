@@ -26,7 +26,7 @@ export async function GET() {
         donorOfferId: offer.id,
         offerName: offer.offerName,
         donorName: offer.donorName,
-        responseDeadline: format(offer.responseDeadline, "MM/dd/yyyy"),
+        responseDeadline: format(offer.partnerResponseDeadline, "MM/dd/yyyy"),
         state: offer.state,
       }) as DonorOfferDTO
   );

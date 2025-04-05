@@ -49,8 +49,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const createdItem = await db.item.create({
     data: {
       ...validatedForm.data,
-      unitSize: -1, //This is a placeholder--will change as additional info is needed
-      //Note: why do we need both quantityPerUnit and unitSize?
     },
   });
 
