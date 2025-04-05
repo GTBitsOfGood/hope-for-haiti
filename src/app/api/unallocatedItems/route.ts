@@ -7,37 +7,14 @@ import {
   authorizationError,
   ok,
 } from "@/util/responses";
+import { parseDateIfDefined } from "@/util/util";
 import { RequestPriority, UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 /**
- * Takes a date string, validates it, and parses it into a Date object.
- * @params dateString: the date string to parse
- * @returns undefined if the date string is undefined/null
- * @returns null if the date string is defined but invalid
- * @returns a Date object if the date string is valid
- */
-function parseDateIfDefined(
-  dateString: string | null
-): Date | null | undefined {
-  // see https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
-  if (!dateString) {
-    return undefined;
-  }
-  const date = new Date(dateString);
-  if (
-    Object.prototype.toString.call(date) === "[object Date]" &&
-    !isNaN(date.getTime())
-  ) {
-    return new Date(dateString);
-  }
-  return null;
-}
-
-/**
- * Handles GET requests to retrieve unallocated items from the items table.
+ * Handles GET requests to retrieve unallocated items from the items table. For the flow, also returns a list of unit types, donors, and item types.
  * Parameters are passed in the URL query string.
  * @params expirationDateBefore: ISO-8601 timestamp that returned items expire before
  * @params expirationDateAfter: ISO-8601 timestamp that returned items expire after
@@ -77,9 +54,9 @@ export async function GET(request: NextRequest) {
     session.user.type === UserType.PARTNER ? { visible: true } : {};
 
   // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
-  const items = (
+  const tableItems = (
     await db.item.groupBy({
-      by: ["title", "type", "expirationDate", "unitSize"],
+      by: ["title", "type", "expirationDate", "unitType", "unitSize"],
       _sum: {
         quantity: true,
       },
@@ -101,8 +78,21 @@ export async function GET(request: NextRequest) {
     return copy;
   });
 
+  const unitTypesSet = new Set<string>();
+  const donorNamesSet = new Set<string>();
+  const itemTypesSet = new Set<string>();
+  const items = await db.item.findMany();
+  items.forEach((item) => {
+    if (item.unitType) unitTypesSet.add(item.unitType);
+    donorNamesSet.add(item.donorName);
+    itemTypesSet.add(item.type);
+  });
+
   return NextResponse.json({
-    items,
+    items: tableItems,
+    unitTypes: Array.from(unitTypesSet).sort(),
+    donorNames: Array.from(donorNamesSet).sort(),
+    itemTypes: Array.from(itemTypesSet).sort(),
   });
 }
 
@@ -112,7 +102,6 @@ const schema = zfd.formData({
   priority: zfd.text(z.nativeEnum(RequestPriority)),
   expirationDate: z.coerce.date().optional(),
   unitSize: zfd.numeric(z.number().int()),
-  //   priority: zfd.numeric(),        Uncomment when priority is added to the schema
   quantity: zfd.numeric(z.number().int().min(1)), // Requesting 0 items would be stupid
   comments: zfd.text(),
 });

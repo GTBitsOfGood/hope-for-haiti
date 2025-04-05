@@ -40,6 +40,7 @@ type FullItem = {
   updatedAt?: Date;
   ndc: string | null;
   notes: string | null;
+  donorOfferItemId: number | null;
 };
 
 function getValidFormData() {
@@ -132,6 +133,7 @@ describe("POST /api/allocations", () => {
       updatedAt: new Date(),
       ndc: null,
       notes: null,
+      donorOfferItemId: null,
     };
 
     dbMock.item.findFirst.mockResolvedValueOnce(mockItem);

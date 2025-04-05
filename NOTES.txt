@@ -1,0 +1,4 @@
+For when you work on this,
+
+1. Screen is AdminUnallocatedItemsScreen.tsx -> AddItemModal.tsx
+2. Need to update the modal to match the figma one

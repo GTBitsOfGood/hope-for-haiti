@@ -51,7 +51,15 @@ export default function AdminUnallocatedItemsScreen() {
 
   const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
   const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
-  useEffect(() => {
+
+  const [unitTypes, setUnitTypes] = useState<string[]>([]); // All the unit types
+  const [donorNames, setDonorNames] = useState<string[]>([]); // All the donor names
+  const [itemTypes, setItemTypes] = useState<string[]>([]); // All the item types
+
+  const [formSuccess, setFormSuccess] = useState(false); // whether the form was submitted successfully or not
+
+  // Doing this so that table can easily refresh after a new item is added
+  const dataFetch = React.useCallback(() => {
     const fetchItems = async () => {
       try {
         const res = await fetch("/api/unallocatedItems");
@@ -60,6 +68,10 @@ export default function AdminUnallocatedItemsScreen() {
         }
         const data = await res.json();
         setFilteredItems(data.items);
+
+        setUnitTypes(data.unitTypes);
+        setDonorNames(data.donorNames);
+        setItemTypes(data.itemTypes);
       } catch (error) {
         toast.error("An error occurred while fetching data");
         console.error("Fetch error:", error);
@@ -103,6 +115,13 @@ export default function AdminUnallocatedItemsScreen() {
 
     fetchData();
   }, []);
+  useEffect(dataFetch, [dataFetch]);
+
+  useEffect(() => {
+    if (formSuccess) {
+      dataFetch();
+    }
+  }, [dataFetch, formSuccess]);
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
@@ -266,7 +285,16 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
-      {isModalOpen ? <AddItemModal setIsOpen={setIsModalOpen} /> : null}
+      {/* The lists are added for the drop downs */}
+      {isModalOpen ? (
+        <AddItemModal
+          setIsOpen={setIsModalOpen}
+          unitTypes={unitTypes}
+          donorNames={donorNames}
+          itemTypes={itemTypes}
+          formSuccess={setFormSuccess}
+        />
+      ) : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
@@ -345,7 +373,8 @@ export default function AdminUnallocatedItemsScreen() {
                 <th className="px-4 py-2 text-left font-bold">Type</th>
                 <th className="px-4 py-2 text-left font-bold">Quantity</th>
                 <th className="px-4 py-2 text-left font-bold">Expiration</th>
-                <th className="px-4 py-2 text-left font-bold">Unit size</th>
+                <th className="px-4 py-2 text-left font-bold">Unit type</th>
+                <th className="px-4 py-2 text-left font-bold">Qty/Unit</th>
                 <th className="pl-4 py-2 text-left font-bold">Manage</th>
               </tr>
             </thead>
@@ -363,18 +392,23 @@ export default function AdminUnallocatedItemsScreen() {
                           expiration:
                             (item.expirationDate as unknown as string) || "",
                           unitSize: item.unitSize.toString(),
+                          quantityPerUnit: item.quantityPerUnit
+                            ? item.quantityPerUnit
+                            : "",
+                          unitType: item.unitType ? item.unitType : "",
                         }).toString()}`
                       );
                     }}
                   >
                     <td className="px-4 py-2 w-1/6">{item.title}</td>
-                    <td className="px-4 py-2 w-1/6">{item.category}</td>
+                    <td className="px-4 py-2 w-1/6">{item.type}</td>
                     <td className="px-4 py-2 w-1/6">{item.quantity}</td>
                     <td className="px-4 py-2 w-1/6">
                       {item.expirationDate
                         ? new Date(item.expirationDate).toLocaleDateString()
                         : "N/A"}
                     </td>
+                    <td className="px-4 py-2 w-1/6">{item.unitType}</td>
                     <td className="px-4 py-2 w-1/6">{item.unitSize}</td>
                     <td
                       className="px-4 py-2 w-1/12"

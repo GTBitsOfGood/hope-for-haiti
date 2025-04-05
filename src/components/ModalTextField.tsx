@@ -3,12 +3,14 @@ interface ModalTextFieldProps {
   required?: boolean;
   name: string;
   placeholder?: string;
+  defaultValue?: string;
 }
 export default function ModalTextField({
   label,
   required,
   name,
   placeholder = label,
+  defaultValue,
 }: ModalTextFieldProps) {
   return (
     <div className="grow">
@@ -21,6 +23,7 @@ export default function ModalTextField({
           placeholder={placeholder}
           required={required}
           name={name}
+          defaultValue={defaultValue}
         />
       </label>
     </div>

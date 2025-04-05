@@ -39,6 +39,10 @@ model User {
   partnerDetails          Json?
   unallocatedItemRequests UnallocatedItemRequest[]
   donorOfferVisibilities  DonorOfferPartnerVisibility[]
+  donorOfferItemRequests  DonorOfferItemRequest[]
+
+  // There should only ever be one distribution
+  distributions Distribution[]
 }
 
 model UserInvite {
@@ -55,10 +59,11 @@ model Item {
   id Int @id @default(autoincrement())
 
   // Columns that define a general item
-  title          String
-  type           String
-  expirationDate DateTime?
-  unitSize       Int
+  title           String
+  type            String
+  expirationDate  DateTime?
+  unitSize        Int
+  quantityPerUnit String?
 
   // Columns that define a unique line item
   category            ItemCategory
@@ -67,7 +72,6 @@ model Item {
   lotNumber           Int
   palletNumber        Int
   boxNumber           Int
-  quantityPerUnit     String?
   unitType            String?
   unitPrice           Decimal      @db.Money
   maxRequestLimit     String?
@@ -82,6 +86,10 @@ model Item {
   gik              Boolean
 
   unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
+
+  donorOfferItemId                 Int?
+  donorOfferItem                   DonorOfferItem?                   @relation(fields: [donorOfferItemId], references: [id])
+  donorOfferItemRequestAllocations DonorOfferItemRequestAllocation[]
 }
 
 model UnallocatedItemRequest {
@@ -91,10 +99,11 @@ model UnallocatedItemRequest {
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   partnerId Int
 
-  title          String
-  type           String
-  expirationDate DateTime?
-  unitSize       Int
+  title           String
+  type            String
+  expirationDate  DateTime?
+  unitSize        Int
+  quantityPerUnit String?
 
   priority RequestPriority
   quantity Int
@@ -115,6 +124,9 @@ model UnallocatedItemRequestAllocation {
 
   itemId          Int
   unallocatedItem Item @relation(fields: [itemId], references: [id])
+
+  // There should only ever be one distribution
+  distributions Distribution[]
 }
 
 enum DonorOfferState {
@@ -126,10 +138,11 @@ enum DonorOfferState {
 model DonorOffer {
   id Int @id @default(autoincrement())
 
-  state            DonorOfferState
-  offerName        String
-  donorName        String
-  responseDeadline DateTime
+  state                   DonorOfferState
+  offerName               String
+  donorName               String
+  partnerResponseDeadline DateTime
+  donorResponseDeadline   DateTime
 
   items               DonorOfferItem[]
   partnerVisibilities DonorOfferPartnerVisibility[]
@@ -141,13 +154,17 @@ model DonorOfferItem {
   donorOfferId Int
   donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id])
 
-  title      String
-  type       String
-  expiration DateTime?
-  quantity   Int
-  unitSize   Int
+  title           String
+  type            String
+  expiration      DateTime?
+  unitSize        Int
+  unitType        String?
+  quantityPerUnit String?
+
+  quantity Int
 
   requests DonorOfferItemRequest[]
+  items    Item[]
 }
 
 model DonorOfferItemRequest {
@@ -156,9 +173,13 @@ model DonorOfferItemRequest {
   donorOfferItemId Int
   donorOfferItem   DonorOfferItem @relation(fields: [donorOfferItemId], references: [id])
 
-  quantity Int
-  comments String
-  priority RequestPriority
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
+
+  quantity                        Int
+  comments                        String
+  priority                        RequestPriority
+  DonorOfferItemRequestAllocation DonorOfferItemRequestAllocation[]
 }
 
 model DonorOfferPartnerVisibility {
@@ -169,4 +190,63 @@ model DonorOfferPartnerVisibility {
 
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id])
+}
+
+model DonorOfferItemRequestAllocation {
+  id Int @id @default(autoincrement())
+
+  quantity Int
+
+  donorOfferItemRequestId Int
+  donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id])
+
+  itemId       Int
+  item         Item           @relation(fields: [itemId], references: [id])
+  Distribution Distribution[]
+}
+
+model Distribution {
+  id Int @id @default(autoincrement())
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
+
+  unallocatedItemRequestAllocationId Int?                              @unique
+  unallocatedItemAllocation          UnallocatedItemRequestAllocation? @relation(fields: [unallocatedItemRequestAllocationId], references: [id])
+
+  donorOfferItemRequestAllocationId Int?                             @unique
+  donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id])
+
+  signOffId Int
+  signOff   SignOff @relation(fields: [signOffId], references: [id])
+}
+
+enum ShipmentStatus {
+  WAITING_ARRIVAL_FROM_DONOR
+  LOAD_ON_SHIP_AIR
+  ARRIVED_IN_HAITI
+  CLEARED_CUSTOMS
+  ARRIVED_AT_DEPO
+  INVENTORIES
+  READY_FOR_DISTRIBUTION
+}
+
+model ShippingStatus {
+  id Int @id @default(autoincrement())
+
+  donorShippingNumber String
+  hfhShippingNumber   String
+
+  value ShipmentStatus
+}
+
+model SignOff {
+  id Int @id @default(autoincrement())
+
+  staffMemberName String
+  partnerName     String
+  date            DateTime
+  signatureUrl    String
+
+  distributions Distribution[]
 }
