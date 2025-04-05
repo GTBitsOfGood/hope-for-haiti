@@ -3,11 +3,6 @@
 import { useState } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import React from "react";
-import HiddenItems from "./DistributionsForPartnerScreenTabs/HiddenItems";
-import VisibleItems from "./DistributionsForPartnerScreenTabs/VisibleItems";
-import ShippingStatus from "./DistributionsForPartnerScreenTabs/ShippingStatus";
-import SignOffs from "./DistributionsForPartnerScreenTabs/SignOffs";
-import Requests from "./DistributionsForPartnerScreenTabs/Requests";
 
 const tabs = [
   {
@@ -71,11 +66,11 @@ export default function DistributionsForPartnerScreen() {
         ))}
       </div>
 
-      {activeTab == "hiddenItems" && <HiddenItems />}
+      {/* {activeTab == "hiddenItems" && <HiddenItems />}
       {activeTab == "visibleItems" && <VisibleItems />}
       {activeTab == "shippingStatus" && <ShippingStatus />}
       {activeTab == "signOffs" && <SignOffs />}
-      {activeTab == "requests" && <Requests />}
+      {activeTab == "requests" && <Requests />} */}
     </>
   );
 }
