@@ -254,5 +254,7 @@ model SignOff {
   date            DateTime
   signatureUrl    String
 
+  createdAt DateTime @default(now())
+
   distributions Distribution[]
 }
