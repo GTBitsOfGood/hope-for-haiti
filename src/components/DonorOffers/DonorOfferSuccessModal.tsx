@@ -1,29 +1,13 @@
-import { CheckCircle, X } from "@phosphor-icons/react";
+import { CheckCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 
-interface DonorOfferSuccessModalProps {
-  setIsOpen: (isOpen: boolean) => void;
-  resetUpload: () => void;
-}
-
-export default function DonorOfferSuccessModal({
-  setIsOpen,
-  resetUpload
-}: DonorOfferSuccessModalProps) {
-  const handleExit = () => {
-    setIsOpen(false);
-    resetUpload();
-  }
+export default function DonorOfferSuccessModal() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-80 relative">
         <div className="flex justify-between">
           <h2 className="text-lg font-semibold">Success! Donor Offer Created</h2>
-          <X
-            onClick={handleExit}
-            size={24}
-            className="cursor-pointer"
-          />
+
         </div>
 
         <div className="flex justify-center mt-4">
