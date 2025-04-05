@@ -1,27 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 
 interface StepSevenProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  partnerDetails: Record<string, any>;
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
 }
 
 export default function StepSeven({
   prevStep,
   nextStep,
   handleCancelClick,
+  partnerDetails,
+  handleInputChange,
 }: StepSevenProps) {
-  const [patientCounts, setPatientCounts] = useState<Record<string, boolean>>({
-    men: false,
-    women: false,
-    boys: false,
-    girls: false,
-    babyBoys: false,
-    babyGirls: false,
-  });
-
   return (
     <>
       <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
@@ -39,6 +37,9 @@ export default function StepSeven({
         text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
         font-[Open_Sans] rounded-[4px] resize-none mb-8"
         placeholder="Paragraph"
+        name="patientsWhoCannotPay"
+        value={partnerDetails.patientsWhoCannotPay || ""}
+        onChange={handleInputChange}
       />
 
       <label className="block text-[16px] text-[#22070B] mb-2">
@@ -48,6 +49,9 @@ export default function StepSeven({
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
         placeholder="Percentage"
+        name="percentageOfPatientsNeedingFinancialAid"
+        value={partnerDetails.percentageOfPatientsNeedingFinancialAid || ""}
+        onChange={handleInputChange}
       />
 
       <label className="block text-[16px] text-[#22070B] mb-2">
@@ -57,6 +61,9 @@ export default function StepSeven({
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
         placeholder="Percentage"
+        name="percentageOfPatientsReceivingFreeTreatment"
+        value={partnerDetails.percentageOfPatientsReceivingFreeTreatment || ""}
+        onChange={handleInputChange}
       />
 
       <p className="text-[16px] text-[#22070B] mb-2">
@@ -65,18 +72,29 @@ export default function StepSeven({
       </p>
       <div className="space-y-2 mb-8">
         {[
-          "$1 - $5,000",
-          "$5,001 - $10,000",
-          "$10,001 - $25,000",
-          "$25,001 - $50,000",
-          "$50,001 - $100,000",
-          "$100,001+",
-        ].map((range) => (
+          ["$1 - $5,000", "1_to_5000"],
+          ["$5,001 - $10,000", "5001_to_10000"],
+
+          ["$10,001 - $25,000", "10001_to_25000"],
+          ["$25,001 - $50,000", "25001_to_50000"],
+          ["$50,001 - $100,000", "50001_to_100000"],
+          ["$100,001+", "100001+"],
+        ].map(([range, rangeVal]) => (
           <label
             key={range}
             className="flex items-center text-[16px] text-[#22070B]"
           >
-            <input type="radio" name="annualSpending" className="mr-2" />
+            <input
+              type="radio"
+              name="annualSpendingOnMedicationsAndMedicalSupplies"
+              value={rangeVal}
+              checked={
+                partnerDetails.annualSpendingOnMedicationsAndMedicalSupplies ===
+                rangeVal
+              }
+              onChange={handleInputChange}
+              className="mr-2"
+            />
             {range}
           </label>
         ))}
@@ -88,10 +106,32 @@ export default function StepSeven({
       </p>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="trackPrescriptions" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="numberOfPrescriptionsPrescribedAnnuallyTracked"
+            value="true"
+            checked={
+              partnerDetails.numberOfPrescriptionsPrescribedAnnuallyTracked ===
+              "true"
+            }
+            onChange={handleInputChange}
+            className="mr-2"
+          />{" "}
+          Yes
         </label>
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="trackPrescriptions" className="mr-2" /> No
+          <input
+            type="radio"
+            name="numberOfPrescriptionsPrescribedAnnuallyTracked"
+            value="false"
+            checked={
+              partnerDetails.numberOfPrescriptionsPrescribedAnnuallyTracked ===
+              "false"
+            }
+            onChange={handleInputChange}
+            className="mr-2"
+          />{" "}
+          No
         </label>
       </div>
 
@@ -102,6 +142,9 @@ export default function StepSeven({
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
         placeholder="List"
+        name="numberOfTreatmentsPrescribedAnnually"
+        value={partnerDetails.numberOfTreatmentsPrescribedAnnually || ""}
+        onChange={handleInputChange}
       />
 
       <p className="text-[16px] text-[#22070B] mb-2">
@@ -121,21 +164,34 @@ export default function StepSeven({
               <input
                 type="checkbox"
                 className="mr-2"
-                onChange={(e) =>
-                  setPatientCounts((prev) => ({
-                    ...prev,
-                    [key]: e.target.checked,
-                  }))
+                name={`any${key.charAt(0).toUpperCase() + key.slice(1)}ServedLastYear`}
+                value={
+                  partnerDetails[
+                    `any${key.charAt(0).toUpperCase() + key.slice(1)}ServedLastYear`
+                  ] === "true"
+                    ? "false"
+                    : "true"
                 }
+                checked={
+                  partnerDetails[
+                    `any${key.charAt(0).toUpperCase() + key.slice(1)}ServedLastYear`
+                  ] === "true"
+                }
+                onChange={handleInputChange}
               />
               <span className="text-[16px] text-[#22070B]">{label}</span>
             </div>
-            {patientCounts[key] && (
+            {partnerDetails[
+              `any${key.charAt(0).toUpperCase() + key.slice(1)}ServedLastYear`
+            ] === "true" && (
               <input
                 className="w-3/5 p-2 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
                 text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] 
                 rounded-[4px] ml-auto"
                 placeholder="Number"
+                name={`${key}ServedLastYear`}
+                value={partnerDetails[`${key}ServedLastYear`] || ""}
+                onChange={handleInputChange}
               />
             )}
           </div>
@@ -149,6 +205,9 @@ export default function StepSeven({
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
         placeholder="List"
+        name="totalPatientsServedLastYear"
+        value={partnerDetails.totalPatientsServedLastYear || ""}
+        onChange={handleInputChange}
       />
 
       <div className="flex justify-between mt-6">

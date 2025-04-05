@@ -180,10 +180,12 @@ export default function NavbarLayout({
   children: React.ReactNode;
 }>) {
   const { user } = useUser();
+  const pathname = usePathname();
+  const hideNav = pathname.startsWith("/createPartnerAccount");
 
   return (
     <div className="flex">
-      {user ? (
+      {user && !hideNav ? (
         <>
           <DesktopNavbar />
           <MobileNavbar />
