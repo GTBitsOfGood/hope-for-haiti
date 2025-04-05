@@ -180,6 +180,8 @@ model DonorOfferItemRequest {
   comments                        String
   priority                        RequestPriority
   DonorOfferItemRequestAllocation DonorOfferItemRequestAllocation[]
+
+  createdAt DateTime @default(now())
 }
 
 model DonorOfferPartnerVisibility {
