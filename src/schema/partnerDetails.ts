@@ -590,3 +590,4 @@ export type PartnerDetails8 = z.infer<typeof partnerDetails8>;
 export type PartnerDetails9 = z.infer<typeof partnerDetails9>;
 export type PartnerDetails10 = z.infer<typeof partnerDetails10>;
 export type PartnerDetails = z.infer<typeof partnerDetailsSchema>;
+export type Contact = z.infer<typeof contactSchema>;

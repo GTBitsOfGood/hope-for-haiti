@@ -1,8 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { PartnerDetails } from "@/schema/partnerDetails";
-import { Part } from "formidable";
-import React, { FormEventHandler } from "react";
+import React from "react";
 
 interface StepOneProps {
   nextStep: () => void;
@@ -36,7 +35,7 @@ export default function StepOne({
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Site name"
           name="siteName"
-          value={partnerDetails.siteName || ""}
+          value={(partnerDetails.siteName as string) || ""}
           onChange={handleInputChange}
         />
 
@@ -48,7 +47,7 @@ export default function StepOne({
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Address"
           name="address"
-          value={partnerDetails.address || ""}
+          value={(partnerDetails.address as string) || ""}
           onChange={handleInputChange}
         />
 
@@ -60,7 +59,7 @@ export default function StepOne({
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Department"
           name="department"
-          value={partnerDetails.department || ""}
+          value={(partnerDetails.department as string) || ""}
           onChange={handleInputChange}
         />
 
@@ -72,7 +71,7 @@ export default function StepOne({
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="GPS coordinates"
           name="gpsCoordinates"
-          value={partnerDetails.gpsCoordinates || ""}
+          value={(partnerDetails.gpsCoordinates as string) || ""}
           onChange={handleInputChange}
         />
 
@@ -84,7 +83,7 @@ export default function StepOne({
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Website"
           name="website"
-          value={partnerDetails.website || ""}
+          value={(partnerDetails.website as string) || ""}
           onChange={handleInputChange}
         />
 
@@ -96,7 +95,7 @@ export default function StepOne({
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Social media (Instagram/Facebook)"
           name="socialMedia"
-          value={partnerDetails.socialMedia || ""}
+          value={(partnerDetails.socialMedia as string) || ""}
           onChange={handleInputChange}
         />
       </div>

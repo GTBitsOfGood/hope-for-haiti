@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 
 interface StepSevenProps {
   prevStep: () => void;
@@ -10,7 +11,6 @@ interface StepSevenProps {
   handleInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
-  handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function StepSeven({
@@ -19,17 +19,7 @@ export default function StepSeven({
   handleCancelClick,
   partnerDetails,
   handleInputChange,
-  handleCheckboxChange,
 }: StepSevenProps) {
-  const [patientCounts, setPatientCounts] = useState<Record<string, boolean>>({
-    men: false,
-    women: false,
-    boys: false,
-    girls: false,
-    babyBoys: false,
-    babyGirls: false,
-  });
-
   return (
     <>
       <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">

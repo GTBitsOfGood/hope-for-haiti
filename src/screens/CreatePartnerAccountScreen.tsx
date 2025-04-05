@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,7 +14,6 @@ import StepEight from "./CreatePartnerAccount/StepEight";
 import StepNine from "./CreatePartnerAccount/StepNine";
 import StepTen from "./CreatePartnerAccount/StepTen";
 import {
-  PartnerDetails,
   partnerDetails1,
   partnerDetails2,
   partnerDetails3,
@@ -24,9 +24,8 @@ import {
   partnerDetails8,
   partnerDetails9,
   partnerDetails10,
+  Contact,
 } from "@/schema/partnerDetails";
-import { set } from "date-fns";
-import { group } from "console";
 
 export default function CreatePartnerAccountScreen() {
   const schemas = [
@@ -41,7 +40,7 @@ export default function CreatePartnerAccountScreen() {
     partnerDetails9,
     partnerDetails10,
   ];
-  const [step, setStep] = useState(9);
+  const [step, setStep] = useState(1);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -51,11 +50,11 @@ export default function CreatePartnerAccountScreen() {
   const [email] = useState(searchParams.get("email") || "");
   const [sendingInvite, setSendingInvite] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [partnerDetails, setPartnerDetails] = useState<{ [key: string]: any }>(
-    {}
-  );
+  const [partnerDetails, setPartnerDetails] = useState<
+    Record<string, string | Contact | string[] | undefined>
+  >({});
   const [msspRegistration, setMsspRegistration] = useState<File | null>(null);
-
+  console.log(msspRegistration);
   function setNestedValue<T>(obj: T, path: string[], value: any): T {
     if (path.length === 0) return obj;
     const [key, ...rest] = path;
@@ -204,7 +203,7 @@ export default function CreatePartnerAccountScreen() {
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
             handleInputChange={handleInputChange}
-            partnerDetails={partnerDetails as PartnerDetails}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 2 && (
@@ -261,7 +260,6 @@ export default function CreatePartnerAccountScreen() {
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
             handleInputChange={handleInputChange}
-            handleCheckboxChange={handleCheckboxChange}
             partnerDetails={partnerDetails}
           />
         )}

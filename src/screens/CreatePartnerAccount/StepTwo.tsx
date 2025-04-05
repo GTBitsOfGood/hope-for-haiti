@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { PartnerDetails } from "@/schema/partnerDetails";
-import React, { FormEventHandler } from "react";
+import React from "react";
 
 interface StepTwoProps {
   prevStep: () => void;
