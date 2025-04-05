@@ -127,6 +127,8 @@ model UnallocatedItemRequestAllocation {
 
   // There should only ever be one distribution
   distributions Distribution[]
+
+  visible Boolean @default(false)
 }
 
 enum DonorOfferState {
@@ -205,6 +207,8 @@ model DonorOfferItemRequestAllocation {
   itemId       Int
   item         Item           @relation(fields: [itemId], references: [id])
   Distribution Distribution[]
+
+  visible Boolean @default(false)
 }
 
 model Distribution {
