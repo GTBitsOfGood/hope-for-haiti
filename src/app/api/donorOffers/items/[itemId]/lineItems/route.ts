@@ -20,16 +20,14 @@ export async function GET(
 
   const donorOfferItemId = parseInt((await params).itemId);
 
-  const lineItems = await db.donorOfferItemRequestAllocation.findMany({
+  const donorOfferItem = await db.donorOfferItem.findUnique({
     where: {
-      donorOfferItemRequest: {
-        donorOfferItemId: donorOfferItemId,
-      },
+      id: donorOfferItemId,
     },
     select: {
-      item: true,
+      items: true,
     },
   });
 
-  return Response.json(lineItems.map((lineItem) => lineItem.item));
+  return Response.json(donorOfferItem?.items ?? []);
 }
