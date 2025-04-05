@@ -40,6 +40,9 @@ model User {
   unallocatedItemRequests UnallocatedItemRequest[]
   donorOfferVisibilities  DonorOfferPartnerVisibility[]
   donorOfferItemRequests  DonorOfferItemRequest[]
+
+  // There should only ever be one distribution
+  distributions Distribution[]
 }
 
 model UserInvite {
@@ -121,6 +124,9 @@ model UnallocatedItemRequestAllocation {
 
   itemId          Int
   unallocatedItem Item @relation(fields: [itemId], references: [id])
+
+  // There should only ever be one distribution
+  distributions Distribution[]
 }
 
 enum DonorOfferState {
@@ -194,6 +200,50 @@ model DonorOfferItemRequestAllocation {
   donorOfferItemRequestId Int
   donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id])
 
-  itemId Int
-  item   Item @relation(fields: [itemId], references: [id])
+  itemId       Int
+  item         Item           @relation(fields: [itemId], references: [id])
+  Distribution Distribution[]
+}
+
+model Distribution {
+  id Int @id @default(autoincrement())
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
+
+  unallocatedItemRequestAllocationId Int?                              @unique
+  unallocatedItemAllocation          UnallocatedItemRequestAllocation? @relation(fields: [unallocatedItemRequestAllocationId], references: [id])
+
+  donorOfferItemRequestAllocationId Int?                             @unique
+  donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id])
+
+  signOffId Int
+  signOff   SignOff @relation(fields: [signOffId], references: [id])
+}
+
+enum ShipmentStatus {
+  WAITING_ARRIVAL_FROM_DONOR
+  LOAD_ON_SHIP_AIR
+  CLEARED_CUSTOMS
+  READY_FOR_DISTRIBUTION
+}
+
+model ShippingStatus {
+  id Int @id @default(autoincrement())
+
+  donorShippingNumber String
+  hfhShippingNumber   String
+
+  value ShipmentStatus
+}
+
+model SignOff {
+  id Int @id @default(autoincrement())
+
+  staffMemberName String
+  partnerName     String
+  date            DateTime
+  signatureUrl    String
+
+  distributions Distribution[]
 }
