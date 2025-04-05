@@ -42,7 +42,8 @@ model User {
   donorOfferItemRequests  DonorOfferItemRequest[]
 
   // There should only ever be one distribution
-  distributions Distribution[]
+  distributions                    Distribution[]
+  UnallocatedItemRequestAllocation UnallocatedItemRequestAllocation[]
 
   signOffs SignOff[]
 }
@@ -121,8 +122,11 @@ model UnallocatedItemRequestAllocation {
 
   quantity Int
 
-  unallocatedItemRequestId Int
-  unallocatedItemRequest   UnallocatedItemRequest @relation(fields: [unallocatedItemRequestId], references: [id])
+  partnerId Int?
+  partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  unallocatedItemRequestId Int?
+  unallocatedItemRequest   UnallocatedItemRequest? @relation(fields: [unallocatedItemRequestId], references: [id])
 
   itemId          Int
   unallocatedItem Item @relation(fields: [itemId], references: [id])
