@@ -45,7 +45,8 @@ const DonorOfferItemSchema = z.object({
 const DonorOfferSchema = z.object({
   offerName: z.string().min(1, "Offer name is required"),
   donorName: z.string().min(1, "Donor name is required"),
-  responseDeadline: z.coerce.date(),
+  partnerResponseDeadline: z.coerce.date(),
+  donorResponseDeadline: z.coerce.date(),
   state: z.nativeEnum(DonorOfferState).default(DonorOfferState.UNFINALIZED),
 });
 
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest) {
   // Get donor offer details from form data
   const offerName = formData.get("offerName") as string;
   const donorName = formData.get("donorName") as string;
-  const responseDeadline = formData.get("responseDeadline") as string;
+  const partnerRequestDeadline = formData.get("partnerRequestDeadline") as string;
+  const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
   const state = formData.get("state") as DonorOfferState || DonorOfferState.UNFINALIZED;
   
   // Get partner IDs from form data and convert to numbers
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest) {
     return argumentError("No file provided");
   }
 
-  if (!offerName || !donorName || !responseDeadline) {
+  if (!offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline) {
     return argumentError("Missing required donor offer information");
   }
 
@@ -135,7 +137,8 @@ export async function POST(request: NextRequest) {
     const donorOfferData = {
       offerName,
       donorName,
-      responseDeadline: new Date(responseDeadline),
+      partnerResponseDeadline: new Date(partnerRequestDeadline),
+      donorResponseDeadline: new Date(donorRequestDeadline),
       state,
     };
     
@@ -163,6 +166,7 @@ export async function POST(request: NextRequest) {
     const itemsWithDonorOfferId = validDonorOfferItems.map(item => ({
       ...item,
       donorOfferId: donorOffer.id,
+      unitSize: 1, // Default unit size
     }));
 
     await db.donorOfferItem.createMany({ data: itemsWithDonorOfferId });

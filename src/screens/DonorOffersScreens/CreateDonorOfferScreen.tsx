@@ -1,7 +1,16 @@
 import { useState, useRef } from "react";
 import FileUpload from "@/components/FileUpload";
 import { DonorOfferState } from "@prisma/client";
-import { FileInfoDisplay, ErrorDisplay, PreviewTable, DonorOfferItem, PartnerSearch, Partner } from "@/components/DonorOffers";
+import { 
+  FileInfoDisplay, 
+  ErrorDisplay, 
+  PreviewTable, 
+  DonorOfferItem, 
+  PartnerSearch, 
+  Partner,
+  DonorOfferSuccessModal,
+  DonorOfferErrorModal
+} from "@/components/DonorOffers";
 import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 
 export default function CreateDonorOfferScreen() {
@@ -19,7 +28,8 @@ export default function CreateDonorOfferScreen() {
   // Donor offer form state
   const [offerName, setOfferName] = useState("");
   const [donorName, setDonorName] = useState("");
-  const [responseDeadline, setResponseDeadline] = useState("");
+  const [partnerRequestDeadline, setPartnerRequestDeadline] = useState("");
+  const [donorRequestDeadline, setDonorRequestDeadline] = useState("");
   // State is automatically set to UNFINALIZED
   const [selectedPartners, setSelectedPartners] = useState<Partner[]>([]);
   
@@ -36,8 +46,8 @@ export default function CreateDonorOfferScreen() {
     if (!file) return;
     
     // Validate form fields before processing the file
-    if (!offerName || !donorName || !responseDeadline) {
-      setErrors(["Please fill out all required fields (Offer Name, Donor Name, Response Deadline) before uploading a file."]);
+    if (!offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline) {
+      setErrors(["Please fill out all required fields (Offer Name, Donor Name, Partner Request Deadline, Donor Request Deadline) before uploading a file."]);
       // Reset file input when validation fails
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -57,7 +67,8 @@ export default function CreateDonorOfferScreen() {
       formData.append("file", file);
       formData.append("offerName", offerName);
       formData.append("donorName", donorName);
-      formData.append("responseDeadline", responseDeadline);
+      formData.append("partnerRequestDeadline", partnerRequestDeadline);
+      formData.append("donorRequestDeadline", donorRequestDeadline);
       formData.append("state", DonorOfferState.UNFINALIZED);
       
       // Add partner IDs to form data
@@ -129,7 +140,8 @@ export default function CreateDonorOfferScreen() {
       formData.append("file", uploadedFile);
       formData.append("offerName", offerName);
       formData.append("donorName", donorName);
-      formData.append("responseDeadline", responseDeadline);
+      formData.append("partnerRequestDeadline", partnerRequestDeadline);
+      formData.append("donorRequestDeadline", donorRequestDeadline);
       formData.append("state", DonorOfferState.UNFINALIZED);
       
       // Add partner IDs to form data
@@ -162,7 +174,6 @@ export default function CreateDonorOfferScreen() {
     <div className="px-10 py-5">
       <h1 className="mb-4 text-xl font-semibold">Create Donor Offer</h1>
 
-
       <div className="mb-6 flex flex-col gap-4">
         <div>
           <label className="block text-sm font-light text-black mb-1">
@@ -192,12 +203,24 @@ export default function CreateDonorOfferScreen() {
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Response deadline<span className="text-red-500">*</span>
+            Partner Request Deadline<span className="text-red-500">*</span>
           </label>
           <input
             type="date"
-            value={responseDeadline}
-            onChange={(e) => setResponseDeadline(e.target.value)}
+            value={partnerRequestDeadline}
+            onChange={(e) => setPartnerRequestDeadline(e.target.value)}
+            className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-light text-black mb-1">
+            Donor Request Deadline<span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={donorRequestDeadline}
+            onChange={(e) => setDonorRequestDeadline(e.target.value)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             required
           />
@@ -249,10 +272,10 @@ export default function CreateDonorOfferScreen() {
           </button>
         ) : (
           <button
-            disabled={!fileUploaded || fileError || !offerName || !donorName || !responseDeadline}
+            disabled={!fileUploaded || fileError || !offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline}
             onClick={showPreview}
             className={
-              fileUploaded && !fileError && offerName && donorName && responseDeadline
+              fileUploaded && !fileError && offerName && donorName && partnerRequestDeadline && donorRequestDeadline
                 ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
                 : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
             }
@@ -267,33 +290,18 @@ export default function CreateDonorOfferScreen() {
       )}
       
       {isSuccess && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-md shadow-lg max-w-md">
-            <h3 className="text-xl font-semibold mb-4">Success!</h3>
-            <p className="mb-4">Your donor offer has been successfully created.</p>
-            <button 
-              onClick={resetUpload}
-              className="bg-red-500 hover:bg-red-700 text-white py-1 px-4 rounded text-sm"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <DonorOfferSuccessModal 
+          setIsOpen={setIsSuccess}
+          resetUpload={resetUpload}
+        />
       )}
       
       {isError && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-md shadow-lg max-w-md">
-            <h3 className="text-xl font-semibold mb-4 text-red-500">Error</h3>
-            <p className="mb-4">There was a problem creating your donor offer.</p>
-            <button 
-              onClick={() => setIsError(false)}
-              className="bg-red-500 hover:bg-red-700 text-white py-1 px-4 rounded text-sm"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <DonorOfferErrorModal 
+          setErrorOpen={setIsError}
+          resetUpload={resetUpload}
+          errors={errors}
+        />
       )}
     </div>
   );
