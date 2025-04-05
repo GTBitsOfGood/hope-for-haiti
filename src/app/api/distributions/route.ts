@@ -49,6 +49,56 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ signoffs });
   }
 
-  // If no completed parameter or not true, return an empty array
-  return NextResponse.json({ signoffs: [] });
+  const usersWithAllocations = await db.user.findMany({
+    where: {
+      type: "PARTNER",
+    },
+    include: {
+      unallocatedItemRequests: {
+        include: {
+          allocations: true,
+        },
+      },
+      donorOfferItemRequests: {
+        include: {
+          DonorOfferItemRequestAllocation: true,
+        },
+      },
+      distributions: true,
+      _count: {
+        select: {
+          distributions: {
+            where: {
+              signOffId: null,
+            },
+          },
+        },
+      },
+    },
+  });
+  
+  const partnerAllocationsWithVisibility = usersWithAllocations.map((user) => {
+    const unallocatedRequestAllocations = user.unallocatedItemRequests.flatMap(request =>
+      request.allocations || []
+    );
+  
+    const donorOfferRequestAllocations = user.donorOfferItemRequests.flatMap(request =>
+      request.DonorOfferItemRequestAllocation || []
+    );
+  
+    const allAllocations = [...unallocatedRequestAllocations, ...donorOfferRequestAllocations];
+  
+    const visibleAllocations = allAllocations.filter(allocation => allocation.visible);
+    const hiddenAllocations = allAllocations.filter(allocation => !allocation.visible);
+  
+    return {
+      partnerId: user.id,
+      partnerName: user.name,
+      visibleAllocationsCount: visibleAllocations.length,
+      hiddenAllocationsCount: hiddenAllocations.length,
+      pendingSignOffCount: user._count.distributions,
+    };
+  });
+  
+  return NextResponse.json({ data: partnerAllocationsWithVisibility });
 }
