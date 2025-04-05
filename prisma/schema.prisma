@@ -219,8 +219,8 @@ model Distribution {
   donorOfferItemRequestAllocationId Int?                             @unique
   donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id])
 
-  signOffId Int
-  signOff   SignOff @relation(fields: [signOffId], references: [id])
+  signOffId Int?
+  signOff   SignOff? @relation(fields: [signOffId], references: [id])
 }
 
 enum ShipmentStatus {
