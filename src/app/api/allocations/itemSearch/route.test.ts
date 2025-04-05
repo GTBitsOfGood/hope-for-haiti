@@ -92,6 +92,7 @@ describe("GET /api/allocations/itemSearch", () => {
         gik: false,
         ndc: null,
         notes: null,
+        donorOfferItemId: null,
       },
       {
         id: 2,
@@ -117,6 +118,7 @@ describe("GET /api/allocations/itemSearch", () => {
         gik: false,
         ndc: null,
         notes: null,
+        donorOfferItemId: null,
       },
     ]);
 

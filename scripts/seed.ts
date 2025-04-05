@@ -279,6 +279,25 @@ async function run() {
         )
       )
     );
+
+    const partners = await tx.user.findMany({
+      where: {
+        type: UserType.PARTNER,
+      },
+    });
+
+    await Promise.all(
+      donorOffers.slice(0, 2).flatMap((offer) =>
+        partners.map((partner) =>
+          tx.donorOfferPartnerVisibility.create({
+            data: {
+              donorOfferId: offer.id,
+              partnerId: partner.id,
+            },
+          })
+        )
+      )
+    );
   });
 }
 

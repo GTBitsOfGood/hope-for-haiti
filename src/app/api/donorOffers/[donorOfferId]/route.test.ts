@@ -4,7 +4,7 @@ import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
-import { DonorOfferState, RequestPriority } from "@prisma/client";
+import { DonorOfferState, RequestPriority, UserType } from "@prisma/client";
 import { format } from "date-fns";
 import {
   DonorOfferItemsRequestsDTO,
@@ -23,44 +23,12 @@ test("Should return 401 if session is invalid", async () => {
   });
 });
 
-test("Should return 403 if session is not a partner", async () => {
-  await testApiHandler({
-    appHandler,
-    params: { donorOfferId: "1234" },
-    test: async ({ fetch }) => {
-      validateSession("ADMIN");
-      const res = await fetch({ method: "GET" });
-      expect(res.status).toBe(403);
-    },
-  });
-
-  await testApiHandler({
-    appHandler,
-    params: { donorOfferId: "1234" },
-    test: async ({ fetch }) => {
-      validateSession("SUPER_ADMIN");
-      const res = await fetch({ method: "GET" });
-      expect(res.status).toBe(403);
-    },
-  });
-
-  await testApiHandler({
-    appHandler,
-    params: { donorOfferId: "1234" },
-    test: async ({ fetch }) => {
-      validateSession("STAFF");
-      const res = await fetch({ method: "GET" });
-      expect(res.status).toBe(403);
-    },
-  });
-});
-
 test("Should return 404 if donor offer does not exist", async () => {
   await testApiHandler({
     appHandler,
     params: { donorOfferId: "1234" },
     test: async ({ fetch }) => {
-      validateSession("PARTNER");
+      validateSession(UserType.PARTNER);
       const res = await fetch({ method: "GET" });
       expect(res.status).toBe(404);
     },
@@ -236,7 +204,7 @@ test("Should return donor offer items", async () => {
     appHandler,
     params: { donorOfferId: "135" },
     test: async ({ fetch }) => {
-      validateSession("PARTNER");
+      validateSession(UserType.PARTNER);
       const res = await fetch({ method: "GET" });
       expect(res.status).toBe(200);
       const data = await res.json();

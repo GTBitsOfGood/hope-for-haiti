@@ -69,7 +69,7 @@ export default function PartnerDonorOffersScreen() {
         </div>
       ) : (
         <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden table-auto w-full">
+          <table className="mt-4 rounded-t-lg overflow-hidden table-w-full">
             <thead>
               <tr className="bg-blue-primary bg-opacity-80 text-white text-opacity-100 border-b-2 break-words">
                 <th className="px-4 py-2 text-left font-bold whitespace-nowrap min-w-[150px]">
@@ -102,11 +102,7 @@ export default function PartnerDonorOffersScreen() {
                     </td>
                     <td className="px-4 py-2">
                       {formatTableValue(
-                        offer.responseDeadline.toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                        })
+                        offer.responseDeadline.toLocaleDateString()
                       )}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
