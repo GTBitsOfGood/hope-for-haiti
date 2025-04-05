@@ -209,11 +209,12 @@ export default function AddItemToDistributionScreen() {
           partnerName={partnerName}
           maxQuantity={selectedItem.quantity}
           unitType={selectedItem.unitType || ""}
-          onSubmit={async (quantity) => {
+          onSubmit={async (quantity, visible) => {
             const body = new FormData();
             body.append("itemId", String(selectedItem.id));
             body.append("quantity", String(quantity));
             body.append("partnerId", String(partnerId));
+            body.append("visible", String(visible));
 
             const response = await fetch(`/api/allocations`, {
               method: "POST",
@@ -221,12 +222,11 @@ export default function AddItemToDistributionScreen() {
             });
 
             if (!response.ok) {
-              toast.error("Failed to add item to distribution", {
-                position: "bottom-right",
-              });
-              console.log(
-                "Failed to add item to distribution",
-                await response.text()
+              toast.error(
+                `Failed to add item to distribution: "${(await response.json()).message}"`,
+                {
+                  position: "bottom-right",
+                }
               );
               return false;
             }
