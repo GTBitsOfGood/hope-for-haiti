@@ -54,6 +54,7 @@ export async function fillDbMockWithManyItems(
       gik: false,
       ndc: "",
       notes: "",
+      donorOfferItemId: null,
     });
   }
 
@@ -129,6 +130,7 @@ export async function createItem({
   gik = false,
   ndc = "",
   notes = "",
+  donorOfferItemId = null,
 }: {
   id?: number;
   title?: string;
@@ -153,6 +155,7 @@ export async function createItem({
   gik?: boolean;
   ndc: string;
   notes: string;
+  donorOfferItemId: number | null;
 }): Promise<Item> {
   return {
     id,
@@ -178,5 +181,6 @@ export async function createItem({
     gik,
     ndc,
     notes,
+    donorOfferItemId,
   };
 }
