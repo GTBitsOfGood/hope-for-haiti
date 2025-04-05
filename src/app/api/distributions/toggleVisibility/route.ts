@@ -15,7 +15,7 @@ const AUTHORIZED_USER_TYPES = [
   UserType.SUPER_ADMIN,
 ] as UserType[];
 
-export const schema = z.object({
+const schema = z.object({
   ids: z.array(z.number()),
   visible: z.boolean(),
 });
