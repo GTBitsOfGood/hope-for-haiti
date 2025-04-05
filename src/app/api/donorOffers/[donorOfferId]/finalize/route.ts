@@ -130,7 +130,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { donorOfferId: string } }
+  { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
   const session = await auth();
   if (!session?.user) return authenticationError("Session required");
