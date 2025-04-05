@@ -1,5 +1,5 @@
 import { useState } from "react";
-import BulkAddFileUpload from "@/components/BulkAdd/BulkAddFileUpload";
+import BulkAddFileUpload from "@/components/FileUpload";
 import BulkAddTable from "@/components/BulkAdd/BulkAddTable";
 import { WarningCircle, X } from "@phosphor-icons/react";
 import BulkAddSuccessModal from "@/components/BulkAdd/BulkAddSuccessModal";
