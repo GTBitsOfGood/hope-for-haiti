@@ -56,14 +56,16 @@ test("Should return donor offers for PARTNER", async () => {
       id: 1,
       offerName: "offer1",
       donorName: "donor1",
-      responseDeadline: new Date(),
+      partnerResponseDeadline: new Date(),
+      donorResponseDeadline: new Date(),
       state: DonorOfferState.ARCHIVED,
     },
     {
       id: 2,
       offerName: "offer2",
       donorName: "donor2",
-      responseDeadline: new Date(),
+      partnerResponseDeadline: new Date(),
+      donorResponseDeadline: new Date(),
       state: DonorOfferState.UNFINALIZED,
     },
   ];
@@ -85,7 +87,10 @@ test("Should return donor offers for PARTNER", async () => {
             donorOfferId: offer.id,
             offerName: offer.offerName,
             donorName: offer.donorName,
-            responseDeadline: format(offer.responseDeadline, "MM/dd/yyyy"),
+            responseDeadline: format(
+              offer.partnerResponseDeadline,
+              "MM/dd/yyyy"
+            ),
             state: offer.state,
           };
         })

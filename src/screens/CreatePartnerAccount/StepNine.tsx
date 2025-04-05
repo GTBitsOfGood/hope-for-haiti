@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React from "react";
@@ -6,12 +7,20 @@ interface StepNineProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  partnerDetails: { [key: string]: any };
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function StepNine({
   prevStep,
   nextStep,
   handleCancelClick,
+  handleInputChange,
+  handleCheckboxChange,
+  partnerDetails,
 }: StepNineProps) {
   return (
     <>
@@ -29,27 +38,37 @@ export default function StepNine({
       <h4 className="font-bold text-[16px] text-[#22070B] mb-2">Medications</h4>
       <div className="grid grid-cols-3 gap-2 mb-8">
         {[
-          "Anesthetics",
-          "Antipyretics/NSAIDs",
-          "Antiallergics",
-          "Anti-infectives",
-          "Antineoplastics",
-          "Cardiovascular",
-          "Dermatological",
-          "Diagnostics",
-          "Diuretics",
-          "Gastrointestinal",
-          "Ophthalmological",
-          "Respiratory",
-          "Replacements",
-          "Vitamins/minerals",
-        ].map((medication) => (
+          { label: "Anesthetics", value: "anesthetics" },
+          { label: "Antipyretics/NSAIDs", value: "antipyretics_nsaids" },
+          { label: "Antiallergics", value: "antiallergics" },
+          { label: "Anti-infectives", value: "anti_infectives" },
+          { label: "Antineoplastics", value: "antineoplastics" },
+          { label: "Cardiovascular", value: "cardiovascular" },
+          { label: "Dermatological", value: "dermatological" },
+          { label: "Diagnostics", value: "diagnostics" },
+          { label: "Diuretics", value: "diuretics" },
+          { label: "Gastrointestinal", value: "gastrointestinal" },
+          { label: "Ophthalmological", value: "ophthalmological" },
+          { label: "Respiratory", value: "respiratory" },
+          { label: "Replacements", value: "replacements" },
+          { label: "Vitamins/minerals", value: "vitamins_minerals" },
+        ].map(({ label, value }) => (
           <label
-            key={medication}
+            key={value}
             className="flex items-center text-[16px] text-[#22070B]"
           >
-            <input type="checkbox" className="mr-2" />
-            {medication}
+            <input
+              type="checkbox"
+              className="mr-2"
+              name="mostNeededMedicalSupplies"
+              value={value}
+              checked={
+                partnerDetails.mostNeededMedicalSupplies &&
+                partnerDetails.mostNeededMedicalSupplies.includes(value)
+              }
+              onChange={handleCheckboxChange}
+            />
+            {label}
           </label>
         ))}
       </div>
@@ -58,23 +77,33 @@ export default function StepNine({
       </h4>
       <div className="grid grid-cols-3 gap-2 mb-8">
         {[
-          "Bandages",
-          "Braces",
-          "Hospital Consumables",
-          "Dental",
-          "Diagnostic",
-          "Personal Care",
-          "Prosthetics",
-          "Respiratory",
-          "Surgical",
-          "Syringes/Needles",
-        ].map((supply) => (
+          { label: "Bandages", value: "bandages" },
+          { label: "Braces", value: "braces" },
+          { label: "Hospital Consumables", value: "hospital_consumables" },
+          { label: "Dental", value: "dental" },
+          { label: "Diagnostic", value: "diagnostic" },
+          { label: "Personal Care", value: "personal_care" },
+          { label: "Prosthetics", value: "prosthetics" },
+          { label: "Respiratory", value: "respiratory " },
+          { label: "Surgical", value: "surgical" },
+          { label: "Syringes/Needles", value: "syringes_needles" },
+        ].map(({ label, value }) => (
           <label
-            key={supply}
+            key={value}
             className="flex items-center text-[16px] text-[#22070B]"
           >
-            <input type="checkbox" className="mr-2" />
-            {supply}
+            <input
+              type="checkbox"
+              className="mr-2"
+              value={value}
+              name="mostNeededMedicalSupplies"
+              checked={
+                partnerDetails.mostNeededMedicalSupplies &&
+                partnerDetails.mostNeededMedicalSupplies.includes(value)
+              }
+              onChange={handleCheckboxChange}
+            />
+            {label}
           </label>
         ))}
       </div>
@@ -87,6 +116,9 @@ export default function StepNine({
         text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] 
         rounded-[4px] resize-none mb-8"
         placeholder="List"
+        name="otherSpecialtyItems"
+        value={partnerDetails.otherSpecialtyItems || ""}
+        onChange={handleInputChange}
       />
 
       <div className="flex justify-between mt-6">
