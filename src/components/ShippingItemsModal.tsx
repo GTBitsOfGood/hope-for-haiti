@@ -1,6 +1,8 @@
 import { X, DotsThree } from "@phosphor-icons/react";
 import React from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreenTabs/ShippingStatus";
+import { ChatTeardropText } from "@phosphor-icons/react";
+import { Tooltip } from "react-tooltip";
 
 interface ShippingItemsModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
@@ -29,6 +31,7 @@ export default function ShippingItemsModal({
           />
         </div>
         <div className="overflow-x-scroll overflow-y-scroll my-4">
+          {/*TODO: COPY FROM HIDDEN/VISIBLE ITEMS TABLES TO POPULATE THIS */}
           <table className="rounded-t-lg overflow-hidden table-fixed w-full">
             <thead>
               <tr className="bg-[#2774AE] bg-opacity-80 text-white border-b-2 break-words">
@@ -70,10 +73,24 @@ export default function ShippingItemsModal({
                     <td className="px-4 py-2">{item.palletNumber}</td>
                     <td className="px-4 py-2">{item.boxNumber}</td>
                     <td className="px-4 py-2">{item.lotNumber}</td>
-                    <td className="px-4 py-2">{item.unitPrice.toFixed(2)}</td>
+                    <td className="px-4 py-2">{item.unitPrice}</td>
                     <td className="px-4 py-2">{item.donorShippingNumber}</td>
                     <td className="px-4 py-2">{item.hfhShippingNumber}</td>
-                    <td className="px-4 py-2">{item.comment}</td>
+                    <td className="px-4 py-2">
+                      <ChatTeardropText
+                        data-tooltip-id={`comment-tooltip-${index}`}
+                        data-tooltip-content={item.comment}
+                        className={`cursor-pointer`}
+                        size={30}
+                        weight={item.comment ? "bold" : "regular"}
+                      />
+                      {item.comment && (
+                        <Tooltip
+                          id={`comment-tooltip-${index}`}
+                          className="max-w-40"
+                        />
+                      )}
+                    </td>
                     <td className="px-4 py-2">
                       <DotsThree size={24} />
                     </td>

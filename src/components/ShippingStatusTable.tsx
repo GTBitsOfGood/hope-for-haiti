@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // page unfinished so disabling this rule for now
 
-import { ShippingStatus } from "@prisma/client";
+import { ShippingStatus, Item } from "@prisma/client";
 import { CgChevronRight, CgSpinner } from "react-icons/cg";
 import React, { useEffect, useState } from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreenTabs/ShippingStatus";
@@ -40,9 +40,13 @@ const statusTags = {
       Arrived at depo
     </div>
   ),
-  INVENTORIES: <></>,
+  INVENTORIES: (
+    <div className="inline-block bg-[#2774AE] bg-opacity-20 text-gray-primary px-2 py-1 rounded">
+      Inventoried
+    </div>
+  ),
   READY_FOR_DISTRIBUTION: (
-    <div className="inline-block bg-[#0A7B40] bg-opacity-80 text-gray-primary px-2 py-1 rounded">
+    <div className="inline-block bg-[#0A7B40] bg-opacity-80 text-white px-2 py-1 rounded">
       Ready for distribution
     </div>
   ),
@@ -76,37 +80,31 @@ export default function ShippingStatusTable({
       value: "ARRIVED_IN_HAITI",
     },
   ]);
-  const [items, setItems] = useState<Record<number, ItemEntry[]>>({
-    1: [
-      {
-        title: "Item 1",
-        quantityAllocated: 10,
-        quantityAvailable: 5,
-        quantityTotal: 15,
-        donorName: "Donor 1",
-        palletNumber: 1,
-        boxNumber: 2,
-        lotNumber: 23,
-        unitPrice: 100,
-        donorShippingNumber: "123456781",
-        hfhShippingNumber: "987654323",
-        comment: "Comment 1",
-      },
-    ],
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [items, setItems] = useState<ItemEntry[][]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    /*
     setTimeout(async () => {
-      const response = await fetch("api/shippingStatuses", {
+      const response = await fetch("api/shippingStatus", {
         method: "GET",
       });
       const data = await response.json();
       setShippingStatuses(data.shippingStatuses);
+      setItems(
+        data.items.map((itemRow: Item[]) =>
+          itemRow.map((item: Item) => {
+            return {
+              ...item,
+              quantityAllocated: 0,
+              quantityAvailable: 0,
+              quantityTotal: 0,
+              comment: item.notes,
+            };
+          })
+        )
+      );
       setIsLoading(false);
     }, 1000);
-    */
   }, []);
   if (isLoading) {
     return (
@@ -133,7 +131,7 @@ export default function ShippingStatusTable({
           </tr>
         </thead>
         <tbody>
-          {mockShippingStatuses.map((status, index) => (
+          {shippingStatuses.map((status, index) => (
             <React.Fragment key={index}>
               <tr
                 data-odd={index % 2 !== 0}
