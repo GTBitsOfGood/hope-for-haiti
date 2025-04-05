@@ -117,14 +117,18 @@ export default function AccountManagementScreen() {
         </div>
       ) : (
         <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden">
+          <table className="mt-4">
             <thead>
-              <tr className="bg-gray-100 border-b-2">
-                <th className="px-4 py-2 text-left font-normal">Name</th>
-                <th className="px-4 py-2 text-left font-normal">Email</th>
-                <th className="px-4 py-2 text-left font-normal">Role</th>
-                <th className="px-4 py-2 text-left font-normal">Status</th>
-                <th className="px-4 py-2 text-left font-normal">Manage</th>
+              <tr className="bg-gray-100 border-b-2 font-bold">
+                <th className="px-4 py-2 text-left w-1/5 rounded-tl-lg">
+                  Name
+                </th>
+                <th className="px-4 py-2 text-left w-1/5">Email</th>
+                <th className="px-4 py-2 text-left w-1/5">Role</th>
+                <th className="px-4 py-2 text-left w-1/5">Status</th>
+                <th className="px-4 py-2 text-left rounded-tr-lg w-1/12">
+                  Manage
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -134,17 +138,17 @@ export default function AccountManagementScreen() {
                   data-odd={index % 2 !== 0}
                   className="bg-white data-[odd=true]:bg-gray-50"
                 >
-                  <td className="border-b px-4 py-2 w-1/5">{user.name}</td>
-                  <td className="border-b px-4 py-2 w-1/5">{user.email}</td>
-                  <td className="border-b px-4 py-2 w-1/5">
+                  <td className="border-b px-4 py-2">{user.name}</td>
+                  <td className="border-b px-4 py-2">{user.email}</td>
+                  <td className="border-b px-4 py-2">
                     {formatUserType(user.type)}
                   </td>
-                  <td className="border-b px-4 py-2 w-1/5">
+                  <td className="border-b px-4 py-2">
                     <span className="px-2 py-1 rounded bg-green-primary whitespace-nowrap">
                       Account created
                     </span>
                   </td>
-                  <td className="border-b px-4 py-2 w-12">
+                  <td className="border-b px-4 py-2">
                     <div className="float-right">
                       <DotsThree
                         weight="bold"

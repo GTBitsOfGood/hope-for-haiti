@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import React from "react";
 import PartnerDynamicDonorOfferScreen from "./PartnerDynamicDonorOfferScreen";
+import AdminDynamicDonorOfferScreen from "./AdminDynamicDonorOfferScreen";
 
 export default function DynamicDonorOfferScreen() {
   const { data: session } = useSession();
@@ -13,6 +14,7 @@ export default function DynamicDonorOfferScreen() {
     case "SUPER_ADMIN":
     case "ADMIN":
     case "STAFF":
+      return <AdminDynamicDonorOfferScreen />;
     default:
       return (
         <>

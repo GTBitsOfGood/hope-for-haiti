@@ -8,6 +8,7 @@ import { ChatTeardropText, DotsThree } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
+import { formatTableValue } from "@/utils/format";
 
 export default function UnallocatedItemsLineItemsScreen() {
   const searchParams = useSearchParams();
@@ -81,22 +82,20 @@ export default function UnallocatedItemsLineItemsScreen() {
         <div className="overflow-x-scroll">
           <table className="mt-4 rounded-t-lg overflow-hidden min-w-full">
             <thead>
-              <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-                <th className="px-4 py-2 text-left font-bold">Quantity</th>
-                <th className="px-4 py-2 text-left font-bold">Qty/Unit</th>
-                <th className="px-4 py-2 text-left font-bold">Donor name</th>
-                <th className="px-4 py-2 text-left font-bold">Pallet number</th>
-                <th className="px-4 py-2 text-left font-bold">Box number</th>
-                <th className="px-4 py-2 text-left font-bold">Lot number</th>
-                <th className="px-4 py-2 text-left font-bold">Unit price</th>
-                <th className="px-4 py-2 text-left font-bold">
-                  Donor Shipping #
+              <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
+                <th className="px-4 py-2 rounded-tl-lg text-left">Quantity</th>
+                <th className="px-4 py-2 text-left">Qty/Unit</th>
+                <th className="px-4 py-2 text-left">Donor name</th>
+                <th className="px-4 py-2 text-left">Pallet number</th>
+                <th className="px-4 py-2 text-left">Box number</th>
+                <th className="px-4 py-2 text-left">Lot number</th>
+                <th className="px-4 py-2 text-left">Unit price</th>
+                <th className="px-4 py-2 text-left">Donor Shipping #</th>
+                <th className="px-4 py-2 text-left">HfH Shipping #</th>
+                <th className="px-4 py-2 text-left">Comment</th>
+                <th className="px-4 py-2 rounded-tr-lg text-left w-12">
+                  Manage
                 </th>
-                <th className="px-4 py-2 text-left font-bold">
-                  HfH Shipping #
-                </th>
-                <th className="px-4 py-2 text-left font-bold">Comment</th>
-                <th className="px-4 py-2 text-left font-bold">Manage</th>
               </tr>
             </thead>
             <tbody>
@@ -106,15 +105,31 @@ export default function UnallocatedItemsLineItemsScreen() {
                     data-odd={index % 2 !== 0}
                     className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
                   >
-                    <td className="px-4 py-2">{item.quantity}</td>
-                    <td className="px-4 py-2">{item.quantityPerUnit}</td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.quantity)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.quantityPerUnit)}
+                    </td>
                     <td className="px-4 py-2">{item.donorName}</td>
-                    <td className="px-4 py-2">{item.palletNumber}</td>
-                    <td className="px-4 py-2">{item.boxNumber}</td>
-                    <td className="px-4 py-2">{item.lotNumber}</td>
-                    <td className="px-4 py-2">{item.unitPrice.toString()}</td>
-                    <td className="px-4 py-2">{item.donorShippingNumber}</td>
-                    <td className="px-4 py-2">{item.hfhShippingNumber}</td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.palletNumber)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.boxNumber)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.lotNumber)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.unitPrice)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.donorShippingNumber)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.hfhShippingNumber)}
+                    </td>
                     <td className="px-4 py-2">
                       <ChatTeardropText
                         data-tooltip-id={`comment-tooltip-${item.id}`}
