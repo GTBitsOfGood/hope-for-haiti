@@ -62,7 +62,13 @@ export default function AdminUnallocatedItemsScreen() {
   const dataFetch = React.useCallback(() => {
     const fetchItems = async () => {
       try {
-        const res = await fetch("/api/unallocatedItems");
+        const res = await fetch("/api/unallocatedItems", {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         if (!res.ok) {
           throw new Error(`Error: ${res.status} ${res.statusText}`);
         }
@@ -89,7 +95,14 @@ export default function AdminUnallocatedItemsScreen() {
         tenYearsFromNow.setFullYear(now.getFullYear() + 10);
 
         const response = await fetch(
-          `/api/unallocatedItems?expirationDateAfter`
+          `/api/unallocatedItems?expirationDateAfter`,
+          {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          }
         );
 
         if (!response.ok) {
@@ -119,9 +132,33 @@ export default function AdminUnallocatedItemsScreen() {
 
   useEffect(() => {
     if (formSuccess) {
-      dataFetch();
+      // Force a refresh by invalidating any cache
+      const fetchItems = async () => {
+        try {
+          const res = await fetch("/api/unallocatedItems", {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          if (!res.ok) {
+            throw new Error(`Error: ${res.status} ${res.statusText}`);
+          }
+          const data = await res.json();
+          setFilteredItems(data.items);
+          setUnitTypes(data.unitTypes);
+          setDonorNames(data.donorNames);
+          setItemTypes(data.itemTypes);
+          setFormSuccess(false); // Reset the success state
+        } catch (error) {
+          toast.error("An error occurred while refreshing data");
+          console.error("Refresh error:", error);
+        }
+      };
+      fetchItems();
     }
-  }, [dataFetch, formSuccess]);
+  }, [formSuccess]);
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
@@ -155,7 +192,13 @@ export default function AdminUnallocatedItemsScreen() {
       url.searchParams.append("expirationDateAfter", expirationDateAfter);
 
     try {
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!res.ok) {
         throw new Error(`Error: ${res.status} ${res.statusText}`);
       }

@@ -88,12 +88,19 @@ export async function GET(request: NextRequest) {
     itemTypesSet.add(item.type);
   });
 
-  return NextResponse.json({
-    items: tableItems,
-    unitTypes: Array.from(unitTypesSet).sort(),
-    donorNames: Array.from(donorNamesSet).sort(),
-    itemTypes: Array.from(itemTypesSet).sort(),
-  });
+  return NextResponse.json(
+    {
+      items: tableItems,
+      unitTypes: Array.from(unitTypesSet).sort(),
+      donorNames: Array.from(donorNamesSet).sort(),
+      itemTypes: Array.from(itemTypesSet).sort(),
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    }
+  );
 }
 
 const schema = zfd.formData({
