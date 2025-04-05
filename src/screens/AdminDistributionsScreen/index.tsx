@@ -44,6 +44,8 @@ export default function AdminDistributionsScreen() {
   const [distributions, setDistributions] = useState<DistributionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [search, setSearch] = useState("");
+
   const [activeTab, setActiveTab] = useState<string>("hiddenItems");
 
   const makeAllVisible = async () => {
@@ -148,6 +150,8 @@ export default function AdminDistributionsScreen() {
           <input
             type="text"
             placeholder="Search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
           />
         </div>
@@ -180,7 +184,11 @@ export default function AdminDistributionsScreen() {
           {activeTab == "hiddenItems" && (
             <HiddenItems
               distributions={distributions.filter(
-                (distribution) => !distribution.visible,
+                (distribution) =>
+                  !distribution.visible &&
+                  distribution.item.title
+                    .toLowerCase()
+                    .includes(search.toLowerCase()),
               )}
               setDistributions={setDistributions}
             />
@@ -188,7 +196,11 @@ export default function AdminDistributionsScreen() {
           {activeTab == "visibleItems" && (
             <VisibleItems
               distributions={distributions.filter(
-                (distribution) => distribution.visible,
+                (distribution) =>
+                  distribution.visible &&
+                  distribution.item.title
+                    .toLowerCase()
+                    .includes(search.toLowerCase()),
               )}
               setDistributions={setDistributions}
             />

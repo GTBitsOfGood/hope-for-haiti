@@ -347,6 +347,7 @@ async function run() {
           quantity: Math.floor(items[0].quantity / 3),
           donorOfferItemRequestId: donorOfferItemRequest.id,
           itemId: items[0].id,
+          visible: true
         },
       });
 
@@ -363,6 +364,7 @@ async function run() {
           quantity: Math.floor(items[0].quantity / 3),
           unallocatedItemRequestId: unallocatedItemRequests[0].id,
           itemId: items[0].id,
+          visible: true
         },
       });
 
