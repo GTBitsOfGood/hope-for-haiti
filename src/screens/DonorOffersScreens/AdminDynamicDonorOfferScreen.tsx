@@ -219,10 +219,7 @@ export default function AdminDynamicDonorOfferScreen() {
                         >
                           <Menu as="div" className="float-right relative">
                             <MenuButton>
-                              <DotsThree
-                                weight="bold"
-                                className="cursor-pointer"
-                              />
+                              <DotsThree weight="bold" />
                             </MenuButton>
                             <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max"></MenuItems>
                           </Menu>

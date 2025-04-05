@@ -256,7 +256,7 @@ export default function DonorOfferLineItemsScreen() {
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex justify-end">
-                          <DotsThree size={30} />
+                          <DotsThree weight="bold" />
                         </div>
                       </td>
                     </tr>
