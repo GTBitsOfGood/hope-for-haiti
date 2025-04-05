@@ -76,6 +76,11 @@ function NavLinks() {
         label="Donor Offers"
         icon={<HandHeart size={22} />}
       />
+      <NavLink
+        href="/distributions"
+        label="Distributions"
+        icon={<HandHeart size={22} />}
+      />
       {isPartner && (
         <NavLink
           href="/distributions"

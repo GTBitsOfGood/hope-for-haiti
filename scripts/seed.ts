@@ -228,25 +228,29 @@ async function run() {
             state: DonorOfferState.UNFINALIZED,
             offerName: "Offer A",
             donorName: "Donor A",
-            responseDeadline: dateOffset(30),
+            partnerResponseDeadline: dateOffset(20),
+            donorResponseDeadline: dateOffset(30),
           },
           {
             state: DonorOfferState.UNFINALIZED,
             offerName: "Offer B",
             donorName: "Donor B",
-            responseDeadline: dateOffset(30),
+            partnerResponseDeadline: dateOffset(20),
+            donorResponseDeadline: dateOffset(30),
           },
           {
             state: DonorOfferState.UNFINALIZED,
             offerName: "Offer C",
             donorName: "Donor C",
-            responseDeadline: dateOffset(30),
+            partnerResponseDeadline: dateOffset(20),
+            donorResponseDeadline: dateOffset(30),
           },
           {
             state: DonorOfferState.UNFINALIZED,
             offerName: "Offer D",
             donorName: "Donor D",
-            responseDeadline: dateOffset(30),
+            partnerResponseDeadline: dateOffset(20),
+            donorResponseDeadline: dateOffset(30),
           },
         ] as DonorOffer[]
       ).map((data) => tx.donorOffer.create({ data }))
