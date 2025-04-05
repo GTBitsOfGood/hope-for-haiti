@@ -4,7 +4,6 @@ import * as appHandler from "./route";
 import { expect, test } from "@jest/globals";
 import { invalidateSession, validateSession } from "@/test/util/authMockUtils";
 import { DonorOfferState, UserType } from "@prisma/client";
-import { format } from "date-fns";
 
 test("Should return 401 for no session", async () => {
   await testApiHandler({
