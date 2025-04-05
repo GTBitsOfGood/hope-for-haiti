@@ -6,6 +6,9 @@ import { expect, test, describe } from "@jest/globals";
 import { UserType, ItemCategory } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 
+// TODO: tests are outdated, should be updated for full coverage
+// i.e.: make sure requested items don't exceed available inventory, proper handling of item id provided vs item attributes provided
+
 type UnallocatedItemRequestAllocation = {
   id: number;
   quantity: number;
@@ -144,6 +147,13 @@ describe("POST /api/allocations", () => {
       partnerId: null,
       quantity: 10,
       visible: true,
+    });
+    dbMock.unallocatedItemRequestAllocation.aggregate.mockResolvedValueOnce({
+      _sum: { quantity: 0 },
+      _count: undefined,
+      _avg: undefined,
+      _min: undefined,
+      _max: undefined,
     });
 
     await testApiHandler({
