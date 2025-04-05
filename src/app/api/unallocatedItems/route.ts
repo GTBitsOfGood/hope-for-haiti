@@ -14,7 +14,7 @@ import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 /**
- * Handles GET requests to retrieve unallocated items from the items table.
+ * Handles GET requests to retrieve unallocated items from the items table. For the flow, also returns a list of unit types, donors, and item types.
  * Parameters are passed in the URL query string.
  * @params expirationDateBefore: ISO-8601 timestamp that returned items expire before
  * @params expirationDateAfter: ISO-8601 timestamp that returned items expire after
@@ -32,21 +32,21 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const expirationDateBefore = parseDateIfDefined(
-    params.get("expirationDateBefore"),
+    params.get("expirationDateBefore")
   );
   const expirationDateAfter = parseDateIfDefined(
-    params.get("expirationDateAfter"),
+    params.get("expirationDateAfter")
   );
 
   if (expirationDateBefore === null) {
     return argumentError(
-      "expirationDateBefore must be a valid ISO-8601 timestamp",
+      "expirationDateBefore must be a valid ISO-8601 timestamp"
     );
   }
 
   if (expirationDateAfter === null) {
     return argumentError(
-      "expirationDateAfter must be a valid ISO-8601 timestamp",
+      "expirationDateAfter must be a valid ISO-8601 timestamp"
     );
   }
 

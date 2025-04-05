@@ -58,6 +58,7 @@ export default function AdminUnallocatedItemsScreen() {
 
   const [formSuccess, setFormSuccess] = useState(false); // whether the form was submitted successfully or not
 
+  // Doing this so that table can easily refresh after a new item is added
   const dataFetch = React.useCallback(() => {
     const fetchItems = async () => {
       try {
@@ -284,6 +285,7 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
+      {/* The lists are added for the drop downs */}
       {isModalOpen ? (
         <AddItemModal
           setIsOpen={setIsModalOpen}

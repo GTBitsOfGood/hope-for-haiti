@@ -7,9 +7,13 @@ interface ModalAutoTextFieldProps {
   placeholder?: string;
   options: string[];
   defaultValue?: string;
-  onInputChange?: (value: string) => void;
+  onInputChange?: (value: string) => void; // Callback for input change in case parent component wants to do something on input change
 }
 
+/**
+ * Element to help make a text field with auto-complete functionality.
+ * It will show a dropdown with options that match the input value.
+ */
 export default function ModalAutoTextField({
   label,
   required,

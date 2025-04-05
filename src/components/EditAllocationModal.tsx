@@ -134,6 +134,7 @@ export default function EditAllocationModal({
     setIsOpen(false); // Close the modal on success
   });
 
+  // Set initial values for the form fields when the component mounts
   useEffect(() => {
     if (allocation) {
       setDonorName(allocation.unallocatedItem.donorName);
@@ -234,7 +235,8 @@ export default function EditAllocationModal({
                     (allocation.itemId ?? -1) === filteredItems[0].id
                       ? allocation?.quantity
                       : 0)
-                  : "XX"}
+                  : "XX"}{" "}
+                {/* Displays the quantity left when there is a guaranteed item to choose from */}
               </div>
             </div>
           </ModalFormRow>

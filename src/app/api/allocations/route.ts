@@ -124,7 +124,11 @@ export async function POST(request: NextRequest) {
 /**
  * Editting an existing unallocated item request allocation.
  * @param req
- * @returns
+ * @returns 200 on success
+ * @returns 400 if any field is missing or invalid
+ * @returns 404 if no item is found with matching fields
+ * @returns 403 if user is not authorized
+ * @returns 401 if user is not authenticated
  */
 export async function PUT(request: NextRequest) {
   const session = await auth();

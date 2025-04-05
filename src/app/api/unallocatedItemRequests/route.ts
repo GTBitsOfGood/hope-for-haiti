@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UnallocatedItem } from "./types";
 
 /**
- * Handles GET requests to fetch unallocated item requests.
+ * Handles GET requests to fetch unallocated item requests. For the flow, also returns the items with an extra attribute quantity left.
  * Requires query params title, type, expiration, and unitSize.
  * @param req - the incoming request
  * @returns 200 with all requests and their allocations
