@@ -44,7 +44,6 @@ model User {
   // There should only ever be one distribution
   distributions                    Distribution[]
   UnallocatedItemRequestAllocation UnallocatedItemRequestAllocation[]
-
   signOffs SignOff[]
 }
 
