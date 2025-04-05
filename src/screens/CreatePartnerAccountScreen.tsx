@@ -12,9 +12,36 @@ import StepSeven from "./CreatePartnerAccount/StepSeven";
 import StepEight from "./CreatePartnerAccount/StepEight";
 import StepNine from "./CreatePartnerAccount/StepNine";
 import StepTen from "./CreatePartnerAccount/StepTen";
+import {
+  PartnerDetails,
+  partnerDetails1,
+  partnerDetails2,
+  partnerDetails3,
+  partnerDetails4,
+  partnerDetails5,
+  partnerDetails6,
+  partnerDetails7,
+  partnerDetails8,
+  partnerDetails9,
+  partnerDetails10,
+} from "@/schema/partnerDetails";
+import { set } from "date-fns";
+import { group } from "console";
 
 export default function CreatePartnerAccountScreen() {
-  const [step, setStep] = useState(1);
+  const schemas = [
+    partnerDetails1,
+    partnerDetails2,
+    partnerDetails3,
+    partnerDetails4,
+    partnerDetails5,
+    partnerDetails6,
+    partnerDetails7,
+    partnerDetails8,
+    partnerDetails9,
+    partnerDetails10,
+  ];
+  const [step, setStep] = useState(9);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,6 +51,56 @@ export default function CreatePartnerAccountScreen() {
   const [email] = useState(searchParams.get("email") || "");
   const [sendingInvite, setSendingInvite] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [partnerDetails, setPartnerDetails] = useState<{ [key: string]: any }>(
+    {}
+  );
+  const [msspRegistration, setMsspRegistration] = useState<File | null>(null);
+
+  function setNestedValue<T>(obj: T, path: string[], value: any): T {
+    if (path.length === 0) return obj;
+    const [key, ...rest] = path;
+    return {
+      ...obj,
+      [key]: rest.length
+        ? setNestedValue((obj as any)[key] || {}, rest, value)
+        : value,
+    } as T;
+  }
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const group = e.target.name as string;
+    const value = e.target.value as string;
+    setPartnerDetails((prev) => {
+      const current = (prev[group] as string[]) || [];
+
+      const newValues = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+
+      return { ...prev, [group]: newValues };
+    });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    setMsspRegistration(selectedFile);
+    partnerDetails.proofOfRegistrationWithMssp =
+      selectedFile?.name || undefined;
+    console.log("selectedFile", selectedFile);
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const name = e.target.name as string;
+    const value = e.target.value as string;
+    console.log("name", name);
+    console.log("value", value);
+    const attributes = name.split("-").reverse(); // Reverse the order of attributes
+
+    setPartnerDetails((prev) => setNestedValue(prev, attributes, value));
+    console.log("partnerDetails", partnerDetails);
+  };
 
   const nextStep = async () => {
     if (step === 10) {
@@ -54,7 +131,17 @@ export default function CreatePartnerAccountScreen() {
         setSendingInvite(false);
       }
     } else {
-      setStep((prev) => Math.min(prev + 1, 10));
+      // Validate the current step's schema
+      const currentSchema = schemas[step - 1];
+      const parsed = currentSchema.safeParse(partnerDetails);
+      if (parsed.error) {
+        console.log(parsed.error);
+        setErrorMessage("Please fill in all required fields.");
+      }
+      if (parsed.success) {
+        setErrorMessage("");
+        setStep((prev) => Math.min(prev + 1, 10));
+      }
     }
   };
 
@@ -113,13 +200,20 @@ export default function CreatePartnerAccountScreen() {
 
         {/* Steps */}
         {step === 1 && (
-          <StepOne nextStep={nextStep} handleCancelClick={handleCancelClick} />
+          <StepOne
+            nextStep={nextStep}
+            handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            partnerDetails={partnerDetails as PartnerDetails}
+          />
         )}
         {step === 2 && (
           <StepTwo
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 3 && (
@@ -127,6 +221,9 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            handleFileUpload={handleFileUpload}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 4 && (
@@ -134,6 +231,9 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            handleCheckboxChange={handleCheckboxChange}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 5 && (
@@ -141,6 +241,8 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 6 && (
@@ -148,6 +250,9 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            handleCheckboxChange={handleCheckboxChange}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 7 && (
@@ -155,6 +260,9 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            handleCheckboxChange={handleCheckboxChange}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 8 && (
@@ -162,6 +270,8 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 9 && (
@@ -169,6 +279,9 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            handleInputChange={handleInputChange}
+            handleCheckboxChange={handleCheckboxChange}
+            partnerDetails={partnerDetails}
           />
         )}
         {step === 10 && (

@@ -1,13 +1,22 @@
 "use client";
 
-import React from "react";
+import { PartnerDetails } from "@/schema/partnerDetails";
+import { Part } from "formidable";
+import React, { FormEventHandler } from "react";
 
 interface StepOneProps {
   nextStep: () => void;
   handleCancelClick: () => void;
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  partnerDetails: { [key: string]: any };
 }
 
-export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
+export default function StepOne({
+  nextStep,
+  handleCancelClick,
+  handleInputChange,
+  partnerDetails,
+}: StepOneProps) {
   return (
     <>
       <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
@@ -26,6 +35,9 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] text-[#22070B] 
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Site name"
+          name="siteName"
+          value={partnerDetails.siteName || ""}
+          onChange={handleInputChange}
         />
 
         <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
@@ -35,6 +47,9 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] text-[#22070B] 
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Address"
+          name="address"
+          value={partnerDetails.address || ""}
+          onChange={handleInputChange}
         />
 
         <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
@@ -44,6 +59,9 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] text-[#22070B] 
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Department"
+          name="department"
+          value={partnerDetails.department || ""}
+          onChange={handleInputChange}
         />
 
         <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
@@ -53,6 +71,9 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] text-[#22070B] 
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="GPS coordinates"
+          name="gpsCoordinates"
+          value={partnerDetails.gpsCoordinates || ""}
+          onChange={handleInputChange}
         />
 
         <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
@@ -62,6 +83,9 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] text-[#22070B] 
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Website"
+          name="website"
+          value={partnerDetails.website || ""}
+          onChange={handleInputChange}
         />
 
         <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
@@ -71,6 +95,9 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] text-[#22070B] 
           placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-7"
           placeholder="Social media (Instagram/Facebook)"
+          name="socialMedia"
+          value={partnerDetails.socialMedia || ""}
+          onChange={handleInputChange}
         />
       </div>
 
@@ -78,6 +105,7 @@ export default function StepOne({ nextStep, handleCancelClick }: StepOneProps) {
         <button
           className="text-mainRed font-semibold font-[Open_Sans]"
           onClick={handleCancelClick}
+          type="button"
         >
           Cancel account creation
         </button>

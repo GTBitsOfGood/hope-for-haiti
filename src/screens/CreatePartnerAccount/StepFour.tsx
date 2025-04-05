@@ -6,12 +6,20 @@ interface StepFourProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  partnerDetails: { [key: string]: any };
 }
 
 export default function StepFour({
   prevStep,
   nextStep,
   handleCancelClick,
+  handleInputChange,
+  handleCheckboxChange,
+  partnerDetails,
 }: StepFourProps) {
   return (
     <>
@@ -29,32 +37,45 @@ export default function StepFour({
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
           [
-            "Birthing center",
-            "Clinic",
-            "Hospital",
-            "Elderly care",
-            "Rehabilitation center",
+            ["Birthing center", "birthing_center"],
+            ["Clinic", "clinic"],
+            ["Hospital", "hospital"],
+            ["Elderly care", "elderly_care"],
+            ["Rehabilitation center", "rehabilitation_center"],
           ],
           [
-            "Dispensary",
-            "Orphanage",
-            "Primary care",
-            "Nutrition/feeding",
-            "Health center",
+            ["Dispensary", "dispensary"],
+            ["Orphanage", "orphanage"],
+            ["Primary care", "primary_care"],
+            ["Nutrition/feeding", "nutrition_feeding"],
+            ["Health center", "health_center"],
           ],
           [
-            "Community health education",
-            "Secondary/tertiary healthcare (including surgery)",
+            ["Community health education", "community_health_education"],
+            [
+              "Secondary/tertiary healthcare (including surgery)",
+              "secondary_tertiary_healthcare",
+            ],
           ],
         ].map((column, index) => (
           <div key={index} className="space-y-2">
-            {column.map((facility) => (
+            {column.map(([label, value]) => (
               <label
-                key={facility}
+                key={value}
                 className="flex items-center text-[16px] text-[#22070B]"
               >
-                <input type="checkbox" className="mr-2" />
-                {facility}
+                <input
+                  type="checkbox"
+                  className="mr-2"
+                  value={value}
+                  onChange={handleCheckboxChange}
+                  checked={
+                    partnerDetails["facilityType"] &&
+                    partnerDetails["facilityType"].includes(value)
+                  }
+                  name="facilityType"
+                />
+                {label}
               </label>
             ))}
           </div>
@@ -65,12 +86,26 @@ export default function StepFour({
         <strong>What type of facility is it? Select all that apply:</strong>
       </p>
       <div className="space-y-2 mb-8">
-        {["Non-profit", "For profit", "Faith-based"].map((ftype) => (
+        {[
+          ["Non-profit", "non_profit"],
+          ["For profit", "for_profit"],
+          ["Faith-based", "faith_based"],
+        ].map(([ftype, name]) => (
           <label
             key={ftype}
             className="flex items-center text-[16px] text-[#22070B]"
           >
-            <input type="checkbox" className="mr-2" />
+            <input
+              type="checkbox"
+              className="mr-2"
+              name="organizationType"
+              checked={
+                partnerDetails["organizationType"] &&
+                partnerDetails["organizationType"].includes(name)
+              }
+              value={name}
+              onChange={handleCheckboxChange}
+            />
             {ftype}
           </label>
         ))}
@@ -81,10 +116,26 @@ export default function StepFour({
       </label>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="governmentOrg" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="governmentRun"
+            className="mr-2"
+            value="true"
+            checked={partnerDetails.governmentRun === "true"}
+            onChange={handleInputChange}
+          />
+          Yes
         </label>
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="governmentOrg" className="mr-2" /> No
+          <input
+            type="radio"
+            name="governmentRun"
+            className="mr-2"
+            value="false"
+            checked={partnerDetails.governmentRun === "false"}
+            onChange={handleInputChange}
+          />{" "}
+          No
         </label>
       </div>
 
@@ -93,7 +144,17 @@ export default function StepFour({
       </label>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="emrSystem" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="emergencyMedicalRecordsSystemPresent"
+            className="mr-2"
+            value="true"
+            checked={
+              partnerDetails.emergencyMedicalRecordsSystemPresent === "true"
+            }
+            onChange={handleInputChange}
+          />
+          Yes
         </label>
         <div className="ml-6 mb-5">
           <label className="block text-[16px] text-[#22070B] mb-2">
@@ -103,10 +164,23 @@ export default function StepFour({
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
             placeholder="Input name"
+            name="emergencyMedicalRecordsSystemName"
+            value={partnerDetails.emergencyMedicalRecordsSystemName || ""}
+            onChange={handleInputChange}
           />
         </div>
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="emrSystem" className="mr-2" /> No
+          <input
+            type="radio"
+            name="emergencyMedicalRecordsSystemPresent"
+            className="mr-2"
+            value="false"
+            checked={
+              partnerDetails.emergencyMedicalRecordsSystemPresent === "false"
+            }
+            onChange={handleInputChange}
+          />
+          No
         </label>
       </div>
 
@@ -117,6 +191,9 @@ export default function StepFour({
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
         placeholder="Number"
+        name="numberOfInpatientBeds"
+        value={partnerDetails.numberOfInpatientBeds || ""}
+        onChange={handleInputChange}
       />
 
       <label className="block text-[16px] text-[#22070B] mb-2">
@@ -126,6 +203,9 @@ export default function StepFour({
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
         placeholder="Number"
+        name="numberOfPatientsServedAnnually"
+        value={partnerDetails.numberOfPatientsServedAnnually || ""}
+        onChange={handleInputChange}
       />
 
       <p className="text-[16px] text-[#22070B] mb-2">
@@ -133,7 +213,15 @@ export default function StepFour({
       </p>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="communityOutreach" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="communityMobileOutreachOffered"
+            className="mr-2"
+            value="true"
+            checked={partnerDetails.communityMobileOutreachOffered === "true"}
+            onChange={handleInputChange}
+          />{" "}
+          Yes
         </label>
         <div className="ml-6 mb-5">
           <label className="block text-[16px] text-[#22070B] mb-2">
@@ -143,10 +231,21 @@ export default function StepFour({
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
             placeholder="Service"
+            name="communityMobileOutreachDescription"
+            value={partnerDetails.communityMobileOutreachDescription || ""}
+            onChange={handleInputChange}
           />
         </div>
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="communityOutreach" className="mr-2" /> No
+          <input
+            type="radio"
+            name="communityMobileOutreachOffered"
+            className="mr-2"
+            value="false"
+            checked={partnerDetails.communityMobileOutreachOffered === "false"}
+            onChange={handleInputChange}
+          />
+          No
         </label>
       </div>
 

@@ -1,17 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { FormEventHandler } from "react";
 
 interface StepThreeProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  partnerDetails: { [key: string]: any };
 }
 
 export default function StepThree({
   prevStep,
   nextStep,
   handleCancelClick,
+  handleInputChange,
+  handleFileUpload,
+  partnerDetails,
 }: StepThreeProps) {
   return (
     <>
@@ -29,6 +37,9 @@ export default function StepThree({
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] 
         border-solid border-[1px] resize-none mb-7"
         placeholder="Organization history"
+        name="organizationHistory"
+        value={partnerDetails.organizationHistory}
+        onChange={handleInputChange}
       />
 
       <p className="text-[16px] text-[#22070B] font-[Open_Sans] mb-2">
@@ -45,7 +56,14 @@ export default function StepThree({
             key={option}
             className="flex items-center text-[16px] text-[#22070B] font-[Open_Sans]"
           >
-            <input type="radio" name="supportType" className="mr-2" />
+            <input
+              type="radio"
+              name="supportRequested"
+              className="mr-2"
+              value={option}
+              checked={option === partnerDetails.supportRequested}
+              onChange={handleInputChange}
+            />
             {option}
           </label>
         ))}
@@ -59,6 +77,9 @@ export default function StepThree({
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] 
         border-solid border-[1px] mb-7"
         placeholder="00/00/0000"
+        name="yearOrganizationEstablished"
+        value={partnerDetails.yearOrganizationEstablished}
+        onChange={handleInputChange}
       />
 
       <p className="text-[16px] text-[#22070B] font-[Open_Sans] mb-2">
@@ -66,7 +87,15 @@ export default function StepThree({
       </p>
       <div className="space-y-2 mb-7">
         <label className="flex items-center text-[16px] text-[#22070B] font-[Open_Sans]">
-          <input type="radio" name="msspRegistration" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="registeredWithMssp"
+            value="true"
+            checked={partnerDetails.registeredWithMssp === "true"}
+            onChange={handleInputChange}
+            className="mr-2"
+          />
+          Yes
         </label>
 
         <div className="ml-6">
@@ -77,6 +106,10 @@ export default function StepThree({
             <input
               type="file"
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              name="licenseCopy"
+              onChange={handleFileUpload}
+              accept=".pdf"
+              value={partnerDetails.licenseCopy}
             />
             <div
               className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
@@ -89,7 +122,15 @@ export default function StepThree({
         </div>
 
         <label className="flex items-center text-[16px] text-[#22070B] font-[Open_Sans]">
-          <input type="radio" name="msspRegistration" className="mr-2" /> No
+          <input
+            type="radio"
+            name="registeredWithMssp"
+            className="mr-2"
+            value="false"
+            checked={partnerDetails.registeredWithMssp === "false"}
+            onChange={handleInputChange}
+          />
+          No
         </label>
       </div>
 
@@ -101,12 +142,16 @@ export default function StepThree({
         text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] 
         border-solid border-[1px] resize-none mb-7"
         placeholder="Updates"
+        name="programUpdatesSinceLastReport"
+        value={partnerDetails.programUpdatesSinceLastReport}
+        onChange={handleInputChange}
       />
 
       <div className="flex justify-between mt-6">
         <button
           className="text-mainRed font-semibold font-[Open_Sans]"
           onClick={handleCancelClick}
+          type="button"
         >
           Cancel account creation
         </button>
@@ -114,6 +159,7 @@ export default function StepThree({
           <button
             className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold font-[Open_Sans] mr-4"
             onClick={prevStep}
+            type="button"
           >
             Previous
           </button>

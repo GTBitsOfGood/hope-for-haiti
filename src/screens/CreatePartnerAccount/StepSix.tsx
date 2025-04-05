@@ -6,12 +6,20 @@ interface StepSixProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  handleCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  partnerDetails: { [key: string]: any };
 }
 
 export default function StepSix({
   prevStep,
   nextStep,
   handleCancelClick,
+  handleInputChange,
+  handleCheckboxChange,
+  partnerDetails,
 }: StepSixProps) {
   return (
     <>
@@ -29,44 +37,57 @@ export default function StepSix({
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
           [
-            "Cancer",
-            "Dentistry",
-            "Dermatology",
-            "Hematology",
-            "Immunizations",
-            "Parasitic infections",
-            "Acute respiratory infections",
-            "Vector-borne diseases",
+            ["Cancer", "cancer"],
+            ["Dentistry", "dentistry"],
+            ["Dermatology", "dermatology"],
+            ["Hematology", "hematology"],
+            ["Immunizations", "immunizations"],
+            ["Parasitic infections", "parasitic_infections"],
+            ["Acute respiratory infections", "acute_respiratory_infections"],
+            ["Vector-borne diseases", "vector_borne_diseases"],
           ],
           [
-            "Chronic diseases",
-            "Diarrheal diseases",
-            "Vaccine-preventable diseases",
-            "Infectious diseases",
-            "Neurology",
-            "Malnutrition",
-            "Ophthalmology",
-            "Ears-nose-throat",
+            ["Chronic diseases", "chronic_diseases"],
+            ["Diarrheal diseases", "diarrheal_diseases"],
+            ["Vaccine-preventable diseases", "vaccine_preventable_diseases"],
+            ["Infectious diseases", "infectious_diseases"],
+            ["Neurology", "neurology"],
+            ["Malnutrition", "malnutrition"],
+            ["Ophthalmology", "ophthalmology"],
+            ["Ears-nose-throat", "ears_nose_throat"],
           ],
           [
-            "Orthopedics and rehabilitation",
-            "Pediatrics",
-            "Radiology",
-            "Wound care",
-            "Maternal care",
-            "Lab tests",
-            "Trauma and surgery",
-            "Urology",
+            [
+              "Orthopedics and rehabilitation",
+              "orthopedics_and_rehabilitation",
+            ],
+            ["Pediatrics", "pediatrics"],
+            ["Radiology", "radiology"],
+            ["Wound care", "wound_care"],
+            ["Maternal care", "maternal_care"],
+            ["Lab tests", "lab_tests"],
+            ["Trauma and surgery", "trauma_and_surgery"],
+            ["Urology", "urology"],
           ],
         ].map((column, index) => (
           <div key={index} className="space-y-2">
-            {column.map((service) => (
+            {column.map(([label, value]) => (
               <label
-                key={service}
+                key={value}
                 className="flex items-center text-[16px] text-[#22070B]"
               >
-                <input type="checkbox" className="mr-2" />
-                {service}
+                <input
+                  type="checkbox"
+                  className="mr-2"
+                  value={value}
+                  onChange={handleCheckboxChange}
+                  checked={
+                    partnerDetails["medicalServicesProvided"] &&
+                    partnerDetails["medicalServicesProvided"].includes(value)
+                  }
+                  name="medicalServicesProvided"
+                />
+                {label}
               </label>
             ))}
           </div>
@@ -81,6 +102,9 @@ export default function StepSix({
         text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
         font-[Open_Sans] rounded-[4px] resize-none mb-8"
         placeholder="List"
+        name="otherMedicalServicesProvided"
+        value={partnerDetails.otherMedicalServicesProvided || ""}
+        onChange={handleInputChange}
       />
 
       <div className="flex justify-between mt-6">
