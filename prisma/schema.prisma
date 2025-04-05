@@ -43,6 +43,8 @@ model User {
 
   // There should only ever be one distribution
   distributions Distribution[]
+
+  signOffs SignOff[]
 }
 
 model UserInvite {
@@ -255,6 +257,9 @@ model SignOff {
   signatureUrl    String
 
   createdAt DateTime @default(now())
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
 
   distributions Distribution[]
 }
