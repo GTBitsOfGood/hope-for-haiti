@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// page unfinished so disabling this rule for now
-
 import { ShippingStatus, Item } from "@prisma/client";
 import { CgChevronRight, CgSpinner } from "react-icons/cg";
 import React, { useEffect, useState } from "react";
@@ -58,28 +55,7 @@ export default function ShippingStatusTable({
   const [shippingStatuses, setShippingStatuses] = useState<ShippingStatus[]>(
     []
   );
-  const [mockShippingStatuses, setMockShippingStatuses] = useState<
-    ShippingStatus[]
-  >([
-    {
-      id: 1,
-      donorShippingNumber: "123456781",
-      hfhShippingNumber: "987654323",
-      value: "WAITING_ARRIVAL_FROM_DONOR",
-    },
-    {
-      id: 2,
-      donorShippingNumber: "123456782",
-      hfhShippingNumber: "987654322",
-      value: "LOAD_ON_SHIP_AIR",
-    },
-    {
-      id: 3,
-      donorShippingNumber: "123456783",
-      hfhShippingNumber: "987654321",
-      value: "ARRIVED_IN_HAITI",
-    },
-  ]);
+
   const [items, setItems] = useState<ItemEntry[][]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
