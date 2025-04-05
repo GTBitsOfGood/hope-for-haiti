@@ -83,6 +83,10 @@ model Item {
   gik              Boolean
 
   unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
+
+  donorOfferItemId                 Int?
+  donorOfferItem                   DonorOfferItem?                   @relation(fields: [donorOfferItemId], references: [id])
+  donorOfferItemRequestAllocations DonorOfferItemRequestAllocation[]
 }
 
 model UnallocatedItemRequest {
@@ -154,6 +158,7 @@ model DonorOfferItem {
   quantity Int
 
   requests DonorOfferItemRequest[]
+  items    Item[]
 }
 
 model DonorOfferItemRequest {
@@ -165,9 +170,10 @@ model DonorOfferItemRequest {
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id])
 
-  quantity Int
-  comments String
-  priority RequestPriority
+  quantity                        Int
+  comments                        String
+  priority                        RequestPriority
+  DonorOfferItemRequestAllocation DonorOfferItemRequestAllocation[]
 }
 
 model DonorOfferPartnerVisibility {
@@ -178,4 +184,16 @@ model DonorOfferPartnerVisibility {
 
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id])
+}
+
+model DonorOfferItemRequestAllocation {
+  id Int @id @default(autoincrement())
+
+  quantity Int
+
+  donorOfferItemRequestId Int
+  donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id])
+
+  itemId Int
+  item   Item @relation(fields: [itemId], references: [id])
 }
