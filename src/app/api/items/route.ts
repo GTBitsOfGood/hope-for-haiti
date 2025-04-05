@@ -52,5 +52,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     },
   });
 
-  return NextResponse.json(createdItem);
+  return NextResponse.json(createdItem, {
+    headers: {
+      'Cache-Control': 'no-store, max-age=0',
+    },
+  });
 }
