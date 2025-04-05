@@ -77,7 +77,8 @@ export default function FinalizeDonorOfferScreen() {
             router.replace("/donorOffers");
             return;
           }
-          throw new Error("Failed to fetch donor offer details");
+          const errorData = await response.json();
+          throw new Error(errorData.errors?.[0] || "Failed to fetch donor offer details");
         }
         
         const donorOfferDetails = await response.json();

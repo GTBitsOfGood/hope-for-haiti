@@ -77,7 +77,7 @@ export async function GET(
     return authorizationError("Only staff members can finalize donor offers");
   }
 
-  const donorOfferId = parseInt(params.donorOfferId);
+  const donorOfferId =  parseInt((await params).donorOfferId);
   if (isNaN(donorOfferId)) {
     return NextResponse.json(
       { errors: ["Invalid donor offer ID"] },
@@ -144,7 +144,7 @@ export async function POST(
     return authorizationError("Only staff members can finalize donor offers");
   }
 
-  const donorOfferId = parseInt(params.donorOfferId);
+  const donorOfferId =  parseInt((await params).donorOfferId);
   if (isNaN(donorOfferId)) {
     return NextResponse.json(
       { errors: ["Invalid donor offer ID"] },
