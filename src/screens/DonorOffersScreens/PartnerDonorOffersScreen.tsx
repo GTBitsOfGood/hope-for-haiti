@@ -1,37 +1,38 @@
 "use client";
 
-import { DonorOfferDTO } from "@/app/api/donorOffers/types";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { DonorOfferState } from "@prisma/client";
-import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { CgSpinner } from "react-icons/cg";
+import { formatTableValue } from "@/utils/format";
 
 /**
  * Search bar covers the menu bar when looking at mobile view.
  *  - It's because of the z-layer of the search bar is too high.
  */
 
+interface DonorOfferDTO {
+  donorOfferId: number;
+  offerName: string;
+  donorName: string;
+  responseDeadline: Date;
+  state: DonorOfferState;
+}
+
 export default function PartnerDonorOffersScreen() {
   const [isLoading, setIsLoading] = useState(true); // Manage table loading state
   const [donorOffers, setDonorOffers] = useState<DonorOfferDTO[]>([]); // Hold donor offers
 
-  // Get donor offers react hook (I think that's the right term)
   useEffect(() => {
     setTimeout(async () => {
       const response = await fetch("/api/donorOffers", {
         method: "GET",
       });
       const data = await response.json();
-      const formattedData = data.map((offer: DonorOfferDTO) => {
-        return {
-          donorOfferId: offer.donorOfferId,
-          state: offer.state,
-          offerName: offer.offerName,
-          donorName: offer.donorName,
-          responseDeadline: offer.responseDeadline,
-        } as DonorOfferDTO;
-      });
+      const formattedData = data.map((offer: DonorOfferDTO) => ({
+        ...offer,
+        responseDeadline: new Date(offer.responseDeadline),
+      }));
       setDonorOffers(formattedData);
       setIsLoading(false);
     }, 1000);
@@ -93,16 +94,20 @@ export default function PartnerDonorOffersScreen() {
                     data-odd={index % 2 !== 1}
                     className={`bg-white data-[odd=true]:bg-gray-100 break-words`}
                   >
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      <Link href={`/donorOffers/${offer.donorOfferId}`}>
-                        {offer.offerName}
-                      </Link>
+                    <td className="px-4 py-2">
+                      {formatTableValue(offer.offerName)}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {offer.donorName}
+                    <td className="px-4 py-2">
+                      {formatTableValue(offer.donorName)}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {offer.responseDeadline}
+                    <td className="px-4 py-2">
+                      {formatTableValue(
+                        offer.responseDeadline.toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                        })
+                      )}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
                       {offer.state === DonorOfferState.UNFINALIZED && (
