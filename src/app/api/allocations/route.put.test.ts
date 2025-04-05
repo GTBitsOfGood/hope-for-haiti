@@ -50,6 +50,8 @@ describe.skip("PUT /api/allocations", () => {
     unallocatedItemRequestId: 1,
     itemId: 1,
     quantity: 10,
+    partnerId: null,
+    visible: true,
   };
 
   test("returns 404 if no matching item exists", async () => {

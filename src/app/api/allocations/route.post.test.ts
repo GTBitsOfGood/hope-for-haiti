@@ -141,7 +141,9 @@ describe("POST /api/allocations", () => {
       id: 1,
       unallocatedItemRequestId: 1,
       itemId: 1,
+      partnerId: null,
       quantity: 10,
+      visible: true,
     });
 
     await testApiHandler({
@@ -156,6 +158,8 @@ describe("POST /api/allocations", () => {
             unallocatedItemRequestId: 1,
             itemId: 1,
             quantity: 10,
+            partnerId: null,
+            visible: true,
           },
         });
       },
