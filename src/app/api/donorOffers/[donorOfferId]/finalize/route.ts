@@ -63,7 +63,7 @@ const DonorOfferSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { donorOfferId: string } }
+  { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
   const session = await auth();
   if (!session?.user) return authenticationError("Session required");
