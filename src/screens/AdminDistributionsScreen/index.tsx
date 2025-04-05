@@ -84,7 +84,6 @@ export default function AdminDistributionsScreen() {
           throw new Error();
         }
         const partnerData = await partner.json();
-        console.log(partnerData);
         setPartnerName(partnerData.user.name);
 
         const distributions = await fetch(
