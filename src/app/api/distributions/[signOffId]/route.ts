@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { authenticationError, notFoundError } from "@/util/responses";
 import { DistributionItem } from "./types";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { format } from "date-fns";
 
 /**
