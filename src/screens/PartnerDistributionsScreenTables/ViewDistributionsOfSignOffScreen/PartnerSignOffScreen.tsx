@@ -43,7 +43,7 @@ export default function PartnerSignOffScreen() {
       router.push(`/distributions/`);
       return;
     }
-  }, [activeTab]);
+  }, [activeTab, router]);
 
   return (
     <>

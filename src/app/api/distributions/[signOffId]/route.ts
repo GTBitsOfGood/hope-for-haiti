@@ -5,6 +5,12 @@ import { DistributionItem } from "./types";
 import { NextResponse } from "next/server";
 import { format } from "date-fns";
 
+/**
+ * Gets the signed distributions for a given sign off ID.
+ * @param _
+ * @param param1
+ * @returns
+ */
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ signOffId: string }> }
@@ -38,7 +44,7 @@ export async function GET(
       item = allocation?.unallocatedItem;
       quantityAllocated = allocation?.quantity;
 
-      console.log(allocation?.quantity);
+      // console.log(allocation?.quantity);
 
       if (item && quantityAllocated !== undefined)
         items.push({
