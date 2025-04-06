@@ -1,5 +1,5 @@
 interface ModalTextFieldProps {
-  label: string;
+  label?: string;
   required?: boolean;
   name: string;
   placeholder?: string;
@@ -7,6 +7,7 @@ interface ModalTextFieldProps {
   type?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  inputProps?: object;
 }
 
 export default function ModalTextField({
@@ -18,12 +19,13 @@ export default function ModalTextField({
   type = "text",
   value,
   onChange,
+  inputProps,
 }: ModalTextFieldProps) {
   return (
     <div className="grow">
       <label className="block text-sm font-medium text-gray-700">
         {label}
-        <span className="text-red-500">{required ? " *" : ""}</span>
+        {label && <span className="text-red-500">{required ? " *" : ""}</span>}
         <input
           type={type}
           className="mt-1 block w-full px-3 py-2 border border-gray-primary border-opacity-10 rounded-sm bg-sunken text-gray-primary placeholder-gray-primary placeholder-opacity-50 focus:outline-none focus:border-gray-400"
@@ -33,6 +35,7 @@ export default function ModalTextField({
           defaultValue={defaultValue}
           value={value}
           onChange={onChange}
+          {...inputProps}
         />
       </label>
     </div>

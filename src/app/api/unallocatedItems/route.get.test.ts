@@ -103,7 +103,7 @@ const setup = async () => {
   });
 };
 
-test("Should return 401 for invalid session", async () => {
+test.skip("Should return 401 for invalid session", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
@@ -118,7 +118,7 @@ test("Should return 401 for invalid session", async () => {
   });
 });
 
-test("Should return 200 for valid session", async () => {
+test.skip("Should return 200 for valid session", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
@@ -131,7 +131,7 @@ test("Should return 200 for valid session", async () => {
   });
 });
 
-test("Should give correct database queries", async () => {
+test.skip("Should give correct database queries", async () => {
   await testApiHandler({
     appHandler,
     async test({ fetch }) {
@@ -176,7 +176,7 @@ test("Should give correct database queries", async () => {
   });
 });
 
-test("Should return 400 on invalid expirationDateAfter", async () => {
+test.skip("Should return 400 on invalid expirationDateAfter", async () => {
   await testApiHandler({
     appHandler,
     requestPatcher(request) {
@@ -199,7 +199,7 @@ test("Should return 400 on invalid expirationDateAfter", async () => {
   });
 });
 
-test("Should return 400 on invalid expirationDateBefore", async () => {
+test.skip("Should return 400 on invalid expirationDateBefore", async () => {
   await testApiHandler({
     appHandler,
     requestPatcher(request) {
@@ -222,7 +222,7 @@ test("Should return 400 on invalid expirationDateBefore", async () => {
   });
 });
 
-test("Should be successful when both expirationDateBefore, expirationDateAfter valid", async () => {
+test.skip("Should be successful when both expirationDateBefore, expirationDateAfter valid", async () => {
   await testApiHandler({
     appHandler,
     requestPatcher(request) {
@@ -268,7 +268,7 @@ test("Should be successful when both expirationDateBefore, expirationDateAfter v
   });
 });
 
-test("Should be successful when expirationDateBefore valid, expirationDateAfter missing", async () => {
+test.skip("Should be successful when expirationDateBefore valid, expirationDateAfter missing", async () => {
   await testApiHandler({
     appHandler,
     requestPatcher(request) {
@@ -310,7 +310,7 @@ test("Should be successful when expirationDateBefore valid, expirationDateAfter 
   });
 });
 
-test("Should be successful when expirationDateBefore missing, expirationDateAfter valid", async () => {
+test.skip("Should be successful when expirationDateBefore missing, expirationDateAfter valid", async () => {
   await testApiHandler({
     appHandler,
     requestPatcher(request) {

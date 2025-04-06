@@ -39,37 +39,36 @@ export default function DistributionTable({
                 data-odd={index % 2 !== 0}
                 className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
               >
-                <td className="px-4 py-2">{distribution.item.title}</td>
+                <td className="px-4 py-2">{distribution.title}</td>
                 <td className="px-4 py-2">{distribution.quantityAllocated}</td>
                 <td className="px-4 py-2">
-                  {distribution.quantityAvailable}/{distribution.total}
+                  {/* {distribution.quantityAvailable}/{distribution.total} */}
+                  TODO
                 </td>
-                <td className="px-4 py-2">{distribution.item.donorName}</td>
-                <td className="px-4 py-2">{distribution.item.palletNumber}</td>
-                <td className="px-4 py-2">{distribution.item.boxNumber}</td>
-                <td className="px-4 py-2">{distribution.item.lotNumber}</td>
+                <td className="px-4 py-2">{distribution.donorName}</td>
+                <td className="px-4 py-2">{distribution.palletNumber}</td>
+                <td className="px-4 py-2">{distribution.boxNumber}</td>
+                <td className="px-4 py-2">{distribution.lotNumber}</td>
                 <td className="px-4 py-2">
-                  {distribution.item.unitPrice.toString()}
-                </td>
-                <td className="px-4 py-2">
-                  {distribution.item.donorShippingNumber}
+                  {distribution.unitPrice.toString()}
                 </td>
                 <td className="px-4 py-2">
-                  {distribution.item.hfhShippingNumber}
+                  {distribution.donorShippingNumber}
                 </td>
+                <td className="px-4 py-2">{distribution.hfhShippingNumber}</td>
                 <td className="px-4 py-2">
                   <ChatTeardropText
-                    data-tooltip-id={`comment-tooltip-${distribution.item.id}`}
-                    data-tooltip-content={distribution.item.notes}
+                    data-tooltip-id={`comment-tooltip-${distribution.id}`}
+                    data-tooltip-content={distribution.notes}
                     size={30}
-                    color={distribution.item.notes ? "black" : "lightgray"}
+                    color={distribution.notes ? "black" : "lightgray"}
                   />
-                  {distribution.item.notes && (
+                  {distribution.notes && (
                     <Tooltip
-                      id={`comment-tooltip-${distribution.item.id}`}
+                      id={`comment-tooltip-${distribution.id}`}
                       className="max-w-40"
                     >
-                      {distribution.item.notes}
+                      {distribution.notes}
                     </Tooltip>
                   )}
                 </td>

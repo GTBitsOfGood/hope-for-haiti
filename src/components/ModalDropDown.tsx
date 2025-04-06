@@ -7,11 +7,12 @@ interface ModalDropDownOption {
 }
 
 interface ModalDropDownProps {
-  label: string;
+  label?: string;
   required?: boolean;
   name: string;
   placeholder?: string;
   options: ModalDropDownOption[];
+  onSelect?: (value: string) => void;
 }
 
 export function StringToModalDropDownOption(
@@ -29,6 +30,7 @@ export default function ModalDropDown({
   name,
   placeholder = "Select an option",
   options,
+  onSelect,
 }: ModalDropDownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOptionValue, setSelectedOptionValue] = useState("");
@@ -43,6 +45,7 @@ export default function ModalDropDown({
     setSelectedOptionValue(option.value);
     setSelectedOptionLabel(option.label);
     setIsOpen(false); // Close the dropdown after selecting an option
+    if (onSelect) onSelect(option.value);
   };
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -63,10 +66,12 @@ export default function ModalDropDown({
 
   return (
     <div className="grow relative">
-      <label className="block">
-        {label}
-        <span className="text-red-500">{required ? " *" : ""}</span>
-      </label>
+      {label && (
+        <label className="block">
+          {label}
+          <span className="text-red-500">{required ? " *" : ""}</span>
+        </label>
+      )}
       <div ref={dropdownRef}>
         <div className="relative">
           {/* Input field to show the selected option but shouldn't be in form submission */}

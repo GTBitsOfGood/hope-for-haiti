@@ -121,7 +121,11 @@ function RequestItemsModal({
       <div className="flex flex-col bg-white p-8 rounded-lg shadow-lg w-[700px] relative max-h-[90vh] text-gray-primary">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold">Request items</h2>
-          <X onClick={onClose} size={24} className="cursor-pointer" />
+          <X
+            onClick={() => onClose(false)}
+            size={24}
+            className="cursor-pointer"
+          />
         </div>
         <table>
           <thead>
@@ -145,7 +149,7 @@ function RequestItemsModal({
                       options={priorityOptions}
                       placeholder="Priority"
                       required
-                      onSelect={(value) => {
+                      onSelect={(value: string) => {
                         updateItemAtIndex(i, { priority: value });
                       }}
                     />
@@ -161,7 +165,7 @@ function RequestItemsModal({
                       inputProps={{
                         defaultValue: 0,
                         min: 0,
-                        onChange: (e) => {
+                        onChange: (e: { target: { value: string } }) => {
                           updateItemAtIndex(i, { quantity: e.target.value });
                         },
                       }}
@@ -174,7 +178,7 @@ function RequestItemsModal({
                     placeholder="Comments"
                     required
                     inputProps={{
-                      onChange: (e) => {
+                      onChange: (e: { target: { value: string } }) => {
                         updateItemAtIndex(i, { comments: e.target.value });
                       },
                     }}
@@ -187,7 +191,7 @@ function RequestItemsModal({
         <div className="mt-4 flex space-x-4">
           <button
             className="block grow border border-red-500 text-center text-red-500 bg-white py-1 px-4 rounded font-medium hover:bg-red-50 transition"
-            onClick={onClose}
+            onClick={() => onClose(false)}
           >
             Cancel
           </button>

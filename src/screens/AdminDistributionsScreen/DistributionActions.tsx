@@ -118,7 +118,7 @@ export default function DistributionActions({
             <DotsThree weight="bold" />
           </MenuButton>
           <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-            {distribution.item.visible ? (
+            {distribution.visible ? (
               <MenuItem
                 as="button"
                 className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"

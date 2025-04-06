@@ -68,7 +68,7 @@ export default function AdminDistributionsScreen() {
         oldDistributions.map((distribution) => ({
           ...distribution,
           visible: true,
-        })),
+        }))
       );
     } catch (e) {
       toast.error("Error changing visibility", {
@@ -89,7 +89,7 @@ export default function AdminDistributionsScreen() {
         setPartnerName(partnerData.user.name);
 
         const distributions = await fetch(
-          `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`,
+          `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`
         );
 
         if (!distributions.ok) {
@@ -186,9 +186,9 @@ export default function AdminDistributionsScreen() {
               distributions={distributions.filter(
                 (distribution) =>
                   !distribution.visible &&
-                  distribution.item.title
+                  distribution.title
                     .toLowerCase()
-                    .includes(search.toLowerCase()),
+                    .includes(search.toLowerCase())
               )}
               setDistributions={setDistributions}
             />
@@ -198,9 +198,9 @@ export default function AdminDistributionsScreen() {
               distributions={distributions.filter(
                 (distribution) =>
                   distribution.visible &&
-                  distribution.item.title
+                  distribution.title
                     .toLowerCase()
-                    .includes(search.toLowerCase()),
+                    .includes(search.toLowerCase())
               )}
               setDistributions={setDistributions}
             />

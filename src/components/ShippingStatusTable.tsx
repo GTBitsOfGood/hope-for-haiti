@@ -1,7 +1,7 @@
 import { ShippingStatus, Item } from "@prisma/client";
 import { CgChevronRight, CgSpinner } from "react-icons/cg";
 import React, { useEffect, useState } from "react";
-import { ItemEntry } from "@/screens/AdminDistributionsScreenTabs/ShippingStatus";
+import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
 
 interface ShippingStatusTableProps {
   openModal: (

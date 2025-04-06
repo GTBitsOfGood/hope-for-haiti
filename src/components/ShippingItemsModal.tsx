@@ -1,6 +1,6 @@
 import { X, DotsThree } from "@phosphor-icons/react";
 import React from "react";
-import { ItemEntry } from "@/screens/AdminDistributionsScreenTabs/ShippingStatus";
+import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
 import { ChatTeardropText } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
 
