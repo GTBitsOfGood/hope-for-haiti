@@ -33,9 +33,7 @@ interface AllocationSearchResults {
 export default function AdminUnallocatedItemsScreen() {
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>(
-    ExpirationFilterKey.ZERO_TO_THREE
-  );
+  const [activeTab, setActiveTab] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
 
   const [viewingItemIndex, setViewingItemIndex] = useState<number | null>(null);
