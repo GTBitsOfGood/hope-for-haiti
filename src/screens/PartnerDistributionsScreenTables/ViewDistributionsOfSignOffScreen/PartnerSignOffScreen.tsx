@@ -6,47 +6,49 @@ import { CgSpinner } from "react-icons/cg";
 import React from "react";
 import {
   DistributionItem,
-  PartnerDistributionsResponse,
   SignedDistributions,
-} from "@/app/api/distributions/types";
-import InProgressTable from "./PartnerDistributionsScreenTables/InProgressTable";
-import CompleteTable from "./PartnerDistributionsScreenTables/CompleteTable";
-import { useSearchParams } from "next/navigation";
+} from "@/app/api/distributions/signOffs/[signOffId]/types";
+import { useRouter, useParams } from "next/navigation";
+import TableOfItemsOfDistributions from "./TableOfItemsOfDistributions";
 
 enum Tab {
   IN_PROGRESS = "In Progress",
   COMPLETE = "Complete",
 }
 
-export default function PartnerUnallocatedItemsScreen() {
+export default function PartnerSignOffScreen() {
   const [items, setItems] = useState<DistributionItem[]>([]);
-  const [signedDistributions, setSignedDistributions] = useState<
-    SignedDistributions[]
-  >([]);
-  const defaultTab = useSearchParams().get("table")
-    ? Tab.COMPLETE
-    : Tab.IN_PROGRESS;
-  const [activeTab, setActiveTab] = useState<string>(defaultTab); //this is for the row of tabs
+  const [signOffDate, setSignOffDate] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>(Tab.COMPLETE); //this is for the row of tabs
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const signOffId = useParams().signOffId;
 
   useEffect(() => {
     setTimeout(async () => {
-      const response = await fetch("/api/distributions", {
+      const response = await fetch(`/api/distributions/signOffs/${signOffId}`, {
         method: "GET",
       });
-      const data: PartnerDistributionsResponse =
-        (await response.json()) as PartnerDistributionsResponse;
+      const data: SignedDistributions =
+        (await response.json()) as SignedDistributions;
       console.log(data);
-      setItems(data.distributionItems);
-      setSignedDistributions(data.signedDistributions);
+      setSignOffDate(data.signOff.date);
+      setItems(data.itemDistributions);
       setIsLoading(false);
     }, 1000);
-  }, []);
+  }, [signOffId]);
+
+  useEffect(() => {
+    if (activeTab === Tab.IN_PROGRESS) {
+      router.push(`/distributions/`);
+      return;
+    }
+  }, [activeTab, router]);
 
   return (
     <>
       <h1 className="text-2xl font-semibold text-gray-primary">
-        Distributions
+        Distributions / &quot;{signOffDate}&quot;
       </h1>
 
       <div className="flex justify-between items-center w-full py-4 mt-1">
@@ -78,6 +80,11 @@ export default function PartnerUnallocatedItemsScreen() {
               data-active={activeTab === key}
               className="px-2 py-1 text-md font-medium text-gray-primary text-opacity-70 relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-gray-primary data-[active=true]:bottom-[-1px] data-[active=true]:text-opacity-100"
               onClick={() => {
+                if (key === Tab.COMPLETE) {
+                  router.push("/distributions?table=complete");
+                } else if (key === Tab.IN_PROGRESS) {
+                  router.push("/distributions");
+                }
                 setActiveTab(key);
               }}
             >
@@ -95,9 +102,9 @@ export default function PartnerUnallocatedItemsScreen() {
         (() => {
           switch (activeTab) {
             case Tab.IN_PROGRESS:
-              return <InProgressTable items={items} />;
+              return <></>;
             case Tab.COMPLETE:
-              return <CompleteTable entries={signedDistributions} />;
+              return <TableOfItemsOfDistributions entries={items} />;
             default:
               return <></>;
           }

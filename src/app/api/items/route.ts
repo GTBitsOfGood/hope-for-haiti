@@ -42,7 +42,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const validatedForm = ItemFormSchema.safeParse(await request.formData());
 
   if (!validatedForm.success) {
-    //console.log(validatedForm.error.format());
     return argumentError("Invalid form data");
   }
 
@@ -53,4 +52,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   return NextResponse.json(createdItem);
+}
+
+export async function GET(): Promise<NextResponse> {
+  const session = await auth();
+  if (!session?.user) return authenticationError("Session required");
+  if (!AUTHORIZED_USER_TYPES.includes(session.user.type)) {
+    return authorizationError("You are not allowed to view this");
+  }
+
+  const items = await db.item.findMany();
+  return NextResponse.json(items);
 }

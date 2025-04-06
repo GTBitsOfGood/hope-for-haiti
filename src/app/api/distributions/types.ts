@@ -1,12 +1,17 @@
-import { Item } from "@prisma/client";
+import { Item, ShipmentStatus } from "@prisma/client";
 
-export interface DistributionItem {
-  id: number;
-  partnerId: number;
-  signOffId: number | null;
-  item: Item;
+export interface PartnerDistributionsResponse {
+  distributionItems: DistributionItem[];
+  signedDistributions: SignedDistributions[];
+}
+
+export interface DistributionItem extends Item {
+  shipmentStatus: ShipmentStatus;
   quantityAllocated: number;
-  quantityAvailable: number;
-  total: number;
-  visible: boolean;
+}
+
+export interface SignedDistributions {
+  signOffId: number;
+  distributionDate: string;
+  numberOfItems: number;
 }
