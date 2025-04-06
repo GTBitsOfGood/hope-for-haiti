@@ -42,7 +42,9 @@ model User {
   donorOfferItemRequests  DonorOfferItemRequest[]
 
   // There should only ever be one distribution
-  distributions Distribution[]
+  distributions                    Distribution[]
+  UnallocatedItemRequestAllocation UnallocatedItemRequestAllocation[]
+  signOffs SignOff[]
 }
 
 model UserInvite {
@@ -102,12 +104,14 @@ model UnallocatedItemRequest {
   title           String
   type            String
   expirationDate  DateTime?
-  unitSize        Int
+  unitType        String?
   quantityPerUnit String?
 
   priority RequestPriority
   quantity Int
   comments String
+
+  unitSize Int
 
   createdAt DateTime @default(now())
 
@@ -119,14 +123,19 @@ model UnallocatedItemRequestAllocation {
 
   quantity Int
 
-  unallocatedItemRequestId Int
-  unallocatedItemRequest   UnallocatedItemRequest @relation(fields: [unallocatedItemRequestId], references: [id])
+  partnerId Int?
+  partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  unallocatedItemRequestId Int?
+  unallocatedItemRequest   UnallocatedItemRequest? @relation(fields: [unallocatedItemRequestId], references: [id])
 
   itemId          Int
   unallocatedItem Item @relation(fields: [itemId], references: [id])
 
   // There should only ever be one distribution
   distributions Distribution[]
+
+  visible Boolean @default(false)
 }
 
 enum DonorOfferState {
@@ -180,6 +189,8 @@ model DonorOfferItemRequest {
   comments                        String
   priority                        RequestPriority
   DonorOfferItemRequestAllocation DonorOfferItemRequestAllocation[]
+
+  createdAt DateTime @default(now())
 }
 
 model DonorOfferPartnerVisibility {
@@ -203,6 +214,8 @@ model DonorOfferItemRequestAllocation {
   itemId       Int
   item         Item           @relation(fields: [itemId], references: [id])
   Distribution Distribution[]
+
+  visible Boolean @default(false)
 }
 
 model Distribution {
@@ -217,8 +230,8 @@ model Distribution {
   donorOfferItemRequestAllocationId Int?                             @unique
   donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id])
 
-  signOffId Int
-  signOff   SignOff @relation(fields: [signOffId], references: [id])
+  signOffId Int?
+  signOff   SignOff? @relation(fields: [signOffId], references: [id])
 }
 
 enum ShipmentStatus {
@@ -247,6 +260,11 @@ model SignOff {
   partnerName     String
   date            DateTime
   signatureUrl    String
+
+  createdAt DateTime @default(now())
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
 
   distributions Distribution[]
 }

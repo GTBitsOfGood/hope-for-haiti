@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import React from "react";
 import PartnerDonorOffersScreen from "./PartnerDonorOffersScreen";
+import AdminDonorOffersScreen from "./AdminDonorOffersScreen";
 
 export default function DonorOffersScreen() {
   const { data: session } = useSession();
@@ -10,9 +11,10 @@ export default function DonorOffersScreen() {
   switch (session?.user.type) {
     case "PARTNER":
       return <PartnerDonorOffersScreen />;
-    case "SUPER_ADMIN":
     case "ADMIN":
+    case "SUPER_ADMIN":
     case "STAFF":
+      return <AdminDonorOffersScreen />;
     default:
       return (
         <>

@@ -11,6 +11,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { RequestPriority } from "@prisma/client";
+import { formatTableValue } from "@/utils/format";
 
 /**
  * Search bar and buttons cover the menu bar when looking at mobile view.
@@ -90,7 +91,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       setDonorOfferItemsRequests(goodResponse.donorOfferItemsRequests);
       setIsLoading(false);
     }, 1000);
-  }, []);
+  }, [donorOfferId, router]);
   // ---------------------------------------------------------------------------
 
   // Open and close comment window hooks
@@ -187,23 +188,23 @@ export default function PartnerDynamicDonorOfferScreen() {
                     data-odd={index % 2 !== 1}
                     className={`bg-white data-[odd=true]:bg-gray-100 break-words`}
                   >
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {request.title}
+                    <td className="px-4 py-2">
+                      {formatTableValue(request.title)}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {request.type}
+                    <td className="px-4 py-2">
+                      {formatTableValue(request.type)}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {request.expiration}
+                    <td className="px-4 py-2">
+                      {formatTableValue(request.expiration)}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {request.quantity}
+                    <td className="px-4 py-2">
+                      {formatTableValue(request.quantity)}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {request.unitSize}
+                    <td className="px-4 py-2">
+                      {formatTableValue(request.unitSize)}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {request.quantityRequested}
+                    <td className="px-4 py-2">
+                      {formatTableValue(request.quantityRequested)}
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
                       {request.priority === RequestPriority.LOW && (

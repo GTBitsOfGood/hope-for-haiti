@@ -59,6 +59,8 @@ const generalItems: Array<{
 async function run() {
   await db.$transaction(async (tx) => {
     await tx.donorOfferPartnerVisibility.deleteMany();
+    await tx.distribution.deleteMany();
+    await tx.donorOfferItemRequestAllocation.deleteMany();
     await tx.donorOfferItemRequest.deleteMany();
     await tx.donorOfferItem.deleteMany();
     await tx.donorOffer.deleteMany();
@@ -200,11 +202,29 @@ async function run() {
             visible: true,
             gik: false,
           },
+          {
+            title: "Banadage Hidden",
+            type: "First Aid",
+            expirationDate: dateOffset(1000),
+            unitSize: 100,
+            unitType: "Count / Box",
+            category: ItemCategory.MEDICAL_SUPPLY,
+            donorName: "Donor D",
+            quantity: 1000,
+            lotNumber: 1,
+            palletNumber: 2,
+            boxNumber: 2004,
+            unitPrice: new Prisma.Decimal(4),
+            allowAllocations: true,
+            visible: false,
+            gik: false,
+            notes: "this item is hidden",
+          },
         ] as Item[]
-      ).map((data) => tx.item.create({ data }))
+      ).map((data) => tx.item.create({ data })),
     );
 
-    await Promise.all(
+    const unallocatedItemRequests = await Promise.all(
       items.map((item) =>
         tx.unallocatedItemRequest.create({
           data: {
@@ -217,8 +237,8 @@ async function run() {
             quantity: 2,
             comments: "pls",
           },
-        })
-      )
+        }),
+      ),
     );
 
     const donorOffers = await Promise.all(
@@ -253,7 +273,7 @@ async function run() {
             donorResponseDeadline: dateOffset(30),
           },
         ] as DonorOffer[]
-      ).map((data) => tx.donorOffer.create({ data }))
+      ).map((data) => tx.donorOffer.create({ data })),
     );
 
     await Promise.all(
@@ -275,10 +295,102 @@ async function run() {
               ...pick(generalItems),
               quantity: Math.floor(1 + Math.random() * 8),
             },
-          ].map((data) => tx.donorOfferItem.create({ data }))
-        )
-      )
+          ].map((data) => tx.donorOfferItem.create({ data })),
+        ),
+      ),
     );
+
+    const partners = await tx.user.findMany({
+      where: {
+        type: UserType.PARTNER,
+      },
+    });
+
+    await Promise.all(
+      donorOffers.slice(0, 2).flatMap((offer) =>
+        partners.map((partner) =>
+          tx.donorOfferPartnerVisibility.create({
+            data: {
+              donorOfferId: offer.id,
+              partnerId: partner.id,
+            },
+          }),
+        ),
+      ),
+    );
+    const donorOfferItem = await tx.donorOfferItem.create({
+      data: {
+        donorOfferId: donorOffers[0].id,
+        title: items[0].title,
+        type: items[0].type,
+        expiration: items[0].expirationDate,
+        unitSize: items[0].unitSize,
+        unitType: items[0].unitType,
+        quantityPerUnit: items[0].quantityPerUnit,
+        quantity: items[0].quantity,
+      },
+    });
+
+    const donorOfferItemRequest = await tx.donorOfferItemRequest.create({
+      data: {
+        donorOfferItemId: donorOfferItem.id,
+        partnerId: partner.id,
+        quantity: donorOfferItem.quantity,
+        comments: "test comment",
+        priority: RequestPriority.MEDIUM,
+      },
+    });
+
+    const donorOfferItemRequestAllocation =
+      await tx.donorOfferItemRequestAllocation.create({
+        data: {
+          quantity: Math.floor(items[0].quantity / 3),
+          donorOfferItemRequestId: donorOfferItemRequest.id,
+          itemId: items[0].id,
+          visible: true
+        },
+      });
+
+    await tx.distribution.create({
+      data: {
+        partnerId: partner.id,
+        donorOfferItemRequestAllocationId: donorOfferItemRequestAllocation.id,
+      },
+    });
+
+    const unallocatedItemRequestAllocation =
+      await tx.unallocatedItemRequestAllocation.create({
+        data: {
+          quantity: Math.floor(items[0].quantity / 3),
+          unallocatedItemRequestId: unallocatedItemRequests[0].id,
+          itemId: items[0].id,
+          visible: true
+        },
+      });
+
+    await tx.distribution.create({
+      data: {
+        partnerId: partner.id,
+        unallocatedItemRequestAllocationId: unallocatedItemRequestAllocation.id,
+      },
+    });
+
+    const unallocatedItemRequestAllocationHidden =
+      await tx.unallocatedItemRequestAllocation.create({
+        data: {
+          quantity: Math.floor(items[5].quantity / 3),
+          unallocatedItemRequestId: unallocatedItemRequests[1].id,
+          itemId: items[5].id,
+        },
+      });
+
+    await tx.distribution.create({
+      data: {
+        partnerId: partner.id,
+        unallocatedItemRequestAllocationId:
+          unallocatedItemRequestAllocationHidden.id,
+      },
+    });
   });
 }
 

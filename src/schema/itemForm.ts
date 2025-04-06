@@ -9,6 +9,7 @@ export const ItemFormSchema = zfd.formData({
   quantity: zfd.numeric(z.number().int().min(0)),
   expirationDate: z.coerce.date(),
   quantityPerUnit: zfd.text(),
+  unitSize: zfd.numeric(z.number().int().min(0)),
   unitType: zfd.text(),
   datePosted: z.coerce.date(),
   lotNumber: zfd.numeric(z.number().int().min(0)),
@@ -22,8 +23,8 @@ export const ItemFormSchema = zfd.formData({
   gik: zfd.checkbox(),
   donorShippingNumber: zfd.text(),
   hfhShippingNumber: zfd.text(),
-  ndc: zfd.text().optional(),
-  notes: zfd.text().optional(),
+  ndc: zfd.text(z.string().optional()),
+  notes: zfd.text(z.string().optional()),
 });
 
 export type ItemForm = z.infer<typeof ItemFormSchema>;

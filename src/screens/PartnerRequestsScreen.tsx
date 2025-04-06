@@ -13,6 +13,9 @@ import {
 } from "@prisma/client";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
+import { formatTableValue } from "@/utils/format";
+import EditAllocationModal from "@/components/EditAllocationModal";
+import { UnallocatedItem } from "@/app/api/unallocatedItemRequests/types";
 
 type RequestWithAllocations = UnallocatedItemRequest & {
   allocations: (UnallocatedItemRequestAllocation & {
@@ -49,53 +52,98 @@ export default function PartnerRequestsScreen() {
   const itemName = searchParams.get("title");
   const itemType = searchParams.get("type");
   const itemExpiration = searchParams.get("expiration");
+  // const quantityPerUnit = searchParams.get("quantityPerUnit");
   const unitSize = searchParams.get("unitSize");
+  const unitType = searchParams.get("unitType");
 
   const [requests, setRequests] = useState<RequestWithAllocations[]>([]);
+  const [items, setItems] = useState<UnallocatedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `/api/unallocatedItemRequests?title=${itemName}&type=${itemType}&expiration=${itemExpiration}&unitSize=${unitSize}`
-        );
+  const [isEditAllocationModalIsOpen, setIsEditAllocationModalIsOpen] =
+    useState(false);
+  const [selectedAllocation, setSelectedAllocation] = useState<
+    (UnallocatedItemRequestAllocation & { unallocatedItem: Item }) | null
+  >(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-        if (!response.ok) {
-          throw new Error();
-        }
+  const fetchData = React.useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/unallocatedItemRequests?title=${itemName}&type=${itemType}&expiration=${itemExpiration}&unitSize=${unitSize}&unitType=${unitType}`
+      );
 
-        const data = await response.json();
-        setRequests(data);
-      } catch (e) {
-        toast.error("Error fetching unallocated item requests", {
-          position: "bottom-right",
-        });
-        console.log(e);
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error();
       }
-    };
 
+      const data = await response.json();
+      setRequests(data.requests);
+      setItems(data.items);
+      console.log(data.requests);
+      console.log(data.items);
+    } catch (e) {
+      toast.error("Error fetching unallocated item requests", {
+        position: "bottom-right",
+      });
+      console.log(e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [itemName, itemType, itemExpiration, unitSize, unitType]);
+
+  useEffect(() => {
     fetchData();
-  }, [itemName, itemType, itemExpiration, unitSize]);
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success("Allocation updated successfully", {
+        position: "bottom-right",
+      });
+      setIsSuccess(false);
+
+      fetchData();
+    }
+  }, [fetchData, isSuccess]);
 
   return (
     <>
-      <div className="flex items-center gap-1 mb-4">
+      {isEditAllocationModalIsOpen && (
+        <EditAllocationModal
+          setIsOpen={setIsEditAllocationModalIsOpen}
+          items={items}
+          allocation={selectedAllocation}
+          unitSize={unitSize}
+          unitType={unitType}
+          expiration={new Date(itemExpiration || "")}
+          title={itemName}
+          type={itemType}
+          setIsSuccess={setIsSuccess}
+        />
+      )}
+      <div className="flex justify-between mb-4">
+        <div className="flex items-center gap-1">
+          <Link
+            href="/unallocatedItems"
+            className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1"
+          >
+            Unallocated Items
+          </Link>
+          <span className="text-gray-500 text-opacity-70">/</span>
+          <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
+            {itemName}
+          </span>
+        </div>
         <Link
           href="/unallocatedItems"
-          className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1"
+          className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-1 rounded-lg font-medium hover:bg-red-50 transition"
         >
-          Unallocated Items
+          Back to Unallocated Items
         </Link>
-        <span className="text-gray-500 text-sm flex items-center">/</span>
-        <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
-          &quot;{itemName}&quot;
-        </span>
       </div>
       <h1 className="text-2xl font-semibold">
-        &quot;{itemName}&quot;:{" "}
+        {itemName}:{" "}
         <span className="text-gray-primary text-opacity-70">
           Partner Requests
         </span>
@@ -117,69 +165,76 @@ export default function PartnerRequestsScreen() {
         </div>
       ) : (
         <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden min-w-full">
+          <table className="mt-4 min-w-full">
             <thead>
-              <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-                <th className="px-4 py-2 text-left font-bold">Partner</th>
-                <th className="px-4 py-2 text-left font-bold">
-                  Date requested
-                </th>
-                <th className="px-4 py-2 text-left font-bold">
-                  Requested quantity
-                </th>
-                <th className="px-4 py-2 text-left font-bold">Priority</th>
-                <th className="px-4 py-2 text-left font-bold">
-                  Allocated quantity
-                </th>
-                <th className="px-4 py-2 text-left font-bold">
+              <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
+                <th className="px-4 py-2 rounded-tl-lg text-left">Partner</th>
+                <th className="px-4 py-2 text-left">Date requested</th>
+                <th className="px-4 py-2 text-left">Requested quantity</th>
+                <th className="px-4 py-2 text-left">Priority</th>
+                <th className="px-4 py-2 text-left">Allocated quantity</th>
+                <th className="px-4 py-2 text-left">
                   Allocated summary (lot, pallet, box)
                 </th>
-                <th className="px-4 py-2 text-left font-bold">Comment</th>
+                <th className="px-4 py-2 rounded-tr-lg text-left">Comment</th>
               </tr>
             </thead>
             <tbody>
-              {requests.map((item, index) => (
+              {requests.map((request, index) => (
                 <React.Fragment key={index}>
                   <tr
                     data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
+                    className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors hover:bg-gray-100`}
                   >
-                    <td className="px-4 py-2">{item.partner.name}</td>
                     <td className="px-4 py-2">
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2">{item.quantity}</td>
-                    <td className="px-4 py-2">
-                      <Priority priority={item.priority} />
+                      {formatTableValue(request.partner.name)}
                     </td>
                     <td className="px-4 py-2">
-                      {item.allocations?.reduce(
-                        (
-                          sum: number,
-                          alloc: UnallocatedItemRequestAllocation
-                        ) => sum + alloc.quantity,
-                        0
+                      {new Date(request.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(request.quantity)}
+                    </td>
+                    <td className="px-4 py-2">
+                      <Priority priority={request.priority} />
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(
+                        request.allocations?.reduce(
+                          (sum, alloc) => sum + alloc.quantity,
+                          0
+                        )
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      {item.allocations && item.allocations.length > 0 ? (
+                      {request.allocations.map((alloc) => (
+                        <div
+                          key={alloc.id}
+                          className="hover:text-red-500"
+                          onClick={() => {
+                            setIsSuccess(false);
+                            setSelectedAllocation(alloc);
+                            setIsEditAllocationModalIsOpen(true);
+                          }}
+                        >
+                          {`${alloc.quantity} - ${alloc.unallocatedItem.lotNumber}, ${alloc.unallocatedItem.palletNumber}, ${alloc.unallocatedItem.boxNumber}`}
+                        </div>
+                      ))}
+                      {request.allocations && request.allocations.length > 0 ? (
                         <>
-                          {item.allocations.map((alloc) => (
-                            <div key={alloc.id}>
-                              {`${alloc.quantity} - ${alloc.unallocatedItem.lotNumber}, ${alloc.unallocatedItem.palletNumber}, ${alloc.unallocatedItem.boxNumber}`}
-                            </div>
-                          ))}
                           <button
-                            onClick={() => {
+                            onClick={(event) => {
+                              event.stopPropagation();
                               router.push(
                                 `/newAllocation?${new URLSearchParams({
-                                  unallocatedItemRequestId: item.id.toString(),
-                                  title: item.title,
-                                  type: item.type,
+                                  unallocatedItemRequestId:
+                                    request.id.toString(),
+                                  title: request.title,
+                                  type: request.type,
                                   expiration:
-                                    (item.expirationDate as unknown as string) ||
+                                    (request.expirationDate as unknown as string) ||
                                     "",
-                                  unitSize: item.unitSize.toString(),
+                                  unitSize: request.unitSize.toString(),
                                 }).toString()}`
                               );
                             }}
@@ -190,16 +245,17 @@ export default function PartnerRequestsScreen() {
                         </>
                       ) : (
                         <button
-                          onClick={() => {
+                          onClick={(event) => {
+                            event.stopPropagation();
                             router.push(
                               `/newAllocation?${new URLSearchParams({
-                                unallocatedItemRequestId: item.id.toString(),
-                                title: item.title,
-                                type: item.type,
+                                unallocatedItemRequestId: request.id.toString(),
+                                title: request.title,
+                                type: request.type,
                                 expiration:
-                                  (item.expirationDate as unknown as string) ||
+                                  (request.expirationDate as unknown as string) ||
                                   "",
-                                unitSize: item.unitSize.toString(),
+                                unitSize: request.unitSize.toString(),
                               }).toString()}`
                             );
                           }}
@@ -211,15 +267,14 @@ export default function PartnerRequestsScreen() {
                     </td>
                     <td className="px-4 py-2 flex justify-center">
                       <ChatTeardropText
-                        data-tooltip-id={`comment-tooltip-${item.id}`}
-                        data-tooltip-content={item.comments}
-                        className={`cursor-pointer`}
+                        data-tooltip-id={`comment-tooltip-${request.id}`}
+                        data-tooltip-content={request.comments}
                         size={30}
-                        weight={item.comments ? "bold" : "regular"}
+                        color={request.comments ? "black" : "lightgray"}
                       />
-                      {item.comments && (
+                      {request.comments && (
                         <Tooltip
-                          id={`comment-tooltip-${item.id}`}
+                          id={`comment-tooltip-${request.id}`}
                           className="max-w-40"
                         />
                       )}

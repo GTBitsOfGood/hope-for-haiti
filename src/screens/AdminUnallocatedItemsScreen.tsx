@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
+import { formatTableValue } from "@/utils/format";
 import { Item, UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
-
 import NewAllocationModal from "@/components/NewAllocationModal";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 
 enum ExpirationFilterKey {
   ZERO_TO_THREE = "Expiring (0-3 Months)",
@@ -32,11 +33,8 @@ interface AllocationSearchResults {
 export default function AdminUnallocatedItemsScreen() {
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>(
-    ExpirationFilterKey.ZERO_TO_THREE
-  );
+  const [activeTab, setActiveTab] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
-  const [manageIndex, setManageIndex] = useState(-1);
 
   const [viewingItemIndex, setViewingItemIndex] = useState<number | null>(null);
   const [showNewAllocationModal, setShowNewAllocationModal] = useState(false);
@@ -51,7 +49,15 @@ export default function AdminUnallocatedItemsScreen() {
 
   const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
   const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
-  useEffect(() => {
+
+  const [unitTypes, setUnitTypes] = useState<string[]>([]); // All the unit types
+  const [donorNames, setDonorNames] = useState<string[]>([]); // All the donor names
+  const [itemTypes, setItemTypes] = useState<string[]>([]); // All the item types
+
+  const [formSuccess, setFormSuccess] = useState(false); // whether the form was submitted successfully or not
+
+  // Doing this so that table can easily refresh after a new item is added
+  const dataFetch = React.useCallback(() => {
     const fetchItems = async () => {
       try {
         const res = await fetch("/api/unallocatedItems");
@@ -60,6 +66,10 @@ export default function AdminUnallocatedItemsScreen() {
         }
         const data = await res.json();
         setFilteredItems(data.items);
+
+        setUnitTypes(data.unitTypes);
+        setDonorNames(data.donorNames);
+        setItemTypes(data.itemTypes);
       } catch (error) {
         toast.error("An error occurred while fetching data");
         console.error("Fetch error:", error);
@@ -71,14 +81,7 @@ export default function AdminUnallocatedItemsScreen() {
 
     const fetchData = async () => {
       try {
-        const now = new Date();
-        // arbitarily late end date
-        const tenYearsFromNow = new Date();
-        tenYearsFromNow.setFullYear(now.getFullYear() + 10);
-
-        const response = await fetch(
-          `/api/unallocatedItems?expirationDateAfter`
-        );
+        const response = await fetch(`/api/unallocatedItems`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch unallocated items");
@@ -93,6 +96,7 @@ export default function AdminUnallocatedItemsScreen() {
               : null,
           })
         );
+        // !! TODO: (BUG) items need to be filtered before setting
         setFilteredItems(itemsWithDates);
       } catch (error) {
         console.error("Error fetching unallocated items:", error);
@@ -103,6 +107,13 @@ export default function AdminUnallocatedItemsScreen() {
 
     fetchData();
   }, []);
+  useEffect(dataFetch, [dataFetch]);
+
+  useEffect(() => {
+    if (formSuccess) {
+      dataFetch();
+    }
+  }, [dataFetch, formSuccess]);
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
@@ -131,10 +142,9 @@ export default function AdminUnallocatedItemsScreen() {
 
     const url = new URL("/api/unallocatedItems", window.location.origin);
     if (expirationDateBefore)
-      url.searchParams.append("expirationDateBefore", expirationDateBefore);
+      url.searchParams.set("expirationDateBefore", expirationDateBefore);
     if (expirationDateAfter)
-      url.searchParams.append("expirationDateAfter", expirationDateAfter);
-
+      url.searchParams.set("expirationDateAfter", expirationDateAfter);
     try {
       const res = await fetch(url.toString());
       if (!res.ok) {
@@ -213,7 +223,7 @@ export default function AdminUnallocatedItemsScreen() {
 
         <div>
           <h2 className="text-xl font-bold mb-2">
-            &quot;{item.title}&quot;: Partner Requests
+            {item.title}: Partner Requests
           </h2>
           {/* Placeholder table */}
           <table className="min-w-full border">
@@ -266,7 +276,16 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
-      {isModalOpen ? <AddItemModal setIsOpen={setIsModalOpen} /> : null}
+      {/* The lists are added for the drop downs */}
+      {isModalOpen ? (
+        <AddItemModal
+          setIsOpen={setIsModalOpen}
+          unitTypes={unitTypes}
+          donorNames={donorNames}
+          itemTypes={itemTypes}
+          formSuccess={setFormSuccess}
+        />
+      ) : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
@@ -337,16 +356,19 @@ export default function AdminUnallocatedItemsScreen() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden min-w-full">
+        <div>
+          <table className="mt-4 min-w-full">
             <thead>
-              <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-                <th className="px-4 py-2 text-left font-bold">Title</th>
-                <th className="px-4 py-2 text-left font-bold">Type</th>
-                <th className="px-4 py-2 text-left font-bold">Quantity</th>
-                <th className="px-4 py-2 text-left font-bold">Expiration</th>
-                <th className="px-4 py-2 text-left font-bold">Unit size</th>
-                <th className="pl-4 py-2 text-left font-bold">Manage</th>
+              <tr className="opacity-80 text-white font-bold border-b-2 bg-blue-primary">
+                <th className="px-4 py-2 text-left rounded-tl-lg">Title</th>
+                <th className="px-4 py-2 text-left">Type</th>
+                <th className="px-4 py-2 text-left">Quantity</th>
+                <th className="px-4 py-2 text-left">Expiration</th>
+                <th className="px-4 py-2 text-left">Unit type</th>
+                <th className="px-4 py-2 text-left">Qty/Unit</th>
+                <th className="px-4 py-2 text-left rounded-tr-lg w-12">
+                  Manage
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -363,57 +385,50 @@ export default function AdminUnallocatedItemsScreen() {
                           expiration:
                             (item.expirationDate as unknown as string) || "",
                           unitSize: item.unitSize.toString(),
+                          quantityPerUnit: item.quantityPerUnit
+                            ? item.quantityPerUnit
+                            : "",
+                          unitType: item.unitType ? item.unitType : "",
                         }).toString()}`
                       );
                     }}
                   >
-                    <td className="px-4 py-2 w-1/6">{item.title}</td>
-                    <td className="px-4 py-2 w-1/6">{item.category}</td>
-                    <td className="px-4 py-2 w-1/6">{item.quantity}</td>
-                    <td className="px-4 py-2 w-1/6">
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.title)}
+                    </td>
+                    <td className="px-4 py-2">{formatTableValue(item.type)}</td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.quantity)}
+                    </td>
+                    <td className="px-4 py-2">
                       {item.expirationDate
                         ? new Date(item.expirationDate).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td className="px-4 py-2 w-1/6">{item.unitSize}</td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.unitType)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.unitSize)}
+                    </td>
                     <td
-                      className="px-4 py-2 w-1/12"
+                      className="px-4 py-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="float-right relative">
-                        <DotsThree
-                          weight="bold"
-                          className="cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setManageIndex(manageIndex === index ? -1 : index);
-                          }}
-                        />
-                        {manageIndex === index && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-10"
-                              onClick={() => setManageIndex(-1)}
-                            />
-                            <div className="absolute right-0 mt-2 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
-                              <div className="py-1">
-                                <button
-                                  className="block w-full px-2 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                  }}
-                                >
-                                  <Eye
-                                    className="inline-block mr-2"
-                                    size={22}
-                                  />
-                                  View unique items
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      <Menu as="div" className="float-right relative">
+                        <MenuButton>
+                          <DotsThree weight="bold" />
+                        </MenuButton>
+                        <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+                          <MenuItem
+                            as="button"
+                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            <Eye className="inline-block mr-2" size={22} />
+                            View unique items
+                          </MenuItem>
+                        </MenuItems>
+                      </Menu>
                     </td>
                   </tr>
                 </React.Fragment>

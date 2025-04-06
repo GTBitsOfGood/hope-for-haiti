@@ -241,7 +241,7 @@ test("returns 200 with all requests for staff", async () => {
       });
 
       expect(res.status).toBe(200);
-      const resp = await res.json();
+      const resp = (await res.json()).requests;
       expect(resp[0].id).toBe(req1.id);
       expect(resp[0].allocations[0].id).toBe(alloc1.id);
       expect(resp[0].allocations[0].itemId).toBe(item1.id);

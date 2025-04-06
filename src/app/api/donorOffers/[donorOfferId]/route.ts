@@ -14,27 +14,9 @@ import {
   DonorOfferItemsRequestsResponse,
 } from "./types";
 
-/**
- * Gets the item requests under the donor offer's id from the dynamic parameter.
- * First gets the donor offer from the database, then gets the items under the donor offer, then gets the requests under each item.
- * @param _ Not needed, place holder
- * @param param1 donorOfferId: string, the dynamic route parameter
- * @returns 401 if session is invalid
- * @returns 403 if session is not a partner
- * @returns 404 if donor offer does not exist
- * @returns 200 with the donor offer items. Look at DonorOfferItemsRequestsResponse for the structure.
- */
-export async function GET(
-  _: NextRequest,
-  { params }: { params: Promise<{ donorOfferId: string }> }
-) {
-  const session = await auth();
-  if (!session) return authenticationError("Session required");
-  if (!session?.user) return authenticationError("Session required");
-  if (session.user.type !== UserType.PARTNER)
-    return authorizationError("Wrong user type");
-
-  const donorOfferId = parseInt((await params).donorOfferId);
+async function handlePartnerRequest(
+  donorOfferId: number
+): Promise<NextResponse> {
   const donorOffer = await db.donorOffer.findUnique({
     where: { id: donorOfferId },
   });
@@ -84,4 +66,56 @@ export async function GET(
     donorOfferName: donorOffer.offerName,
     donorOfferItemsRequests: donorOfferItemsRequests,
   } as DonorOfferItemsRequestsResponse);
+}
+
+async function handleAdminRequest(donorOfferId: number): Promise<NextResponse> {
+  const donorOffer = await db.donorOffer.findUnique({
+    where: { id: donorOfferId },
+  });
+
+  if (!donorOffer) return notFoundError("Donor offer not found");
+
+  const itemsWithRequests = await db.donorOfferItem.findMany({
+    where: {
+      donorOfferId: donorOfferId,
+    },
+    include: {
+      requests: {
+        include: {
+          partner: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return NextResponse.json({
+    donorOffer: donorOffer,
+    itemsWithRequests: itemsWithRequests,
+  });
+}
+
+export async function GET(
+  _: NextRequest,
+  { params }: { params: Promise<{ donorOfferId: string }> }
+) {
+  const session = await auth();
+  if (!session?.user) return authenticationError("Session required");
+
+  const donorOfferId = parseInt((await params).donorOfferId);
+
+  if (session.user.type === UserType.PARTNER) {
+    return handlePartnerRequest(donorOfferId);
+  } else if (
+    session.user.type === UserType.ADMIN ||
+    session.user.type === UserType.SUPER_ADMIN ||
+    session.user.type === UserType.STAFF
+  ) {
+    return handleAdminRequest(donorOfferId);
+  } else {
+    return authorizationError("Unauthorized user type");
+  }
 }

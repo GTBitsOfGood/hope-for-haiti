@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React from "react";
@@ -6,12 +7,16 @@ interface StepEightProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  partnerDetails: { [key: string]: any };
 }
 
 export default function StepEight({
   prevStep,
   nextStep,
   handleCancelClick,
+  handleInputChange,
+  partnerDetails,
 }: StepEightProps) {
   return (
     <>
@@ -23,18 +28,18 @@ export default function StepEight({
       </h3>
 
       {[
-        "Number of doctors",
-        "Number of nurses",
-        "Number of midwives",
-        "Number of auxiliaries",
-        "Number of statisticians",
-        "Number of pharmacists",
-        "Number of CHW",
-        "Number of administrative",
-        "Number of health officers",
-        "Total number of staff",
-        "Other staff not listed",
-      ].map((label, index) => (
+        ["Number of doctors", "numberOfDoctors"],
+        ["Number of nurses", "numberOfNurses"],
+        ["Number of midwives", "numberOfMidwives"],
+        ["Number of auxiliaries", "numberOfAuxilaries"],
+        ["Number of statisticians", "numberOfStatisticians"],
+        ["Number of pharmacists", "numberOfPharmacists"],
+        ["Number of CHW", "numberOfCHW"],
+        ["Number of administrative", "numberOfAdministrative"],
+        ["Number of health officers", "numberOfHealthOfficers"],
+        ["Total number of staff", "totalNumberOfStaff"],
+        ["Other staff not listed", "other"],
+      ].map(([label, name], index) => (
         <div key={index} className="mb-5">
           <label className="block text-[16px] text-[#22070B] mb-2">
             {label}
@@ -43,6 +48,9 @@ export default function StepEight({
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
             placeholder={label}
+            name={name}
+            value={partnerDetails[name] || ""}
+            onChange={handleInputChange}
           />
         </div>
       ))}

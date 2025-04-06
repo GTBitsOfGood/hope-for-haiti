@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React from "react";
@@ -6,12 +7,18 @@ interface StepFiveProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
+  partnerDetails: { [key: string]: any };
 }
 
 export default function StepFive({
   prevStep,
   nextStep,
   handleCancelClick,
+  handleInputChange,
+  partnerDetails,
 }: StepFiveProps) {
   return (
     <>
@@ -31,6 +38,9 @@ export default function StepFive({
         text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
         font-[Open_Sans] rounded-[4px] resize-none mb-8"
         placeholder="Description"
+        name="facilityDescription"
+        value={partnerDetails.facilityDescription || ""}
+        onChange={handleInputChange}
       />
 
       <label className="block text-[16px] text-[#22070B] mb-2">
@@ -38,7 +48,15 @@ export default function StepFive({
       </label>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="cleanWater" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="cleanAccessible"
+            className="mr-2"
+            value="true"
+            checked={partnerDetails.cleanAccessible === "true"}
+            onChange={handleInputChange}
+          />{" "}
+          Yes
         </label>
         <div className="ml-6 mb-5">
           <label className="block text-[16px] text-[#22070B] mb-2">
@@ -48,10 +66,21 @@ export default function StepFive({
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
             placeholder="Answer"
+            name="cleanWaterDescription"
+            value={partnerDetails.cleanWaterDescription || ""}
+            onChange={handleInputChange}
           />
         </div>
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="cleanWater" className="mr-2" /> No
+          <input
+            type="radio"
+            name="cleanWaterAccessible"
+            className="mr-2"
+            value="false"
+            checked={partnerDetails.cleanAccessible === "false"}
+            onChange={handleInputChange}
+          />
+          No
         </label>
       </div>
 
@@ -60,7 +89,14 @@ export default function StepFive({
       </label>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="sanitationFacilities" className="mr-2" />{" "}
+          <input
+            type="radio"
+            name="sanitationFacilitiesPresent"
+            className="mr-2"
+            value="true"
+            checked={partnerDetails.sanitationFacilitiesPresent === "true"}
+            onChange={handleInputChange}
+          />
           Yes
         </label>
         <div className="ml-6 mb-5">
@@ -71,10 +107,21 @@ export default function StepFive({
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
             placeholder="Answer"
+            name="sanitationFacilitiesLockableFromInside"
+            value={partnerDetails.sanitationFacilitiesLockableFromInside || ""}
+            onChange={handleInputChange}
           />
         </div>
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="sanitationFacilities" className="mr-2" /> No
+          <input
+            type="radio"
+            name="sanitationFacilities"
+            className="mr-2"
+            value="false"
+            checked={partnerDetails.sanitationFacilitiesPresent === "false"}
+            onChange={handleInputChange}
+          />
+          No
         </label>
       </div>
 
@@ -83,7 +130,15 @@ export default function StepFive({
       </label>
       <div className="space-y-2 mb-8">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="medDisposal" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="medicationDisposalProcessDefined"
+            className="mr-2"
+            value="true"
+            checked={partnerDetails.medicationDisposalProcessDefined === "true"}
+            onChange={handleInputChange}
+          />
+          Yes
         </label>
         <div className="ml-6 mb-5">
           <label className="block text-[16px] text-[#22070B] mb-2">
@@ -94,10 +149,23 @@ export default function StepFive({
             text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
             font-[Open_Sans] rounded-[4px] resize-none"
             placeholder="Describe"
+            name="medicationDisposalProcessDescription"
+            value={partnerDetails.medicationDisposalProcessDescription || ""}
+            onChange={handleInputChange}
           />
         </div>
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="medDisposal" className="mr-2" /> No
+          <input
+            type="radio"
+            name="medicationDisposalProcessDefined"
+            className="mr-2"
+            value="false"
+            checked={
+              partnerDetails.medicationDisposalProcessDefined === "false"
+            }
+            onChange={handleInputChange}
+          />
+          No
         </label>
       </div>
 
@@ -106,7 +174,15 @@ export default function StepFive({
       </label>
       <div className="space-y-2 mb-2">
         <label className="flex items-center text-[16px] text-[#22070B]">
-          <input type="radio" name="vehicleDepot" className="mr-2" /> Yes
+          <input
+            type="radio"
+            name="pickupVehiclePresent"
+            className="mr-2"
+            value="true"
+            checked={partnerDetails.pickupVehiclePresent === "true"}
+            onChange={handleInputChange}
+          />{" "}
+          Yes
         </label>
         <div className="ml-6 mb-5">
           <label className="block text-[16px] text-[#22070B] mb-2">
@@ -116,6 +192,9 @@ export default function StepFive({
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
             text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
             placeholder="Describe"
+            name="pickupVehicleType"
+            value={partnerDetails.pickupVehicleType || ""}
+            onChange={handleInputChange}
           />
         </div>
       </div>
@@ -126,18 +205,40 @@ export default function StepFive({
         </label>
         <div className="space-y-2">
           <label className="flex items-center text-[16px] text-[#22070B]">
-            <input type="radio" name="supplyPickup" className="mr-2" /> Les
-            Cayes
+            <input
+              type="radio"
+              name="pickupLocations"
+              className="mr-2"
+              value="les_cayes"
+              checked={partnerDetails.pickupLocations === "les_cayes"}
+              onChange={handleInputChange}
+            />
+            Les Cayes
           </label>
           <label className="flex items-center text-[16px] text-[#22070B]">
-            <input type="radio" name="supplyPickup" className="mr-2" />{" "}
+            <input
+              type="radio"
+              name="pickupLocations"
+              className="mr-2"
+              value="port_au_prince"
+              checked={partnerDetails.pickupLocations === "port_au_prince"}
+              onChange={handleInputChange}
+            />
             Port-au-Prince
           </label>
         </div>
       </div>
 
       <label className="flex items-center text-[16px] text-[#22070B]">
-        <input type="radio" name="supplyPickup" className="mr-2" /> No
+        <input
+          type="radio"
+          name="pickupVehiclePresent"
+          className="mr-2"
+          value="false"
+          checked={partnerDetails.pickupVehiclePresent === "false"}
+          onChange={handleInputChange}
+        />
+        No
       </label>
 
       <div className="flex justify-between mt-6">
