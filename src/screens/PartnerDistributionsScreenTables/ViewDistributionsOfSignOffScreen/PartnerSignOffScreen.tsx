@@ -7,7 +7,7 @@ import React from "react";
 import {
   DistributionItem,
   SignedDistributions,
-} from "@/app/api/distributions/[signOffId]/types";
+} from "@/app/api/distributions/signOffs/[signOffId]/types";
 import { useRouter, useParams } from "next/navigation";
 import TableOfItemsOfDistributions from "./TableOfItemsOfDistributions";
 
@@ -26,7 +26,7 @@ export default function PartnerSignOffScreen() {
 
   useEffect(() => {
     setTimeout(async () => {
-      const response = await fetch(`/api/distributions/${signOffId}`, {
+      const response = await fetch(`/api/distributions/signOffs/${signOffId}`, {
         method: "GET",
       });
       const data: SignedDistributions =
