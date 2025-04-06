@@ -25,6 +25,8 @@ import { editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
  * @params boxNumber Box number to match
  * @params quantity Quantity to allocate
  * @params itemId ID of the item to allocate (optional)
+ * @params visible Boolean to determine if the allocation is visible (default: false)
+ * @params partnerId ID of the partner to allocate to (optional)
  *
  * @returns 400 if any field is missing or invalid
  * @returns 404 if no item is found with matching fields
