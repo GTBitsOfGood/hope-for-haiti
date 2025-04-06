@@ -104,12 +104,14 @@ model UnallocatedItemRequest {
   title           String
   type            String
   expirationDate  DateTime?
-  unitSize        Int
+  unitType        String?
   quantityPerUnit String?
 
   priority RequestPriority
   quantity Int
   comments String
+
+  unitSize Int
 
   createdAt DateTime @default(now())
 
