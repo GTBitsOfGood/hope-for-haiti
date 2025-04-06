@@ -1,16 +1,18 @@
 "use client";
 
-interface BulkAddFileUploadProps {
+import React, { forwardRef } from 'react';
+
+interface FileUploadProps {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   fileLoading: boolean;
   resetUpload: () => void;
 }
 
-export default function BulkAddFileUpload({
+const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(({ 
   handleFileChange,
   fileLoading,
   resetUpload,
-}: BulkAddFileUploadProps) {
+}, ref) => {
   return (
     <div className="flex items-center justify-center w-full">
       <label
@@ -100,6 +102,7 @@ export default function BulkAddFileUpload({
         )}
 
         <input
+          ref={ref}
           id="dropzone-file"
           disabled={fileLoading}
           onChange={handleFileChange}
@@ -110,4 +113,8 @@ export default function BulkAddFileUpload({
       </label>
     </div>
   );
-}
+});
+
+FileUpload.displayName = 'FileUpload';
+
+export default FileUpload;
