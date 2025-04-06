@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { formatTableValue } from "@/utils/format";
@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
 import NewAllocationModal from "@/components/NewAllocationModal";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { QuantizedGeneralItem } from "@/types";
 
 enum ExpirationFilterKey {
   ZERO_TO_THREE = "Expiring (0-3 Months)",
@@ -30,10 +31,43 @@ interface AllocationSearchResults {
   boxNumbers: number[];
 }
 
+function generateFetchUrl(filterKey: ExpirationFilterKey): string {
+  let expirationDateBefore: string | null = null;
+  let expirationDateAfter: string | null = null;
+  const today = new Date();
+
+  if (filterKey === ExpirationFilterKey.ZERO_TO_THREE) {
+    expirationDateBefore = new Date(
+      today.setMonth(today.getMonth() + 3)
+    ).toISOString();
+  } else if (filterKey === ExpirationFilterKey.THREE_TO_SIX) {
+    expirationDateAfter = new Date(
+      today.setMonth(today.getMonth() + 3)
+    ).toISOString();
+    expirationDateBefore = new Date(
+      today.setMonth(today.getMonth() + 6)
+    ).toISOString();
+  } else if (filterKey === ExpirationFilterKey.SIX_PLUS) {
+    expirationDateAfter = new Date(
+      today.setMonth(today.getMonth() + 6)
+    ).toISOString();
+  }
+
+  const url = new URL("/api/unallocatedItems", window.location.origin);
+  if (expirationDateBefore)
+    url.searchParams.set("expirationDateBefore", expirationDateBefore);
+  if (expirationDateAfter)
+    url.searchParams.set("expirationDateAfter", expirationDateAfter);
+
+  return url.toString();
+}
+
 export default function AdminUnallocatedItemsScreen() {
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<QuantizedGeneralItem[]>([]);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>();
+  const [activeTab, setActiveTab] = useState<ExpirationFilterKey>(
+    ExpirationFilterKey.ZERO_TO_THREE
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   const [viewingItemIndex, setViewingItemIndex] = useState<number | null>(null);
@@ -56,33 +90,10 @@ export default function AdminUnallocatedItemsScreen() {
 
   const [formSuccess, setFormSuccess] = useState(false); // whether the form was submitted successfully or not
 
-  // Doing this so that table can easily refresh after a new item is added
-  const dataFetch = React.useCallback(() => {
-    const fetchItems = async () => {
+  const fetchData = useCallback(() => {
+    (async () => {
       try {
-        const res = await fetch("/api/unallocatedItems");
-        if (!res.ok) {
-          throw new Error(`Error: ${res.status} ${res.statusText}`);
-        }
-        const data = await res.json();
-        setFilteredItems(data.items);
-
-        setUnitTypes(data.unitTypes);
-        setDonorNames(data.donorNames);
-        setItemTypes(data.itemTypes);
-      } catch (error) {
-        toast.error("An error occurred while fetching data");
-        console.error("Fetch error:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchItems();
-
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/unallocatedItems`);
-
+        const response = await fetch(generateFetchUrl(activeTab));
         if (!response.ok) {
           throw new Error("Failed to fetch unallocated items");
         }
@@ -96,24 +107,20 @@ export default function AdminUnallocatedItemsScreen() {
               : null,
           })
         );
-        // !! TODO: (BUG) items need to be filtered before setting
-        setFilteredItems(itemsWithDates);
+
+        setItems(itemsWithDates);
+        setUnitTypes(data.unitTypes);
+        setDonorNames(data.donorNames);
+        setItemTypes(data.itemTypes);
       } catch (error) {
         console.error("Error fetching unallocated items:", error);
       } finally {
         setIsLoading(false);
       }
-    };
+    })();
+  }, [activeTab]);
 
-    fetchData();
-  }, []);
-  useEffect(dataFetch, [dataFetch]);
-
-  useEffect(() => {
-    if (formSuccess) {
-      dataFetch();
-    }
-  }, [dataFetch, formSuccess]);
+  useEffect(fetchData, [fetchData, formSuccess]);
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
@@ -151,7 +158,7 @@ export default function AdminUnallocatedItemsScreen() {
         throw new Error(`Error: ${res.status} ${res.statusText}`);
       }
       const data = await res.json();
-      setFilteredItems(data.items); // Update UI with API data
+      setItems(data.items); // Update UI with API data
     } catch (error) {
       toast.error("Failed to fetch items");
       console.error("Filter fetch error:", error);
@@ -206,7 +213,7 @@ export default function AdminUnallocatedItemsScreen() {
 
   // if we're viewing a particular item ("Item Name": Partner Requests)
   if (viewingItemIndex !== null) {
-    const item = filteredItems[viewingItemIndex] || null;
+    const item = items[viewingItemIndex] || null;
     if (!item) {
       setViewingItemIndex(null);
       return null;
@@ -372,7 +379,7 @@ export default function AdminUnallocatedItemsScreen() {
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map((item, index) => (
+              {items.map((item, index) => (
                 <React.Fragment key={index}>
                   <tr
                     data-odd={index % 2 !== 0}

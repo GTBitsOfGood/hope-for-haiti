@@ -56,21 +56,31 @@ export async function GET(request: NextRequest) {
   // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
   const tableItems = (
     await db.item.groupBy({
-      by: ["title", "type", "expirationDate", "unitType", "unitSize"],
+      by: ["title", "type", "expirationDate", "unitType", "quantityPerUnit"],
       _sum: {
         quantity: true,
       },
       where: {
-        expirationDate: {
-          gt: expirationDateAfter,
-          lt: expirationDateBefore,
-        },
         ...scopeVisibility,
+        ...(expirationDateAfter && !expirationDateBefore
+          ? {
+              OR: [
+                { expirationDate: { gt: expirationDateAfter } },
+                { expirationDate: null },
+              ],
+            }
+          : {
+              expirationDate: {
+                ...(expirationDateAfter && { gt: expirationDateAfter }),
+                ...(expirationDateBefore && { lt: expirationDateBefore }),
+              },
+            }),
       },
     })
   ).map((item) => {
     const copy = {
       ...item,
+      expirationDate: item.expirationDate?.toLocaleDateString(),
       quantity: item._sum.quantity,
       _sum: undefined,
     };
