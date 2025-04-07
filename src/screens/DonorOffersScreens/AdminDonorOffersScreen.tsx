@@ -103,7 +103,9 @@ export default function AdminDonorOffersScreen() {
           <div className="relative">
             <button
               className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-              onClick={() => {}}
+              onClick={() => {
+                router.push("/donorOffers/create");
+              }}
             >
               <Plus size={18} /> Create Donor Offer
             </button>
