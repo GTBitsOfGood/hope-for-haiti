@@ -227,7 +227,7 @@ export default function EditAllocationModal({
               type="submit"
               className="block grow bg-red-500 text-center text-white py-1 px-4 rounded-lg font-medium hover:bg-red-600 transition"
             >
-              Confirm for Pending Distribution
+              Confirm for Partner&apos;s Distribution
             </button>
           </ModalFormRow>
         </form>

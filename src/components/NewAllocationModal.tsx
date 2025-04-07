@@ -360,7 +360,7 @@ export default function AddAllocationModal({
             className="bg-mainRed text-white px-4 py-2 rounded hover:bg-red-600 transition"
             onClick={handleConfirm}
           >
-            Confirm for Pending Distribution
+            Add to Partner&apos;s Distribution
           </button>
         </div>
       </div>
