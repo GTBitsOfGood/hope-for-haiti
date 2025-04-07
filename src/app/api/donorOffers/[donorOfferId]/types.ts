@@ -13,6 +13,7 @@ export interface DonorOfferItemDTO {
 
 export interface DonorOfferItemsRequestsDTO {
   requestId: number;
+  donorOfferItemId: number;
   title: string;
   type: string;
   expiration?: string | null;

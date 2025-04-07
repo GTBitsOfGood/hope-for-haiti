@@ -5,7 +5,7 @@ import {
   authorizationError,
   notFoundError,
 } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { RequestPriority, UserType } from "@prisma/client";
 import { format } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -20,12 +20,11 @@ async function handlePartnerRequest(
   const donorOffer = await db.donorOffer.findUnique({
     where: { id: donorOfferId },
   });
-  if (!donorOffer) return notFoundError("Donor offer not found");
-
+  if (!donorOffer) {
+    return notFoundError("Donor offer not found");
+  }
   const donorOfferItems = (
-    await db.donorOfferItem.findMany({
-      where: { donorOfferId: donorOfferId },
-    })
+    await db.donorOfferItem.findMany({ where: { donorOfferId } })
   ).map(
     (item) =>
       ({
@@ -43,13 +42,13 @@ async function handlePartnerRequest(
 
   const donorOfferItemsRequests: DonorOfferItemsRequestsDTO[] = [];
   for (const item of donorOfferItems) {
+    const requests = await db.donorOfferItemRequest.findMany({
+      where: { donorOfferItemId: item.id },
+    });
     donorOfferItemsRequests.push(
-      ...(
-        await db.donorOfferItemRequest.findMany({
-          where: { donorOfferItemId: item.id },
-        })
-      ).map((request) => ({
+      ...requests.map((request) => ({
         requestId: request.id,
+        donorOfferItemId: item.id,
         title: item.title,
         type: item.type,
         expiration: item.expiration,
@@ -76,22 +75,9 @@ async function handleAdminRequest(donorOfferId: number): Promise<NextResponse> {
   if (!donorOffer) return notFoundError("Donor offer not found");
 
   const itemsWithRequests = await db.donorOfferItem.findMany({
-    where: {
-      donorOfferId: donorOfferId,
-    },
-    include: {
-      requests: {
-        include: {
-          partner: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
-    },
+    where: { donorOfferId },
+    include: { requests: { include: { partner: { select: { name: true } } } } },
   });
-
   return NextResponse.json({
     donorOffer: donorOffer,
     itemsWithRequests: itemsWithRequests,
@@ -118,4 +104,53 @@ export async function GET(
   } else {
     return authorizationError("Unauthorized user type");
   }
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const session = await auth();
+  if (!session?.user) return authenticationError("Session required");
+  if (session.user.type !== UserType.PARTNER)
+    return authorizationError("Wrong user type");
+  const partnerId =
+    typeof session.user.id === "string"
+      ? parseInt(session.user.id, 10)
+      : session.user.id;
+  const body: any = await request.json();
+  if (!body || typeof body !== "object" || !Array.isArray(body.requests)) {
+    return NextResponse.json(
+      { error: "POST body must be { requests: [...] }" },
+      { status: 400 }
+    );
+  }
+  const { requests } = body;
+  const processedRequests = await Promise.all(
+    requests.map(async (req: DonorOfferItemsRequestsDTO) => {
+      const safePriority =
+        req.priority == null ? RequestPriority.LOW : req.priority;
+      const existing = await db.donorOfferItemRequest.findFirst({
+        where: { donorOfferItemId: req.donorOfferItemId, partnerId },
+      });
+      if (existing) {
+        return db.donorOfferItemRequest.update({
+          where: { id: existing.id },
+          data: {
+            quantity: req.quantityRequested,
+            comments: req.comments,
+            priority: safePriority,
+          },
+        });
+      } else {
+        return db.donorOfferItemRequest.create({
+          data: {
+            donorOfferItemId: req.donorOfferItemId,
+            partnerId,
+            quantity: req.quantityRequested,
+            comments: req.comments,
+            priority: safePriority,
+          },
+        });
+      }
+    })
+  );
+  return NextResponse.json({ success: true, processedRequests });
 }
