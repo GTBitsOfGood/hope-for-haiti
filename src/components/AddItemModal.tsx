@@ -152,7 +152,7 @@ export default function BulkAddSuccessModal({
           </ModalFormRow>
           <ModalFormRow>
             <ModalTextField
-              label="Pallet number"
+              label="Pallet"
               name="palletNumber"
               required
             />

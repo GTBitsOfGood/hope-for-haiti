@@ -22,7 +22,7 @@ export default function DistributionTable({
             </th>
             <th className="px-4 py-2 text-left font-bold">Qty Avail/Total</th>
             <th className="px-4 py-2 text-left font-bold">Donor Name</th>
-            <th className="px-4 py-2 text-left font-bold">Pallet number</th>
+            <th className="px-4 py-2 text-left font-bold">Pallet</th>
             <th className="px-4 py-2 text-left font-bold">Box number</th>
             <th className="px-4 py-2 text-left font-bold">Lot number</th>
             <th className="px-4 py-2 text-left font-bold">Unit price</th>

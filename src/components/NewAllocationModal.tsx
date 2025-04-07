@@ -296,7 +296,7 @@ export default function AddAllocationModal({
 
           <div>
             <label className="block text-[16px] font-normal mb-2">
-              Pallet number <span className="text-mainRed">*</span>
+              Pallet <span className="text-mainRed">*</span>
             </label>
             <select
               className="w-full rounded border border-[#22070B1A] bg-[#F9F9F9] p-2 text-[16px] text-[#22070B] focus:outline-none"
