@@ -1,3 +1,5 @@
+import PriorityTag from "@/components/PriorityTag";
+import { formatTableValue } from "@/utils/format";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { RequestPriority } from "@prisma/client";
 import React from "react";
@@ -21,17 +23,6 @@ interface ItemRequest {
   quantity: string;
   comments: string;
   createdAt: string;
-}
-
-function localizePriority(priority: RequestPriority): string {
-  switch (priority) {
-    case "LOW":
-      return "Low";
-    case "MEDIUM":
-      return "Medium";
-    case "HIGH":
-      return "High";
-  }
 }
 
 export default function MyRequests() {
@@ -78,7 +69,7 @@ export default function MyRequests() {
 
       <table className="mt-4 rounded-t-lg overflow-hidden table-fixed w-full">
         <thead>
-          <tr className="bg-gray-primary bg-opacity-5 text-gray-primary text-opacity-70 border-b-2 break-words">
+          <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
             <th className="px-4 py-2 text-left font-bold">Title</th>
             <th className="px-4 py-2 text-left font-bold">Type</th>
             <th className="px-4 py-2 text-left font-bold">Priority</th>
@@ -99,15 +90,23 @@ export default function MyRequests() {
                 data-odd={index % 2 !== 0}
                 className={`bg-white data-[odd=true]:bg-gray-50 break-words`}
               >
-                <td className="px-4 py-2">{item.title}</td>
-                <td className="px-4 py-2">{item.type}</td>
-                <td className="px-4 py-2">{localizePriority(item.priority)}</td>
-                <td className="px-4 py-2">{item.quantity}</td>
-                <td className="px-4 py-2">{item.expirationDate}</td>
-                <td className="px-4 py-2">{item.unitType}</td>
-                <td className="px-4 py-2">{item.quantityPerUnit}</td>
-                <td className="px-4 py-2">{item.createdAt}</td>
-                <td className="px-4 py-2">{item.comments}</td>
+                <td className="px-4 py-2">{formatTableValue(item.title)}</td>
+                <td className="px-4 py-2">{formatTableValue(item.type)}</td>
+                <td className="px-4 py-2">
+                  <PriorityTag priority={item.priority} />
+                </td>
+                <td className="px-4 py-2">{formatTableValue(item.quantity)}</td>
+                <td className="px-4 py-2">
+                  {formatTableValue(item.expirationDate)}
+                </td>
+                <td className="px-4 py-2">{formatTableValue(item.unitType)}</td>
+                <td className="px-4 py-2">
+                  {formatTableValue(item.quantityPerUnit)}
+                </td>
+                <td className="px-4 py-2">
+                  {formatTableValue(item.createdAt)}
+                </td>
+                <td className="px-4 py-2">{formatTableValue(item.comments)}</td>
               </tr>
             </React.Fragment>
           ))}

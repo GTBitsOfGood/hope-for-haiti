@@ -16,6 +16,7 @@ import { Tooltip } from "react-tooltip";
 import { formatTableValue } from "@/utils/format";
 import EditAllocationModal from "@/components/EditAllocationModal";
 import { UnallocatedItem } from "@/app/api/unallocatedItemRequests/types";
+import PriorityTag from "@/components/PriorityTag";
 
 type RequestWithAllocations = UnallocatedItemRequest & {
   allocations: (UnallocatedItemRequestAllocation & {
@@ -24,25 +25,6 @@ type RequestWithAllocations = UnallocatedItemRequest & {
   partner: {
     name: string;
   };
-};
-
-const Priority = ({ priority }: { priority: string }) => {
-  let color = "bg-gray-200";
-  if (priority === "HIGH") {
-    color = "bg-red-primary";
-  } else if (priority === "MEDIUM") {
-    color = "bg-orange-primary";
-  } else if (priority === "LOW") {
-    color = "bg-green-dark";
-  }
-
-  return (
-    <span
-      className={`inline-block px-2 py-1 rounded-md bg-opacity-20 ${color}`}
-    >
-      {priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase()}
-    </span>
-  );
 };
 
 export default function PartnerRequestsScreen() {
@@ -76,7 +58,7 @@ export default function PartnerRequestsScreen() {
   const fetchData = React.useCallback(async () => {
     try {
       const response = await fetch(
-        `/api/unallocatedItemRequests?${new URLSearchParams(generalItem).toString()}`
+        `/api/unallocatedItemRequests?${new URLSearchParams(generalItem).toString()}`,
       );
 
       if (!response.ok) {
@@ -202,14 +184,14 @@ export default function PartnerRequestsScreen() {
                       {formatTableValue(request.quantity)}
                     </td>
                     <td className="px-4 py-2">
-                      <Priority priority={request.priority} />
+                      <PriorityTag priority={request.priority} />
                     </td>
                     <td className="px-4 py-2">
                       {formatTableValue(
                         request.allocations?.reduce(
                           (sum, alloc) => sum + alloc.quantity,
-                          0
-                        )
+                          0,
+                        ),
                       )}
                     </td>
                     <td className="px-4 py-2">
@@ -236,7 +218,7 @@ export default function PartnerRequestsScreen() {
                                   unallocatedItemRequestId:
                                     request.id.toString(),
                                   ...generalItem,
-                                }).toString()}`
+                                }).toString()}`,
                               );
                             }}
                             className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70"
@@ -252,7 +234,7 @@ export default function PartnerRequestsScreen() {
                               `/newAllocation?${new URLSearchParams({
                                 unallocatedItemRequestId: request.id.toString(),
                                 ...generalItem,
-                              }).toString()}`
+                              }).toString()}`,
                             );
                           }}
                           className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100"
