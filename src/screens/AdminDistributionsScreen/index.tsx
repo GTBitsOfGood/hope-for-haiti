@@ -3,15 +3,15 @@
 import { DistributionItem } from "@/app/api/distributions/types";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { CgSpinner } from "react-icons/cg";
 import HiddenItems from "./HiddenItems";
 import Requests from "./Requests";
 import ShippingStatus from "./ShippingStatus";
 import SignOffs from "./SignOffs";
 import VisibleItems from "./VisibleItems";
-import { CgSpinner } from "react-icons/cg";
-import { useParams } from "next/navigation";
 
 const tabs = [
   {
@@ -68,7 +68,7 @@ export default function AdminDistributionsScreen() {
         oldDistributions.map((distribution) => ({
           ...distribution,
           visible: true,
-        }))
+        })),
       );
     } catch (e) {
       toast.error("Error changing visibility", {
@@ -91,7 +91,7 @@ export default function AdminDistributionsScreen() {
         setPartnerName(partnerData.user.name);
 
         const distributions = await fetch(
-          `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`
+          `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`,
         );
 
         if (!distributions.ok) {
@@ -142,7 +142,6 @@ export default function AdminDistributionsScreen() {
       <h1 className="text-2xl font-semibold">
         {partnerName}: Distribution Details
       </h1>
-
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
           <MagnifyingGlass
@@ -190,7 +189,7 @@ export default function AdminDistributionsScreen() {
                   !distribution.visible &&
                   distribution.title
                     .toLowerCase()
-                    .includes(search.toLowerCase())
+                    .includes(search.toLowerCase()),
               )}
               setDistributions={setDistributions}
             />
@@ -202,7 +201,7 @@ export default function AdminDistributionsScreen() {
                   distribution.visible &&
                   distribution.title
                     .toLowerCase()
-                    .includes(search.toLowerCase())
+                    .includes(search.toLowerCase()),
               )}
               setDistributions={setDistributions}
             />
