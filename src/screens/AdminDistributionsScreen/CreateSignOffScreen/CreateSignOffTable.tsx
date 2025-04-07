@@ -1,33 +1,15 @@
-import { SignOff } from "@/app/api/distributions/types";
-import { format } from "date-fns";
+import { DistributionRecord } from "@/types";
 import React from "react";
 
-export default function CreateSignOffTable() {
-  const test: SignOff[] = [
-    {
-      partnerName: "test",
-      partnerId: 1,
-      staffMemberName: "Peyton",
-      date: new Date(),
-      signatureUrl: "",
-    },
-    {
-      partnerName: "test",
-      partnerId: 2,
-      staffMemberName: "Liane",
-      date: new Date(),
-      signatureUrl: "",
-    },
-    {
-      partnerName: "test",
-      partnerId: 3,
-      staffMemberName: "Kavin",
-      date: new Date(),
-      signatureUrl: "",
-    },
-  ];
+export default function CreateSignOffTable({
+  // refetch,
+  distributions,
+}: {
+  refetch: () => void;
+  distributions: DistributionRecord[];
+}) {
   return (
-    <div className="overflow-x-scroll">
+    <div className="overflow-x-scroll pb-32">
       <table className="mt-4 rounded-t-lg min-w-full">
         <thead>
           <tr className="bg-blue-primary opacity-80 text-white border-b-2">
@@ -39,37 +21,35 @@ export default function CreateSignOffTable() {
             <th className="px-4 py-2 text-left font-bold">Donor Name</th>
             <th className="px-4 py-2 text-left font-bold">Pallet</th>
             <th className="px-4 py-2 text-left font-bold">Box number</th>
-            <th className="px-4 py-2 text-left font-bold">Lot Number</th>
+            <th className="px-4 py-2 text-left font-bold">Lot number</th>
             <th className="px-4 py-2 text-left font-bold">Unit price</th>
             <th className="px-4 py-2 text-left font-bold">Donor Shipping #</th>
             <th className="px-4 py-2 text-left font-bold">HfH Shipping #</th>
-            <th className="px-4 py-2 text-left font-bold">Comment</th>
-            <th className="px-4 py-2 text-left font-bold">Manage</th>
           </tr>
         </thead>
         <tbody>
-          {test.map((signOff, index) => (
+          {distributions.map((distribution, index) => (
             <React.Fragment key={index}>
               <tr
                 data-odd={index % 2 !== 0}
                 className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
               >
-                <td className="px-4 py-2">{signOff.staffMemberName}</td>
-                <td className="px-4 py-2">-</td>
+                <td className="px-4 py-2">{distribution.title}</td>
+                <td className="px-4 py-2">{distribution.quantityAllocated}</td>
                 <td className="px-4 py-2">
-                  {format(signOff.date, "M/d/yyyy")}
+                  {distribution.quantityAvailable}/{distribution.quantityTotal}
+                </td>
+                <td className="px-4 py-2">{distribution.donorName}</td>
+                <td className="px-4 py-2">{distribution.palletNumber}</td>
+                <td className="px-4 py-2">{distribution.boxNumber}</td>
+                <td className="px-4 py-2">{distribution.lotNumber}</td>
+                <td className="px-4 py-2">
+                  {distribution.unitPrice.toString()}
                 </td>
                 <td className="px-4 py-2">
-                  {format(signOff.date, "M/d/yyyy")}
+                  {distribution.donorShippingNumber}
                 </td>
-                <td className="px-4 py-2">Status</td>
-                <td className="px-4 py-2">Status</td>
-                <td className="px-4 py-2">Status</td>
-                <td className="px-4 py-2">Status</td>
-                <td className="px-4 py-2">Status</td>
-                <td className="px-4 py-2">Status</td>
-                <td className="px-4 py-2">Status</td>
-                <td className="px-4 py-2">Status</td>
+                <td className="px-4 py-2">{distribution.hfhShippingNumber}</td>
               </tr>
             </React.Fragment>
           ))}

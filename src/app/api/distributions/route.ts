@@ -43,10 +43,10 @@ const signedDistributions = async (partnerId: number) => {
 };
 
 const partnerDistributions = async (
-  partnerId: number
+  partnerId: number,
 ): Promise<DistributionItem[]> => {
   const distributions = await db.distribution.findMany({
-    where: { partnerId, signOffId: null },
+    where: { partnerId },
     include: {
       unallocatedItemAllocation: true,
       donorOfferItemAllocation: true,
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
         signedDistributions: signed.sort(
           (a, b) =>
             new Date(b.distributionDate).getTime() -
-            new Date(a.distributionDate).getTime()
+            new Date(a.distributionDate).getTime(),
         ),
       });
     } catch (err) {
