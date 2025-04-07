@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import React from "react";
+import HiddenItems from "./AdminDistributionsScreen/HiddenItems";
+import VisibleItems from "./AdminDistributionsScreen/VisibleItems";
+import ShippingStatus from "./AdminDistributionsScreen/ShippingStatus";
+import SignOffs from "./AdminDistributionsScreen/SignOffs";
+import Requests from "./AdminDistributionsScreen/Requests";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 
 const tabs = [
   {
@@ -28,11 +35,35 @@ const tabs = [
 ];
 
 export default function DistributionsForPartnerScreen() {
+  const { partnerId } = useParams();
   const [activeTab, setActiveTab] = useState<string>("hiddenItems");
+  const [partnerName, setPartnerName] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const partner = await fetch(`/api/users/${partnerId}`, {
+          cache: "no-store",
+        });
+        if (!partner.ok) {
+          throw new Error();
+        }
+        const partnerData = await partner.json();
+        setPartnerName(partnerData.user.name);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }, [partnerId]);
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Distributions</h1>
+      <h1 className="text-2xl font-semibold">
+        <Link href="/distributions" className="hover:underline">
+          Distributions
+        </Link>{" "}
+        / {partnerName}
+      </h1>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
           <MagnifyingGlass
@@ -66,11 +97,11 @@ export default function DistributionsForPartnerScreen() {
         ))}
       </div>
 
-      {/* {activeTab == "hiddenItems" && <HiddenItems />}
+      {activeTab == "hiddenItems" && <HiddenItems />}
       {activeTab == "visibleItems" && <VisibleItems />}
       {activeTab == "shippingStatus" && <ShippingStatus />}
       {activeTab == "signOffs" && <SignOffs />}
-      {activeTab == "requests" && <Requests />} */}
+      {activeTab == "requests" && <Requests />}
     </>
   );
 }

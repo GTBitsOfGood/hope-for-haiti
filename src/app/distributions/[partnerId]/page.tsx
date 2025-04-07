@@ -1,5 +1,5 @@
 "use client";
 
-import DistributionsScreen from "@/screens/DistributionsScreen";
+import DistributionsForPartnerScreen from "@/screens/DistributionsForPartnerScreen";
 
-export default DistributionsScreen;
+export default DistributionsForPartnerScreen;
