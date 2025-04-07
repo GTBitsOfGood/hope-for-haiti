@@ -71,7 +71,6 @@ export async function GET(request: NextRequest) {
       title: parsed.data.title,
       type: parsed.data.type,
       expirationDate: expirationDate ?? null,
-      unitSize,
     },
   });
 

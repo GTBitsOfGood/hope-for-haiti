@@ -51,10 +51,16 @@ export default function PartnerRequestsScreen() {
 
   const itemName = searchParams.get("title");
   const itemType = searchParams.get("type");
-  const itemExpiration = searchParams.get("expiration");
-  // const quantityPerUnit = searchParams.get("quantityPerUnit");
-  const unitSize = searchParams.get("unitSize");
+  const itemExpirationDate = searchParams.get("expirationDate");
   const unitType = searchParams.get("unitType");
+  const quantityPerUnit = searchParams.get("quantityPerUnit");
+  const generalItem = {
+    title: itemName as string,
+    type: itemType as string,
+    unitType: unitType as string,
+    quantityPerUnit: quantityPerUnit as string,
+    ...(itemExpirationDate ? { expirationDate: itemExpirationDate } : {}),
+  };
 
   const [requests, setRequests] = useState<RequestWithAllocations[]>([]);
   const [items, setItems] = useState<UnallocatedItem[]>([]);
@@ -70,7 +76,7 @@ export default function PartnerRequestsScreen() {
   const fetchData = React.useCallback(async () => {
     try {
       const response = await fetch(
-        `/api/unallocatedItemRequests?title=${itemName}&type=${itemType}&expiration=${itemExpiration}&unitSize=${unitSize}&unitType=${unitType}`
+        `/api/unallocatedItemRequests?${new URLSearchParams(generalItem).toString()}`
       );
 
       if (!response.ok) {
@@ -90,7 +96,7 @@ export default function PartnerRequestsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [itemName, itemType, itemExpiration, unitSize, unitType]);
+  }, [itemExpirationDate, itemName, itemType, quantityPerUnit, unitType]);
 
   useEffect(() => {
     fetchData();
@@ -113,12 +119,12 @@ export default function PartnerRequestsScreen() {
         <EditAllocationModal
           setIsOpen={setIsEditAllocationModalIsOpen}
           items={items}
-          allocation={selectedAllocation}
-          unitSize={unitSize}
-          unitType={unitType}
-          expiration={new Date(itemExpiration || "")}
-          title={itemName}
-          type={itemType}
+          allocation={selectedAllocation!}
+          unitType={generalItem.unitType}
+          quantityPerUnit={parseInt(generalItem.quantityPerUnit)}
+          expirationDate={generalItem.expirationDate || null}
+          title={itemName!}
+          type={itemType!}
           setIsSuccess={setIsSuccess}
         />
       )}
@@ -210,7 +216,7 @@ export default function PartnerRequestsScreen() {
                       {request.allocations.map((alloc) => (
                         <div
                           key={alloc.id}
-                          className="hover:text-red-500"
+                          className="hover:text-red-500 cursor-pointer"
                           onClick={() => {
                             setIsSuccess(false);
                             setSelectedAllocation(alloc);
@@ -229,12 +235,7 @@ export default function PartnerRequestsScreen() {
                                 `/newAllocation?${new URLSearchParams({
                                   unallocatedItemRequestId:
                                     request.id.toString(),
-                                  title: request.title,
-                                  type: request.type,
-                                  expiration:
-                                    (request.expirationDate as unknown as string) ||
-                                    "",
-                                  unitSize: request.unitSize.toString(),
+                                  ...generalItem,
                                 }).toString()}`
                               );
                             }}
@@ -250,12 +251,7 @@ export default function PartnerRequestsScreen() {
                             router.push(
                               `/newAllocation?${new URLSearchParams({
                                 unallocatedItemRequestId: request.id.toString(),
-                                title: request.title,
-                                type: request.type,
-                                expiration:
-                                  (request.expirationDate as unknown as string) ||
-                                  "",
-                                unitSize: request.unitSize.toString(),
+                                ...generalItem,
                               }).toString()}`
                             );
                           }}

@@ -33,11 +33,11 @@ async function handlePartnerRequest(
         title: item.title,
         type: item.type,
         expiration:
-          item.expiration === null
+          item.expirationDate === null
             ? null
-            : format(item.expiration, "MM/dd/yyyy"),
+            : format(item.expirationDate, "MM/dd/yyyy"),
         quantity: item.quantity,
-        unitSize: item.unitSize,
+        unitSize: item.quantityPerUnit,
       }) as DonorOfferItemDTO
   );
 

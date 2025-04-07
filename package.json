@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
-    "test": "env-cmd -f .env.test npm run db:clear && jest --passWithNoTests",
+    "test": "env-cmd -f .env.test npm run test:db:clear && jest --passWithNoTests",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",

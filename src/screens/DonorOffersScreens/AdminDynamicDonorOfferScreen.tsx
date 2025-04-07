@@ -169,8 +169,8 @@ export default function AdminDynamicDonorOfferScreen() {
                         {formatTableValue(item.type)}
                       </td>
                       <td className="px-4 py-2">
-                        {item.expiration
-                          ? format(item.expiration, "MM/dd/yyyy")
+                        {item.expirationDate
+                          ? format(item.expirationDate, "MM/dd/yyyy")
                           : "None"}
                       </td>
                       <td className="px-4 py-2">

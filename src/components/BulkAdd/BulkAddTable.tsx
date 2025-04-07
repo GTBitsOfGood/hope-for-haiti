@@ -62,7 +62,7 @@ export default function DataTable({ data }: DataTableProps) {
               {visibleHeaders.map((header) => (
                 <th
                   key={header}
-                  className={`px-4 text-left font-semibold ${user?.type !== "PARTNER" && header === "unitSize" ? "bg-black text-white" : "bg-[#2774ae] text-white opacity-80"}`}
+                  className={`px-4 text-left font-semibold bg-[#2774ae] text-white opacity-80`}
                 >
                   {formatHeader(header)}
                 </th>

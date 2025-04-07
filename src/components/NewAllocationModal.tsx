@@ -8,8 +8,9 @@ interface AddAllocationModalProps {
   unallocatedItemRequestId: string;
   title: string;
   type: string;
-  expiration: string;
-  unitSize: string;
+  expirationDate: string | null;
+  unitType: string;
+  quantityPerUnit: number;
   searchResults: {
     donorNames: string[];
     lotNumbers: number[];
@@ -23,8 +24,9 @@ export default function AddAllocationModal({
   unallocatedItemRequestId,
   title,
   type,
-  expiration,
-  unitSize,
+  expirationDate,
+  unitType,
+  quantityPerUnit,
   searchResults: initialSearchResults,
 }: AddAllocationModalProps) {
   const [allDonorNames, setAllDonorNames] = useState<string[]>([]);
@@ -38,6 +40,7 @@ export default function AddAllocationModal({
   const [quantity, setQuantity] = useState("");
   const [showDonorList, setShowDonorList] = useState(false);
   const [donorSearch, setDonorSearch] = useState("");
+
   useEffect(() => {
     console.log(
       "[NewAllocationModal] Mounted with initialSearchResults:",
@@ -49,52 +52,64 @@ export default function AddAllocationModal({
     setBoxNumbers(initialSearchResults.boxNumbers);
   }, [initialSearchResults]);
 
-  async function fetchFilteredByDonor(donorName: string) {
-    console.log(
-      "[NewAllocationModal] fetchFilteredByDonor with donorName =",
-      donorName
-    );
+  useEffect(() => {
+    (async () => {
+      const query = new URLSearchParams({
+        title,
+        type,
+        unitType,
+        quantityPerUnit: quantityPerUnit.toString(),
+        ...(expirationDate ? { expirationDate } : {}),
+      });
 
-    const query = new URLSearchParams({
-      title,
-      type,
-      expiration, // must match db exactly
-      unitSize,
-    });
+      if (selectedDonor) query.append("donorName", selectedDonor);
+      if (selectedLot) query.append("lotNumber", selectedLot);
+      if (selectedPallet) query.append("palletNumber", selectedPallet);
+      if (selectedBox) query.append("boxNumber", selectedBox);
 
-    if (donorName) {
-      query.append("donorName", donorName);
-    }
+      const url = "/api/allocations/itemSearch?" + query.toString();
+      console.log("[NewAllocationModal] GET", url);
 
-    const url = "/api/allocations/itemSearch?" + query.toString();
-    console.log("[NewAllocationModal] GET", url);
-
-    try {
-      const res = await fetch(url);
-      console.log(
-        "[NewAllocationModal] fetchFilteredByDonor status:",
-        res.status
-      );
-      if (!res.ok) {
-        console.error(
-          "[NewAllocationModal] Item search filter by donor failed:",
+      try {
+        const res = await fetch(url);
+        console.log(
+          "[NewAllocationModal] fetchFilteredByDonor status:",
           res.status
         );
-        return;
-      }
-      const data = await res.json();
-      console.log(
-        "[NewAllocationModal] Server returned data for donor filter:",
-        data
-      );
+        if (!res.ok) {
+          console.error(
+            "[NewAllocationModal] Item search filter by donor failed:",
+            res.status
+          );
+          return;
+        }
+        const data = await res.json();
+        console.log(
+          "[NewAllocationModal] Server returned data for donor filter:",
+          data
+        );
 
-      setLotNumbers(data.lotNumbers);
-      setPalletNumbers(data.palletNumbers);
-      setBoxNumbers(data.boxNumbers);
-    } catch (err) {
-      console.error("[NewAllocationModal] Error in fetchFilteredByDonor:", err);
-    }
-  }
+        setLotNumbers(data.lotNumbers);
+        setPalletNumbers(data.palletNumbers);
+        setBoxNumbers(data.boxNumbers);
+      } catch (err) {
+        console.error(
+          "[NewAllocationModal] Error in fetchFilteredByDonor:",
+          err
+        );
+      }
+    })();
+  }, [
+    expirationDate,
+    quantityPerUnit,
+    selectedBox,
+    selectedDonor,
+    selectedLot,
+    selectedPallet,
+    title,
+    type,
+    unitType,
+  ]);
 
   // filter donor options using the full lis
   const displayedDonors = donorSearch
@@ -106,12 +121,7 @@ export default function AddAllocationModal({
   function handleSelectDonor(donor: string) {
     console.log("[NewAllocationModal] handleSelectDonor picking:", donor);
     setSelectedDonor(donor);
-    setSelectedLot("");
-    setSelectedPallet("");
-    setSelectedBox("");
     setShowDonorList(false);
-    setDonorSearch("");
-    fetchFilteredByDonor(donor);
   }
 
   function handleSelectLot(newLot: string) {
@@ -142,8 +152,8 @@ export default function AddAllocationModal({
       !unallocatedItemRequestId ||
       !title ||
       !type ||
-      !expiration ||
-      !unitSize ||
+      !expirationDate ||
+      !unitType ||
       !selectedDonor ||
       !selectedLot ||
       !selectedPallet ||
@@ -158,26 +168,14 @@ export default function AddAllocationModal({
     formData.append("unallocatedItemRequestId", unallocatedItemRequestId);
     formData.append("title", title);
     formData.append("type", type);
-    formData.append("expiration", expiration);
-    formData.append("unitSize", unitSize);
+    formData.append("expirationDate", expirationDate);
+    formData.append("unitType", unitType);
+    formData.append("quantityPerUnit", quantityPerUnit.toString());
     formData.append("donorName", selectedDonor);
     formData.append("lotNumber", selectedLot);
     formData.append("palletNumber", selectedPallet);
     formData.append("boxNumber", selectedBox);
     formData.append("quantity", quantity);
-
-    console.log("[NewAllocationModal] POST /api/allocations with formData:", {
-      unallocatedItemRequestId,
-      title,
-      type,
-      expiration,
-      unitSize,
-      donorName: selectedDonor,
-      lotNumber: selectedLot,
-      palletNumber: selectedPallet,
-      boxNumber: selectedBox,
-      quantity,
-    });
 
     fetch("/api/allocations", {
       method: "POST",

@@ -32,11 +32,15 @@ interface PartnerAllocation {
 
 export default function AdminDistributionsScreen() {
   // State for active tab
-  const [activeTab, setActiveTab] = useState<string>(DistributionTab.IN_PROGRESS);
+  const [activeTab, setActiveTab] = useState<string>(
+    DistributionTab.IN_PROGRESS
+  );
   // State for signoffs data
   const [signoffs, setSignoffs] = useState<SignOff[]>([]);
   // State for partner allocations data
-  const [partnerAllocations, setPartnerAllocations] = useState<PartnerAllocation[]>([]);
+  const [partnerAllocations, setPartnerAllocations] = useState<
+    PartnerAllocation[]
+  >([]);
   // State for loading
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -46,7 +50,9 @@ export default function AdminDistributionsScreen() {
       setIsLoading(true);
       try {
         if (activeTab === DistributionTab.COMPLETE) {
-          const response = await fetch("/api/distributions?completed=true");
+          const response = await fetch(
+            "/api/distributions/admin?completed=true"
+          );
           if (response.ok) {
             const data = await response.json();
             setSignoffs(data.signoffs || []);
@@ -55,12 +61,15 @@ export default function AdminDistributionsScreen() {
           }
         } else {
           // Fetch in-progress data
-          const response = await fetch("/api/distributions");
+          const response = await fetch("/api/distributions/admin");
           if (response.ok) {
             const data = await response.json();
             setPartnerAllocations(data.data || []);
           } else {
-            console.error("Failed to fetch partner allocations:", response.statusText);
+            console.error(
+              "Failed to fetch partner allocations:",
+              response.statusText
+            );
           }
         }
       } catch (error) {
@@ -126,16 +135,26 @@ export default function AdminDistributionsScreen() {
         ) : activeTab === DistributionTab.IN_PROGRESS ? (
           <>
             {partnerAllocations.length === 0 ? (
-              <p className="text-gray-500">No in-progress distributions to display.</p>
+              <p className="text-gray-500">
+                No in-progress distributions to display.
+              </p>
             ) : (
               <div className="overflow-x-scroll">
                 <table className="mt-4 min-w-full">
                   <thead>
                     <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                      <th className="px-4 py-2 rounded-tl-lg text-left">Partner Name</th>
-                      <th className="px-4 py-2 text-left">Visible Allocations</th>
-                      <th className="px-4 py-2 text-left">Hidden Allocations</th>
-                      <th className="px-4 py-2 rounded-tr-lg text-left">Pending Sign Offs</th>
+                      <th className="px-4 py-2 rounded-tl-lg text-left">
+                        Partner Name
+                      </th>
+                      <th className="px-4 py-2 text-left">
+                        Visible Allocations
+                      </th>
+                      <th className="px-4 py-2 text-left">
+                        Hidden Allocations
+                      </th>
+                      <th className="px-4 py-2 rounded-tr-lg text-left">
+                        Pending Sign Offs
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -146,9 +165,15 @@ export default function AdminDistributionsScreen() {
                         className="bg-white data-[odd=true]:bg-gray-50 border-b transition-colors"
                       >
                         <td className="px-4 py-2">{partner.partnerName}</td>
-                        <td className="px-4 py-2">{partner.visibleAllocationsCount}</td>
-                        <td className="px-4 py-2">{partner.hiddenAllocationsCount}</td>
-                        <td className="px-4 py-2">{partner.pendingSignOffCount}</td>
+                        <td className="px-4 py-2">
+                          {partner.visibleAllocationsCount}
+                        </td>
+                        <td className="px-4 py-2">
+                          {partner.hiddenAllocationsCount}
+                        </td>
+                        <td className="px-4 py-2">
+                          {partner.pendingSignOffCount}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -159,17 +184,23 @@ export default function AdminDistributionsScreen() {
         ) : (
           <>
             {signoffs.length === 0 ? (
-              <p className="text-gray-500">No completed distributions to display.</p>
+              <p className="text-gray-500">
+                No completed distributions to display.
+              </p>
             ) : (
               <div className="overflow-x-scroll">
                 <table className="mt-4 min-w-full">
                   <thead>
                     <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                      <th className="px-4 py-2 rounded-tl-lg text-left">Partner Name</th>
+                      <th className="px-4 py-2 rounded-tl-lg text-left">
+                        Partner Name
+                      </th>
                       <th className="px-4 py-2 text-left">Staff Member</th>
                       <th className="px-4 py-2 text-left">Date</th>
                       <th className="px-4 py-2 text-left">Created At</th>
-                      <th className="px-4 py-2 rounded-tr-lg text-left">Distributions</th>
+                      <th className="px-4 py-2 rounded-tr-lg text-left">
+                        Distributions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -181,9 +212,15 @@ export default function AdminDistributionsScreen() {
                       >
                         <td className="px-4 py-2">{signoff.partnerName}</td>
                         <td className="px-4 py-2">{signoff.staffMemberName}</td>
-                        <td className="px-4 py-2">{formatDate(signoff.date)}</td>
-                        <td className="px-4 py-2">{formatDate(signoff.createdAt)}</td>
-                        <td className="px-4 py-2">{signoff._count.distributions}</td>
+                        <td className="px-4 py-2">
+                          {formatDate(signoff.date)}
+                        </td>
+                        <td className="px-4 py-2">
+                          {formatDate(signoff.createdAt)}
+                        </td>
+                        <td className="px-4 py-2">
+                          {signoff._count.distributions}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

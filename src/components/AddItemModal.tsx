@@ -30,9 +30,6 @@ export default function BulkAddSuccessModal({
     console.log(Object.fromEntries(data)); // Log the form data for
     data.append("datePosted", new Date().toISOString()); // Add datePosted to the form data
 
-    // Purely because as of coding this, unit size is used instead of quantity per unit
-    data.append("unitSize", data.get("quantityPerUnit") as string);
-
     const validatedForm = ItemFormSchema.safeParse(data);
     console.log(validatedForm);
 
@@ -124,7 +121,12 @@ export default function BulkAddSuccessModal({
             {/* To be replaced with numeric field; note that this is currently not being tracked in the db*/}
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Quantity" name="quantity" required />
+            <ModalTextField
+              label="Quantity"
+              name="quantity"
+              type="number"
+              required
+            />
             {/* To be replaced with numeric field */}
             <ModalAutoTextField
               label="Unit type"
@@ -134,10 +136,17 @@ export default function BulkAddSuccessModal({
             />
           </ModalFormRow>
           <ModalFormRow>
-            <ModalTextField label="Unit price" name="unitPrice" required />
+            <ModalTextField
+              label="Unit price"
+              name="unitPrice"
+              type="number"
+              inputProps={{ step: ".01" }}
+              required
+            />
             <ModalTextField
               label="Quantity per unit"
               name="quantityPerUnit"
+              type="number"
               required
             />
           </ModalFormRow>

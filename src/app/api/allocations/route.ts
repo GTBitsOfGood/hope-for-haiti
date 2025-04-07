@@ -18,12 +18,16 @@ import { editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
  * @params title Item title to match
  * @params type Item type to match
  * @params expiration Item expiration to match
- * @params unitSize Unit size to match
+ * @params unitType
+ * @params quantityPerUnit
  * @params donorName Donor name of item to match
  * @params lotNumber Lot number to match
  * @params palletNumber Pallet number to match
  * @params boxNumber Box number to match
  * @params quantity Quantity to allocate
+ * @params itemId ID of the item to allocate (optional)
+ * @params visible Boolean to determine if the allocation is visible (default: false)
+ * @params partnerId ID of the partner to allocate to (optional)
  *
  * @returns 400 if any field is missing or invalid
  * @returns 404 if no item is found with matching fields
@@ -40,81 +44,121 @@ export async function POST(request: NextRequest) {
     return authorizationError("Unauthorized");
   }
 
-  //parse form data
   const form = await request.formData();
   const unallocatedItemRequestId = form.get("unallocatedItemRequestId");
-  const title = form.get("title");
-  const type = form.get("type");
-  const expiration = form.get("expiration");
-  const unitSize = form.get("unitSize");
-  const donorName = form.get("donorName");
-  const lotNumber = form.get("lotNumber");
-  const palletNumber = form.get("palletNumber");
-  const boxNumber = form.get("boxNumber");
+  const partnerId = form.get("partnerId");
   const quantity = form.get("quantity");
+  const itemId = form.get("itemId");
+  const visible = form.get("visible") === "true" || false;
 
-  //validate required fields
-  if (
-    !unallocatedItemRequestId ||
-    !title ||
-    !type ||
-    !expiration ||
-    !unitSize ||
-    !donorName ||
-    !lotNumber ||
-    !palletNumber ||
-    !boxNumber ||
-    !quantity
-  ) {
+  if (!quantity || (!unallocatedItemRequestId && !partnerId)) {
     return argumentError("Missing one or more required fields.");
   }
 
-  //parse numbers from form values
-  const parsedUnitSize = parseInt(unitSize.toString());
-  const parsedLot = parseInt(lotNumber.toString());
-  const parsedPallet = parseInt(palletNumber.toString());
-  const parsedBox = parseInt(boxNumber.toString());
   const parsedQuantity = parseInt(quantity.toString());
-  const parsedUnallocatedId = parseInt(unallocatedItemRequestId.toString());
-  const parsedExpiration = new Date(expiration.toString());
 
-  //invalid number values
-  if (
-    isNaN(parsedUnitSize) ||
-    isNaN(parsedLot) ||
-    isNaN(parsedPallet) ||
-    isNaN(parsedBox) ||
-    isNaN(parsedQuantity) ||
-    isNaN(parsedUnallocatedId)
-  ) {
+  if (isNaN(parsedQuantity)) {
     return argumentError("Invalid number value in form data.");
   }
 
-  //search the database for a matching item
-  const item = await db.item.findFirst({
-    where: {
-      title: title.toString(),
-      type: type.toString(),
-      expirationDate: parsedExpiration,
-      unitSize: parsedUnitSize,
-      donorName: donorName.toString(),
-      lotNumber: parsedLot,
-      palletNumber: parsedPallet,
-      boxNumber: parsedBox,
-    },
-  });
+  if (unallocatedItemRequestId && partnerId) {
+    return argumentError(
+      "Cannot specify both unallocatedItemRequestId and partnerId."
+    );
+  }
+
+  let item;
+  if (itemId) {
+    const parsedItemId = parseInt(itemId.toString());
+    if (isNaN(parsedItemId)) {
+      return argumentError("Invalid number value in form data.");
+    }
+    item = await db.item.findUnique({
+      where: {
+        id: parsedItemId,
+      },
+    });
+  } else {
+    const title = form.get("title");
+    const type = form.get("type");
+    const expirationDate = form.get("expirationDate");
+    const unitType = form.get("unitType");
+    const quantityPerUnit = form.get("quantityPerUnit");
+    const donorName = form.get("donorName");
+    const lotNumber = form.get("lotNumber");
+    const palletNumber = form.get("palletNumber");
+    const boxNumber = form.get("boxNumber");
+
+    if (
+      !title ||
+      !type ||
+      !expirationDate ||
+      !unitType ||
+      !quantityPerUnit ||
+      !donorName ||
+      !lotNumber ||
+      !palletNumber ||
+      !boxNumber
+    ) {
+      return argumentError("Missing one or more required fields.");
+    }
+
+    const parsedQuantityPerUnit = parseInt(quantityPerUnit.toString());
+
+    if (isNaN(parsedQuantityPerUnit)) {
+      return argumentError("Invalid number value in form data.");
+    }
+
+    item = await db.item.findFirst({
+      where: {
+        title: title.toString(),
+        type: type.toString(),
+        expirationDate: new Date(expirationDate.toString()),
+        unitType: unitType.toString(),
+        quantityPerUnit: parseInt(quantityPerUnit.toString()),
+        donorName: donorName.toString(),
+        lotNumber: lotNumber.toString(),
+        palletNumber: palletNumber.toString(),
+        boxNumber: boxNumber.toString(),
+      },
+    });
+  }
 
   if (!item) {
-    console.warn("[POST /api/allocations] No matching item found");
     return notFoundError("Item not found with the specified attributes.");
   }
 
-  //create allocation
+  const totalAllocated = await db.unallocatedItemRequestAllocation.aggregate({
+    _sum: {
+      quantity: true,
+    },
+    where: {
+      itemId: item.id,
+    },
+  });
+  if (
+    totalAllocated._sum.quantity &&
+    item.quantity - totalAllocated._sum.quantity < parsedQuantity
+  ) {
+    return argumentError(
+      "Not enough items in inventory to fulfill the allocation request."
+    );
+  }
+
   const allocation = await db.unallocatedItemRequestAllocation.create({
     data: {
-      unallocatedItemRequestId: parsedUnallocatedId,
+      ...(unallocatedItemRequestId
+        ? {
+            unallocatedItemRequestId: parseInt(
+              unallocatedItemRequestId.toString()
+            ),
+          }
+        : partnerId
+          ? { partnerId: parseInt(partnerId.toString()) }
+          : {}),
       itemId: item.id,
       quantity: parsedQuantity,
+      visible,
     },
   });
 
@@ -154,8 +198,9 @@ export async function PUT(request: NextRequest) {
     allocationId,
     title,
     type,
-    expiration,
-    unitSize,
+    expirationDate,
+    unitType,
+    quantityPerUnit,
     donorName,
     lotNumber,
     palletNumber,
@@ -180,8 +225,9 @@ export async function PUT(request: NextRequest) {
     where: {
       title,
       type,
-      expirationDate: expiration,
-      unitSize,
+      expirationDate,
+      unitType,
+      quantityPerUnit,
       donorName,
       lotNumber,
       palletNumber,

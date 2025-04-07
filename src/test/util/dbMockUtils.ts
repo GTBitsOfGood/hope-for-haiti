@@ -37,17 +37,16 @@ export async function fillDbMockWithManyItems(
       expirationDate: dates
         ? dates[i]
         : new Date(Date.now() + Math.floor(Math.random() * 10000)),
-      unitSize: Math.floor(Math.random() * 100),
       unitType: `Unit Type ${Math.floor(Math.random() * 3)}`,
       datePosted: new Date(Date.now() + Math.floor(Math.random() * 10000)),
-      lotNumber: Math.floor(Math.random() * 100),
-      palletNumber: Math.floor(Math.random() * 100),
-      boxNumber: Math.floor(Math.random() * 100),
+      lotNumber: Math.floor(Math.random() * 100).toString(),
+      palletNumber: Math.floor(Math.random() * 100).toString(),
+      boxNumber: Math.floor(Math.random() * 100).toString(),
       donorName: "Chris Evans <3",
       unitPrice: new Prisma.Decimal(Math.random() * 100),
       maxRequestLimit: "abc",
       visible: true,
-      quantityPerUnit: "",
+      quantityPerUnit: 2,
       donorShippingNumber: "",
       hfhShippingNumber: "",
       allowAllocations: false,
@@ -113,17 +112,16 @@ export async function createItem({
   category = ItemCategory.MEDICAL_SUPPLY,
   quantity = 10,
   expirationDate = new Date(Date.now() + Math.floor(Math.random() * 10000)),
-  unitSize = 1,
   unitType = "Test Unit",
   datePosted = new Date(),
-  palletNumber = Math.floor(Math.random() * 10000),
-  lotNumber = Math.floor(Math.random() * 10000),
-  boxNumber = Math.floor(Math.random() * 10000),
+  palletNumber = Math.floor(Math.random() * 10000).toString(),
+  lotNumber = Math.floor(Math.random() * 10000).toString(),
+  boxNumber = Math.floor(Math.random() * 10000).toString(),
   donorName = "Test Donor",
   unitPrice = new Prisma.Decimal(1),
   maxRequestLimit = "1",
   visible = true,
-  quantityPerUnit = "",
+  quantityPerUnit = 0,
   donorShippingNumber = "",
   hfhShippingNumber = "",
   allowAllocations = false,
@@ -141,14 +139,14 @@ export async function createItem({
   unitSize?: number;
   unitType?: string;
   datePosted?: Date;
-  palletNumber?: number;
-  lotNumber?: number;
-  boxNumber?: number;
+  palletNumber?: string;
+  lotNumber?: string;
+  boxNumber?: string;
   donorName?: string;
   unitPrice?: Prisma.Decimal;
   maxRequestLimit?: string;
   visible?: boolean;
-  quantityPerUnit?: string;
+  quantityPerUnit?: number;
   donorShippingNumber?: string;
   hfhShippingNumber?: string;
   allowAllocations?: boolean;
@@ -164,7 +162,6 @@ export async function createItem({
     category,
     quantity,
     expirationDate,
-    unitSize,
     unitType,
     datePosted,
     lotNumber,
