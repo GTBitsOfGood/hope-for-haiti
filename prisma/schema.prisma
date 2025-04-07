@@ -170,6 +170,8 @@ model DonorOfferItem {
 
   requests DonorOfferItemRequest[]
   items    Item[]
+
+  @@unique([donorOfferId, title, type, expirationDate, unitType, quantityPerUnit])
 }
 
 model DonorOfferItemRequest {

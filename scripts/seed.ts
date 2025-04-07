@@ -30,6 +30,20 @@ function pick<T>(items: Array<T>): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function sample<T>(count: number, items: Array<T>): T[] {
+  if (count > items.length) {
+    throw new Error("Cannot sample more items than are available");
+  }
+
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; // Swap
+  }
+
+  return shuffled.slice(0, count);
+}
+
 function randInt(min: number, max: number) {
   min = Math.ceil(min);
   max = Math.floor(max);
@@ -243,9 +257,9 @@ async function run() {
             partnerResponseDeadline: dateOffset(20),
             donorResponseDeadline: dateOffset(30),
             items: {
-              create: Array.from({ length: 4 }, () => ({
+              create: sample(randInt(2, 4), generalItems).map((item) => ({
+                ...item,
                 quantity: randInt(1, 3) * 10,
-                ...pick(generalItems),
                 requests: {
                   create: Array.from({ length: 4 }, () => ({
                     partnerId: pick(partners).id,
@@ -269,9 +283,9 @@ async function run() {
             partnerResponseDeadline: dateOffset(20),
             donorResponseDeadline: dateOffset(30),
             items: {
-              create: Array.from({ length: 4 }, () => ({
+              create: sample(randInt(2, 4), generalItems).map((item) => ({
+                ...item,
                 quantity: randInt(1, 3) * 10,
-                ...pick(generalItems),
                 requests: {
                   create: Array.from({ length: 4 }, () => ({
                     partnerId: pick(partners).id,
@@ -295,9 +309,9 @@ async function run() {
             partnerResponseDeadline: dateOffset(20),
             donorResponseDeadline: dateOffset(30),
             items: {
-              create: Array.from({ length: 4 }, () => ({
+              create: sample(randInt(2, 4), generalItems).map((item) => ({
+                ...item,
                 quantity: randInt(1, 3) * 10,
-                ...pick(generalItems),
                 requests: {
                   create: Array.from({ length: 4 }, () => ({
                     partnerId: pick(partners).id,
@@ -321,9 +335,9 @@ async function run() {
             partnerResponseDeadline: dateOffset(20),
             donorResponseDeadline: dateOffset(30),
             items: {
-              create: Array.from({ length: 4 }, () => ({
+              create: sample(randInt(2, 4), generalItems).map((item) => ({
+                ...item,
                 quantity: randInt(1, 3) * 10,
-                ...pick(generalItems),
                 requests: {
                   create: Array.from({ length: 4 }, () => ({
                     partnerId: pick(partners).id,
