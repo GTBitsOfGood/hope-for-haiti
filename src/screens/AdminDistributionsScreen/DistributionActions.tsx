@@ -12,39 +12,40 @@ import { Dispatch, SetStateAction, useState } from "react";
 import toast from "react-hot-toast";
 
 export default function DistributionActions({
+  refetch,
+  allocationType,
+  allocationId,
+  visible,
   distribution,
   setDistributions,
 }: {
+  refetch: () => void;
+  partnerId: number;
+  allocationType: "unallocated" | "donorOffer";
+  visible: boolean;
+  allocationId: number;
   distribution: DistributionItem;
   setDistributions: Dispatch<SetStateAction<DistributionItem[]>>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const toggleVisibility = async (distribution: DistributionItem) => {
     try {
-      const res = await fetch(`/api/distributions/toggleVisibility`, {
-        method: "PUT",
-        body: JSON.stringify({
-          visible: !distribution.visible,
-          ids: [distribution.id],
-        }),
-      });
+      const res = await fetch(
+        `/api/distributions/toggleVisibility?allocType=${allocationType}&id=${allocationId}&visible=${!visible}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            visible: !distribution.visible,
+            ids: [distribution.id],
+          }),
+        }
+      );
 
       if (!res.ok) {
         throw new Error();
       }
 
-      setDistributions((oldDistributions: DistributionItem[]) => {
-        return oldDistributions.map((old) => {
-          if (old.id === distribution.id) {
-            return {
-              ...old,
-              visible: !old.visible,
-            };
-          } else {
-            return old;
-          }
-        });
-      });
+      refetch();
     } catch (e) {
       toast.error("Error changing visibility", {
         position: "bottom-right",
@@ -118,7 +119,7 @@ export default function DistributionActions({
             <DotsThree weight="bold" />
           </MenuButton>
           <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-            {distribution.visible ? (
+            {visible ? (
               <MenuItem
                 as="button"
                 className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"

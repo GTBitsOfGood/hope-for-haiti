@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
           DonorOfferItemRequestAllocation: true,
         },
       },
+      unallocatedItemRequestAllocations: true,
       distributions: true,
       _count: {
         select: {
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest) {
     );
 
     const allAllocations = [
+      ...user.unallocatedItemRequestAllocations,
       ...unallocatedRequestAllocations,
       ...donorOfferRequestAllocations,
     ];

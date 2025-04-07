@@ -1,15 +1,37 @@
-import { DistributionItem } from "@/app/api/distributions/types";
 import { ChatTeardropText } from "@phosphor-icons/react";
 import React, { Dispatch, SetStateAction } from "react";
 import { Tooltip } from "react-tooltip";
 import DistributionActions from "./DistributionActions";
 
+interface DistributionRecord {
+  allocationType: "unallocated" | "donorOffer";
+  allocationId: number;
+
+  quantityAllocated: number;
+  quantityAvailable: number;
+  quantityTotal: number;
+
+  title: string;
+  donorName: string;
+  lotNumber: string;
+  palletNumber: string;
+  boxNumber: string;
+  unitPrice: number;
+
+  donorShippingNumber: string | null;
+  hfhShippingNumber: string | null;
+}
+
 export default function DistributionTable({
+  refetch,
+  visible,
   distributions,
   setDistributions,
 }: {
-  distributions: DistributionItem[];
-  setDistributions: Dispatch<SetStateAction<DistributionItem[]>>;
+  refetch: () => void;
+  visible: boolean;
+  distributions: DistributionRecord[];
+  setDistributions: Dispatch<SetStateAction<DistributionRecord[]>>;
 }) {
   return (
     <div className="overflow-x-scroll pb-32">
@@ -42,8 +64,7 @@ export default function DistributionTable({
                 <td className="px-4 py-2">{distribution.title}</td>
                 <td className="px-4 py-2">{distribution.quantityAllocated}</td>
                 <td className="px-4 py-2">
-                  {/* {distribution.quantityAvailable}/{distribution.total} */}
-                  TODO
+                  {distribution.quantityAvailable}/{distribution.quantityTotal}
                 </td>
                 <td className="px-4 py-2">{distribution.donorName}</td>
                 <td className="px-4 py-2">{distribution.palletNumber}</td>
@@ -74,6 +95,10 @@ export default function DistributionTable({
                 </td>
                 <td className="px-4 py-2">
                   <DistributionActions
+                    refetch={refetch}
+                    allocationType={distribution.allocationType}
+                    allocationId={distribution.allocationId}
+                    visible={visible}
                     distribution={distribution}
                     setDistributions={setDistributions}
                   />

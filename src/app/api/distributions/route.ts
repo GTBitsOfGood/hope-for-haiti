@@ -13,21 +13,21 @@ import { format } from "date-fns";
 
 const ALLOWED_USER_TYPES: UserType[] = [UserType.ADMIN, UserType.SUPER_ADMIN];
 
-const countAllocated = async (itemId: number) => {
-  const totalDonor = await db.donorOfferItemRequestAllocation.aggregate({
-    _sum: { quantity: true },
-    where: { itemId },
-  });
+// const countAllocated = async (itemId: number) => {
+//   const totalDonor = await db.donorOfferItemRequestAllocation.aggregate({
+//     _sum: { quantity: true },
+//     where: { itemId },
+//   });
 
-  const totalUnallocated = await db.unallocatedItemRequestAllocation.aggregate({
-    _sum: { quantity: true },
-    where: { itemId },
-  });
+//   const totalUnallocated = await db.unallocatedItemRequestAllocation.aggregate({
+//     _sum: { quantity: true },
+//     where: { itemId },
+//   });
 
-  return (
-    (totalDonor._sum.quantity ?? 0) + (totalUnallocated._sum.quantity ?? 0)
-  );
-};
+//   return (
+//     (totalDonor._sum.quantity ?? 0) + (totalUnallocated._sum.quantity ?? 0)
+//   );
+// };
 
 const signedDistributions = async (partnerId: number) => {
   const signOffs = await db.signOff.findMany({
@@ -98,6 +98,25 @@ const partnerDistributions = async (
   return Array.from(map.values());
 };
 
+interface DistributionRecord {
+  allocationType: "unallocated" | "donorOffer";
+  allocationId: number;
+
+  quantityAllocated: number;
+  quantityAvailable: number;
+  quantityTotal: number;
+
+  title: string;
+  donorName: string;
+  lotNumber: string;
+  palletNumber: string;
+  boxNumber: string;
+  unitPrice: number;
+
+  donorShippingNumber: string | null;
+  hfhShippingNumber: string | null;
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session) return authenticationError("Session required");
@@ -125,6 +144,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const visibleFilterStr = new URL(request.url).searchParams.get("visible");
+  const visibleFilter = visibleFilterStr
+    ? visibleFilterStr === "true"
+      ? true
+      : false
+    : null;
+
   // Admin flow
   if (!ALLOWED_USER_TYPES.includes(user.type)) {
     return authorizationError("You are not allowed to view this");
@@ -141,48 +167,70 @@ export async function GET(request: NextRequest) {
     return argumentError("Partner not found");
   }
 
-  const distributions = await db.distribution.findMany({
-    where: { partnerId: partnerIdNum },
-    include: {
-      unallocatedItemAllocation: { include: { unallocatedItem: true } },
-      donorOfferItemAllocation: { include: { item: true } },
-    },
+  const records: DistributionRecord[] = [];
+
+  const baseWhere = visibleFilter !== null ? { visible: visibleFilter } : {};
+  console.log(baseWhere);
+
+  const unallocatedAllocations =
+    await db.unallocatedItemRequestAllocation.findMany({
+      where: {
+        OR: [
+          { ...baseWhere, unallocatedItemRequest: { partnerId: partnerIdNum } },
+          { ...baseWhere, partnerId: partnerIdNum },
+        ],
+      },
+      include: {
+        unallocatedItem: true,
+      },
+    });
+  unallocatedAllocations.map((alloc) => {
+    records.push({
+      allocationType: "unallocated",
+      allocationId: alloc.id,
+      title: alloc.unallocatedItem.title,
+      donorName: alloc.unallocatedItem.donorName,
+      lotNumber: alloc.unallocatedItem.lotNumber,
+      palletNumber: alloc.unallocatedItem.palletNumber,
+      boxNumber: alloc.unallocatedItem.boxNumber,
+      unitPrice: alloc.unallocatedItem.unitPrice.toNumber(),
+      quantityAllocated: alloc.quantity,
+      quantityAvailable: 999,
+      quantityTotal: 999,
+      donorShippingNumber: alloc.unallocatedItem.donorShippingNumber,
+      hfhShippingNumber: alloc.unallocatedItem.hfhShippingNumber,
+    });
   });
 
-  const allItems = (
-    await Promise.all(
-      distributions.map(async (distribution) => {
-        if (distribution.donorOfferItemAllocation) {
-          const item = distribution.donorOfferItemAllocation.item;
-          const allocated = await countAllocated(item.id);
-          return {
-            id: distribution.id,
-            partnerId: distribution.partnerId,
-            signOffId: distribution.signOffId,
-            item,
-            quantityAllocated: distribution.donorOfferItemAllocation.quantity,
-            quantityAvailable: item.quantity - allocated,
-            total: item.quantity,
-            visible: distribution.donorOfferItemAllocation.visible,
-          };
-        } else if (distribution.unallocatedItemAllocation) {
-          const item = distribution.unallocatedItemAllocation.unallocatedItem;
-          const allocated = await countAllocated(item.id);
-          return {
-            id: distribution.id,
-            partnerId: distribution.partnerId,
-            signOffId: distribution.signOffId,
-            item,
-            quantityAllocated: distribution.unallocatedItemAllocation.quantity,
-            quantityAvailable: item.quantity - allocated,
-            total: item.quantity,
-            visible: distribution.unallocatedItemAllocation.visible,
-          };
-        }
-        return null;
-      })
-    )
-  ).filter((item) => item !== null);
+  const donorOfferAllocations =
+    await db.donorOfferItemRequestAllocation.findMany({
+      where: {
+        ...baseWhere,
+        donorOfferItemRequest: {
+          partnerId: partnerIdNum,
+        },
+      },
+      include: {
+        item: true,
+      },
+    });
+  donorOfferAllocations.map((alloc) => {
+    records.push({
+      allocationType: "donorOffer",
+      allocationId: alloc.id,
+      title: alloc.item.title,
+      donorName: alloc.item.donorName,
+      lotNumber: alloc.item.lotNumber,
+      palletNumber: alloc.item.palletNumber,
+      boxNumber: alloc.item.boxNumber,
+      unitPrice: alloc.item.unitPrice.toNumber(),
+      quantityAllocated: alloc.quantity,
+      quantityAvailable: 999,
+      quantityTotal: 999,
+      donorShippingNumber: alloc.item.donorShippingNumber,
+      hfhShippingNumber: alloc.item.hfhShippingNumber,
+    });
+  });
 
-  return NextResponse.json({ items: allItems });
+  return NextResponse.json({ records });
 }
