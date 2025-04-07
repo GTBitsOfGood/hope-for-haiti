@@ -76,6 +76,9 @@ export default function PartnerDynamicDonorOfferScreen() {
   const [selectedDonorOfferItemId, setSelectedDonorOfferItemId] = useState<
     number | null
   >(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -90,13 +93,12 @@ export default function PartnerDynamicDonorOfferScreen() {
         }
         const data = (await res.json()) as DonorOfferItemsRequestsResponse;
         setDonorOfferName(data.donorOfferName);
-        const withIds: EditableRequest[] = data.donorOfferItemsRequests.map(
-          (row, index) => ({
-            ...row,
-            priority: row.priority ?? null,
-            localId: index,
-          })
-        );
+        const items = data.donorOfferItemsRequests ?? [];
+        const withIds: EditableRequest[] = items.map((row, index) => ({
+          ...row,
+          priority: row.priority ?? null,
+          localId: index,
+        }));
         setEditedRequests(withIds);
         if (withIds.length === 0) {
           setIsEditing(true);
@@ -129,7 +131,6 @@ export default function PartnerDynamicDonorOfferScreen() {
           if (name === "priority") {
             return {
               ...row,
-              // Allow null if no valid selection is made.
               priority: parsePriority(value) ?? null,
             };
           }
@@ -189,6 +190,7 @@ export default function PartnerDynamicDonorOfferScreen() {
   const handleCommentClick = (localId: number) => {
     const row = editedRequests.find((r) => r.localId === localId);
     if (!row) return;
+    setSelectedRequestId(row.requestId ?? null);
     setSelectedDonorOfferItemId(row.donorOfferItemId);
     setSelectedItemName(row.title);
     setModalComment(row.comments ?? "");
@@ -196,13 +198,11 @@ export default function PartnerDynamicDonorOfferScreen() {
   };
 
   const handleModalSaveComment = async () => {
-    if (selectedDonorOfferItemId == null) {
+    if (selectedRequestId == null) {
       setIsModalOpen(false);
       return;
     }
-    const row = editedRequests.find(
-      (r) => r.donorOfferItemId === selectedDonorOfferItemId
-    );
+    const row = editedRequests.find((r) => r.requestId === selectedRequestId);
     if (!row) {
       setIsModalOpen(false);
       return;
@@ -216,7 +216,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       quantity: row.quantity,
       unitSize: row.unitSize,
       quantityRequested: row.quantityRequested,
-      comments: row.comments,
+      comments: modalComment,
       priority: row.priority,
     };
     try {
@@ -231,7 +231,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       }
       setEditedRequests((prev) =>
         prev.map((r) =>
-          r.donorOfferItemId === selectedDonorOfferItemId
+          r.requestId === selectedRequestId
             ? { ...r, comments: modalComment }
             : r
         )
@@ -249,6 +249,7 @@ export default function PartnerDynamicDonorOfferScreen() {
     setModalComment("");
     setSelectedItemName("");
     setSelectedDonorOfferItemId(null);
+    setSelectedRequestId(null);
   };
 
   const commentIconFilter = isEditing
@@ -396,7 +397,9 @@ export default function PartnerDynamicDonorOfferScreen() {
                         src="/assets/chat_sign.svg"
                         alt="Comment"
                         style={{ filter: commentIconFilter }}
-                        className={`w-5 h-5 ${row.comments ? "opacity-90" : "opacity-30"} hover:opacity-100`}
+                        className={`w-5 h-5 ${
+                          row.comments ? "opacity-90" : "opacity-30"
+                        } hover:opacity-100`}
                       />
                     </button>
                   </td>

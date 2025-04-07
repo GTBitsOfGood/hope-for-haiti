@@ -64,6 +64,7 @@ async function handlePartnerRequest(
 
   return NextResponse.json({
     donorOfferName: donorOffer.offerName,
+    donorOfferItemsRequests,
   } as DonorOfferItemsRequestsResponse);
 }
 
@@ -141,9 +142,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     requests.map(async (req) => {
       const safePriority =
         req.priority == null ? RequestPriority.LOW : req.priority;
-      const existing = await db.donorOfferItemRequest.findFirst({
-        where: { donorOfferItemId: req.donorOfferItemId, partnerId },
-      });
+      const existing = req.requestId
+        ? await db.donorOfferItemRequest.findUnique({
+            where: { id: req.requestId },
+          })
+        : await db.donorOfferItemRequest.findFirst({
+            where: { donorOfferItemId: req.donorOfferItemId, partnerId },
+          });
       if (existing) {
         return db.donorOfferItemRequest.update({
           where: { id: existing.id },
@@ -154,7 +159,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           },
         });
       } else {
-        // Create a new record
+        // Create a new record if no matching one exists
         return db.donorOfferItemRequest.create({
           data: {
             donorOfferItemId: req.donorOfferItemId,
