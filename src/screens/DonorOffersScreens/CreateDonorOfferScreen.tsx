@@ -220,24 +220,24 @@ export default function CreateDonorOfferScreen() {
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Partner Request Deadline<span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={partnerRequestDeadline}
-            onChange={(e) => setPartnerRequestDeadline(e.target.value)}
-            className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-light text-black mb-1">
             Donor Request Deadline<span className="text-red-500">*</span>
           </label>
           <input
             type="date"
             value={donorRequestDeadline}
             onChange={(e) => setDonorRequestDeadline(e.target.value)}
+            className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-light text-black mb-1">
+            Partner Request Deadline<span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={partnerRequestDeadline}
+            onChange={(e) => setPartnerRequestDeadline(e.target.value)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             required
           />
