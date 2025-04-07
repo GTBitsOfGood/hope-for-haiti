@@ -141,7 +141,7 @@ function RequestItemsModal({
             {items.map((item, i) => (
               <tr key={JSON.stringify(item)}>
                 <td className="px-2">{item.title}</td>
-                <td className="px-2">{item.expirationDate.split('T')[0]}</td>
+                <td className="px-2">{item.expirationDate}</td>
                 <td className="px-2">
                   <div className="w-32">
                     <ModalDropDown
