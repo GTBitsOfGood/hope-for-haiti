@@ -10,6 +10,7 @@ import SignOffs from "./AdminDistributionsScreen/SignOffs";
 import Requests from "./AdminDistributionsScreen/Requests";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 const tabs = [
   {
@@ -56,14 +57,55 @@ export default function DistributionsForPartnerScreen() {
     })();
   }, [partnerId]);
 
+  const makeAllVisible = async () => {
+    toast.success("This has not been implemented yet");
+    // try {
+    //   const res = await fetch(`/api/distributions/toggleVisibility`, {
+    //     method: "PUT",
+    //     body: JSON.stringify({
+    //       visible: true,
+    //       ids: distributions
+    //         .filter((distribution) => !distribution.visible)
+    //         .map((distribution) => distribution.id),
+    //     }),
+    //   });
+
+    //   if (!res.ok) {
+    //     throw new Error();
+    //   }
+
+    //   setDistributions((oldDistributions: DistributionItem[]) =>
+    //     oldDistributions.map((distribution) => ({
+    //       ...distribution,
+    //       visible: true,
+    //     }))
+    //   );
+    // } catch (e) {
+    //   toast.error("Error changing visibility", {
+    //     position: "bottom-right",
+    //   });
+    //   console.log(e);
+    // }
+  };
+
   return (
     <>
-      <h1 className="text-2xl font-semibold">
-        <Link href="/distributions" className="hover:underline">
-          Distributions
-        </Link>{" "}
-        / {partnerName}
-      </h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">
+          <Link href="/distributions" className="hover:underline">
+            Distributions
+          </Link>{" "}
+          / {partnerName}
+        </h1>
+        {activeTab === "hiddenItems" ? (
+          <button
+            className="flex items-center border border-red-500 gap-2 text-center bg-white text-red-500 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition"
+            onClick={() => makeAllVisible()}
+          >
+            Make All Items Visible
+          </button>
+        ) : null}
+      </div>
       <div className="flex justify-between items-center w-full py-4">
         <div className="relative w-1/3">
           <MagnifyingGlass
