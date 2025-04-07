@@ -7,7 +7,7 @@ import { ItemFormSchema } from "@/schema/itemForm";
 import submitHandler from "@/util/formAction";
 import ModalDateField from "./ModalDateField";
 import toast from "react-hot-toast";
-import ModalDropDown, { StringToModalDropDownOption } from "./ModalDropDown";
+import ModalDropDown from "./ModalDropDown";
 import { ItemCategory } from "@prisma/client";
 import ModalAutoTextField from "./ModalAutoTextField";
 
@@ -80,10 +80,10 @@ export default function BulkAddSuccessModal({
         >
           <ModalFormRow>
             <ModalTextField label="Item title" name="title" required />
-            <ModalDropDown
+            <ModalAutoTextField
               label="Donor name"
               name="donorName"
-              options={StringToModalDropDownOption(donorNames)}
+              options={donorNames}
               required
             />
           </ModalFormRow>
@@ -99,10 +99,10 @@ export default function BulkAddSuccessModal({
               ]}
               required
             />
-            <ModalDropDown
+            <ModalAutoTextField
               label="Item type"
               name="type"
-              options={StringToModalDropDownOption(itemTypes)}
+              options={itemTypes}
               required
             />
           </ModalFormRow>
@@ -113,7 +113,6 @@ export default function BulkAddSuccessModal({
             <ModalDateField
               label="Expiration Date"
               name="expirationDate"
-              required
             />
           </ModalFormRow>
           <ModalFormRow>
@@ -156,7 +155,7 @@ export default function BulkAddSuccessModal({
               name="palletNumber"
               required
             />
-            <ModalTextField label="Box number" name="boxNumber" required />
+            <ModalTextField label="Box number" name="boxNumber"/>
           </ModalFormRow>
           <ModalFormRow>
             <ModalTextField
@@ -167,7 +166,6 @@ export default function BulkAddSuccessModal({
             <ModalTextField
               label="HfH shipping number"
               name="hfhShippingNumber"
-              required
             />
           </ModalFormRow>
           <ModalFormRow>
