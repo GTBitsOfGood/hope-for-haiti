@@ -93,7 +93,7 @@ export default function UnallocatedItemsLineItemsScreen() {
                 <th className="px-4 py-2 rounded-tl-lg text-left">Quantity</th>
                 <th className="px-4 py-2 text-left">Qty/Unit</th>
                 <th className="px-4 py-2 text-left">Donor name</th>
-                <th className="px-4 py-2 text-left">Pallet number</th>
+                <th className="px-4 py-2 text-left">Pallet</th>
                 <th className="px-4 py-2 text-left">Box number</th>
                 <th className="px-4 py-2 text-left">Lot number</th>
                 <th className="px-4 py-2 text-left">Unit price</th>

@@ -296,7 +296,7 @@ export default function AddAllocationModal({
 
           <div>
             <label className="block text-[16px] font-normal mb-2">
-              Pallet number <span className="text-mainRed">*</span>
+              Pallet <span className="text-mainRed">*</span>
             </label>
             <select
               className="w-full rounded border border-[#22070B1A] bg-[#F9F9F9] p-2 text-[16px] text-[#22070B] focus:outline-none"
@@ -360,7 +360,7 @@ export default function AddAllocationModal({
             className="bg-mainRed text-white px-4 py-2 rounded hover:bg-red-600 transition"
             onClick={handleConfirm}
           >
-            Confirm for Pending Distribution
+            Add to Partner&apos;s Distribution
           </button>
         </div>
       </div>
