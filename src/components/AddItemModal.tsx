@@ -113,6 +113,7 @@ export default function BulkAddSuccessModal({
             <ModalDateField
               label="Expiration Date"
               name="expirationDate"
+              required
             />
           </ModalFormRow>
           <ModalFormRow>
@@ -155,7 +156,7 @@ export default function BulkAddSuccessModal({
               name="palletNumber"
               required
             />
-            <ModalTextField label="Box number" name="boxNumber"/>
+            <ModalTextField label="Box number" name="boxNumber" required />
           </ModalFormRow>
           <ModalFormRow>
             <ModalTextField
@@ -166,6 +167,7 @@ export default function BulkAddSuccessModal({
             <ModalTextField
               label="HfH shipping number"
               name="hfhShippingNumber"
+              required
             />
           </ModalFormRow>
           <ModalFormRow>
