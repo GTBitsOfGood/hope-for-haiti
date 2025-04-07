@@ -16,14 +16,13 @@ import {
   conflictError,
   ok,
 } from "@/util/responses";
-import { partnerDetailsSchema } from "@/schema/partnerDetails";
 
 const schema = zfd
   .formData({
     email: zfd.text(z.string().email()),
     name: zfd.text(z.string()),
     userType: zfd.text(z.nativeEnum(UserType)),
-    partnerDetails: zfd.json(partnerDetailsSchema).optional(),
+    partnerDetails: zfd.text().optional(),
   })
   .refine(
     (data) => !(data.userType === UserType.PARTNER && !data.partnerDetails),
@@ -55,9 +54,11 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const parseResult = schema.safeParse(formData);
   if (!parseResult.success) {
+    console.log(parseResult.error);
     return argumentError("Invalid form data");
   }
   const { email, name, userType, partnerDetails } = parseResult.data;
+  // TODO validate partner details
 
   const existingUser = await db.user.findFirst({ where: { email } });
   if (existingUser) {
@@ -68,20 +69,22 @@ export async function POST(request: NextRequest) {
   const expiration = new Date();
   expiration.setDate(expiration.getDate() + 1);
 
-  await db.userInvite.create({
-    data: {
-      email,
-      name,
-      token,
-      expiration,
-      userType,
-      partnerDetails,
-    },
-  });
+  await db.$transaction(async (tx) => {
+    await tx.userInvite.create({
+      data: {
+        email,
+        name,
+        token,
+        expiration,
+        userType,
+        partnerDetails: JSON.parse(partnerDetails || "{}"),
+      },
+    });
 
-  const inviteUrl = `${request.nextUrl.origin}/register?token=${token}`;
-  const html = await render(UserInviteTemplate({ inviteUrl }));
-  await sendEmail(email, "Your Invite Link", html);
+    const inviteUrl = `${request.nextUrl.origin}/register?token=${token}`;
+    const html = await render(UserInviteTemplate({ inviteUrl }));
+    await sendEmail(email, "Your Invite Link", html);
+  });
 
   return ok();
 }

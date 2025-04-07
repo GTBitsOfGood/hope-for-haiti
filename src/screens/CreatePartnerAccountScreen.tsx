@@ -139,8 +139,10 @@ export default function CreatePartnerAccountScreen() {
       }
       if (parsed.success) {
         setErrorMessage("");
-        setStep((prev) => Math.min(prev + 1, 10));
       }
+
+      // TODO move back when fixed
+      setStep((prev) => Math.min(prev + 1, 10));
     }
   };
 
@@ -287,6 +289,7 @@ export default function CreatePartnerAccountScreen() {
             prevStep={prevStep}
             nextStep={nextStep}
             handleCancelClick={handleCancelClick}
+            partnerDetails={partnerDetails}
           />
         )}
 

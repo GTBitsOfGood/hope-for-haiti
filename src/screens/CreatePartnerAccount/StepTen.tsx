@@ -7,9 +7,10 @@ interface StepTenProps {
   prevStep: () => void;
   nextStep: () => void;
   handleCancelClick: () => void;
+  partnerDetails: object;
 }
 
-export default function StepTen({}: StepTenProps) {
+export default function StepTen({ partnerDetails }: StepTenProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sendingInvite, setSendingInvite] = useState(true);
@@ -35,6 +36,7 @@ export default function StepTen({}: StepTenProps) {
             email,
             name,
             userType: "PARTNER",
+            partnerDetails: JSON.stringify(partnerDetails || {}),
           }).toString(),
         });
 
@@ -49,7 +51,7 @@ export default function StepTen({}: StepTenProps) {
     };
 
     sendInvite();
-  }, [name, email]);
+  }, [name, email, partnerDetails]);
 
   return (
     <div className="max-w-2xl mx-auto">
