@@ -232,6 +232,7 @@ export default function UnallocatedItems() {
     setTimeout(async () => {
       const response = await fetch("api/unallocatedItems", {
         method: "GET",
+        cache: "no-store",
       });
       const data = await response.json();
       setItems(data.items);

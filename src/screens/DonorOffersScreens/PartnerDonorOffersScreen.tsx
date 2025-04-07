@@ -27,6 +27,7 @@ export default function PartnerDonorOffersScreen() {
     setTimeout(async () => {
       const response = await fetch("/api/donorOffers", {
         method: "GET",
+        cache: "no-store",
       });
       const data = await response.json();
       const formattedData = data.map((offer: DonorOfferDTO) => ({

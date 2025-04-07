@@ -17,7 +17,9 @@ export default function RegistrationScreen() {
 
     const fetchData = async () => {
       try {
-        const response = await fetch(`api/invites/${token}`);
+        const response = await fetch(`api/invites/${token}`, {
+          cache: "no-store",
+        });
         if (response.status === 400) {
           setError("Invalid or expired invite");
         }

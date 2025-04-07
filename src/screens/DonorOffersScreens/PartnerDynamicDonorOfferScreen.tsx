@@ -79,6 +79,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       // Fetch donor offer
       const response = await fetch(`/api/donorOffers/${donorOfferId}`, {
         method: "GET",
+        cache: "no-store",
       });
       const data = await response.json();
       if (response.status === 404) {

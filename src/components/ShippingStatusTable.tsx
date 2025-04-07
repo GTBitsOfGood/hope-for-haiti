@@ -63,6 +63,7 @@ export default function ShippingStatusTable({
     setTimeout(async () => {
       const response = await fetch("api/shippingStatus", {
         method: "GET",
+        cache: "no-store",
       });
       const data = await response.json();
       setShippingStatuses(data.shippingStatuses);

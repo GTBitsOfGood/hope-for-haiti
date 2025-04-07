@@ -61,7 +61,9 @@ export default function AdminDistributionsScreen() {
           }
         } else {
           // Fetch in-progress data
-          const response = await fetch("/api/distributions/admin");
+          const response = await fetch("/api/distributions/admin", {
+            cache: "no-store",
+          });
           if (response.ok) {
             const data = await response.json();
             setPartnerAllocations(data.data || []);

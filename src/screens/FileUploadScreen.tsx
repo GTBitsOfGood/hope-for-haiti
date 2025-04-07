@@ -15,7 +15,9 @@ export default function FileUploadScreen() {
       return;
     }
 
-    const response = await fetch("/api/file/write?filename=" + file.name);
+    const response = await fetch("/api/file/write?filename=" + file.name, {
+      cache: "no-store",
+    });
     if (!response.ok) {
       console.error("Failed to get upload URL:", response.statusText);
       setError("Failed to get upload URL");

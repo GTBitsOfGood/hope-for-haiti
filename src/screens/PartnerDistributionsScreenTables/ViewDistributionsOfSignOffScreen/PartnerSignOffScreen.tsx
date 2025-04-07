@@ -28,6 +28,7 @@ export default function PartnerSignOffScreen() {
     setTimeout(async () => {
       const response = await fetch(`/api/distributions/signOffs/${signOffId}`, {
         method: "GET",
+        cache: "no-store",
       });
       const data: SignedDistributions =
         (await response.json()) as SignedDistributions;
