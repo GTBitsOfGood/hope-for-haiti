@@ -142,7 +142,7 @@ export default function UnallocatedItemsLineItemsScreen() {
                     <td className="px-4 py-2">
                       {formatTableValue(item.unitPrice)}
                     </td>
-                    <td className="px-4 py-2 flex justify-center">
+                    <td className="px-4 py-2">
                       <ChatTeardropText
                         data-tooltip-id={`comment-tooltip-${item.id}`}
                         data-tooltip-content={item.notes}
@@ -158,7 +158,6 @@ export default function UnallocatedItemsLineItemsScreen() {
                         </Tooltip>
                       )}
                     </td>
-
                     <td className="px-4 py-2">
                       {formatTableValue(item.donorShippingNumber)}
                     </td>
