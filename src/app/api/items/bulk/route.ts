@@ -18,19 +18,21 @@ const AUTHORIZED_USER_TYPES = [
 
 const requiredKeys = [
   "title",
-  "donorName",
   "type",
-  "category",
-  "quantity",
   "expirationDate",
-  "unitSize",
   "unitType",
+  "quantityPerUnit",
+  "category",
+  "donorName",
+  "quantity",
   "datePosted",
   "lotNumber",
   "palletNumber",
   "boxNumber",
   "unitPrice",
   "maxRequestLimit",
+  "ndc",
+  "notes",
   "visible",
   "allowAllocations",
   "gik",
@@ -41,21 +43,24 @@ const containsRequiredKeys = (fields?: string[]) =>
 
 const SingleItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  donorName: z.string(),
   type: z.string(),
-  category: z.nativeEnum(ItemCategory),
-  quantity: z
-    .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
   expirationDate: z
     .union([
       z.coerce.date(),
       z.string().transform((val) => (val.trim() === "" ? undefined : val)),
     ])
     .optional(),
-  quantityPerUnit: z.number().int().min(0),
   unitType: z.string(),
+  quantityPerUnit: z
+    .string()
+    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
+    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
+  donorName: z.string(),
+  category: z.nativeEnum(ItemCategory),
+  quantity: z
+    .string()
+    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
+    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
   datePosted: z.coerce.date(),
   lotNumber: z.string(),
   palletNumber: z.string(),
@@ -65,6 +70,7 @@ const SingleItemSchema = z.object({
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().min(0)),
   maxRequestLimit: z.string(),
+  ndc: z.string().optional(),
   visible: z
     .string()
     .transform((val) => val.toLowerCase())
@@ -135,6 +141,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!meta.fields || !containsRequiredKeys(meta.fields)) {
+        console.log(requiredKeys.filter((k) => !meta.fields?.includes(k)));
         return argumentError("CSV does not contain required keys");
       }
 
