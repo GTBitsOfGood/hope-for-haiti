@@ -15,3 +15,11 @@ export interface SignedDistributions {
   distributionDate: string;
   numberOfItems: number;
 }
+
+export interface SignOff {
+  staffMemberName: string;
+  partnerName: string;
+  date: Date;
+  signatureUrl: string;
+  partnerId: number;
+}

@@ -1,3 +1,6 @@
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 /**
  * Takes a date string, validates it, and parses it into a Date object.
  * @params dateString: the date string to parse
@@ -20,4 +23,8 @@ export function parseDateIfDefined(
     return new Date(dateString);
   }
   return null;
+}
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
