@@ -8,7 +8,7 @@ import VisibleItems from "./AdminDistributionsScreen/VisibleItems";
 import ShippingStatus from "./AdminDistributionsScreen/ShippingStatus";
 import SignOffs from "./AdminDistributionsScreen/SignOffs";
 import Requests from "./AdminDistributionsScreen/Requests";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 const tabs = [
@@ -36,7 +36,8 @@ const tabs = [
 
 export default function DistributionsForPartnerScreen() {
   const { partnerId } = useParams();
-  const [activeTab, setActiveTab] = useState<string>("hiddenItems");
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<string>("signOffs");
   const [partnerName, setPartnerName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,6 +56,12 @@ export default function DistributionsForPartnerScreen() {
       }
     })();
   }, [partnerId]);
+
+  const handleClick = () => {
+    if (activeTab === "signOffs") {
+      router.push(`/distributions/${partnerId}/createSignOff`);
+    }
+  };
 
   return (
     <>
@@ -77,8 +84,12 @@ export default function DistributionsForPartnerScreen() {
           />
         </div>
         <div className="relative">
-          <button className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition">
-            <Plus size={18} /> Add Item
+          <button
+            className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+            onClick={handleClick}
+          >
+            <Plus size={18} />{" "}
+            {activeTab === "signOffs" ? "Create Sign Off" : "Add Item"}
           </button>
         </div>
       </div>
