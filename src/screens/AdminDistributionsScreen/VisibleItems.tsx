@@ -2,22 +2,7 @@ import DistributionTable from "./DistributionTable";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { CgSpinner } from "react-icons/cg";
-
-interface DistributionRecord {
-  quantityAllocated: number;
-  quantityAvailable: number;
-  quantityTotal: number;
-
-  title: string;
-  donorName: string;
-  lotNumber: string;
-  palletNumber: string;
-  boxNumber: string;
-  unitPrice: number;
-
-  donorShippingNumber: string | null;
-  hfhShippingNumber: string | null;
-}
+import { DistributionRecord } from "@/types";
 
 export default function VisibleItems() {
   const { partnerId } = useParams();
@@ -51,7 +36,6 @@ export default function VisibleItems() {
       refetch={fetchData}
       visible={true}
       distributions={distributions}
-      setDistributions={setDistributions}
     />
   );
 }

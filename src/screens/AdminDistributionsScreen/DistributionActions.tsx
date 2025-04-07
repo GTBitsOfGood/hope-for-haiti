@@ -1,4 +1,4 @@
-import { DistributionItem } from "@/app/api/distributions/types";
+import { DistributionRecord } from "@/types";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import {
   DotsThree,
@@ -8,36 +8,25 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
 
 export default function DistributionActions({
   refetch,
-  allocationType,
-  allocationId,
   visible,
   distribution,
-  setDistributions,
 }: {
   refetch: () => void;
-  partnerId: number;
-  allocationType: "unallocated" | "donorOffer";
   visible: boolean;
-  allocationId: number;
-  distribution: DistributionItem;
-  setDistributions: Dispatch<SetStateAction<DistributionItem[]>>;
+  distribution: DistributionRecord;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const toggleVisibility = async (distribution: DistributionItem) => {
+  const toggleVisibility = async () => {
     try {
       const res = await fetch(
-        `/api/distributions/toggleVisibility?allocType=${allocationType}&id=${allocationId}&visible=${!visible}`,
+        `/api/distributions/toggleVisibility?allocType=${distribution.allocationType}&id=${distribution.allocationId}&visible=${!visible}`,
         {
           method: "PUT",
-          body: JSON.stringify({
-            visible: !distribution.visible,
-            ids: [distribution.id],
-          }),
         }
       );
 
@@ -55,25 +44,23 @@ export default function DistributionActions({
   };
 
   const removeItem = async () => {
-    try {
-      const res = await fetch(`/api/distributions/${distribution.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        throw new Error();
-      }
-
-      setDistributions((oldDistributions: DistributionItem[]) => {
-        return oldDistributions.filter((old) => old.id !== distribution.id);
-      });
-
-      setIsOpen(false);
-    } catch (e) {
-      toast.error("Error removing item", {
-        position: "bottom-right",
-      });
-      console.log(e);
-    }
+    // try {
+    //   const res = await fetch(`/api/distributions/${distribution.id}`, {
+    //     method: "DELETE",
+    //   });
+    //   if (!res.ok) {
+    //     throw new Error();
+    //   }
+    //   setDistributions((oldDistributions: DistributionItem[]) => {
+    //     return oldDistributions.filter((old) => old.id !== distribution.id);
+    //   });
+    //   setIsOpen(false);
+    // } catch (e) {
+    //   toast.error("Error removing item", {
+    //     position: "bottom-right",
+    //   });
+    //   console.log(e);
+    // }
   };
   return (
     <>
@@ -123,7 +110,7 @@ export default function DistributionActions({
               <MenuItem
                 as="button"
                 className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => toggleVisibility(distribution)}
+                onClick={() => toggleVisibility()}
               >
                 <EyeSlash className="inline-block mr-2" size={22} />
                 Hide Item from Partner
@@ -132,7 +119,7 @@ export default function DistributionActions({
               <MenuItem
                 as="button"
                 className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => toggleVisibility(distribution)}
+                onClick={() => toggleVisibility()}
               >
                 <Eye className="inline-block mr-2" size={22} />
                 Make Visible to Partner

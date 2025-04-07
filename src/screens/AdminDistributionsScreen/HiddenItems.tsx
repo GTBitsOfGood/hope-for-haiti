@@ -1,24 +1,9 @@
+import { DistributionRecord } from "@/types";
 import DistributionTable from "./DistributionTable";
 import { useParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { CgSpinner } from "react-icons/cg";
-
-interface DistributionRecord {
-  quantityAllocated: number;
-  quantityAvailable: number;
-  quantityTotal: number;
-
-  title: string;
-  donorName: string;
-  lotNumber: string;
-  palletNumber: string;
-  boxNumber: string;
-  unitPrice: number;
-
-  donorShippingNumber: string | null;
-  hfhShippingNumber: string | null;
-}
 
 export default function HiddenItems() {
   const { partnerId } = useParams();
@@ -82,7 +67,6 @@ export default function HiddenItems() {
         refetch={fetchData}
         visible={false}
         distributions={distributions}
-        setDistributions={setDistributions}
       />
     </div>
   );
