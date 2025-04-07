@@ -102,6 +102,7 @@ export default function UnallocatedItemsLineItemsScreen() {
                 <th className="px-4 py-2 min-w-32 text-left">Box number</th>
                 <th className="px-4 py-2 min-w-32 text-left">Lot number</th>
                 <th className="px-4 py-2 min-w-32 text-left">Unit price</th>
+                <th className="px-4 py-2 text-left">Comment</th>
                 <th className="px-4 py-2 min-w-32 text-left">
                   Donor Shipping #
                 </th>
@@ -110,7 +111,6 @@ export default function UnallocatedItemsLineItemsScreen() {
                 <th className="px-4 py-2 min-w-32 text-left">Visibility</th>
                 <th className="px-4 py-2 min-w-32 text-left">Allocation</th>
                 <th className="px-4 py-2 min-w-32 text-left">GIK</th>
-                <th className="px-4 py-2 text-left">Comment</th>
                 <th className="px-4 py-2 rounded-tr-lg text-left w-12">
                   Manage
                 </th>
@@ -142,6 +142,23 @@ export default function UnallocatedItemsLineItemsScreen() {
                     <td className="px-4 py-2">
                       {formatTableValue(item.unitPrice)}
                     </td>
+                    <td className="px-4 py-2 flex justify-center">
+                      <ChatTeardropText
+                        data-tooltip-id={`comment-tooltip-${item.id}`}
+                        data-tooltip-content={item.notes}
+                        size={30}
+                        color={item.notes ? "black" : "lightgray"}
+                      />
+                      {item.notes && (
+                        <Tooltip
+                          id={`comment-tooltip-${item.id}`}
+                          className="max-w-40"
+                        >
+                          {item.notes}
+                        </Tooltip>
+                      )}
+                    </td>
+
                     <td className="px-4 py-2">
                       {formatTableValue(item.donorShippingNumber)}
                     </td>
@@ -172,22 +189,6 @@ export default function UnallocatedItemsLineItemsScreen() {
                         falseText="Not GIK"
                         grayWhenFalse
                       />
-                    </td>
-                    <td className="px-4 py-2 flex justify-center">
-                      <ChatTeardropText
-                        data-tooltip-id={`comment-tooltip-${item.id}`}
-                        data-tooltip-content={item.notes}
-                        size={30}
-                        color={item.notes ? "black" : "lightgray"}
-                      />
-                      {item.notes && (
-                        <Tooltip
-                          id={`comment-tooltip-${item.id}`}
-                          className="max-w-40"
-                        >
-                          {item.notes}
-                        </Tooltip>
-                      )}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-end">
