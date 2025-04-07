@@ -160,7 +160,7 @@ export default function AdminDynamicDonorOfferScreen() {
                       onClick={() =>
                         donorOffer?.state === DonorOfferState.FINALIZED &&
                         router.push(
-                          `/donorOffers/${donorOfferId}/itemRequests/${item.id}`
+                          `/donorOffers/${donorOfferId}/itemRequests/${item.id}`,
                         )
                       }
                     >
@@ -172,7 +172,7 @@ export default function AdminDynamicDonorOfferScreen() {
                       </td>
                       <td className="px-4 py-2">
                         {item.expirationDate
-                          ? format(item.expirationDate, "MM/dd/yyyy")
+                          ? new Date(item.expirationDate).toLocaleDateString()
                           : "None"}
                       </td>
                       <td className="px-4 py-2">
@@ -192,7 +192,7 @@ export default function AdminDynamicDonorOfferScreen() {
                                 Total -{" "}
                                 {item.requests?.reduce(
                                   (sum, request) => sum + request.quantity,
-                                  0
+                                  0,
                                 )}
                                 {item.requests?.map((request) => (
                                   <div key={request.id}>
