@@ -45,6 +45,7 @@ async function handlePartnerRequest(
     const requests = await db.donorOfferItemRequest.findMany({
       where: { donorOfferItemId: item.id },
     });
+
     donorOfferItemsRequests.push(
       ...requests.map((request) => ({
         requestId: request.id,
@@ -63,7 +64,6 @@ async function handlePartnerRequest(
 
   return NextResponse.json({
     donorOfferName: donorOffer.offerName,
-    donorOfferItemsRequests: donorOfferItemsRequests,
   } as DonorOfferItemsRequestsResponse);
 }
 
@@ -79,8 +79,8 @@ async function handleAdminRequest(donorOfferId: number): Promise<NextResponse> {
     include: { requests: { include: { partner: { select: { name: true } } } } },
   });
   return NextResponse.json({
-    donorOffer: donorOffer,
-    itemsWithRequests: itemsWithRequests,
+    donorOffer,
+    itemsWithRequests,
   });
 }
 
@@ -91,7 +91,7 @@ export async function GET(
   const session = await auth();
   if (!session?.user) return authenticationError("Session required");
 
-  const donorOfferId = parseInt((await params).donorOfferId);
+  const donorOfferId = parseInt((await params).donorOfferId, 10);
 
   if (session.user.type === UserType.PARTNER) {
     return handlePartnerRequest(donorOfferId);
@@ -105,6 +105,15 @@ export async function GET(
     return authorizationError("Unauthorized user type");
   }
 }
+interface PostBody {
+  requests: DonorOfferItemsRequestsDTO[];
+}
+
+function isValidBody(body: unknown): body is PostBody {
+  if (typeof body !== "object" || body === null) return false;
+  const potentialBody = body as { requests?: unknown };
+  return Array.isArray(potentialBody.requests);
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await auth();
@@ -115,16 +124,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     typeof session.user.id === "string"
       ? parseInt(session.user.id, 10)
       : session.user.id;
-  const body: any = await request.json();
-  if (!body || typeof body !== "object" || !Array.isArray(body.requests)) {
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (!isValidBody(rawBody)) {
     return NextResponse.json(
       { error: "POST body must be { requests: [...] }" },
       { status: 400 }
     );
   }
-  const { requests } = body;
+  const { requests } = rawBody;
   const processedRequests = await Promise.all(
-    requests.map(async (req: DonorOfferItemsRequestsDTO) => {
+    requests.map(async (req) => {
       const safePriority =
         req.priority == null ? RequestPriority.LOW : req.priority;
       const existing = await db.donorOfferItemRequest.findFirst({
@@ -135,17 +149,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           where: { id: existing.id },
           data: {
             quantity: req.quantityRequested,
-            comments: req.comments,
+            comments: req.comments ?? "",
             priority: safePriority,
           },
         });
       } else {
+        // Create a new record
         return db.donorOfferItemRequest.create({
           data: {
             donorOfferItemId: req.donorOfferItemId,
             partnerId,
             quantity: req.quantityRequested,
-            comments: req.comments,
+            comments: req.comments ?? "",
             priority: safePriority,
           },
         });

@@ -25,7 +25,6 @@ import { formatTableValue } from "@/utils/format";
 // Main component --------------------------------------------------------------
 interface EditableRequest extends Omit<DonorOfferItemsRequestsDTO, "priority"> {
   priority?: RequestPriority | null;
-  donorOfferItemId: number;
   localId: number;
 }
 
@@ -64,13 +63,13 @@ export default function PartnerDynamicDonorOfferScreen() {
   const { donorOfferId } = useParams();
   const router = useRouter();
 
-  // Gets the donor items requests
+  // Main data states
   const [donorOfferName, setDonorOfferName] = useState("");
   const [editedRequests, setEditedRequests] = useState<EditableRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Modal state for comment updates
+  // Modal states for comment updates
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalComment, setModalComment] = useState("");
   const [selectedItemName, setSelectedItemName] = useState("");
@@ -79,33 +78,38 @@ export default function PartnerDynamicDonorOfferScreen() {
   >(null);
 
   useEffect(() => {
-    setTimeout(async () => {
-      // Fetch donor offer
-      const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
-        method: "GET",
-      });
-      if (res.status === 404) {
-        toast.error("Donor offer not found");
-        router.push("/donorOffers");
-        return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
+          method: "GET",
+        });
+        if (res.status === 404) {
+          toast.error("Donor offer not found");
+          router.push("/donorOffers");
+          return;
+        }
+        const data = (await res.json()) as DonorOfferItemsRequestsResponse;
+        setDonorOfferName(data.donorOfferName);
+        const withIds: EditableRequest[] = data.donorOfferItemsRequests.map(
+          (row, index) => ({
+            ...row,
+            priority: row.priority ?? null,
+            localId: index,
+          })
+        );
+        setEditedRequests(withIds);
+        if (withIds.length === 0) {
+          setIsEditing(true);
+        }
+      } catch (error) {
+        toast.error("Failed to fetch donor offer data");
+        console.error("Fetch error:", error);
+      } finally {
+        setIsLoading(false);
       }
-      const data = (await res.json()) as DonorOfferItemsRequestsResponse;
-      setDonorOfferName(data.donorOfferName);
-      const withIds: EditableRequest[] = data.donorOfferItemsRequests.map(
-        (row, index) => ({
-          ...row,
-          donorOfferItemId:
-            row.requestId !== 0 ? row.donorOfferItemId : index + 1,
-          priority: row.priority ?? null,
-          localId: index,
-        })
-      );
-      setEditedRequests(withIds);
-      if (withIds.length === 0) {
-        setIsEditing(true);
-      }
-      setIsLoading(false);
     }, 500);
+
+    return () => clearTimeout(timer);
   }, [donorOfferId, router]);
 
   const handleInputChange = (
@@ -119,10 +123,15 @@ export default function PartnerDynamicDonorOfferScreen() {
           if (name === "quantityRequested") {
             return {
               ...row,
-              quantityRequested: value === "" ? 0 : parseInt(value),
+              quantityRequested: value === "" ? 0 : parseInt(value, 10),
             };
-          } else if (name === "priority") {
-            return { ...row, priority: parsePriority(value) ?? null };
+          }
+          if (name === "priority") {
+            return {
+              ...row,
+              // Allow null if no valid selection is made.
+              priority: parsePriority(value) ?? null,
+            };
           }
         }
         return row;
@@ -157,19 +166,24 @@ export default function PartnerDynamicDonorOfferScreen() {
       unitSize: r.unitSize,
       quantityRequested: r.quantityRequested,
       comments: r.comments,
-      priority: r.priority as RequestPriority,
+      priority: r.priority,
     }));
-    const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requests: finalRequests }),
-    });
-    if (!res.ok) {
-      toast.error("Error updating donor offer items.");
-      return;
+    try {
+      const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requests: finalRequests }),
+      });
+      if (!res.ok) {
+        toast.error("Error updating donor offer items.");
+        return;
+      }
+      toast.success("All changes saved to DB!");
+      setIsEditing(false);
+    } catch (error) {
+      toast.error("Network error while updating donor offer items.");
+      console.error("Error in handleSubmitAll:", error);
     }
-    toast.success("All changes saved to DB!");
-    setIsEditing(false);
   };
 
   const handleCommentClick = (localId: number) => {
@@ -193,7 +207,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       setIsModalOpen(false);
       return;
     }
-    const payloadRow = {
+    const payloadRow: DonorOfferItemsRequestsDTO = {
       requestId: row.requestId,
       donorOfferItemId: row.donorOfferItemId,
       title: row.title,
@@ -202,15 +216,19 @@ export default function PartnerDynamicDonorOfferScreen() {
       quantity: row.quantity,
       unitSize: row.unitSize,
       quantityRequested: row.quantityRequested,
-      comments: modalComment,
-      priority: row.priority as RequestPriority,
+      comments: row.comments,
+      priority: row.priority,
     };
     try {
-      await fetch(`/api/donorOffers/${donorOfferId}`, {
+      const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requests: [payloadRow] }),
       });
+      if (!res.ok) {
+        toast.error("Error updating comment.");
+        return;
+      }
       setEditedRequests((prev) =>
         prev.map((r) =>
           r.donorOfferItemId === selectedDonorOfferItemId
@@ -391,7 +409,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       <CommentModalDonorOffers
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        donorOfferItemId={selectedDonorOfferItemId!}
+        donorOfferItemId={selectedDonorOfferItemId ?? 0}
         itemName={selectedItemName}
         comment={modalComment}
         setComment={setModalComment}
