@@ -1,9 +1,37 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { Fragment, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import CreateSignOffTable from "./CreateSignOffTable";
+import { useParams } from "next/navigation";
+import { DistributionRecord } from "@/types";
 
 export default function CreateSignOff() {
+  const { partnerId } = useParams();
   const [search, setSearch] = useState("");
+  const [distributions, setDistributions] = useState<DistributionRecord[]>([]);
+  // const [isLoading, setIsLoading] = useState(true);
+
+  const fetchData = useCallback(() => {
+    (async () => {
+      const response = await fetch(
+        `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`,
+        { cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        throw new Error();
+      }
+
+      const data = await response.json();
+      setDistributions(data.records);
+
+      // setIsLoading(false);
+    })();
+  }, [partnerId]);
+
+  useEffect(fetchData, [fetchData]);
+
+  console.log(distributions);
+
   return (
     <Fragment>
       <h1 className="text-2xl font-semibold">Create Sign Off</h1>
@@ -21,7 +49,7 @@ export default function CreateSignOff() {
           className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
         />
       </div>
-      <CreateSignOffTable />
+      <CreateSignOffTable refetch={fetchData} distributions={distributions} />
     </Fragment>
   );
 }

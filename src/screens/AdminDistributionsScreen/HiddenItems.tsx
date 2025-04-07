@@ -13,7 +13,7 @@ export default function HiddenItems() {
     (async () => {
       const distributions = await fetch(
         `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}&visible=false`,
-        { cache: "no-store" }
+        { cache: "no-store" },
       );
 
       if (!distributions.ok) {
@@ -26,6 +26,7 @@ export default function HiddenItems() {
       setIsLoading(false);
     })();
   }, [partnerId]);
+
   useEffect(fetchData, [fetchData]);
 
   const makeAllVisible = async () => {
@@ -34,7 +35,7 @@ export default function HiddenItems() {
         `/api/distributions/toggleVisibility?partnerId=${partnerId}&visible=true`,
         {
           method: "PUT",
-        }
+        },
       );
 
       if (!res.ok) {

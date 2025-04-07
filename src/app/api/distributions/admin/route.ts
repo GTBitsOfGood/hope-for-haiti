@@ -70,7 +70,9 @@ export async function GET(request: NextRequest) {
         select: {
           distributions: {
             where: {
-              signOffId: null,
+              signOff: {
+                signatureUrl: null,
+              },
             },
           },
         },
@@ -80,11 +82,11 @@ export async function GET(request: NextRequest) {
 
   const partnerAllocationsWithVisibility = usersWithAllocations.map((user) => {
     const unallocatedRequestAllocations = user.unallocatedItemRequests.flatMap(
-      (request) => request.allocations || []
+      (request) => request.allocations || [],
     );
 
     const donorOfferRequestAllocations = user.donorOfferItemRequests.flatMap(
-      (request) => request.DonorOfferItemRequestAllocation || []
+      (request) => request.DonorOfferItemRequestAllocation || [],
     );
 
     const allAllocations = [
@@ -94,10 +96,10 @@ export async function GET(request: NextRequest) {
     ];
 
     const visibleAllocations = allAllocations.filter(
-      (allocation) => allocation.visible
+      (allocation) => allocation.visible,
     );
     const hiddenAllocations = allAllocations.filter(
-      (allocation) => !allocation.visible
+      (allocation) => !allocation.visible,
     );
 
     return {

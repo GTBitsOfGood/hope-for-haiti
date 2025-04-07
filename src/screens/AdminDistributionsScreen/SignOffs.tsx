@@ -1,4 +1,3 @@
-import { SignOff } from "@/app/api/distributions/types";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -7,7 +6,7 @@ import SignOffsTable from "./SignOffsTable";
 
 export default function SignOffs() {
   const { partnerId } = useParams();
-  const [signOffs, setSignOffs] = useState<SignOff[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,8 +20,7 @@ export default function SignOffs() {
           throw new Error();
         }
 
-        const data = await response.json();
-        setSignOffs(data.items);
+        // const data = await response.json();
       } catch (e) {
         toast.error("Error fetching signOffs", {
           position: "bottom-right",
@@ -40,5 +38,5 @@ export default function SignOffs() {
     return <CgSpinner className="w-16 h-16 animate-spin opacity-50" />;
   }
 
-  return <SignOffsTable signOffs={signOffs} setSignOffs={setSignOffs} />;
+  return <SignOffsTable />;
 }
