@@ -159,7 +159,7 @@ export default function DonorOfferLineItemsScreen() {
                   </th>
                   <th className="px-4 py-2 min-w-32 text-left">Donor name</th>
                   <th className="px-4 py-2 min-w-32 text-left">
-                    Pallet number
+                    Pallet
                   </th>
                   <th className="px-4 py-2 min-w-32 text-left">Box number</th>
                   <th className="px-4 py-2 min-w-32 text-left">Lot number</th>

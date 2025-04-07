@@ -167,7 +167,7 @@ export default function EditAllocationModal({
           </ModalFormRow>
           <ModalFormRow>
             <ModalAutoTextField
-              label="Pallet Number"
+              label="Pallet"
               name="palletNumber"
               options={[
                 ...new Set(

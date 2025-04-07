@@ -43,7 +43,7 @@ export default function ShippingItemsModal({
                   Qty Avail/Total
                 </th>
                 <th className="px-4 py-4 text-left font-bold">Donor Name</th>
-                <th className="px-4 py-4 text-left font-bold">Pallet Number</th>
+                <th className="px-4 py-4 text-left font-bold">Pallet</th>
                 <th className="px-4 py-4 text-left font-bold">Box Number</th>
                 <th className="px-4 py-4 text-left font-bold">Lot Number</th>
                 <th className="px-4 py-4 text-left font-bold">Unit Price</th>
