@@ -18,7 +18,8 @@ import { editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
  * @params title Item title to match
  * @params type Item type to match
  * @params expiration Item expiration to match
- * @params unitSize Unit size to match
+ * @params unitType
+ * @params quantityPerUnit
  * @params donorName Donor name of item to match
  * @params lotNumber Lot number to match
  * @params palletNumber Pallet number to match
@@ -80,8 +81,9 @@ export async function POST(request: NextRequest) {
   } else {
     const title = form.get("title");
     const type = form.get("type");
-    const expiration = form.get("expiration");
-    const unitSize = form.get("unitSize");
+    const expirationDate = form.get("expirationDate");
+    const unitType = form.get("unitType");
+    const quantityPerUnit = form.get("quantityPerUnit");
     const donorName = form.get("donorName");
     const lotNumber = form.get("lotNumber");
     const palletNumber = form.get("palletNumber");
@@ -90,8 +92,9 @@ export async function POST(request: NextRequest) {
     if (
       !title ||
       !type ||
-      !expiration ||
-      !unitSize ||
+      !expirationDate ||
+      !unitType ||
+      !quantityPerUnit ||
       !donorName ||
       !lotNumber ||
       !palletNumber ||
@@ -100,17 +103,9 @@ export async function POST(request: NextRequest) {
       return argumentError("Missing one or more required fields.");
     }
 
-    const parsedUnitSize = parseInt(unitSize.toString());
-    const parsedLot = parseInt(lotNumber.toString());
-    const parsedPallet = parseInt(palletNumber.toString());
-    const parsedBox = parseInt(boxNumber.toString());
+    const parsedQuantityPerUnit = parseInt(quantityPerUnit.toString());
 
-    if (
-      isNaN(parsedUnitSize) ||
-      isNaN(parsedLot) ||
-      isNaN(parsedPallet) ||
-      isNaN(parsedBox)
-    ) {
+    if (isNaN(parsedQuantityPerUnit)) {
       return argumentError("Invalid number value in form data.");
     }
 
@@ -118,12 +113,13 @@ export async function POST(request: NextRequest) {
       where: {
         title: title.toString(),
         type: type.toString(),
-        expirationDate: new Date(expiration.toString()),
-        unitSize: parseInt(unitSize.toString()),
+        expirationDate: new Date(expirationDate.toString()),
+        unitType: unitType.toString(),
+        quantityPerUnit: parseInt(quantityPerUnit.toString()),
         donorName: donorName.toString(),
-        lotNumber: parseInt(lotNumber.toString()),
-        palletNumber: parseInt(palletNumber.toString()),
-        boxNumber: parseInt(boxNumber.toString()),
+        lotNumber: lotNumber.toString(),
+        palletNumber: palletNumber.toString(),
+        boxNumber: boxNumber.toString(),
       },
     });
   }
@@ -202,8 +198,9 @@ export async function PUT(request: NextRequest) {
     allocationId,
     title,
     type,
-    expiration,
-    unitSize,
+    expirationDate,
+    unitType,
+    quantityPerUnit,
     donorName,
     lotNumber,
     palletNumber,
@@ -228,8 +225,9 @@ export async function PUT(request: NextRequest) {
     where: {
       title,
       type,
-      expirationDate: expiration,
-      unitSize,
+      expirationDate,
+      unitType,
+      quantityPerUnit,
       donorName,
       lotNumber,
       palletNumber,

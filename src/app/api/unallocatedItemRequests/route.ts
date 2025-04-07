@@ -34,18 +34,21 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const title = url.searchParams.get("title");
   const type = url.searchParams.get("type");
-  const expiration = url.searchParams.get("expiration");
-  const unitSizeParam = url.searchParams.get("unitSize");
+  const expirationDateParam = url.searchParams.get("expirationDate");
   const unitType = url.searchParams.get("unitType");
-  if (!title || !type || !expiration || unitSizeParam === null) {
+  const quantityPerUnitParam = url.searchParams.get("quantityPerUnit");
+  if (!title || !type || !unitType || !quantityPerUnitParam) {
     return argumentError("Missing required query parameters");
   }
-  const unitSize = parseInt(unitSizeParam);
-  if (isNaN(unitSize)) {
-    return argumentError("Invalid unitSize parameter");
+  const quantityPerUnit = parseInt(quantityPerUnitParam);
+  if (isNaN(quantityPerUnit)) {
+    return argumentError("Invalid quantityPerUnitParam parameter");
   }
-  const expirationDate = new Date(expiration);
-  if (isNaN(expirationDate.getTime())) {
+
+  const expirationDate = expirationDateParam
+    ? new Date(expirationDateParam)
+    : null;
+  if (expirationDate && isNaN(expirationDate.getTime())) {
     return argumentError("Invalid expiration parameter");
   }
 
@@ -55,7 +58,8 @@ export async function GET(req: NextRequest) {
         title: title,
         type: type,
         expirationDate: expirationDate,
-        unitSize: unitSize,
+        unitType: unitType,
+        quantityPerUnit: quantityPerUnit,
       },
       include: {
         partner: {
@@ -84,8 +88,8 @@ export async function GET(req: NextRequest) {
         title: title,
         type: type,
         expirationDate: expirationDate,
-        unitSize: unitSize,
         unitType: unitType,
+        quantityPerUnit: quantityPerUnit,
       },
     });
     const modifiedItems: UnallocatedItem[] = await Promise.all(

@@ -11,7 +11,10 @@ import { z } from "zod";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 
-const AUTHORIZED_USER_TYPES = [UserType.ADMIN, UserType.SUPER_ADMIN] as UserType[];
+const AUTHORIZED_USER_TYPES = [
+  UserType.ADMIN,
+  UserType.SUPER_ADMIN,
+] as UserType[];
 
 const requiredKeys = [
   "title",
@@ -41,68 +44,73 @@ const SingleItemSchema = z.object({
   donorName: z.string(),
   type: z.string(),
   category: z.nativeEnum(ItemCategory),
-  quantity: z.string()
+  quantity: z
+    .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  expirationDate: z.union([
-    z.coerce.date(),
-    z.string().transform((val) => (val.trim() === "" ? undefined : val))
-  ]).optional(),
-  unitSize: z.string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0)),
+  expirationDate: z
+    .union([
+      z.coerce.date(),
+      z.string().transform((val) => (val.trim() === "" ? undefined : val)),
+    ])
+    .optional(),
+  quantityPerUnit: z.number().int().min(0),
   unitType: z.string(),
   datePosted: z.coerce.date(),
-  lotNumber: z.string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0)),
-  palletNumber: z.string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0)),
-  boxNumber: z.string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0)),
-  unitPrice: z.string()
+  lotNumber: z.string(),
+  palletNumber: z.string(),
+  boxNumber: z.string(),
+  unitPrice: z
+    .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().min(0)),
   maxRequestLimit: z.string(),
   visible: z
     .string()
     .transform((val) => val.toLowerCase())
-    .refine((val) => val === "true" || val === "false", { message: "Invalid boolean value" })
+    .refine((val) => val === "true" || val === "false", {
+      message: "Invalid boolean value",
+    })
     .transform((val) => val === "true"),
   allowAllocations: z
     .string()
-    .transform((val) => val.toLowerCase()) 
-    .refine((val) => val === "true" || val === "false", { message: "Invalid boolean value" })
-    .transform((val) => val === "true"), 
+    .transform((val) => val.toLowerCase())
+    .refine((val) => val === "true" || val === "false", {
+      message: "Invalid boolean value",
+    })
+    .transform((val) => val === "true"),
   gik: z
     .string()
-    .transform((val) => val.toLowerCase())  
-    .refine((val) => val === "true" || val === "false", { message: "Invalid boolean value" })
-    .transform((val) => val === "true"),  
+    .transform((val) => val.toLowerCase())
+    .refine((val) => val === "true" || val === "false", {
+      message: "Invalid boolean value",
+    })
+    .transform((val) => val === "true"),
 });
-
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session || !session?.user) return authenticationError("Session required");
-  if (!AUTHORIZED_USER_TYPES.includes(session.user.type)) return authorizationError("Not authorized");
+  if (!session || !session?.user)
+    return authenticationError("Session required");
+  if (!AUTHORIZED_USER_TYPES.includes(session.user.type))
+    return authorizationError("Not authorized");
 
   const url = new URL(request.url);
-  const preview = url.searchParams.get("preview") === "true";  // Query param handling
+  const preview = url.searchParams.get("preview") === "true"; // Query param handling
   const formData = await request.formData();
   const file = formData.get("file") as File | null; // Get file from formData
-  
+
   if (!file) {
     return argumentError("No file provided");
   }
 
   const fileExt = file.name.split(".").pop()?.toLowerCase();
   if (!["csv", "xlsx"].includes(fileExt || "")) {
-    return argumentError(`Error opening ${file.name}: must be a valid CSV or XLSX file`);
+    return argumentError(
+      `Error opening ${file.name}: must be a valid CSV or XLSX file`
+    );
   }
-  
+
   let jsonData: unknown[] = [];
 
   try {
@@ -121,7 +129,10 @@ export async function POST(request: NextRequest) {
       jsonData = data;
     } else if (fileExt === "csv") {
       const text = await file.text(); // Read file as text
-      const { data, meta } = Papa.parse(text, { header: true, skipEmptyLines: true });
+      const { data, meta } = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+      });
 
       if (!meta.fields || !containsRequiredKeys(meta.fields)) {
         return argumentError("CSV does not contain required keys");
@@ -131,7 +142,7 @@ export async function POST(request: NextRequest) {
     }
 
     const errors: string[] = [];
-    const validItems: typeof SingleItemSchema._type[] = [];
+    const validItems: (typeof SingleItemSchema._type)[] = [];
 
     jsonData.forEach((row, index) => {
       const parsed = SingleItemSchema.safeParse(row);
@@ -142,12 +153,14 @@ export async function POST(request: NextRequest) {
             return `Column '${field}': ${issue.message}`;
           })
           .join("; ");
-        errors.push(`Error validating item on row ${index + 1}: ${errorMessages}`);
+        errors.push(
+          `Error validating item on row ${index + 1}: ${errorMessages}`
+        );
       } else {
         validItems.push(parsed.data);
       }
     });
-    
+
     if (errors.length > 0) {
       return NextResponse.json({ errors }, { status: 400 });
     }
@@ -158,7 +171,10 @@ export async function POST(request: NextRequest) {
 
     await db.item.createMany({ data: validItems });
 
-    return NextResponse.json({ success: true, createdCount: validItems.length });
+    return NextResponse.json({
+      success: true,
+      createdCount: validItems.length,
+    });
   } catch (error) {
     console.error(error);
     return argumentError("Error processing file");

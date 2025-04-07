@@ -4,14 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { formatTableValue } from "@/utils/format";
-import { Item, UnallocatedItemRequest } from "@prisma/client";
 import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
-import NewAllocationModal from "@/components/NewAllocationModal";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { QuantizedGeneralItem } from "@/types";
+import { QuantizedGeneralItemStringDate } from "@/types";
 
 enum ExpirationFilterKey {
   ZERO_TO_THREE = "Expiring (0-3 Months)",
@@ -23,13 +21,6 @@ const expirationFilterTabs = [
   ExpirationFilterKey.THREE_TO_SIX,
   ExpirationFilterKey.SIX_PLUS,
 ] as const;
-
-interface AllocationSearchResults {
-  donorNames: string[];
-  lotNumbers: number[];
-  palletNumbers: number[];
-  boxNumbers: number[];
-}
 
 function generateFetchUrl(filterKey: ExpirationFilterKey): string {
   let expirationDateBefore: string | null = null;
@@ -63,23 +54,12 @@ function generateFetchUrl(filterKey: ExpirationFilterKey): string {
 }
 
 export default function AdminUnallocatedItemsScreen() {
-  const [items, setItems] = useState<QuantizedGeneralItem[]>([]);
+  const [items, setItems] = useState<QuantizedGeneralItemStringDate[]>([]);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ExpirationFilterKey>(
     ExpirationFilterKey.ZERO_TO_THREE
   );
   const [isLoading, setIsLoading] = useState(true);
-
-  const [viewingItemIndex, setViewingItemIndex] = useState<number | null>(null);
-  const [showNewAllocationModal, setShowNewAllocationModal] = useState(false);
-
-  const [allocationSearchResults, setAllocationSearchResults] =
-    useState<AllocationSearchResults>({
-      donorNames: [],
-      lotNumbers: [],
-      palletNumbers: [],
-      boxNumbers: [],
-    });
 
   const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
   const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
@@ -99,16 +79,8 @@ export default function AdminUnallocatedItemsScreen() {
         }
 
         const data = await response.json();
-        const itemsWithDates = data.items.map(
-          (item: UnallocatedItemRequest) => ({
-            ...item,
-            expirationDate: item.expirationDate
-              ? new Date(item.expirationDate)
-              : null,
-          })
-        );
 
-        setItems(itemsWithDates);
+        setItems(data.items);
         setUnitTypes(data.unitTypes);
         setDonorNames(data.donorNames);
         setItemTypes(data.itemTypes);
@@ -166,120 +138,6 @@ export default function AdminUnallocatedItemsScreen() {
       setIsLoading(false);
     }
   };
-  async function handleOpenNewAllocationModal(item: Item) {
-    console.log(
-      "[AdminUnallocatedItemsScreen] handleOpenNewAllocationModal for item:",
-      item
-    );
-    try {
-      const query = new URLSearchParams({
-        title: item.title,
-        type: item.type,
-        expiration: item.expirationDate?.toISOString() || "",
-        unitSize: String(item.unitSize),
-      }).toString();
-
-      const url = "/api/allocations/itemSearch?" + query;
-      console.log(
-        "[AdminUnallocatedItemsScreen] Will fetch itemSearch at:",
-        url
-      );
-
-      const res = await fetch(url);
-      console.log(
-        "[AdminUnallocatedItemsScreen] itemSearch status:",
-        res.status
-      );
-      if (!res.ok) {
-        throw new Error(`Failed to fetch itemSearch: ${res.status}`);
-      }
-
-      const data = await res.json();
-      console.log(
-        "[AdminUnallocatedItemsScreen] Fetched itemSearch results:",
-        data
-      );
-      setAllocationSearchResults(data);
-
-      setShowNewAllocationModal(true);
-    } catch (err) {
-      console.error(
-        "[AdminUnallocatedItemsScreen] handleOpenNewAllocationModal error:",
-        err
-      );
-      alert("Failed to fetch search results. See console for details.");
-    }
-  }
-
-  // if we're viewing a particular item ("Item Name": Partner Requests)
-  if (viewingItemIndex !== null) {
-    const item = items[viewingItemIndex] || null;
-    if (!item) {
-      setViewingItemIndex(null);
-      return null;
-    }
-
-    return (
-      <div className="p-4">
-        <button
-          onClick={() => setViewingItemIndex(null)}
-          className="mb-4 text-blue-600 hover:underline"
-        >
-          &larr; Back to Unallocated Items
-        </button>
-
-        <div>
-          <h2 className="text-xl font-bold mb-2">
-            {item.title}: Partner Requests
-          </h2>
-          {/* Placeholder table */}
-          <table className="min-w-full border">
-            <thead>
-              <tr className="bg-gray-100 text-left">
-                <th className="px-4 py-2">Partner</th>
-                <th className="px-4 py-2">Date requested</th>
-                <th className="px-4 py-2">Requested quantity</th>
-                <th className="px-4 py-2">Allocated quantity</th>
-                <th className="px-4 py-2">Allocated summary</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border px-4 py-2">Name</td>
-                <td className="border px-4 py-2">12/12/2025</td>
-                <td className="border px-4 py-2">10</td>
-                <td className="border px-4 py-2">10</td>
-                <td className="border px-4 py-2">4 - 23456, 2 - 23456</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="mt-4">
-            <button
-              className="border-2 border-dashed border-[#22070B]/40 text-sm text-[#22070B]/40 px-2 py-1 rounded-md"
-              onClick={() => handleOpenNewAllocationModal(item)}
-            >
-              New Allocation
-            </button>
-          </div>
-
-          {showNewAllocationModal && (
-            <NewAllocationModal
-              onClose={() => setShowNewAllocationModal(false)}
-              unallocatedItemRequestId={String(item.id)}
-              title={item.title}
-              type={item.type}
-              expiration={
-                item.expirationDate ? item.expirationDate.toISOString() : ""
-              }
-              unitSize={String(item.unitSize)}
-              searchResults={allocationSearchResults}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -389,13 +247,11 @@ export default function AdminUnallocatedItemsScreen() {
                         `/unallocatedItems/requests?${new URLSearchParams({
                           title: item.title,
                           type: item.type,
-                          expiration:
-                            (item.expirationDate as unknown as string) || "",
-                          unitSize: item.unitSize.toString(),
-                          quantityPerUnit: item.quantityPerUnit
-                            ? item.quantityPerUnit
-                            : "",
-                          unitType: item.unitType ? item.unitType : "",
+                          unitType: item.unitType,
+                          quantityPerUnit: item.quantityPerUnit.toString(),
+                          ...(item.expirationDate
+                            ? { expirationDate: item.expirationDate }
+                            : {}),
                         }).toString()}`
                       );
                     }}
@@ -416,7 +272,7 @@ export default function AdminUnallocatedItemsScreen() {
                       {formatTableValue(item.unitType)}
                     </td>
                     <td className="px-4 py-2">
-                      {formatTableValue(item.unitSize)}
+                      {formatTableValue(item.quantityPerUnit)}
                     </td>
                     <td
                       className="px-4 py-2"

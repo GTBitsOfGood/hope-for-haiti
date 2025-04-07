@@ -2,11 +2,11 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { NextRequest, NextResponse } from "next/server";
 import { DonorOfferState, UserType } from "@prisma/client";
-import { 
-  authenticationError, 
-  authorizationError, 
+import {
+  authenticationError,
+  authorizationError,
   notFoundError,
-  argumentError
+  argumentError,
 } from "@/util/responses";
 import { z } from "zod";
 import * as XLSX from "xlsx";
@@ -19,7 +19,7 @@ const requiredKeys = [
   "quantity",
   "expiration",
   "unitType",
-  "quantityPerUnit"
+  "quantityPerUnit",
 ];
 
 const containsRequiredKeys = (fields?: string[]) =>
@@ -29,15 +29,18 @@ const containsRequiredKeys = (fields?: string[]) =>
 const DonorOfferItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: z.string(),
-  quantity: z.string()
+  quantity: z
+    .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  expiration: z.union([
-    z.coerce.date(),
-    z.string().transform((val) => (val.trim() === "" ? undefined : val))
-  ]).optional(),
-  unitType: z.string().optional(),
-  quantityPerUnit: z.string().optional(),
+  expiration: z
+    .union([
+      z.coerce.date(),
+      z.string().transform((val) => (val.trim() === "" ? undefined : val)),
+    ])
+    .optional(),
+  unitType: z.string(),
+  quantityPerUnit: z.number(),
 });
 
 // Define the type for donor offer items
@@ -67,7 +70,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user) return authenticationError("Session required");
-  
+
   // Only staff members can finalize donor offers
   if (
     session.user.type !== UserType.STAFF &&
@@ -77,7 +80,7 @@ export async function GET(
     return authorizationError("Only staff members can finalize donor offers");
   }
 
-  const donorOfferId =  parseInt((await params).donorOfferId);
+  const donorOfferId = parseInt((await params).donorOfferId);
   if (isNaN(donorOfferId)) {
     return NextResponse.json(
       { errors: ["Invalid donor offer ID"] },
@@ -91,9 +94,9 @@ export async function GET(
     include: {
       partnerVisibilities: {
         include: {
-          partner: true
-        }
-      }
+          partner: true,
+        },
+      },
     },
   });
 
@@ -104,7 +107,7 @@ export async function GET(
   // Format dates for display
   const formatDate = (date: Date | null) => {
     if (!date) return "";
-    return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD for input fields
+    return date.toISOString().split("T")[0]; // Format as YYYY-MM-DD for input fields
   };
 
   return NextResponse.json({
@@ -112,7 +115,7 @@ export async function GET(
     donorName: donorOffer.donorName,
     partnerRequestDeadline: formatDate(donorOffer.partnerResponseDeadline),
     donorRequestDeadline: formatDate(donorOffer.donorResponseDeadline),
-    partners: donorOffer.partnerVisibilities.map(visibility => ({
+    partners: donorOffer.partnerVisibilities.map((visibility) => ({
       id: visibility.partner.id,
       name: visibility.partner.name,
     })),
@@ -134,7 +137,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return authenticationError("Session required");
-  
+
   // Only staff members can finalize donor offers
   if (
     session.user.type !== UserType.STAFF &&
@@ -144,7 +147,7 @@ export async function POST(
     return authorizationError("Only staff members can finalize donor offers");
   }
 
-  const donorOfferId =  parseInt((await params).donorOfferId);
+  const donorOfferId = parseInt((await params).donorOfferId);
   if (isNaN(donorOfferId)) {
     return NextResponse.json(
       { errors: ["Invalid donor offer ID"] },
@@ -165,17 +168,19 @@ export async function POST(
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const preview = request.nextUrl.searchParams.get("preview") === "true";
-    
+
     // Extract donor offer data from form
     const offerName = formData.get("offerName") as string;
-    const donorName = formData.get("donorName") as string || "";
-    const partnerRequestDeadline = formData.get("partnerRequestDeadline") as string;
+    const donorName = (formData.get("donorName") as string) || "";
+    const partnerRequestDeadline = formData.get(
+      "partnerRequestDeadline"
+    ) as string;
     const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
     const state = formData.get("state") as DonorOfferState;
-    
+
     // Extract partner IDs
     const partnerIds: number[] = [];
-    formData.getAll("partnerIds").forEach(id => {
+    formData.getAll("partnerIds").forEach((id) => {
       const parsedId = parseInt(id as string);
       if (!isNaN(parsedId)) {
         partnerIds.push(parsedId);
@@ -185,7 +190,11 @@ export async function POST(
     // Validate dates
     if (!partnerRequestDeadline || !donorRequestDeadline) {
       return NextResponse.json(
-        { errors: ["Partner request deadline and donor request deadline are required"] },
+        {
+          errors: [
+            "Partner request deadline and donor request deadline are required",
+          ],
+        },
         { status: 400 }
       );
     }
@@ -193,7 +202,7 @@ export async function POST(
     // Create Date objects and validate them
     const partnerDeadline = new Date(partnerRequestDeadline);
     const donorDeadline = new Date(donorRequestDeadline);
-    
+
     if (isNaN(partnerDeadline.getTime()) || isNaN(donorDeadline.getTime())) {
       return NextResponse.json(
         { errors: ["Invalid date format for deadlines"] },
@@ -218,7 +227,10 @@ export async function POST(
           return `Field '${field}': ${issue.message}`;
         })
         .join("; ");
-      return NextResponse.json({ errors: [`Error validating donor offer: ${errorMessages}`] }, { status: 400 });
+      return NextResponse.json(
+        { errors: [`Error validating donor offer: ${errorMessages}`] },
+        { status: 400 }
+      );
     }
 
     // Process the file if provided
@@ -226,21 +238,23 @@ export async function POST(
     if (file) {
       // Get file extension
       const fileName = file.name;
-      const fileExt = fileName.split('.').pop()?.toLowerCase();
-      
-      if (!fileExt || (fileExt !== 'csv' && fileExt !== 'xlsx')) {
+      const fileExt = fileName.split(".").pop()?.toLowerCase();
+
+      if (!fileExt || (fileExt !== "csv" && fileExt !== "xlsx")) {
         return argumentError("File must be a CSV or XLSX file");
       }
-      
+
       let jsonData: Record<string, string>[] = [];
-      
+
       if (fileExt === "xlsx") {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const csvText = XLSX.utils.sheet_to_csv(sheet);
-        const { data, meta } = Papa.parse<Record<string, string>>(csvText, { header: true });
+        const { data, meta } = Papa.parse<Record<string, string>>(csvText, {
+          header: true,
+        });
 
         if (!meta.fields || !containsRequiredKeys(meta.fields)) {
           return argumentError("CSV does not contain required keys");
@@ -249,7 +263,10 @@ export async function POST(
         jsonData = data as Record<string, string>[];
       } else if (fileExt === "csv") {
         const text = await file.text();
-        const { data, meta } = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true });
+        const { data, meta } = Papa.parse<Record<string, string>>(text, {
+          header: true,
+          skipEmptyLines: true,
+        });
 
         if (!meta.fields || !containsRequiredKeys(meta.fields)) {
           return argumentError("CSV does not contain required keys");
@@ -282,12 +299,17 @@ export async function POST(
       }
 
       validDonorOfferItems = validationResults
-        .filter((result): result is { valid: true; data: DonorOfferItem } => result.valid)
+        .filter(
+          (result): result is { valid: true; data: DonorOfferItem } =>
+            result.valid
+        )
         .map((result) => result.data);
     }
 
     if (preview) {
-      return NextResponse.json({ donorOfferItems: validDonorOfferItems.slice(0, 8) });
+      return NextResponse.json({
+        donorOfferItems: validDonorOfferItems.slice(0, 8),
+      });
     }
 
     // Update the donor offer
@@ -299,7 +321,7 @@ export async function POST(
     // If there are new items, add them to the donor offer
     if (validDonorOfferItems.length > 0) {
       // Add the donor offer ID to each item
-      const itemsWithDonorOfferId = validDonorOfferItems.map(item => ({
+      const itemsWithDonorOfferId = validDonorOfferItems.map((item) => ({
         ...item,
         donorOfferId: donorOfferId,
         unitSize: 1, // Default unit size
@@ -307,47 +329,47 @@ export async function POST(
 
       await db.donorOfferItem.createMany({ data: itemsWithDonorOfferId });
     }
-    
+
     // Update partner visibility relationships
     if (partnerIds.length > 0) {
       // First, delete existing partner visibilities
       await db.donorOfferPartnerVisibility.deleteMany({
-        where: { donorOfferId }
+        where: { donorOfferId },
       });
-      
+
       // Validate that all partner IDs exist
       const partners = await db.user.findMany({
         where: {
           id: {
-            in: partnerIds
+            in: partnerIds,
           },
-          type: UserType.PARTNER
+          type: UserType.PARTNER,
         },
         select: {
-          id: true
-        }
+          id: true,
+        },
       });
-      
+
       if (partners.length !== partnerIds.length) {
         return argumentError("One or more partner IDs are invalid");
       }
-      
+
       // Create the new partner visibility relationships
       await db.donorOfferPartnerVisibility.createMany({
-        data: partnerIds.map(partnerId => ({
+        data: partnerIds.map((partnerId) => ({
           donorOfferId: donorOfferId,
-          partnerId: partnerId
-        }))
+          partnerId: partnerId,
+        })),
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       donorOfferId: donorOfferId,
-      createdCount: validDonorOfferItems.length 
+      createdCount: validDonorOfferItems.length,
     });
   } catch (error) {
     console.error(error);
     return argumentError("Error processing file");
   }
-} 
+}

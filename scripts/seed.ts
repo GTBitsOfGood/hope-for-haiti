@@ -148,9 +148,9 @@ function genItem(props: Partial<Item> = {}): Omit<Item, "id"> {
     datePosted: new Date(),
     ndc: null,
     notes: null,
-    allowAllocations: false,
-    visible: false,
-    gik: false,
+    allowAllocations: true,
+    visible: true,
+    gik: true,
     donorOfferItemId: null,
     ...props,
   };

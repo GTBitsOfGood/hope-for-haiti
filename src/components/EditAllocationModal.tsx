@@ -14,14 +14,12 @@ import { Item, UnallocatedItemRequestAllocation } from "@prisma/client";
 interface EditAllocationModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
   items: UnallocatedItem[];
-  allocation:
-    | (UnallocatedItemRequestAllocation & { unallocatedItem: Item })
-    | null;
-  unitSize: string | null;
-  unitType: string | null;
-  expiration: Date | null;
-  title: string | null;
-  type: string | null;
+  allocation: UnallocatedItemRequestAllocation & { unallocatedItem: Item };
+  unitType: string;
+  quantityPerUnit: number;
+  expirationDate: string | null;
+  title: string;
+  type: string;
   setIsSuccess: (isSuccess: boolean) => void;
 }
 
@@ -29,9 +27,9 @@ export default function EditAllocationModal({
   setIsOpen,
   items,
   allocation,
-  unitSize,
   unitType,
-  expiration,
+  quantityPerUnit,
+  expirationDate,
   title,
   type,
   setIsSuccess,
@@ -57,35 +55,12 @@ export default function EditAllocationModal({
   // }, [filteredItems]);
 
   const submitItem = submitHandler(async (data: FormData) => {
-    if (!allocation) {
-      toast.error("Not editting a selected allocation");
-      return;
-    }
     data.append("allocationId", allocation.id.toString());
-    if (!unitSize) {
-      toast.error("Missing unit size");
-      return;
-    }
-    data.append("unitSize", unitSize);
-    if (!unitType) {
-      toast.error("Missing unit type");
-      return;
-    }
     data.append("unitType", unitType);
-    if (!expiration) {
-      toast.error("Missing expiration date");
-      return;
-    }
-    data.append("expiration", expiration.toString());
-    if (!title) {
-      toast.error("Missing title");
-      return;
-    }
+    data.append("quantityPerUnit", quantityPerUnit.toString());
+    if (expirationDate)
+      data.append("expirationDate", expirationDate.toString());
     data.append("title", title);
-    if (!type) {
-      toast.error("Missing type");
-      return;
-    }
     data.append("type", type);
     console.log("Form Data:", Object.fromEntries(data)); // Log the form data for debugging
 
@@ -223,6 +198,7 @@ export default function EditAllocationModal({
               label="Quantity"
               name="quantity"
               defaultValue={quantity}
+              type="number"
               required
             />
             <div className="grow">

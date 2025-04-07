@@ -33,65 +33,51 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const title = url.searchParams.get("title");
   const type = url.searchParams.get("type");
-  const expiration = url.searchParams.get("expiration");
-  const unitSizeStr = url.searchParams.get("unitSize");
+  const expirationDate = url.searchParams.get("expirationDate");
+  const unitType = url.searchParams.get("unitType");
+  const quantityPerUnitStr = url.searchParams.get("quantityPerUnit");
   const donorName = url.searchParams.get("donorName");
   const lotNumberStr = url.searchParams.get("lotNumber");
   const palletNumberStr = url.searchParams.get("palletNumber");
   const boxNumberStr = url.searchParams.get("boxNumber");
 
-
-// make sure they exist
-  if (!title || !type || !expiration || !unitSizeStr) {
+  // make sure they exist
+  if (!title || !type || !expirationDate || !unitType || !quantityPerUnitStr) {
     return argumentError(
-      "Missing required query params: title, type, expiration, unitSize"
+      "Missing required query params: title, type, expirationDate, unitType, quantityPerUnit"
     );
   }
 
-  const unitSize = parseInt(unitSizeStr, 10);
-  if (isNaN(unitSize)) {
-    return argumentError("unitSize must be an integer");
+  const quantityPerUnit = parseInt(quantityPerUnitStr);
+  if (isNaN(quantityPerUnit)) {
+    return argumentError("quantityPerUnit must be an integer");
   }
 
   const whereClause: Prisma.ItemWhereInput = {
     title,
     type,
-    expirationDate: new Date(expiration),
-    unitSize,
+    expirationDate: new Date(expirationDate),
+    unitType,
+    quantityPerUnit,
   };
 
-  if (donorName) {
-    whereClause.donorName = donorName;
-  }
-  if (lotNumberStr) {
-    const parsedLotNumber = parseInt(lotNumberStr, 10);
-    if (!isNaN(parsedLotNumber)) {
-      whereClause.lotNumber = parsedLotNumber;
-    }
-  }
-  if (palletNumberStr) {
-    const parsedPalletNumber = parseInt(palletNumberStr, 10);
-    if (!isNaN(parsedPalletNumber)) {
-      whereClause.palletNumber = parsedPalletNumber;
-    }
-  }
-  if (boxNumberStr) {
-    const parsedBoxNumber = parseInt(boxNumberStr, 10);
-    if (!isNaN(parsedBoxNumber)) {
-      whereClause.boxNumber = parsedBoxNumber;
-    }
-  }
+  if (donorName) whereClause.donorName = donorName;
+  if (lotNumberStr) whereClause.lotNumber = lotNumberStr;
+  if (palletNumberStr) whereClause.palletNumber = palletNumberStr;
+  if (boxNumberStr) whereClause.boxNumber = boxNumberStr;
 
   // query the DB for matching items
   const items = await db.item.findMany({
     where: whereClause,
   });
+  console.log(items);
+  console.log(whereClause);
 
   // build sets of unique donor/lot/pallet/box values
   const donorNames = new Set<string>();
-  const lotNumbers = new Set<number>();
-  const palletNumbers = new Set<number>();
-  const boxNumbers = new Set<number>();
+  const lotNumbers = new Set<string>();
+  const palletNumbers = new Set<string>();
+  const boxNumbers = new Set<string>();
 
   for (const item of items) {
     donorNames.add(item.donorName);

@@ -9,6 +9,7 @@ import {
 } from "@/util/responses";
 import { parseDateIfDefined } from "@/util/util";
 import { RequestPriority, UserType } from "@prisma/client";
+import { format } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
@@ -80,8 +81,8 @@ export async function GET(request: NextRequest) {
   ).map((item) => {
     const copy = {
       ...item,
-      expirationDate: item.expirationDate?.toLocaleDateString(),
       quantity: item._sum.quantity,
+      expirationDate: item.expirationDate?.toISOString(),
       _sum: undefined,
     };
     delete copy._sum;
@@ -111,7 +112,8 @@ const schema = zfd.formData({
   type: zfd.text(),
   priority: zfd.text(z.nativeEnum(RequestPriority)),
   expirationDate: z.coerce.date().optional(),
-  unitSize: zfd.numeric(z.number().int()),
+  unitType: zfd.text(),
+  quantityPerUnit: zfd.numeric(z.number().int()),
   quantity: zfd.numeric(z.number().int().min(1)), // Requesting 0 items would be stupid
   comments: zfd.text(),
 });
@@ -139,7 +141,8 @@ export async function POST(req: Request) {
     type,
     priority,
     expirationDate,
-    unitSize,
+    unitType,
+    quantityPerUnit,
     quantity,
     comments,
   } = parsed.data;
@@ -150,7 +153,8 @@ export async function POST(req: Request) {
       type,
       priority,
       expirationDate,
-      unitSize,
+      unitType,
+      quantityPerUnit,
       quantity,
       comments,
       partnerId: parseInt(session.user.id),

@@ -9,7 +9,7 @@ interface GeneralItem {
   type: string;
   expirationDate: string;
   unitType: string;
-  quantityPerUnit: string;
+  quantityPerUnit: number;
 }
 
 interface ItemRequest {
@@ -36,11 +36,11 @@ export async function POST(req: NextRequest) {
       ? new Date(req.generalItem.expirationDate)
       : null,
     quantityPerUnit: req.generalItem.quantityPerUnit,
+    unitType: req.generalItem.unitType,
 
     priority: req.priority,
     quantity: parseInt(req.quantity),
     comments: req.comments,
-    unitSize: 0,
   }));
 
   await db.unallocatedItemRequest.createMany({

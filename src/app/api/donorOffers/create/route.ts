@@ -11,7 +11,10 @@ import { z } from "zod";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 
-const AUTHORIZED_USER_TYPES = [UserType.ADMIN, UserType.SUPER_ADMIN] as UserType[];
+const AUTHORIZED_USER_TYPES = [
+  UserType.ADMIN,
+  UserType.SUPER_ADMIN,
+] as UserType[];
 
 // Required keys for both preview and creation
 const requiredKeys = [
@@ -20,7 +23,7 @@ const requiredKeys = [
   "quantity",
   "expiration",
   "unitType",
-  "quantityPerUnit"
+  "quantityPerUnit",
 ];
 
 const containsRequiredKeys = (fields?: string[]) =>
@@ -30,15 +33,18 @@ const containsRequiredKeys = (fields?: string[]) =>
 const DonorOfferItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: z.string(),
-  quantity: z.string()
+  quantity: z
+    .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  expiration: z.union([
-    z.coerce.date(),
-    z.string().transform((val) => (val.trim() === "" ? undefined : val))
-  ]).optional(),
-  unitType: z.string().optional(),
-  quantityPerUnit: z.string().optional(),
+  expiration: z
+    .union([
+      z.coerce.date(),
+      z.string().transform((val) => (val.trim() === "" ? undefined : val)),
+    ])
+    .optional(),
+  unitType: z.string(),
+  quantityPerUnit: z.number(),
 });
 
 // Schema for the donor offer itself
@@ -52,36 +58,50 @@ const DonorOfferSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session || !session?.user) return authenticationError("Session required");
-  if (!AUTHORIZED_USER_TYPES.includes(session.user.type)) return authorizationError("Not authorized");
+  if (!session || !session?.user)
+    return authenticationError("Session required");
+  if (!AUTHORIZED_USER_TYPES.includes(session.user.type))
+    return authorizationError("Not authorized");
 
   const url = new URL(request.url);
   const preview = url.searchParams.get("preview") === "true";
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
-  
+
   // Get donor offer details from form data
   const offerName = formData.get("offerName") as string;
   const donorName = formData.get("donorName") as string;
-  const partnerRequestDeadline = formData.get("partnerRequestDeadline") as string;
+  const partnerRequestDeadline = formData.get(
+    "partnerRequestDeadline"
+  ) as string;
   const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-  const state = formData.get("state") as DonorOfferState || DonorOfferState.UNFINALIZED;
-  
+  const state =
+    (formData.get("state") as DonorOfferState) || DonorOfferState.UNFINALIZED;
+
   // Get partner IDs from form data and convert to numbers
   const partnerIdStrings = formData.getAll("partnerIds") as string[];
-  const partnerIds = partnerIdStrings.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+  const partnerIds = partnerIdStrings
+    .map((id) => parseInt(id, 10))
+    .filter((id) => !isNaN(id));
 
   if (!file) {
     return argumentError("No file provided");
   }
 
-  if (!offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline) {
+  if (
+    !offerName ||
+    !donorName ||
+    !partnerRequestDeadline ||
+    !donorRequestDeadline
+  ) {
     return argumentError("Missing required donor offer information");
   }
 
   const fileExt = file.name.split(".").pop()?.toLowerCase();
   if (!["csv", "xlsx"].includes(fileExt || "")) {
-    return argumentError(`Error opening ${file.name}: must be a valid CSV or XLSX file`);
+    return argumentError(
+      `Error opening ${file.name}: must be a valid CSV or XLSX file`
+    );
   }
 
   let jsonData: unknown[] = [];
@@ -102,7 +122,10 @@ export async function POST(request: NextRequest) {
       jsonData = data;
     } else if (fileExt === "csv") {
       const text = await file.text();
-      const { data, meta } = Papa.parse(text, { header: true, skipEmptyLines: true });
+      const { data, meta } = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+      });
 
       if (!meta.fields || !containsRequiredKeys(meta.fields)) {
         return argumentError("CSV does not contain required keys");
@@ -112,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     const errors: string[] = [];
-    const validDonorOfferItems: typeof DonorOfferItemSchema._type[] = [];
+    const validDonorOfferItems: (typeof DonorOfferItemSchema._type)[] = [];
 
     jsonData.forEach((row, index) => {
       const parsed = DonorOfferItemSchema.safeParse(row);
@@ -123,7 +146,9 @@ export async function POST(request: NextRequest) {
             return `Column '${field}': ${issue.message}`;
           })
           .join("; ");
-        errors.push(`Error validating donor offer item on row ${index + 1}: ${errorMessages}`);
+        errors.push(
+          `Error validating donor offer item on row ${index + 1}: ${errorMessages}`
+        );
       } else {
         validDonorOfferItems.push(parsed.data);
       }
@@ -141,7 +166,7 @@ export async function POST(request: NextRequest) {
       donorResponseDeadline: new Date(donorRequestDeadline),
       state,
     };
-    
+
     const donorOfferValidation = DonorOfferSchema.safeParse(donorOfferData);
     if (!donorOfferValidation.success) {
       const errorMessages = donorOfferValidation.error.issues
@@ -150,11 +175,16 @@ export async function POST(request: NextRequest) {
           return `Field '${field}': ${issue.message}`;
         })
         .join("; ");
-      return NextResponse.json({ errors: [`Error validating donor offer: ${errorMessages}`] }, { status: 400 });
+      return NextResponse.json(
+        { errors: [`Error validating donor offer: ${errorMessages}`] },
+        { status: 400 }
+      );
     }
 
     if (preview) {
-      return NextResponse.json({ donorOfferItems: validDonorOfferItems.slice(0, 8) });
+      return NextResponse.json({
+        donorOfferItems: validDonorOfferItems.slice(0, 8),
+      });
     }
 
     // Create the donor offer first
@@ -163,46 +193,46 @@ export async function POST(request: NextRequest) {
     });
 
     // Then create all the items with the donor offer ID
-    const itemsWithDonorOfferId = validDonorOfferItems.map(item => ({
+    const itemsWithDonorOfferId = validDonorOfferItems.map((item) => ({
       ...item,
       donorOfferId: donorOffer.id,
       unitSize: 1, // Default unit size
     }));
 
     await db.donorOfferItem.createMany({ data: itemsWithDonorOfferId });
-    
+
     // Create partner visibility relationships if partner IDs are provided
     if (partnerIds.length > 0) {
       // Validate that all partner IDs exist
       const partners = await db.user.findMany({
         where: {
           id: {
-            in: partnerIds
+            in: partnerIds,
           },
-          type: UserType.PARTNER
+          type: UserType.PARTNER,
         },
         select: {
-          id: true
-        }
+          id: true,
+        },
       });
-      
+
       if (partners.length !== partnerIds.length) {
         return argumentError("One or more partner IDs are invalid");
       }
-      
+
       // Create the partner visibility relationships
       await db.donorOfferPartnerVisibility.createMany({
-        data: partnerIds.map(partnerId => ({
+        data: partnerIds.map((partnerId) => ({
           donorOfferId: donorOffer.id,
-          partnerId: partnerId
-        }))
+          partnerId: partnerId,
+        })),
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       donorOfferId: donorOffer.id,
-      createdCount: validDonorOfferItems.length 
+      createdCount: validDonorOfferItems.length,
     });
   } catch (error) {
     console.error(error);

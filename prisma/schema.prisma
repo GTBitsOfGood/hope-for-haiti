@@ -63,7 +63,7 @@ model Item {
   // Columns that define a general item
   title           String
   type            String
-  expirationDate  DateTime?
+  expirationDate  DateTime? @db.Date
   unitType        String
   quantityPerUnit Int
 
@@ -102,7 +102,7 @@ model UnallocatedItemRequest {
 
   title           String
   type            String
-  expirationDate  DateTime?
+  expirationDate  DateTime? @db.Date
   unitType        String
   quantityPerUnit Int
 
@@ -162,7 +162,7 @@ model DonorOfferItem {
 
   title           String
   type            String
-  expirationDate  DateTime?
+  expirationDate  DateTime? @db.Date
   unitType        String
   quantityPerUnit Int
 

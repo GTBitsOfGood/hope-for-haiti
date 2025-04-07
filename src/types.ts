@@ -9,3 +9,9 @@ export interface GeneralItem {
 export interface QuantizedGeneralItem extends GeneralItem {
   quantity: number;
 }
+
+export interface QuantizedGeneralItemStringDate
+  extends Omit<GeneralItem, "expirationDate"> {
+  quantity: number;
+  expirationDate: string | null;
+}

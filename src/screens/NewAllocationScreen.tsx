@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import NewAllocationModal from "@/components/NewAllocationModal";
 
-export default function NewAllocationPage() {
+export default function NewAllocationScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<{
     donorNames: string[];
@@ -23,48 +23,59 @@ export default function NewAllocationPage() {
   const unallocatedItemRequestId = searchParams.get("unallocatedItemRequestId");
   const title = searchParams.get("title");
   const type = searchParams.get("type");
-  const expiration = searchParams.get("expiration");
-  const unitSize = searchParams.get("unitSize");
+  const expirationDate = searchParams.get("expirationDate");
+  const unitType = searchParams.get("unitType");
+  const quantityPerUnit = searchParams.get("quantityPerUnit");
 
   useEffect(() => {
     if (
       !unallocatedItemRequestId ||
       !title ||
       !type ||
-      !expiration ||
-      !unitSize
+      !expirationDate ||
+      !unitType ||
+      !quantityPerUnit
     ) {
       return;
     }
 
-    const params = new URLSearchParams();
-    if (title) params.append("title", title);
-    if (type) params.append("type", type);
-    if (expiration) params.append("expiration", expiration);
-    if (unitSize) params.append("unitSize", unitSize);
+    const params = new URLSearchParams({
+      title: title as string,
+      type: type as string,
+      unitType: unitType as string,
+      quantityPerUnit: quantityPerUnit as string,
+      ...(expirationDate ? { expirationDate: expirationDate } : {}),
+    });
 
     async function fetchItemSearch() {
-        const res = await fetch(
-          `/api/allocations/itemSearch?${params.toString()}`
-        );
-        if (!res.ok) {
-          throw new Error(`Failed itemSearch request: ${res.status}`);
-        }
-        const data = await res.json();
-        setSearchResults(data);
-        setIsLoading(false);
-    
+      const res = await fetch(
+        `/api/allocations/itemSearch?${params.toString()}`
+      );
+      if (!res.ok) {
+        throw new Error(`Failed itemSearch request: ${res.status}`);
+      }
+      const data = await res.json();
+      setSearchResults(data);
+      setIsLoading(false);
     }
 
     fetchItemSearch();
-  }, [unallocatedItemRequestId, title, type, expiration, unitSize]);
+  }, [
+    expirationDate,
+    quantityPerUnit,
+    title,
+    type,
+    unallocatedItemRequestId,
+    unitType,
+  ]);
 
   if (
     !unallocatedItemRequestId ||
     !title ||
     !type ||
-    !expiration ||
-    !unitSize
+    !expirationDate ||
+    !unitType ||
+    !quantityPerUnit
   ) {
     return <p className="p-4">Missing required query params.</p>;
   }
@@ -79,8 +90,9 @@ export default function NewAllocationPage() {
       unallocatedItemRequestId={unallocatedItemRequestId}
       title={title}
       type={type}
-      expiration={expiration}
-      unitSize={unitSize}
+      expirationDate={expirationDate}
+      unitType={unitType}
+      quantityPerUnit={parseInt(quantityPerUnit)}
       searchResults={searchResults}
     />
   );
