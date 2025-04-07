@@ -15,8 +15,9 @@ export default function UnallocatedItemsLineItemsScreen() {
 
   const itemName = searchParams.get("title");
   const itemType = searchParams.get("type");
-  const itemExpiration = searchParams.get("expiration");
-  const unitSize = searchParams.get("unitSize");
+  const itemExpiration = searchParams.get("expirationDate");
+  const unitType = searchParams.get("unitType");
+  const quantityPerUnit = searchParams.get("quantityPerUnit");
 
   const [requests, setRequests] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +26,13 @@ export default function UnallocatedItemsLineItemsScreen() {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `/api/unallocatedItems/lineItems?title=${encodeURIComponent(itemName ?? "")}&type=${encodeURIComponent(itemType ?? "")}&expiration=${encodeURIComponent(itemExpiration ?? "")}&unitSize=${encodeURIComponent(unitSize ?? "")}`
+          `/api/unallocatedItems/lineItems?${new URLSearchParams({
+            title: itemName as string,
+            type: itemType as string,
+            unitType: unitType as string,
+            quantityPerUnit: quantityPerUnit as string,
+            ...(itemExpiration ? { expirationDate: itemExpiration } : {}),
+          })}`
         );
 
         if (!response.ok) {
@@ -45,7 +52,7 @@ export default function UnallocatedItemsLineItemsScreen() {
     };
 
     fetchData();
-  }, [itemName, itemType, itemExpiration, unitSize]);
+  }, [itemName, itemType, itemExpiration, unitType, quantityPerUnit]);
 
   return (
     <>

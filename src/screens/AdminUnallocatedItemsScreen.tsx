@@ -286,6 +286,22 @@ export default function AdminUnallocatedItemsScreen() {
                           <MenuItem
                             as="button"
                             className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => {
+                              router.push(
+                                `/unallocatedItems/lineItems?${new URLSearchParams(
+                                  {
+                                    title: item.title,
+                                    type: item.type,
+                                    unitType: item.unitType,
+                                    quantityPerUnit:
+                                      item.quantityPerUnit.toString(),
+                                    ...(item.expirationDate
+                                      ? { expirationDate: item.expirationDate }
+                                      : {}),
+                                  }
+                                ).toString()}`
+                              );
+                            }}
                           >
                             <Eye className="inline-block mr-2" size={22} />
                             View unique items

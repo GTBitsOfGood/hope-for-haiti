@@ -13,8 +13,9 @@ import { z } from "zod";
 const paramSchema = z.object({
   title: z.string(),
   type: z.string(),
-  expiration: z.string().nullable(), // some items have undefined expiration
-  unitSize: z.string(),
+  expirationDate: z.string().nullable(), // some items have undefined expiration
+  unitType: z.string(),
+  quantityPerUnit: z.string(),
 });
 
 /**
@@ -42,8 +43,9 @@ export async function GET(request: NextRequest) {
   const parsed = paramSchema.safeParse({
     title: params.get("title"),
     type: params.get("type"),
-    expiration: params.get("expiration"),
-    unitSize: params.get("unitSize"),
+    expirationDate: params.get("expirationDate"),
+    unitType: params.get("unitType"),
+    quantityPerUnit: params.get("quantityPerUnit"),
   });
 
   if (!parsed.success) {
@@ -51,8 +53,8 @@ export async function GET(request: NextRequest) {
   }
 
   let expirationDate: Date | null;
-  if (parsed.data.expiration) {
-    expirationDate = parseDateIfDefined(parsed.data.expiration) ?? null;
+  if (parsed.data.expirationDate) {
+    expirationDate = parseDateIfDefined(parsed.data.expirationDate) ?? null;
     if (expirationDate === null) {
       return argumentError("Expiration must be a valid ISO-8601 timestamp");
     }
@@ -60,9 +62,9 @@ export async function GET(request: NextRequest) {
     expirationDate = null;
   }
 
-  const unitSize = parseInt(parsed.data.unitSize);
-  if (isNaN(unitSize)) {
-    return argumentError("Unit size must be an integer");
+  const quantityPerUnit = parseInt(parsed.data.quantityPerUnit);
+  if (isNaN(quantityPerUnit)) {
+    return argumentError("Quantity per unit must be an integer");
   }
 
   // Get all unallocated item requests for the specified item
@@ -71,6 +73,8 @@ export async function GET(request: NextRequest) {
       title: parsed.data.title,
       type: parsed.data.type,
       expirationDate: expirationDate ?? null,
+      unitType: parsed.data.unitType,
+      quantityPerUnit,
     },
   });
 
