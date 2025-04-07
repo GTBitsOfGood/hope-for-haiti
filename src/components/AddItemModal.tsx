@@ -202,7 +202,7 @@ export default function BulkAddSuccessModal({
           <ModalFormRow>
             <ModalToggleField
               label="Mark item as GIK?"
-              description="GIK items are (definition of GIK items)."
+              description="GIK items are items that are donated."
               name="gik"
             />
             {/* Description to be updated with actual definition */}
