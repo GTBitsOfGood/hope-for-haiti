@@ -3,7 +3,6 @@ import { exit } from "process";
 import { db } from "@/db";
 import { hash } from "argon2";
 import {
-  DonorOffer,
   DonorOfferState,
   Item,
   ItemCategory,
@@ -247,6 +246,19 @@ async function run() {
               create: Array.from({ length: 4 }, () => ({
                 quantity: randInt(1, 3) * 10,
                 ...pick(generalItems),
+                requests: {
+                  create: Array.from({ length: 4 }, () => ({
+                    partnerId: pick(partners).id,
+                    quantity: randInt(1, 8),
+                    comments: "pls give me this",
+                    priority: pick(Object.keys(RequestPriority)),
+                  })),
+                },
+              })),
+            },
+            partnerVisibilities: {
+              create: partners.map((partner) => ({
+                partnerId: partner.id,
               })),
             },
           },
@@ -260,6 +272,19 @@ async function run() {
               create: Array.from({ length: 4 }, () => ({
                 quantity: randInt(1, 3) * 10,
                 ...pick(generalItems),
+                requests: {
+                  create: Array.from({ length: 4 }, () => ({
+                    partnerId: pick(partners).id,
+                    quantity: randInt(1, 8),
+                    comments: "pls give me this",
+                    priority: pick(Object.keys(RequestPriority)),
+                  })),
+                },
+              })),
+            },
+            partnerVisibilities: {
+              create: partners.map((partner) => ({
+                partnerId: partner.id,
               })),
             },
           },
@@ -273,6 +298,19 @@ async function run() {
               create: Array.from({ length: 4 }, () => ({
                 quantity: randInt(1, 3) * 10,
                 ...pick(generalItems),
+                requests: {
+                  create: Array.from({ length: 4 }, () => ({
+                    partnerId: pick(partners).id,
+                    quantity: randInt(1, 8),
+                    comments: "pls give me this",
+                    priority: pick(Object.keys(RequestPriority)),
+                  })),
+                },
+              })),
+            },
+            partnerVisibilities: {
+              create: partners.map((partner) => ({
+                partnerId: partner.id,
               })),
             },
           },
@@ -286,6 +324,19 @@ async function run() {
               create: Array.from({ length: 4 }, () => ({
                 quantity: randInt(1, 3) * 10,
                 ...pick(generalItems),
+                requests: {
+                  create: Array.from({ length: 4 }, () => ({
+                    partnerId: pick(partners).id,
+                    quantity: randInt(1, 8),
+                    comments: "pls give me this",
+                    priority: pick(Object.keys(RequestPriority)),
+                  })),
+                },
+              })),
+            },
+            partnerVisibilities: {
+              create: partners.map((partner) => ({
+                partnerId: partner.id,
               })),
             },
           },
