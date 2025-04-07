@@ -8,17 +8,11 @@ import {
 } from "@/util/responses";
 import { UserType } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { z } from "zod";
 
 const AUTHORIZED_USER_TYPES = [
   UserType.ADMIN,
   UserType.SUPER_ADMIN,
 ] as UserType[];
-
-const schema = z.object({
-  ids: z.array(z.number()),
-  visible: z.boolean(),
-});
 
 export async function PUT(request: NextRequest) {
   const session = await auth();
@@ -27,63 +21,48 @@ export async function PUT(request: NextRequest) {
     return authorizationError("Unauthorized");
   }
 
-  const body = await request.json();
+  const url = new URL(request.url);
+  const visible = (url.searchParams.get("visible") || "") === "true";
 
-  const validatedForm = schema.safeParse(body);
+  const allocTypeStr = url.searchParams.get("allocType");
+  const idStr = url.searchParams.get("id");
+  if (allocTypeStr && idStr) {
+    const id = parseInt(idStr);
+    if (Number.isNaN(id)) return argumentError("Invalid ID");
 
-  if (!validatedForm.success) {
-    //console.log(validatedForm.error.format());
-    return argumentError("Invalid data");
+    if (allocTypeStr === "unallocated") {
+      await db.unallocatedItemRequestAllocation.update({
+        where: {
+          id,
+        },
+        data: { visible },
+      });
+    } else if (allocTypeStr === "donorOffer") {
+      await db.donorOfferItemRequestAllocation.update({
+        where: {
+          id,
+        },
+        data: { visible },
+      });
+    } else {
+      return argumentError("invalid allocation type");
+    }
+
+    return ok();
   }
 
-  const ids = validatedForm.data.ids;
-
-  const distributions = await db.distribution.findMany({
-    where: {
-      id: {
-        in: ids,
-      },
-    },
-  });
-
-  const donorAllocations = distributions
-    .filter(
-      (distribution) => distribution.donorOfferItemRequestAllocationId !== null,
-    )
-    .map(
-      (distribution) =>
-        distribution.donorOfferItemRequestAllocationId as number,
-    );
-  const unallocatedAllocations = distributions
-    .filter(
-      (distribution) =>
-        distribution.unallocatedItemRequestAllocationId !== null,
-    )
-    .map(
-      (distribution) =>
-        distribution.unallocatedItemRequestAllocationId as number,
-    );
-
-  await db.donorOfferItemRequestAllocation.updateMany({
-    data: {
-      visible: validatedForm.data.visible,
-    },
-    where: {
-      id: {
-        in: donorAllocations,
-      },
-    },
-  });
-
-  await db.unallocatedItemRequestAllocation.updateMany({
-    data: {
-      visible: validatedForm.data.visible,
-    },
-    where: {
-      id: {
-        in: unallocatedAllocations,
-      },
-    },
+  const partnerIdStr = url.searchParams.get("partnerId") || "";
+  const partnerId = parseInt(partnerIdStr);
+  if (Number.isNaN(partnerId)) return argumentError("Invalid partner ID");
+  await db.$transaction(async (tx) => {
+    await tx.unallocatedItemRequestAllocation.updateMany({
+      where: { OR: [{ partnerId }, { unallocatedItemRequest: { partnerId } }] },
+      data: { visible },
+    });
+    await tx.donorOfferItemRequestAllocation.updateMany({
+      where: { donorOfferItemRequest: { partnerId } },
+      data: { visible },
+    });
   });
 
   return ok();

@@ -1,16 +1,11 @@
-import { ChatTeardropText } from "@phosphor-icons/react";
-import React from "react";
-import { Tooltip } from "react-tooltip";
-import DistributionActions from "./DistributionActions";
 import { DistributionRecord } from "@/types";
+import React from "react";
 
-export default function DistributionTable({
-  refetch,
-  visible,
+export default function CreateSignOffTable({
+  // refetch,
   distributions,
 }: {
   refetch: () => void;
-  visible: boolean;
   distributions: DistributionRecord[];
 }) {
   return (
@@ -30,8 +25,6 @@ export default function DistributionTable({
             <th className="px-4 py-2 text-left font-bold">Unit price</th>
             <th className="px-4 py-2 text-left font-bold">Donor Shipping #</th>
             <th className="px-4 py-2 text-left font-bold">HfH Shipping #</th>
-            <th className="px-4 py-2 text-left font-bold">Comment</th>
-            <th className="px-4 py-2 text-left font-bold">Manage</th>
           </tr>
         </thead>
         <tbody>
@@ -57,26 +50,6 @@ export default function DistributionTable({
                   {distribution.donorShippingNumber}
                 </td>
                 <td className="px-4 py-2">{distribution.hfhShippingNumber}</td>
-                <td className="px-4 py-2">
-                  <ChatTeardropText
-                    data-tooltip-id={`comment-tooltip-${NaN}`}
-                    data-tooltip-content={"TODO NOTES"}
-                    size={30}
-                    color={distribution.donorName ? "black" : "lightgray"}
-                  />
-                  {distribution.donorName && (
-                    <Tooltip id={`comment-tooltip-${NaN}`} className="max-w-40">
-                      {"TODO NOTES"}
-                    </Tooltip>
-                  )}
-                </td>
-                <td className="px-4 py-2">
-                  <DistributionActions
-                    refetch={refetch}
-                    visible={visible}
-                    distribution={distribution}
-                  />
-                </td>
               </tr>
             </React.Fragment>
           ))}

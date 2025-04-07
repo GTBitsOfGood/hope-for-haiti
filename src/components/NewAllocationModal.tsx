@@ -196,7 +196,6 @@ export default function AddAllocationModal({
           const text = await res.text();
           alert(`Unexpected error: ${text}`);
         } else {
-          alert("Allocation created successfully!");
           onClose();
         }
       })

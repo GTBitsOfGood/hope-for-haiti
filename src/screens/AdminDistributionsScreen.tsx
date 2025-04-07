@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
+import { useRouter } from "next/navigation";
 
 // Define the tab options
 enum DistributionTab {
@@ -31,6 +32,8 @@ interface PartnerAllocation {
 }
 
 export default function AdminDistributionsScreen() {
+  const router = useRouter();
+
   // State for active tab
   const [activeTab, setActiveTab] = useState<string>(
     DistributionTab.IN_PROGRESS
@@ -166,7 +169,14 @@ export default function AdminDistributionsScreen() {
                         data-odd={index % 2 !== 0}
                         className="bg-white data-[odd=true]:bg-gray-50 border-b transition-colors"
                       >
-                        <td className="px-4 py-2">{partner.partnerName}</td>
+                        <td
+                          className="px-4 py-2 hover:underline cursor-pointer"
+                          onClick={() =>
+                            router.push(`/distributions/${partner.partnerId}`)
+                          }
+                        >
+                          {partner.partnerName}
+                        </td>
                         <td className="px-4 py-2">
                           {partner.visibleAllocationsCount}
                         </td>

@@ -42,9 +42,9 @@ model User {
   donorOfferItemRequests  DonorOfferItemRequest[]
 
   // There should only ever be one distribution
-  distributions                    Distribution[]
-  UnallocatedItemRequestAllocation UnallocatedItemRequestAllocation[]
-  signOffs                         SignOff[]
+  distributions                     Distribution[]
+  unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
+  signOffs                          SignOff[]
 }
 
 model UserInvite {
@@ -170,6 +170,8 @@ model DonorOfferItem {
 
   requests DonorOfferItemRequest[]
   items    Item[]
+
+  @@unique([donorOfferId, title, type, expirationDate, unitType, quantityPerUnit])
 }
 
 model DonorOfferItemRequest {
@@ -226,8 +228,9 @@ model Distribution {
   donorOfferItemRequestAllocationId Int?                             @unique
   donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id])
 
-  signOffId Int?
-  signOff   SignOff? @relation(fields: [signOffId], references: [id])
+  actualQuantity Int
+  signOffId      Int
+  signOff        SignOff @relation(fields: [signOffId], references: [id])
 }
 
 enum ShipmentStatus {
@@ -255,7 +258,7 @@ model SignOff {
   staffMemberName String
   partnerName     String
   date            DateTime
-  signatureUrl    String
+  signatureUrl    String?
 
   createdAt DateTime @default(now())
 
