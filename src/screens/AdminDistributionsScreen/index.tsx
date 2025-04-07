@@ -81,7 +81,9 @@ export default function AdminDistributionsScreen() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const partner = await fetch(`/api/users/${partnerId}`);
+        const partner = await fetch(`/api/users/${partnerId}`, {
+          cache: "no-store",
+        });
         if (!partner.ok) {
           throw new Error();
         }

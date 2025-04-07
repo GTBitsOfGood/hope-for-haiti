@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X } from '@phosphor-icons/react';
+import { useState, useEffect, useRef } from "react";
+import { X } from "@phosphor-icons/react";
 
 export type Partner = {
   id: number;
@@ -11,8 +11,11 @@ interface PartnerSearchProps {
   onPartnersChange: (partners: Partner[]) => void;
 }
 
-export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSearchProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
+export const PartnerSearch = ({
+  selectedPartners,
+  onPartnersChange,
+}: PartnerSearchProps) => {
+  const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Partner[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -21,13 +24,13 @@ export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSea
 
   // Debounced search function
   useEffect(() => {
-    if (searchTerm.trim() === '') {
+    if (searchTerm.trim() === "") {
       setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
-    
+
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -36,10 +39,15 @@ export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSea
     // Set new timeout for debounced search
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/partners?term=${encodeURIComponent(searchTerm)}`);
+        const response = await fetch(
+          `/api/partners?term=${encodeURIComponent(searchTerm)}`,
+          {
+            cache: "no-store",
+          }
+        );
         if (response.ok) {
           const responseData = await response.json();
-          
+
           // Handle the specific API response format {"partners":[...]}
           let data: Partner[] = [];
           if (responseData.partners && Array.isArray(responseData.partners)) {
@@ -49,23 +57,24 @@ export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSea
           } else if (responseData.data && Array.isArray(responseData.data)) {
             data = responseData.data;
           }
-          
+
           // Filter out already selected partners
           const filteredData = data.filter(
-            (partner: Partner) => !selectedPartners.some(selected => selected.id === partner.id)
+            (partner: Partner) =>
+              !selectedPartners.some((selected) => selected.id === partner.id)
           );
           setSearchResults(filteredData);
-          
+
           // Show results if we have any
           if (filteredData.length > 0) {
             setShowResults(true);
           }
         } else {
-          console.error('Failed to fetch partners');
+          console.error("Failed to fetch partners");
           setSearchResults([]);
         }
       } catch (error) {
-        console.error('Error searching partners:', error);
+        console.error("Error searching partners:", error);
         setSearchResults([]);
       } finally {
         setIsSearching(false);
@@ -81,17 +90,19 @@ export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSea
 
   const handleAddPartner = (partner: Partner) => {
     onPartnersChange([...selectedPartners, partner]);
-    setSearchTerm('');
+    setSearchTerm("");
     setSearchResults([]);
     setShowResults(false);
   };
 
   const handleRemovePartner = (partnerId: number) => {
-    onPartnersChange(selectedPartners.filter(partner => partner.id !== partnerId));
+    onPartnersChange(
+      selectedPartners.filter((partner) => partner.id !== partnerId)
+    );
   };
 
   const handleInputFocus = () => {
-    if (searchTerm.trim() !== '') {
+    if (searchTerm.trim() !== "") {
       setShowResults(true);
     }
   };
@@ -107,7 +118,8 @@ export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSea
     <div className="relative">
       <div>
         <label className="block text-sm font-light text-black mb-1">
-          Partners who can view this offer<span className="text-red-500">*</span>
+          Partners who can view this offer
+          <span className="text-red-500">*</span>
         </label>
         <div className="relative w-full lg:w-1/2">
           <div className="flex items-center flex-wrap border border-gray-300 rounded-md bg-zinc-50 p-1">
@@ -134,7 +146,9 @@ export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSea
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
-                placeholder={selectedPartners.length === 0 ? "Search partners..." : ""}
+                placeholder={
+                  selectedPartners.length === 0 ? "Search partners..." : ""
+                }
                 className="flex-1 py-1.5 px-2 bg-zinc-50 border-0 focus:outline-none focus:ring-0 min-w-[60px]"
               />
               {isSearching && (
@@ -163,4 +177,4 @@ export const PartnerSearch = ({ selectedPartners, onPartnersChange }: PartnerSea
       )}
     </div>
   );
-}; 
+};

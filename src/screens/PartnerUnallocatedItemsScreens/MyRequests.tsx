@@ -40,7 +40,9 @@ export default function MyRequests() {
   const [data, setData] = useState<ItemRequest[] | null | undefined>(undefined);
   useEffect(() => {
     (async () => {
-      const resp = await fetch("/api/unallocatedItemRequest");
+      const resp = await fetch("/api/unallocatedItemRequest", {
+        cache: "no-store",
+      });
       setData(await resp.json());
     })();
   }, []);

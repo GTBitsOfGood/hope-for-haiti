@@ -25,7 +25,9 @@ export default function AddItemToDistributionScreen() {
   useEffect(() => {
     const fetchPartner = async () => {
       try {
-        const response = await fetch(`/api/partners/${partnerId}`);
+        const response = await fetch(`/api/partners/${partnerId}`, {
+          cache: "no-store",
+        });
         if (!response.ok) throw new Error("Failed to fetch partner");
         const data = await response.json();
         setPartnerName(data.name);
@@ -39,7 +41,9 @@ export default function AddItemToDistributionScreen() {
 
     const fetchLineItems = async () => {
       try {
-        const response = await fetch(`/api/items`);
+        const response = await fetch(`/api/items`, {
+          cache: "no-store",
+        });
         if (!response.ok) throw new Error("Failed to fetch items");
         const data = await response.json();
         setLineItems(data);

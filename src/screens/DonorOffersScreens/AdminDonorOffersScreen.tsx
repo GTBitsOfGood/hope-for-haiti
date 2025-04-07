@@ -51,7 +51,9 @@ export default function AdminDonorOffersScreen() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/donorOffers");
+        const res = await fetch("/api/donorOffers", {
+          cache: "no-store",
+        });
         if (!res.ok) {
           throw new Error(`Error: ${res.status} ${res.statusText}`);
         }

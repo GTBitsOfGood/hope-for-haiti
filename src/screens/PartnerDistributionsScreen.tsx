@@ -33,6 +33,7 @@ export default function PartnerUnallocatedItemsScreen() {
     setTimeout(async () => {
       const response = await fetch("/api/distributions", {
         method: "GET",
+        cache: "no-store",
       });
       const data: PartnerDistributionsResponse =
         (await response.json()) as PartnerDistributionsResponse;

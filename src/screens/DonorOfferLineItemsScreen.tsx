@@ -68,7 +68,9 @@ export default function DonorOfferLineItemsScreen() {
 
     const fetchDonorOffer = async () => {
       try {
-        const response = await fetch(`/api/donorOffers/${donorOfferId}`);
+        const response = await fetch(`/api/donorOffers/${donorOfferId}`, {
+          cache: "no-store",
+        });
 
         if (!response.ok) {
           throw new Error();

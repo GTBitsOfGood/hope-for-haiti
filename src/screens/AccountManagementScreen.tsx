@@ -39,7 +39,9 @@ export default function AccountManagementScreen() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch("/api/users");
+        const response = await fetch("/api/users", {
+          cache: "no-store",
+        });
         if (response.ok) {
           const data = await response.json();
           setUsers(data);
