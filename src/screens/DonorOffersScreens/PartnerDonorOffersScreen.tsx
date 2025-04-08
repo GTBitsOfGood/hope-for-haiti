@@ -114,17 +114,17 @@ export default function PartnerDonorOffersScreen() {
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
                     {offer.state === DonorOfferState.UNFINALIZED && (
-                      <div className="inline-block bg-orange-200 p-1 rounded-md">
+                      <div className="inline-block bg-orange-200/70 py-1 px-2 rounded-md">
                         Awaiting response
                       </div>
                     )}
                     {offer.state === DonorOfferState.FINALIZED && (
-                      <div className="inline-block bg-green-200 p-1 rounded-md">
+                      <div className="inline-block bg-green-200/70 py-1 px-2 rounded-md">
                         Response submitted
                       </div>
                     )}
                     {offer.state === DonorOfferState.ARCHIVED && (
-                      <div className="inline-block bg-red-200 p-1 rounded-md">
+                      <div className="inline-block bg-red-200/70 py-1 px-2 rounded-md">
                         Offer closed
                       </div>
                     )}
