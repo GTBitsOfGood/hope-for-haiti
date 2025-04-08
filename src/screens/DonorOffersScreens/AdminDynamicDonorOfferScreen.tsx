@@ -66,7 +66,6 @@ export default function AdminDynamicDonorOfferScreen() {
           setFirstTime(true);
         } else {
           setEditing(false);
-          setFirstTime(false);
         }
       } catch (e) {
         toast.error("Error fetching item requests", {
@@ -100,6 +99,7 @@ export default function AdminDynamicDonorOfferScreen() {
       if (!resp.ok) return toast.error("Error saving request data");
 
       setEditing(false);
+      setFirstTime(false);
     })();
   };
 
