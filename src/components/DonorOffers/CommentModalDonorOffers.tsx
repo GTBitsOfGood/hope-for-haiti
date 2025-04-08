@@ -27,12 +27,12 @@ export default function CommentModalDonorOffers({
     setComment(e.target.value);
   };
   const handleSaveClick = async () => {
-      await fetch(`/api/donorOffers/${donorOfferItemId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requests: [] }),
-      });
-      onModalSave();
+    await fetch(`/api/donorOffers/${donorOfferItemId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requests: [] }),
+    });
+    onModalSave();
   };
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 font-[Open_Sans]">

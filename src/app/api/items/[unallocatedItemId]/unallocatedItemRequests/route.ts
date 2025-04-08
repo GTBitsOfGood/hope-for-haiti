@@ -28,7 +28,7 @@ interface UnallocatedItemRequestsResponse {
  */
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ unallocatedItemId: string }> },
+  { params }: { params: Promise<{ unallocatedItemId: string }> }
 ) {
   // Validate session
   const session = await auth();

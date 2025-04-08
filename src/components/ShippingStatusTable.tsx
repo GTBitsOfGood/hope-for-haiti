@@ -7,7 +7,7 @@ interface ShippingStatusTableProps {
   openModal: (
     hfhShippingNumber: string,
     donorShippingNumber: string,
-    items: ItemEntry[],
+    items: ItemEntry[]
   ) => void;
 }
 
@@ -49,7 +49,7 @@ export default function ShippingStatusTable({
   openModal,
 }: ShippingStatusTableProps) {
   const [shippingStatuses, setShippingStatuses] = useState<ShippingStatus[]>(
-    [],
+    []
   );
 
   const [items, setItems] = useState<ItemEntry[][]>([]);
@@ -73,8 +73,8 @@ export default function ShippingStatusTable({
               quantityTotal: 0,
               comment: item.notes,
             };
-          }),
-        ),
+          })
+        )
       );
       setIsLoading(false);
     })();
@@ -83,14 +83,14 @@ export default function ShippingStatusTable({
   const handleSelectStatus = (
     donorShippingNumber: string,
     hfhShippingNumber: string,
-    status: ShipmentStatus,
+    status: ShipmentStatus
   ) => {
     (async () => {
       await fetch(
         `/api/shippingStatus?donorShippingNumber=${donorShippingNumber}&hfhShippingNumber=${hfhShippingNumber}&value=${status}`,
         {
           method: "PUT",
-        },
+        }
       );
 
       fetchData();
@@ -143,7 +143,7 @@ export default function ShippingStatusTable({
                       handleSelectStatus(
                         status.donorShippingNumber,
                         status.hfhShippingNumber,
-                        e.target.value as ShipmentStatus,
+                        e.target.value as ShipmentStatus
                       )
                     }
                   >
@@ -163,7 +163,7 @@ export default function ShippingStatusTable({
                         openModal(
                           status.hfhShippingNumber,
                           status.donorShippingNumber,
-                          items[status.id] || [],
+                          items[status.id] || []
                         );
                       }}
                       className="cursor-pointer"

@@ -30,7 +30,7 @@ const openLocally = process.env.NODE_ENV !== "production" && !apiKey;
 export async function sendEmail(
   to: string,
   subject: string,
-  html: string,
+  html: string
 ): Promise<[SendGrid.ClientResponse, unknown] | void> {
   if (openLocally) {
     open(html);

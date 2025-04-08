@@ -21,11 +21,12 @@ type DataItem = {
   boxNumber: string;
   unitPrice: string;
   maxRequestLimit: string;
+  ndc: string;
+  notes: string;
   visible: boolean;
   allowAllocations: boolean;
   gik: boolean;
 };
-
 
 export default function BulkAddItemsScreen() {
   const [fileName, setFileName] = useState("");
@@ -98,7 +99,7 @@ export default function BulkAddItemsScreen() {
   };
 
   const handleAddItems = async () => {
-    console.log(uploadedFile)
+    console.log(uploadedFile);
     if (!uploadedFile) return;
     setIsLoading(true);
     try {
@@ -185,7 +186,10 @@ export default function BulkAddItemsScreen() {
       {errors && errors.length > 0 && (
         <div className="mt-4">
           {errors.map((error, index) => (
-            <div key={index} className="bg-red-100 text-red-500 p-3 mb-2 rounded">
+            <div
+              key={index}
+              className="bg-red-100 text-red-500 p-3 mb-2 rounded"
+            >
               {error}
             </div>
           ))}
@@ -222,8 +226,15 @@ export default function BulkAddItemsScreen() {
         )}
       </div>
       {isLoading && <BulkAddLoadingModal />}
-      {isOpen && <BulkAddSuccessModal setIsOpen={setIsOpen} resetUpload={resetUpload}/>}
-      {errorOpen && <BulkAddErrorModal setErrorOpen={setErrorOpen} resetUpload={resetUpload}/>}
+      {isOpen && (
+        <BulkAddSuccessModal setIsOpen={setIsOpen} resetUpload={resetUpload} />
+      )}
+      {errorOpen && (
+        <BulkAddErrorModal
+          setErrorOpen={setErrorOpen}
+          resetUpload={resetUpload}
+        />
+      )}
     </div>
   );
 }

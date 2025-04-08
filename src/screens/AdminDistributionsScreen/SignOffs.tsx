@@ -13,7 +13,7 @@ export default function SignOffs() {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `/api/distributions/signOffs?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`,
+          `/api/distributions/signOffs?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`
         );
 
         if (!response.ok) {

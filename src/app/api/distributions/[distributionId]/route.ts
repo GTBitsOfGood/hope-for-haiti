@@ -16,7 +16,7 @@ const AUTHORIZED_USER_TYPES = [
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ distributionId: string }> },
+  { params }: { params: Promise<{ distributionId: string }> }
 ) {
   const session = await auth();
   if (!session?.user) return authenticationError("Session required");

@@ -57,7 +57,7 @@ export default function ConfirmQuantity({
                       onChange={(e) =>
                         setActualQuantity(
                           index,
-                          parseInt(e.currentTarget.value),
+                          parseInt(e.currentTarget.value)
                         )
                       }
                       min={0}

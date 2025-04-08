@@ -28,7 +28,7 @@ interface UnallocatedItemRequestsResponse {
  */
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ partnerId: string }> },
+  { params }: { params: Promise<{ partnerId: string }> }
 ) {
   const session = await auth();
   if (!session) return authenticationError("Session required");

@@ -4,4 +4,4 @@ import FinalizeDonorOfferScreen from "@/screens/DonorOffersScreens/FinalizeDonor
 
 export default function FinalizeDonorOfferPage() {
   return <FinalizeDonorOfferScreen />;
-} 
+}

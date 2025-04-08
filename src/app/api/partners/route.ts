@@ -33,14 +33,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const { searchParams } = new URL(request.url);
   const term = searchParams.get("term");
-  
+
   if (term) {
     const partners = await db.user.findMany({
       where: {
         type: UserType.PARTNER,
-        name: { 
+        name: {
           contains: term,
-          mode: 'insensitive'
+          mode: "insensitive",
         },
       },
       select: {

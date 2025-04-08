@@ -7,14 +7,16 @@ interface FileInfoDisplayProps {
   onReset: () => void;
 }
 
-export const FileInfoDisplay = ({ 
-  fileName, 
-  fileSize, 
-  fileError, 
-  onReset 
+export const FileInfoDisplay = ({
+  fileName,
+  fileSize,
+  fileError,
+  onReset,
 }: FileInfoDisplayProps) => (
-  <div className={`border rounded w-full py-2 px-2 text-gray-700 
-    ${fileError ? "border-red-500 bg-red-50" : "border-gray-200"}`}>
+  <div
+    className={`border rounded w-full py-2 px-2 text-gray-700 
+    ${fileError ? "border-red-500 bg-red-50" : "border-gray-200"}`}
+  >
     {fileName ? (
       <div className="flex justify-between">
         <div>
@@ -45,4 +47,4 @@ export const FileInfoDisplay = ({
       </div>
     )}
   </div>
-); 
+);

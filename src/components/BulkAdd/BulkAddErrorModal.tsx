@@ -6,11 +6,14 @@ interface BulkAddErrorModalProps {
   resetUpload: () => void;
 }
 
-export default function BulkAddErrorModal({ setErrorOpen, resetUpload }: BulkAddErrorModalProps) {
+export default function BulkAddErrorModal({
+  setErrorOpen,
+  resetUpload,
+}: BulkAddErrorModalProps) {
   const handleExit = () => {
     setErrorOpen(false);
     resetUpload();
-  }
+  };
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-80 relative">
@@ -27,11 +30,15 @@ export default function BulkAddErrorModal({ setErrorOpen, resetUpload }: BulkAdd
 
         {/* Icon */}
         <div className="flex justify-center mt-4">
-            <WarningCircle size={128} weight="fill" color="#EF3340"/>
+          <WarningCircle size={128} weight="fill" color="#EF3340" />
         </div>
         {/* Error Messages */}
-        <p className="text-gray-500 text-sm mt-3">Internal error has occurred.</p>
-        <p className="text-gray-500 text-sm mt-3">Please upload a valid CSV file.</p>
+        <p className="text-gray-500 text-sm mt-3">
+          Internal error has occurred.
+        </p>
+        <p className="text-gray-500 text-sm mt-3">
+          Please upload a valid CSV file.
+        </p>
         <p className="text-gray-400 text-sm">Supported Formats: XLSX, CSV</p>
         {/* Button */}
         <Link href="/unallocatedItems">

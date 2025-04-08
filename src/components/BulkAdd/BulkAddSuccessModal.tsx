@@ -8,24 +8,19 @@ interface BulkAddSuccessModalProps {
 
 export default function BulkAddSuccessModal({
   setIsOpen,
-  resetUpload
+  resetUpload,
 }: BulkAddSuccessModalProps) {
   const handleExit = () => {
     setIsOpen(false);
     resetUpload();
-  }
+  };
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-84 relative">
         <div className="flex justify-between">
           <h2 className="text-lg font-semibold">Add Items</h2>
-          <X
-            onClick={handleExit}
-            size={24}
-            className="cursor-pointer"
-          />
+          <X onClick={handleExit} size={24} className="cursor-pointer" />
         </div>
-
 
         <div className="flex justify-center mt-4">
           <CheckCircle size={128} color="#2774AE" weight="fill" />

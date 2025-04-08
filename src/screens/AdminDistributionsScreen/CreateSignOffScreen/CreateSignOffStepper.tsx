@@ -17,13 +17,13 @@ export default function CreateSignOffStepper({
       <hr
         className={cn(
           "w-20 h-[2px] bg-red-500",
-          step === "create" && "opacity-40",
+          step === "create" && "opacity-40"
         )}
       />
       <div
         className={cn(
           "bg-red-500 rounded-full size-6 flex items-center justify-center text-white",
-          step === "create" && "opacity-40",
+          step === "create" && "opacity-40"
         )}
       >
         {step === "confirm" ? "2" : <Check weight="bold" />}
@@ -31,13 +31,13 @@ export default function CreateSignOffStepper({
       <hr
         className={cn(
           "w-20 h-[2px] bg-red-500",
-          step !== "final" && "opacity-40",
+          step !== "final" && "opacity-40"
         )}
       />
       <div
         className={cn(
           "bg-red-500 rounded-full size-6 flex items-center justify-center text-white",
-          step !== "final" && "opacity-40",
+          step !== "final" && "opacity-40"
         )}
       >
         {step === "final" ? "3" : <Check weight="bold" />}

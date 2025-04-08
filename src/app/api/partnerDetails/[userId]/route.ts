@@ -23,7 +23,7 @@ import { partnerDetailsSchema } from "@/schema/partnerDetails";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> },
+  { params }: { params: Promise<{ userId: string }> }
 ): Promise<NextResponse> {
   const { userId } = await params;
   const session = await auth();
@@ -60,7 +60,7 @@ const PartnerDetailsFormSchema = zfd.formData({
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> },
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   // authenticate the user session
   const session = await auth();

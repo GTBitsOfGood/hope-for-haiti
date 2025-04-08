@@ -33,7 +33,7 @@ export default function UnallocatedItemsLineItemsScreen() {
             unitType: unitType as string,
             quantityPerUnit: quantityPerUnit as string,
             ...(itemExpiration ? { expirationDate: itemExpiration } : {}),
-          })}`,
+          })}`
         );
 
         if (!response.ok) {

@@ -16,7 +16,7 @@ const ALLOWED_USER_TYPES: UserType[] = [
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> },
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   const session = await auth();
   if (!session?.user) return authenticationError("Session required");

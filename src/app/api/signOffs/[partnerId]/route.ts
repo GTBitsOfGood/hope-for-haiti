@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ partnerId: string }> },
+  { params }: { params: Promise<{ partnerId: string }> }
 ) {
   const session = await auth();
   if (!session?.user) {
@@ -41,6 +41,6 @@ export async function GET(
       dateCreated: signOff.createdAt, // TODO what is this
       signOffDate: signOff.createdAt,
       status: "-",
-    })),
+    }))
   );
 }

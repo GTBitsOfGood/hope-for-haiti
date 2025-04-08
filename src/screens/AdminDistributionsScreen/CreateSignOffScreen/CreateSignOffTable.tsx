@@ -47,7 +47,7 @@ export default function CreateSignOffTable({
                     checked={selectedDistributions.some(
                       (otherDistribution) =>
                         JSON.stringify(otherDistribution) ===
-                        JSON.stringify(distribution),
+                        JSON.stringify(distribution)
                     )}
                     onChange={(e) => {
                       if (e.target.checked) {

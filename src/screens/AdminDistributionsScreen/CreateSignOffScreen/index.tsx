@@ -23,16 +23,16 @@ export default function CreateSignOffScreen() {
     DistributionRecordWithActualQuantity[]
   >([]);
   const addToSelectedDistributions = (
-    distribution: DistributionRecordWithActualQuantity,
+    distribution: DistributionRecordWithActualQuantity
   ) => setSelectedDistributions((prev) => [...prev, distribution]);
   const removeFromSelectedDistributions = (
-    distribution: DistributionRecordWithActualQuantity,
+    distribution: DistributionRecordWithActualQuantity
   ) =>
     setSelectedDistributions((prev) =>
       prev.filter(
         (otherDistribution) =>
-          JSON.stringify(otherDistribution) !== JSON.stringify(distribution),
-      ),
+          JSON.stringify(otherDistribution) !== JSON.stringify(distribution)
+      )
     );
 
   const setActualQuantity = (i: number, value: number) => {

@@ -101,13 +101,13 @@ export async function PUT(req: NextRequest) {
 
   if (!donorShippingNumber || !hfhShippingNumber || !valueStr) {
     return argumentError(
-      "Must set donorShippingNumber, hfhShippingNumber, and value params",
+      "Must set donorShippingNumber, hfhShippingNumber, and value params"
     );
   }
 
   if (!Object.keys(ShipmentStatus).includes(valueStr)) {
     return argumentError(
-      `Value must be one of: ${Object.keys(ShipmentStatus).join(", ")}`,
+      `Value must be one of: ${Object.keys(ShipmentStatus).join(", ")}`
     );
   }
 

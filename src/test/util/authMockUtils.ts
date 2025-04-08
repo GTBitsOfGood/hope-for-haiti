@@ -18,7 +18,7 @@ export async function invalidateSession() {
  */
 export async function validateSession(
   userType: UserType,
-  expires: Date = new Date(Date.now() + 86400000),
+  expires: Date = new Date(Date.now() + 86400000)
 ) {
   const createdSession = {
     user: {

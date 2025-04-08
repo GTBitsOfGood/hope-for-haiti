@@ -33,14 +33,6 @@ function formatDate(dateString: string): string {
   return isNaN(date.getTime()) ? dateString : date.toISOString().split("T")[0]; // Format as "YYYY-MM-DD"
 }
 
-// Helper function to format header names
-function formatHeader(header: string): string {
-  return header
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2") // Add space between camel case
-    .replace(/_/g, " ") // Replace underscores with spaces
-    .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize first letter of each word
-}
-
 export default function DataTable({ data }: DataTableProps) {
   const { user } = useUser();
 
@@ -197,21 +189,20 @@ export default function DataTable({ data }: DataTableProps) {
                     className="px-4 py-4 min-w-32 border-gray-300 font-light text-zinc-800"
                   >
                     <span
-                      className={`${
-                        header === "visible"
-                          ? item.visible
+                      className={`${header === "visible"
+                        ? item.visible
+                          ? "bg-green-50 px-2 py-1 rounded text-green-700"
+                          : "bg-red-50 px-2 py-1 rounded text-red-700"
+                        : header === "gik"
+                          ? item.gik
                             ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                            : "bg-red-50 px-2 py-1 rounded text-red-700"
-                          : header === "gik"
-                            ? item.gik
+                            : "px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary"
+                          : header === "allowAllocations"
+                            ? item.allowAllocations
                               ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                              : "px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary"
-                            : header === "allowAllocations"
-                              ? item.allowAllocations
-                                ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                                : "bg-red-50 px-2 py-1 rounded text-red-700"
-                              : ""
-                      }`}
+                              : "bg-red-50 px-2 py-1 rounded text-red-700"
+                            : ""
+                        }`}
                     >
                       {header === "visible"
                         ? item.visible
@@ -226,10 +217,10 @@ export default function DataTable({ data }: DataTableProps) {
                               ? "GIK"
                               : "Not GIK"
                             : header === "expirationDate" ||
-                                header === "datePosted"
+                              header === "datePosted"
                               ? formatDate(
-                                  item[header as keyof DataItem] as string,
-                                ) // Format date fields
+                                item[header as keyof DataItem] as string
+                              ) // Format date fields
                               : (item[header as keyof DataItem] as string)}
                     </span>
                   </td>

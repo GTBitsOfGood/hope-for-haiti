@@ -9,7 +9,7 @@ import { twMerge } from "tailwind-merge";
  * @returns a Date object if the date string is valid
  */
 export function parseDateIfDefined(
-  dateString: string | null,
+  dateString: string | null
 ): Date | null | undefined {
   // see https://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
   if (!dateString) {

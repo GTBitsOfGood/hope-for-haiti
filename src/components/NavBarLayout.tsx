@@ -66,7 +66,7 @@ function NavLinks() {
         label="Unallocated Items"
         icon={<Cube size={22} />}
       />
-    
+
       <NavLink
         href="/donorOffers"
         label="Donor Offers"
@@ -74,10 +74,10 @@ function NavLinks() {
       />
       {isStaff && (
         <NavLink
-        href="/distributions"
-        label="Distributions"
-        icon={<Package size={22} />}
-      />
+          href="/distributions"
+          label="Distributions"
+          icon={<Package size={22} />}
+        />
       )}
       {isPartner && (
         <NavLink
@@ -108,7 +108,9 @@ function DesktopNavbar() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.svg" alt="Hope for Haiti Logo" className="mt-6 mb-2" />
 
-      <h1 className="mt-2 font-bold hidden md:block">{isStaff ? "Admin Portal" : "Partner Portal"}</h1>
+      <h1 className="mt-2 font-bold hidden md:block">
+        {isStaff ? "Admin Portal" : "Partner Portal"}
+      </h1>
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
 

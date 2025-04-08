@@ -6,8 +6,9 @@ export default function DonorOfferSuccessModal() {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-80 relative">
         <div className="flex justify-between">
-          <h2 className="text-lg font-semibold">Success! Donor Offer Created</h2>
-
+          <h2 className="text-lg font-semibold">
+            Success! Donor Offer Created
+          </h2>
         </div>
 
         <div className="flex justify-center mt-4">
@@ -15,7 +16,8 @@ export default function DonorOfferSuccessModal() {
         </div>
 
         <p className="text-gray-500 text-sm mt-3">
-            This Donor Offer has been successfully been created. You will be able to view in the Donor offer table under the unfinalized tab.
+          This Donor Offer has been successfully been created. You will be able
+          to view in the Donor offer table under the unfinalized tab.
         </p>
 
         <Link href={"/donorOffers"}>
@@ -26,4 +28,4 @@ export default function DonorOfferSuccessModal() {
       </div>
     </div>
   );
-} 
+}

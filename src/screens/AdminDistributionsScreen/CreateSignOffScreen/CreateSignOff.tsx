@@ -22,7 +22,7 @@ export default function CreateSignOff({
     (async () => {
       const response = await fetch(
         `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}`,
-        { cache: "no-store" },
+        { cache: "no-store" }
       );
 
       if (!response.ok) {

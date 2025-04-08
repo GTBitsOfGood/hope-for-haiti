@@ -17,7 +17,7 @@ interface Response {
  */
 export async function GET(
   _: NextRequest,
-  { params }: { params: Promise<{ tokenId: string }> },
+  { params }: { params: Promise<{ tokenId: string }> }
 ) {
   const { tokenId } = await params;
   const invite = await db.userInvite.findUnique({

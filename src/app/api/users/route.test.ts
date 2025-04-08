@@ -158,7 +158,7 @@ test("user already exists", async () => {
             clientVersion: "mock",
             meta: {},
             batchRequestIdx: 1,
-          },
+          }
         );
       });
 
