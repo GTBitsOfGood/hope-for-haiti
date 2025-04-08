@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     return notFoundError("Item not found with the specified attributes.");
   }
 
-  if (unallocatedItemRequestId) {
+  if (unallocatedItemRequestId || partnerId) {
     const allocation = await db.unallocatedItemRequestAllocation.create({
       data: {
         ...(unallocatedItemRequestId

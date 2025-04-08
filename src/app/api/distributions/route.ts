@@ -206,14 +206,20 @@ export async function GET(request: NextRequest) {
 
   const records: DistributionRecord[] = [];
 
-  const baseWhere = visibleFilter !== null ? { visible: visibleFilter } : {};
+  const baseWhere = {
+    distributions: { none: {} },
+    ...(visibleFilter !== null ? { visible: visibleFilter } : {}),
+  };
   console.log(baseWhere);
 
   const unallocatedAllocations =
     await db.unallocatedItemRequestAllocation.findMany({
       where: {
         OR: [
-          { ...baseWhere, unallocatedItemRequest: { partnerId: partnerIdNum } },
+          {
+            ...baseWhere,
+            unallocatedItemRequest: { partnerId: partnerIdNum },
+          },
           { ...baseWhere, partnerId: partnerIdNum },
         ],
       },

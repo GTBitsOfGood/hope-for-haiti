@@ -113,7 +113,9 @@ export async function GET(
   }
 
   return NextResponse.json({
-    shippingStatuses: statuses,
+    shippingStatuses: statuses.filter(
+      (s) => s.donorShippingNumber && s.hfhShippingNumber
+    ),
     items: itemMap,
   });
 }
