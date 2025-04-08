@@ -69,7 +69,7 @@ const generalItems: Array<GeneralItem> = [
   {
     title: "Bandages",
     type: "First Aid",
-    expirationDate: null,
+    expirationDate: dateOffset(20 * 12 * 30),
     unitType: "Box",
     quantityPerUnit: 100,
   },
