@@ -230,7 +230,7 @@ export default function UnallocatedItemsLineItemsScreen() {
                             onClick={async () => {
                               const confirmed = confirm(
                                 //TODO: Delete graphic
-                                `Are you sure you want to delete item "${item.lotNumber || item.id}"?`
+                                `Are you sure you want to delete this item?`
                               );
                               if (!confirmed) return;
                               const res = await fetch(

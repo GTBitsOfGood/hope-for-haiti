@@ -89,7 +89,7 @@ model Item {
   unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
 
   donorOfferItemId                 Int?
-  donorOfferItem                   DonorOfferItem?                   @relation(fields: [donorOfferItemId], references: [id])
+  donorOfferItem                   DonorOfferItem?                   @relation(fields: [donorOfferItemId], references: [id], onDelete: Cascade)
   donorOfferItemRequestAllocations DonorOfferItemRequestAllocation[]
 }
 
@@ -124,10 +124,10 @@ model UnallocatedItemRequestAllocation {
   partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   unallocatedItemRequestId Int?
-  unallocatedItemRequest   UnallocatedItemRequest? @relation(fields: [unallocatedItemRequestId], references: [id])
+  unallocatedItemRequest   UnallocatedItemRequest? @relation(fields: [unallocatedItemRequestId], references: [id], onDelete: Cascade)
 
   itemId          Int
-  unallocatedItem Item @relation(fields: [itemId], references: [id])
+  unallocatedItem Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   // There should only ever be one distribution
   distributions Distribution[]
@@ -158,7 +158,7 @@ model DonorOfferItem {
   id Int @id @default(autoincrement())
 
   donorOfferId Int
-  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id])
+  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
 
   title           String
   type            String
@@ -179,10 +179,10 @@ model DonorOfferItemRequest {
   id Int @id @default(autoincrement())
 
   donorOfferItemId Int
-  donorOfferItem   DonorOfferItem @relation(fields: [donorOfferItemId], references: [id])
+  donorOfferItem   DonorOfferItem @relation(fields: [donorOfferItemId], references: [id], onDelete: Cascade)
 
   partnerId Int
-  partner   User @relation(fields: [partnerId], references: [id])
+  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   quantity                        Int
   comments                        String?
@@ -198,10 +198,10 @@ model DonorOfferPartnerVisibility {
   id Int @id @default(autoincrement())
 
   donorOfferId Int
-  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id])
+  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
 
   partnerId Int
-  partner   User @relation(fields: [partnerId], references: [id])
+  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
 
 model DonorOfferItemRequestAllocation {
@@ -210,10 +210,10 @@ model DonorOfferItemRequestAllocation {
   quantity Int
 
   donorOfferItemRequestId Int
-  donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id])
+  donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id], onDelete: Cascade)
 
   itemId        Int
-  item          Item           @relation(fields: [itemId], references: [id])
+  item          Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
   distributions Distribution[]
 
   visible Boolean @default(false)
@@ -226,14 +226,14 @@ model Distribution {
   partner   User @relation(fields: [partnerId], references: [id])
 
   unallocatedItemRequestAllocationId Int?                              @unique
-  unallocatedItemAllocation          UnallocatedItemRequestAllocation? @relation(fields: [unallocatedItemRequestAllocationId], references: [id])
+  unallocatedItemAllocation          UnallocatedItemRequestAllocation? @relation(fields: [unallocatedItemRequestAllocationId], references: [id], onDelete: Cascade)
 
   donorOfferItemRequestAllocationId Int?                             @unique
-  donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id])
+  donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id], onDelete: Cascade)
 
   actualQuantity Int
   signOffId      Int
-  signOff        SignOff @relation(fields: [signOffId], references: [id])
+  signOff        SignOff @relation(fields: [signOffId], references: [id], onDelete: Cascade)
 }
 
 enum ShipmentStatus {
@@ -268,7 +268,7 @@ model SignOff {
   createdAt DateTime @default(now())
 
   partnerId Int
-  partner   User @relation(fields: [partnerId], references: [id])
+  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   distributions Distribution[]
 }
