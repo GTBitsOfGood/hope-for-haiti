@@ -10,6 +10,7 @@ import { UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { DistributionItem } from "./types";
 import { format } from "date-fns";
+import { DistributionRecord } from "@/types";
 
 const ALLOWED_USER_TYPES: UserType[] = [UserType.ADMIN, UserType.SUPER_ADMIN];
 
@@ -98,25 +99,6 @@ const partnerDistributions = async (
   return Array.from(map.values());
 };
 
-interface DistributionRecord {
-  allocationType: "unallocated" | "donorOffer";
-  allocationId: number;
-
-  quantityAllocated: number;
-  quantityAvailable: number;
-  quantityTotal: number;
-
-  title: string;
-  donorName: string;
-  lotNumber: string;
-  palletNumber: string;
-  boxNumber: string;
-  unitPrice: number;
-
-  donorShippingNumber: string | null;
-  hfhShippingNumber: string | null;
-}
-
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session) return authenticationError("Session required");
@@ -189,6 +171,7 @@ export async function GET(request: NextRequest) {
       allocationType: "unallocated",
       allocationId: alloc.id,
       title: alloc.unallocatedItem.title,
+      unitType: alloc.unallocatedItem.unitType,
       donorName: alloc.unallocatedItem.donorName,
       lotNumber: alloc.unallocatedItem.lotNumber,
       palletNumber: alloc.unallocatedItem.palletNumber,
@@ -219,6 +202,7 @@ export async function GET(request: NextRequest) {
       allocationType: "donorOffer",
       allocationId: alloc.id,
       title: alloc.item.title,
+      unitType: alloc.item.unitType,
       donorName: alloc.item.donorName,
       lotNumber: alloc.item.lotNumber,
       palletNumber: alloc.item.palletNumber,

@@ -1,53 +1,32 @@
-import { Check, X } from "@phosphor-icons/react";
-import { Dispatch, Ref, SetStateAction, useRef, useState } from "react";
+import { X } from "@phosphor-icons/react";
+import { Dispatch, Ref, SetStateAction, useRef } from "react";
 import { ReactSketchCanvas, ReactSketchCanvasRef } from "react-sketch-canvas";
 
 interface SignatureModalProps {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
+  onSubmit: Dispatch<SetStateAction<string | null>>;
 }
 
-export default function SignatureModal({ open, setOpen }: SignatureModalProps) {
+export default function SignatureModal({
+  open,
+  setOpen,
+  onSubmit,
+}: SignatureModalProps) {
   const canvasRef: Ref<ReactSketchCanvasRef> = useRef(null);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async () => {
     if (!canvasRef?.current) return;
 
     const image = await canvasRef.current.exportImage("png");
-    localStorage.setItem("signature", image);
+    onSubmit(image);
 
     setOpen(false);
-    setIsSuccess(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setIsSuccess(false);
   };
-
-  if (isSuccess) {
-    return (
-      <div className="fixed inset-0 z-10 overflow-y-auto">
-        <div className="flex min-h-full items-center justify-center p-4 text-center">
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
-          <div className="relative w-[400px] transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl gap-6 flex flex-col">
-            <div className="flex items-center justify-between">
-              <p className="text-2xl font-semibold">Sign Off Completed</p>
-              <X className="size-6 cursor-pointer" onClick={handleClose} />
-            </div>
-            <div className="size-24 bg-[#2874ae] rounded-full flex items-center justify-center m-auto">
-              <Check className="text-white size-16" weight="bold" />
-            </div>
-            <p className="font-light text-gray-600">
-              The sign off has been completed and this sign off will show up in
-              the completed tab.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (!open) return null;
 

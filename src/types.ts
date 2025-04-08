@@ -25,6 +25,7 @@ export interface DistributionRecord {
   quantityTotal: number;
 
   title: string;
+  unitType: string;
   donorName: string;
   lotNumber: string;
   palletNumber: string;
@@ -33,4 +34,15 @@ export interface DistributionRecord {
 
   donorShippingNumber: string | null;
   hfhShippingNumber: string | null;
+}
+
+export interface DistributionRecordWithActualQuantity
+  extends DistributionRecord {
+  actualQuantity?: number;
+}
+
+export interface SignedOffDistribution {
+  allocationType: "unallocated" | "donorOffer";
+  allocationId: number;
+  actualQuantity: number;
 }

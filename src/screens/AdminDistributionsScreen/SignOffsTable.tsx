@@ -1,31 +1,30 @@
-import { SignOff } from "@/app/api/distributions/types";
 import { format } from "date-fns";
-import React from "react";
+import { useParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+
+interface SignOff {
+  staffName: string;
+  numberOfItems: number;
+  dateCreated: Date;
+  signOffDate: Date;
+  status: string;
+}
 
 export default function SignOffsTable() {
-  const test: SignOff[] = [
-    {
-      partnerName: "test",
-      partnerId: 1,
-      staffMemberName: "Peyton",
-      date: new Date(),
-      signatureUrl: "",
-    },
-    {
-      partnerName: "test",
-      partnerId: 2,
-      staffMemberName: "Liane",
-      date: new Date(),
-      signatureUrl: "",
-    },
-    {
-      partnerName: "test",
-      partnerId: 3,
-      staffMemberName: "Kavin",
-      date: new Date(),
-      signatureUrl: "",
-    },
-  ];
+  const { partnerId } = useParams();
+
+  const [signOffs, setSignOffs] = useState<SignOff[] | null>(null);
+  useEffect(() => {
+    (async () => {
+      const resp = await fetch(`/api/signOffs/${partnerId}`);
+      if (!resp.ok) return toast.error("Failed to get sign offs");
+
+      const data = await resp.json();
+      setSignOffs(data);
+    })();
+  }, [partnerId]);
+
   return (
     <div className="overflow-x-scroll pb-32">
       <table className="mt-4 rounded-t-lg min-w-full">
@@ -39,21 +38,21 @@ export default function SignOffsTable() {
           </tr>
         </thead>
         <tbody>
-          {test.map((signOff, index) => (
+          {signOffs?.map((signOff, index) => (
             <React.Fragment key={index}>
               <tr
                 data-odd={index % 2 !== 0}
                 className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
               >
-                <td className="px-4 py-2">{signOff.staffMemberName}</td>
-                <td className="px-4 py-2">-</td>
+                <td className="px-4 py-2">{signOff.staffName}</td>
+                <td className="px-4 py-2">{signOff.numberOfItems}</td>
                 <td className="px-4 py-2">
-                  {format(signOff.date, "M/d/yyyy")}
+                  {format(signOff.dateCreated, "M/d/yyyy")}
                 </td>
                 <td className="px-4 py-2">
-                  {format(signOff.date, "M/d/yyyy")}
+                  {format(signOff.signOffDate, "M/d/yyyy")}
                 </td>
-                <td className="px-4 py-2">Status</td>
+                <td className="px-4 py-2">{signOff.status}</td>
               </tr>
             </React.Fragment>
           ))}

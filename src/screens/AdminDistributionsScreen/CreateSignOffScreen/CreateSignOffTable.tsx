@@ -4,15 +4,22 @@ import React from "react";
 export default function CreateSignOffTable({
   // refetch,
   distributions,
+  selectedDistributions,
+  addToSelectedDistributions,
+  removeFromSelectedDistributions,
 }: {
   refetch: () => void;
   distributions: DistributionRecord[];
+  selectedDistributions: DistributionRecord[];
+  addToSelectedDistributions: (dist: DistributionRecord) => void;
+  removeFromSelectedDistributions: (dist: DistributionRecord) => void;
 }) {
   return (
     <div className="overflow-x-scroll pb-32">
       <table className="mt-4 rounded-t-lg min-w-full">
         <thead>
           <tr className="bg-blue-primary opacity-80 text-white border-b-2">
+            <th />
             <th className="px-4 py-2 text-left font-bold">Name</th>
             <th className="px-4 py-2 text-left font-bold">
               Quantity Allocated
@@ -34,6 +41,24 @@ export default function CreateSignOffTable({
                 data-odd={index % 2 !== 0}
                 className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
               >
+                <td className="p-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedDistributions.some(
+                      (otherDistribution) =>
+                        JSON.stringify(otherDistribution) ===
+                        JSON.stringify(distribution),
+                    )}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        addToSelectedDistributions(distribution);
+                      } else {
+                        removeFromSelectedDistributions(distribution);
+                      }
+                    }}
+                    className="bg-zinc-50 border-gray-200 rounded focus:ring-0"
+                  />
+                </td>
                 <td className="px-4 py-2">{distribution.title}</td>
                 <td className="px-4 py-2">{distribution.quantityAllocated}</td>
                 <td className="px-4 py-2">
