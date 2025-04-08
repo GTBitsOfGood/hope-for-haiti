@@ -212,9 +212,9 @@ model DonorOfferItemRequestAllocation {
   donorOfferItemRequestId Int
   donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id])
 
-  itemId       Int
-  item         Item           @relation(fields: [itemId], references: [id])
-  Distribution Distribution[]
+  itemId        Int
+  item          Item           @relation(fields: [itemId], references: [id])
+  distributions Distribution[]
 
   visible Boolean @default(false)
 }

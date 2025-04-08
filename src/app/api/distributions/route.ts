@@ -120,8 +120,9 @@ export async function GET(request: NextRequest) {
               {
                 visible: true,
                 unallocatedItemRequest: { partnerId },
+                distributions: { none: {} },
               },
-              { visible: true, partnerId },
+              { visible: true, partnerId, distributions: { none: {} } },
             ],
           },
           include: {
@@ -147,6 +148,7 @@ export async function GET(request: NextRequest) {
             donorOfferItemRequest: {
               partnerId,
             },
+            distributions: { none: {} },
           },
           include: {
             item: true,
