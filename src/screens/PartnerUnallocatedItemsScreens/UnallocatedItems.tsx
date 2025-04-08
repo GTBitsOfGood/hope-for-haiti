@@ -7,7 +7,7 @@ import { formatTableValue } from "@/utils/format";
 import { MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { RequestPriority } from "@prisma/client";
 import { format } from "date-fns";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { CgSpinner } from "react-icons/cg";
 
@@ -78,9 +78,11 @@ interface RequestData {
 function RequestItemsModal({
   onClose,
   items,
+  onSuccess,
 }: {
   onClose: (clear?: boolean) => void;
   items: GeneralItem[];
+  onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState<RequestData[]>(
     items.map(() => ({ priority: null, quantity: 0, comments: "" }))
@@ -116,6 +118,7 @@ function RequestItemsModal({
       if (resp.ok) {
         toast.success("Request submitted");
         onClose(true);
+        onSuccess();
       } else {
         toast.error("An error occurred");
       }
@@ -148,7 +151,9 @@ function RequestItemsModal({
               <tr key={JSON.stringify(item)}>
                 <td className="px-2">{item.title}</td>
                 <td className="px-2">
-                  {format(item.expirationDate, "M/d/yyyy")}
+                  {item.expirationDate
+                    ? format(item.expirationDate, "M/d/yyyy")
+                    : "-"}
                 </td>
                 <td className="px-2">
                   <div className="w-32">
@@ -236,8 +241,8 @@ export default function UnallocatedItems() {
     );
   }, [activeTab, filteredItems]);
 
-  useEffect(() => {
-    setTimeout(async () => {
+  const fetchData = useCallback(() => {
+    (async () => {
       const response = await fetch("api/unallocatedItems", {
         method: "GET",
         cache: "no-store",
@@ -246,8 +251,12 @@ export default function UnallocatedItems() {
       setItems(data.items);
       setFilteredItems(data.items);
       setIsLoading(false);
-    }, 1000);
+    })();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const filterItems = (key: ExpirationFilterKey) => {
     setActiveTab(key);
@@ -384,6 +393,7 @@ export default function UnallocatedItems() {
             if (clear) setSelectedItems([]);
             setRequestModalOpen(false);
           }}
+          onSuccess={() => fetchData()}
         />
       )}
     </>

@@ -231,134 +231,134 @@ async function run() {
       },
     });
 
-    const items = await tx.item.createManyAndReturn({
-      data: Array.from({ length: 100 }, () => genItem()),
-    });
+    // const items = await tx.item.createManyAndReturn({
+    //   data: Array.from({ length: 100 }, () => genItem()),
+    // });
 
-    const unallocatedItemRequests =
-      await tx.unallocatedItemRequest.createManyAndReturn({
-        data: Array.from({ length: 20 }, () => {
-          const genItem = pick(generalItems);
-          return {
-            partnerId: pick(partners).id,
-            ...genItem,
-            priority: pick(Object.keys(RequestPriority)) as RequestPriority,
-            quantity: randInt(1, 4) * 5,
-            comments: "pls",
-          };
-        }),
-      });
+    // const unallocatedItemRequests =
+    //   await tx.unallocatedItemRequest.createManyAndReturn({
+    //     data: Array.from({ length: 20 }, () => {
+    //       const genItem = pick(generalItems);
+    //       return {
+    //         partnerId: pick(partners).id,
+    //         ...genItem,
+    //         priority: pick(Object.keys(RequestPriority)) as RequestPriority,
+    //         quantity: randInt(1, 4) * 5,
+    //         comments: "pls",
+    //       };
+    //     }),
+    //   });
 
-    await Promise.all(
-      (
-        [
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer A",
-            donorName: "Donor A",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                // requests: {
-                //   create: Array.from({ length: 4 }, () => ({
-                //     partnerId: pick(partners).id,
-                //     quantity: randInt(1, 8),
-                //     comments: "pls give me this",
-                //     priority: pick(Object.keys(RequestPriority)),
-                //   })),
-                // },
-              })),
-            },
-            partnerVisibilities: {
-              create: partners.map((partner) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer B",
-            donorName: "Donor B",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                // requests: {
-                //   create: Array.from({ length: 4 }, () => ({
-                //     partnerId: pick(partners).id,
-                //     quantity: randInt(1, 8),
-                //     comments: "pls give me this",
-                //     priority: pick(Object.keys(RequestPriority)),
-                //   })),
-                // },
-              })),
-            },
-            partnerVisibilities: {
-              create: partners.map((partner) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer C",
-            donorName: "Donor C",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                // requests: {
-                //   create: Array.from({ length: 4 }, () => ({
-                //     partnerId: pick(partners).id,
-                //     quantity: randInt(1, 8),
-                //     comments: "pls give me this",
-                //     priority: pick(Object.keys(RequestPriority)),
-                //   })),
-                // },
-              })),
-            },
-            partnerVisibilities: {
-              create: partners.map((partner) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer D",
-            donorName: "Donor D",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                // requests: {
-                //   create: Array.from({ length: 4 }, () => ({
-                //     partnerId: pick(partners).id,
-                //     quantity: randInt(1, 8),
-                //     comments: "pls give me this",
-                //     priority: pick(Object.keys(RequestPriority)),
-                //   })),
-                // },
-              })),
-            },
-            partnerVisibilities: {
-              create: partners.map((partner) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-        ] as Prisma.DonorOfferCreateInput[]
-      ).map((data) => tx.donorOffer.create({ data }))
-    );
+    // await Promise.all(
+    //   (
+    //     [
+    //       {
+    //         state: DonorOfferState.UNFINALIZED,
+    //         offerName: "Offer A",
+    //         donorName: "Donor A",
+    //         partnerResponseDeadline: dateOffset(20),
+    //         donorResponseDeadline: dateOffset(30),
+    //         items: {
+    //           create: sample(randInt(2, 4), generalItems).map((item) => ({
+    //             ...item,
+    //             quantity: randInt(1, 3) * 10,
+    //             // requests: {
+    //             //   create: Array.from({ length: 4 }, () => ({
+    //             //     partnerId: pick(partners).id,
+    //             //     quantity: randInt(1, 8),
+    //             //     comments: "pls give me this",
+    //             //     priority: pick(Object.keys(RequestPriority)),
+    //             //   })),
+    //             // },
+    //           })),
+    //         },
+    //         partnerVisibilities: {
+    //           create: partners.map((partner) => ({
+    //             partnerId: partner.id,
+    //           })),
+    //         },
+    //       },
+    //       {
+    //         state: DonorOfferState.UNFINALIZED,
+    //         offerName: "Offer B",
+    //         donorName: "Donor B",
+    //         partnerResponseDeadline: dateOffset(20),
+    //         donorResponseDeadline: dateOffset(30),
+    //         items: {
+    //           create: sample(randInt(2, 4), generalItems).map((item) => ({
+    //             ...item,
+    //             quantity: randInt(1, 3) * 10,
+    //             // requests: {
+    //             //   create: Array.from({ length: 4 }, () => ({
+    //             //     partnerId: pick(partners).id,
+    //             //     quantity: randInt(1, 8),
+    //             //     comments: "pls give me this",
+    //             //     priority: pick(Object.keys(RequestPriority)),
+    //             //   })),
+    //             // },
+    //           })),
+    //         },
+    //         partnerVisibilities: {
+    //           create: partners.map((partner) => ({
+    //             partnerId: partner.id,
+    //           })),
+    //         },
+    //       },
+    //       {
+    //         state: DonorOfferState.UNFINALIZED,
+    //         offerName: "Offer C",
+    //         donorName: "Donor C",
+    //         partnerResponseDeadline: dateOffset(20),
+    //         donorResponseDeadline: dateOffset(30),
+    //         items: {
+    //           create: sample(randInt(2, 4), generalItems).map((item) => ({
+    //             ...item,
+    //             quantity: randInt(1, 3) * 10,
+    //             // requests: {
+    //             //   create: Array.from({ length: 4 }, () => ({
+    //             //     partnerId: pick(partners).id,
+    //             //     quantity: randInt(1, 8),
+    //             //     comments: "pls give me this",
+    //             //     priority: pick(Object.keys(RequestPriority)),
+    //             //   })),
+    //             // },
+    //           })),
+    //         },
+    //         partnerVisibilities: {
+    //           create: partners.map((partner) => ({
+    //             partnerId: partner.id,
+    //           })),
+    //         },
+    //       },
+    //       {
+    //         state: DonorOfferState.UNFINALIZED,
+    //         offerName: "Offer D",
+    //         donorName: "Donor D",
+    //         partnerResponseDeadline: dateOffset(20),
+    //         donorResponseDeadline: dateOffset(30),
+    //         items: {
+    //           create: sample(randInt(2, 4), generalItems).map((item) => ({
+    //             ...item,
+    //             quantity: randInt(1, 3) * 10,
+    //             // requests: {
+    //             //   create: Array.from({ length: 4 }, () => ({
+    //             //     partnerId: pick(partners).id,
+    //             //     quantity: randInt(1, 8),
+    //             //     comments: "pls give me this",
+    //             //     priority: pick(Object.keys(RequestPriority)),
+    //             //   })),
+    //             // },
+    //           })),
+    //         },
+    //         partnerVisibilities: {
+    //           create: partners.map((partner) => ({
+    //             partnerId: partner.id,
+    //           })),
+    //         },
+    //       },
+    //     ] as Prisma.DonorOfferCreateInput[]
+    //   ).map((data) => tx.donorOffer.create({ data }))
+    // );
   });
 }
 
