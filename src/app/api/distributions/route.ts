@@ -6,9 +6,9 @@ import {
   authorizationError,
   notFoundError,
 } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { ShipmentStatus, UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { DistributionItem } from "./types";
+import { AllocatedItem, DistributionItem } from "./types";
 import { format } from "date-fns";
 import { DistributionRecord } from "@/types";
 
@@ -44,7 +44,7 @@ const signedDistributions = async (partnerId: number) => {
 };
 
 const partnerDistributions = async (
-  partnerId: number,
+  partnerId: number
 ): Promise<DistributionItem[]> => {
   const distributions = await db.distribution.findMany({
     where: { partnerId },
@@ -112,12 +112,65 @@ export async function GET(request: NextRequest) {
       const distributionItems = await partnerDistributions(partnerId);
       const signed = await signedDistributions(partnerId);
 
+      const items: AllocatedItem[] = [];
+      const unallocatedAllocations =
+        await db.unallocatedItemRequestAllocation.findMany({
+          where: {
+            OR: [
+              {
+                visible: true,
+                unallocatedItemRequest: { partnerId },
+              },
+              { visible: true, partnerId },
+            ],
+          },
+          include: {
+            unallocatedItem: true,
+          },
+        });
+      unallocatedAllocations.map((alloc) => {
+        items.push({
+          title: alloc.unallocatedItem.title,
+          type: alloc.unallocatedItem.type,
+          expirationDate: alloc.unallocatedItem.expirationDate,
+          unitType: alloc.unallocatedItem.unitType,
+          quantityPerUnit: alloc.unallocatedItem.quantityPerUnit,
+          quantityAllocated: alloc.quantity,
+          shipmentStatus: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
+        });
+      });
+
+      const donorOfferAllocations =
+        await db.donorOfferItemRequestAllocation.findMany({
+          where: {
+            visible: true,
+            donorOfferItemRequest: {
+              partnerId,
+            },
+          },
+          include: {
+            item: true,
+          },
+        });
+      donorOfferAllocations.map((alloc) => {
+        items.push({
+          title: alloc.item.title,
+          type: alloc.item.type,
+          expirationDate: alloc.item.expirationDate,
+          unitType: alloc.item.unitType,
+          quantityPerUnit: alloc.item.quantityPerUnit,
+          quantityAllocated: alloc.quantity,
+          shipmentStatus: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
+        });
+      });
+
       return NextResponse.json({
+        items,
         distributionItems,
         signedDistributions: signed.sort(
           (a, b) =>
             new Date(b.distributionDate).getTime() -
-            new Date(a.distributionDate).getTime(),
+            new Date(a.distributionDate).getTime()
         ),
       });
     } catch (err) {

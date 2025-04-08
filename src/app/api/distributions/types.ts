@@ -1,6 +1,7 @@
 import { Item, ShipmentStatus } from "@prisma/client";
 
 export interface PartnerDistributionsResponse {
+  items: AllocatedItem[];
   distributionItems: DistributionItem[];
   signedDistributions: SignedDistributions[];
 }
@@ -8,6 +9,16 @@ export interface PartnerDistributionsResponse {
 export interface DistributionItem extends Item {
   shipmentStatus: ShipmentStatus;
   quantityAllocated: number;
+}
+
+export interface AllocatedItem {
+  title: string;
+  type: string;
+  expirationDate: Date | null;
+  unitType: string;
+  quantityPerUnit: number;
+  quantityAllocated: number;
+  shipmentStatus: ShipmentStatus;
 }
 
 export interface SignedDistributions {

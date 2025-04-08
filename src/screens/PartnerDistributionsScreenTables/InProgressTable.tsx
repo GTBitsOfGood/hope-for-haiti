@@ -1,12 +1,12 @@
 "use client";
 
-import { DistributionItem } from "@/app/api/distributions/types";
 import React from "react";
 import ShipmentStatusLabel from "./ShipmentStatusLabel";
 import { format } from "date-fns";
+import { AllocatedItem } from "@/app/api/distributions/types";
 
 interface InProgressTableProps {
-  items: DistributionItem[];
+  items: AllocatedItem[];
 }
 
 export default function InProgressTable({ items }: InProgressTableProps) {

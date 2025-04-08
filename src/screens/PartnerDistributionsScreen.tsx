@@ -5,7 +5,7 @@ import { MagnifyingGlass, ExclamationMark } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import React from "react";
 import {
-  DistributionItem,
+  AllocatedItem,
   PartnerDistributionsResponse,
   SignedDistributions,
 } from "@/app/api/distributions/types";
@@ -19,7 +19,7 @@ enum Tab {
 }
 
 export default function PartnerUnallocatedItemsScreen() {
-  const [items, setItems] = useState<DistributionItem[]>([]);
+  const [items, setItems] = useState<AllocatedItem[]>([]);
   const [signedDistributions, setSignedDistributions] = useState<
     SignedDistributions[]
   >([]);
@@ -37,8 +37,7 @@ export default function PartnerUnallocatedItemsScreen() {
       });
       const data: PartnerDistributionsResponse =
         (await response.json()) as PartnerDistributionsResponse;
-      console.log(data);
-      setItems(data.distributionItems);
+      setItems(data.items);
       setSignedDistributions(data.signedDistributions);
       setIsLoading(false);
     }, 1000);
