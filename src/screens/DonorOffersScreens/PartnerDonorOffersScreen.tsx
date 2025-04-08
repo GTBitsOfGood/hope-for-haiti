@@ -10,6 +10,7 @@ import { formatTableValue } from "@/utils/format";
  * Search bar covers the menu bar when looking at mobile view.
  *  - It's because of the z-layer of the search bar is too high.
  */
+import { useRouter } from "next/navigation";
 
 interface DonorOfferDTO {
   donorOfferId: number;
@@ -22,6 +23,7 @@ interface DonorOfferDTO {
 export default function PartnerDonorOffersScreen() {
   const [isLoading, setIsLoading] = useState(true); // Manage table loading state
   const [donorOffers, setDonorOffers] = useState<DonorOfferDTO[]>([]); // Hold donor offers
+  const router = useRouter();
 
   useEffect(() => {
     setTimeout(async () => {
@@ -40,8 +42,10 @@ export default function PartnerDonorOffersScreen() {
   }, []);
 
   useEffect(() => {
-    console.log("Donor Offers");
-    console.log(donorOffers);
+    console.log(
+      "Donor Offer Keys:",
+      donorOffers.map((offer) => offer.donorOfferId)
+    );
   }, [donorOffers]);
 
   return (
@@ -70,7 +74,7 @@ export default function PartnerDonorOffersScreen() {
         </div>
       ) : (
         <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden table-w-full">
+          <table className="mt-4 rounded-t-lg overflow-hidden table-auto w-full">
             <thead>
               <tr className="bg-blue-primary bg-opacity-80 text-white text-opacity-100 border-b-2 break-words">
                 <th className="px-4 py-2 text-left font-bold whitespace-nowrap min-w-[150px]">
@@ -90,41 +94,42 @@ export default function PartnerDonorOffersScreen() {
             <tbody>
               {/* Render donor offers */}
               {donorOffers.map((offer, index) => (
-                <React.Fragment key={index}>
-                  <tr
-                    data-odd={index % 2 !== 1}
-                    className={`bg-white data-[odd=true]:bg-gray-100 break-words`}
-                  >
-                    <td className="px-4 py-2">
-                      {formatTableValue(offer.offerName)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(offer.donorName)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(
-                        offer.responseDeadline.toLocaleDateString()
-                      )}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                      {offer.state === DonorOfferState.UNFINALIZED && (
-                        <div className="inline-block bg-clip-padding p-1 bg-orange-200 rounded-md">
-                          Awaiting response
-                        </div>
-                      )}
-                      {offer.state === DonorOfferState.FINALIZED && (
-                        <div className="inline-block bg-clip-padding p-1 bg-green-200 rounded-md">
-                          Response submitted
-                        </div>
-                      )}
-                      {offer.state === DonorOfferState.ARCHIVED && (
-                        <div className="inline-block bg-clip-padding p-1 bg-red-200 rounded-md">
-                          Offer closed
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                </React.Fragment>
+                <tr
+                  key={`${offer.donorOfferId}-${index}`}
+                  onClick={() =>
+                    router.push(`/donorOffers/${offer.donorOfferId}`)
+                  }
+                  className="cursor-pointer bg-white hover:bg-gray-100 break-words"
+                >
+                  <td className="px-4 py-2">
+                    {formatTableValue(offer.offerName)}
+                  </td>
+                  <td className="px-4 py-2">
+                    {formatTableValue(offer.donorName)}
+                  </td>
+                  <td className="px-4 py-2">
+                    {formatTableValue(
+                      offer.responseDeadline.toLocaleDateString()
+                    )}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
+                    {offer.state === DonorOfferState.UNFINALIZED && (
+                      <div className="inline-block bg-orange-200 p-1 rounded-md">
+                        Awaiting response
+                      </div>
+                    )}
+                    {offer.state === DonorOfferState.FINALIZED && (
+                      <div className="inline-block bg-green-200 p-1 rounded-md">
+                        Response submitted
+                      </div>
+                    )}
+                    {offer.state === DonorOfferState.ARCHIVED && (
+                      <div className="inline-block bg-red-200 p-1 rounded-md">
+                        Offer closed
+                      </div>
+                    )}
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>

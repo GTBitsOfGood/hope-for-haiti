@@ -12,18 +12,19 @@ export interface DonorOfferItemDTO {
 }
 
 export interface DonorOfferItemsRequestsDTO {
-  requestId: number;
-  title: string;
-  type: string;
-  expiration?: string | null;
-  quantity: number;
-  unitSize: number;
-  quantityRequested: number;
-  comments: string;
-  priority: RequestPriority;
-}
+    requestId: number;
+    donorOfferItemId: number;
+    title: string;
+    type: string;
+    expiration?: string | null;
+    quantity: number;
+    unitSize: number;
+    quantityRequested: number;
+    comments: string;
+    priority?: RequestPriority | null;
+  }  
 
-// Note, the name is sent back to help display the donor name in the UI.
+//The name is sent back to help display the donor name in the UI.
 export interface DonorOfferItemsRequestsResponse {
   donorOfferName: string;
   donorOfferItemsRequests: DonorOfferItemsRequestsDTO[];
