@@ -33,21 +33,21 @@ export async function GET(request: NextRequest) {
 
   const params = request.nextUrl.searchParams;
   const expirationDateBefore = parseDateIfDefined(
-    params.get("expirationDateBefore"),
+    params.get("expirationDateBefore")
   );
   const expirationDateAfter = parseDateIfDefined(
-    params.get("expirationDateAfter"),
+    params.get("expirationDateAfter")
   );
 
   if (expirationDateBefore === null) {
     return argumentError(
-      "expirationDateBefore must be a valid ISO-8601 timestamp",
+      "expirationDateBefore must be a valid ISO-8601 timestamp"
     );
   }
 
   if (expirationDateAfter === null) {
     return argumentError(
-      "expirationDateAfter must be a valid ISO-8601 timestamp",
+      "expirationDateAfter must be a valid ISO-8601 timestamp"
     );
   }
 
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       where: {
         partnerId: parseInt(session.user.id),
       },
-    },
+    }
   );
 
   // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
@@ -109,12 +109,12 @@ export async function GET(request: NextRequest) {
           item.type === unallocatedItem.type &&
           isEqual(
             item.expirationDate ?? "",
-            unallocatedItem.expirationDate ?? "",
+            unallocatedItem.expirationDate ?? ""
           ) &&
           item.unitType === unallocatedItem.unitType &&
           item.quantityPerUnit === unallocatedItem.quantityPerUnit
         );
-      },
+      }
     );
     const copy = {
       ...item,
