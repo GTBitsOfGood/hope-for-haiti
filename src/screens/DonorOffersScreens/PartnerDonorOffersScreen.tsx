@@ -1,10 +1,9 @@
 "use client";
 
-import { MagnifyingGlass } from "@phosphor-icons/react";
-import { DonorOfferState } from "@prisma/client";
-import React, { useEffect, useState } from "react";
-import { CgSpinner } from "react-icons/cg";
 import { formatTableValue } from "@/utils/format";
+import { MagnifyingGlass } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { CgSpinner } from "react-icons/cg";
 
 /**
  * Search bar covers the menu bar when looking at mobile view.
@@ -17,7 +16,7 @@ interface DonorOfferDTO {
   offerName: string;
   donorName: string;
   responseDeadline: Date;
-  state: DonorOfferState;
+  state: "pending" | "submitted" | "closed" | null;
 }
 
 export default function PartnerDonorOffersScreen() {
@@ -113,17 +112,17 @@ export default function PartnerDonorOffersScreen() {
                     )}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap min-w-[150px]">
-                    {offer.state === DonorOfferState.UNFINALIZED && (
+                    {offer.state === "pending" && (
                       <div className="inline-block bg-orange-200/70 py-1 px-2 rounded-md">
                         Awaiting response
                       </div>
                     )}
-                    {offer.state === DonorOfferState.FINALIZED && (
+                    {offer.state === "submitted" && (
                       <div className="inline-block bg-green-200/70 py-1 px-2 rounded-md">
                         Response submitted
                       </div>
                     )}
-                    {offer.state === DonorOfferState.ARCHIVED && (
+                    {offer.state === "closed" && (
                       <div className="inline-block bg-red-200/70 py-1 px-2 rounded-md">
                         Offer closed
                       </div>
