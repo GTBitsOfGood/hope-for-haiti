@@ -37,12 +37,19 @@ async function getPartnerDonorOffers(partnerId: number) {
         },
       },
     },
-  });
-  const donorOfferItemRequests = await db.donorOfferItemRequest.findMany({
-    where: {
-      partnerId: partnerId,
+    include: {
+      items: {
+        include: {
+          requests: {
+            where: {
+              partnerId: partnerId,
+            },
+          },
+        },
+      },
     },
   });
+
   const formattedDonorOffers = donorOffers.map((offer) => {
     let state = null;
 
@@ -50,13 +57,17 @@ async function getPartnerDonorOffers(partnerId: number) {
       offer.state === DonorOfferState.ARCHIVED ||
       isAfter(new Date(), offer.partnerResponseDeadline)
     ) {
-      state = DonorOfferState.ARCHIVED;
+      state = "closed";
     }
 
-    if (donorOfferItemRequests.length === 0) {
-      state = DonorOfferState.UNFINALIZED;
+    const requestSubmitted = offer.items.some(
+      (item) => item.requests.length > 0
+    );
+
+    if (requestSubmitted) {
+      state = "submitted";
     } else {
-      state = DonorOfferState.FINALIZED;
+      state = "pending";
     }
     return {
       donorOfferId: offer.id,
