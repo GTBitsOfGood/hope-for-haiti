@@ -66,6 +66,7 @@ export default function AdminDynamicDonorOfferScreen() {
           setFirstTime(true);
         } else {
           setEditing(false);
+          setFirstTime(false);
         }
       } catch (e) {
         toast.error("Error fetching item requests", {
