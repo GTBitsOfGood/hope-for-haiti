@@ -8,6 +8,7 @@ interface Request {
   id: number;
   priority: RequestPriority;
   quantity: string;
+  comments: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
     data: {
       priority: reqBody.priority,
       quantity: parseInt(reqBody.quantity),
+      comments: reqBody.comments,
     },
   });
 

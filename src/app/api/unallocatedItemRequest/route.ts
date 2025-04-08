@@ -72,6 +72,9 @@ export async function GET() {
         createdAt: true,
         comments: true,
       },
+      orderBy: {
+        id: "asc",
+      },
     })
   ).map((req) => ({
     ...req,

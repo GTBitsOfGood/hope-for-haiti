@@ -9,12 +9,14 @@ import {
   PencilSimple,
   X,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import { priorityOptions } from "./UnallocatedItems";
+import MyRequestCommentModal from "./MyRequestCommentModal";
+import { cn } from "@/util/util";
 
-interface ItemRequest {
+export type ItemRequest = {
   id: number;
   title: string;
   type: string;
@@ -25,7 +27,7 @@ interface ItemRequest {
   quantity: string;
   comments: string;
   createdAt: string;
-}
+};
 
 export default function MyRequests() {
   const [data, setData] = useState<ItemRequest[]>([]);
@@ -114,11 +116,19 @@ function capitalizeFirstLetter(val: string) {
   );
 }
 
+export type FormState = {
+  priority: RequestPriority;
+  quantity: number;
+  comments: string;
+};
+
 function MyRequestRow({ item, index, refetch }: Props) {
+  const [open, setOpen] = useState(false);
   const [editting, setEditting] = useState(false);
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<FormState>({
     priority: item.priority,
     quantity: parseInt(item.quantity),
+    comments: item.comments,
   });
 
   const handleSubmit = () => {
@@ -136,6 +146,7 @@ function MyRequestRow({ item, index, refetch }: Props) {
           id: item.id,
           priority: formState.priority,
           quantity: formState.quantity,
+          comments: formState.comments,
         }),
       });
 
@@ -209,16 +220,32 @@ function MyRequestRow({ item, index, refetch }: Props) {
       <td className="px-4 py-2">{formatTableValue(item.quantityPerUnit)}</td>
       <td className="px-4 py-2">{formatTableValue(item.createdAt)}</td>
       <td className="px-4 py-2">
-        <ChatTeardropText
-          data-tooltip-id={`comment-tooltip-${item.id}`}
-          size={30}
-          color={item.comments ? "black" : "lightgray"}
-        />
-        {item.comments && (
-          <Tooltip id={`comment-tooltip-${item.id}`} className="max-w-40">
-            {item.comments}
-          </Tooltip>
-        )}
+        <Fragment>
+          <ChatTeardropText
+            className={cn((item.comments || editting) && "cursor-pointer")}
+            data-tooltip-id={`comment-tooltip-${item.id}`}
+            size={30}
+            color={editting ? "#4aa6eb" : item.comments ? "black" : "lightgray"}
+            onClick={() => {
+              if (!editting) return;
+              setOpen(true);
+            }}
+          />
+          {item.comments && (
+            <Tooltip id={`comment-tooltip-${item.id}`} className="max-w-40">
+              {item.comments}
+            </Tooltip>
+          )}
+          {editting && (
+            <MyRequestCommentModal
+              item={item}
+              open={open}
+              setOpen={setOpen}
+              formState={formState}
+              setFormState={setFormState}
+            />
+          )}
+        </Fragment>
       </td>
       <td className="px-4 py-2">
         {editting ? (
