@@ -9,6 +9,7 @@ import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
 import { formatTableValue } from "@/utils/format";
+import StatusTag from "@/components/StatusTag";
 
 export default function UnallocatedItemsLineItemsScreen() {
   const searchParams = useSearchParams();
@@ -32,7 +33,7 @@ export default function UnallocatedItemsLineItemsScreen() {
             unitType: unitType as string,
             quantityPerUnit: quantityPerUnit as string,
             ...(itemExpiration ? { expirationDate: itemExpiration } : {}),
-          })}`
+          })}`,
         );
 
         if (!response.ok) {
@@ -86,20 +87,30 @@ export default function UnallocatedItemsLineItemsScreen() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden min-w-full">
+        <div className="overflow-x-scroll pb-2">
+          <table className="mt-4 min-w-full">
             <thead>
               <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                <th className="px-4 py-2 rounded-tl-lg text-left">Quantity</th>
-                <th className="px-4 py-2 text-left">Qty/Unit</th>
-                <th className="px-4 py-2 text-left">Donor name</th>
-                <th className="px-4 py-2 text-left">Pallet</th>
-                <th className="px-4 py-2 text-left">Box number</th>
-                <th className="px-4 py-2 text-left">Lot number</th>
-                <th className="px-4 py-2 text-left">Unit price</th>
-                <th className="px-4 py-2 text-left">Donor Shipping #</th>
-                <th className="px-4 py-2 text-left">HfH Shipping #</th>
+                <th className="px-4 py-2 min-w-32 rounded-tl-lg text-left">
+                  Quantity
+                </th>
+                <th className="px-4 py-2 min-w-32 text-left">
+                  Qty Avail/Total
+                </th>
+                <th className="px-4 py-2 min-w-32 text-left">Donor name</th>
+                <th className="px-4 py-2 min-w-32 text-left">Pallet</th>
+                <th className="px-4 py-2 min-w-32 text-left">Box number</th>
+                <th className="px-4 py-2 min-w-32 text-left">Lot number</th>
+                <th className="px-4 py-2 min-w-32 text-left">Unit price</th>
                 <th className="px-4 py-2 text-left">Comment</th>
+                <th className="px-4 py-2 min-w-32 text-left">
+                  Donor Shipping #
+                </th>
+                <th className="px-4 py-2 min-w-32 text-left">HfH Shipping #</th>
+                <th className="px-4 py-2 min-w-32 text-left">Max Limit</th>
+                <th className="px-4 py-2 min-w-32 text-left">Visibility</th>
+                <th className="px-4 py-2 min-w-32 text-left">Allocation</th>
+                <th className="px-4 py-2 min-w-32 text-left">GIK</th>
                 <th className="px-4 py-2 rounded-tr-lg text-left w-12">
                   Manage
                 </th>
@@ -115,10 +126,10 @@ export default function UnallocatedItemsLineItemsScreen() {
                     <td className="px-4 py-2">
                       {formatTableValue(item.quantity)}
                     </td>
+                    <td className="px-4 py-2">{/* TODO */}-</td>
                     <td className="px-4 py-2">
-                      {formatTableValue(item.quantityPerUnit)}
+                      {formatTableValue(item.donorName)}
                     </td>
-                    <td className="px-4 py-2">{item.donorName}</td>
                     <td className="px-4 py-2">
                       {formatTableValue(item.palletNumber)}
                     </td>
@@ -130,12 +141,6 @@ export default function UnallocatedItemsLineItemsScreen() {
                     </td>
                     <td className="px-4 py-2">
                       {formatTableValue(item.unitPrice)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.donorShippingNumber)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.hfhShippingNumber)}
                     </td>
                     <td className="px-4 py-2">
                       <ChatTeardropText
@@ -152,6 +157,37 @@ export default function UnallocatedItemsLineItemsScreen() {
                           {item.notes}
                         </Tooltip>
                       )}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.donorShippingNumber)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.hfhShippingNumber)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.maxRequestLimit)}
+                    </td>
+                    <td className="px-4 py-2">
+                      <StatusTag
+                        value={item.visible}
+                        trueText="Visible"
+                        falseText="Disabled"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <StatusTag
+                        value={item.allowAllocations}
+                        trueText="Allowed"
+                        falseText="Disabled"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <StatusTag
+                        value={item.gik}
+                        trueText="GIK"
+                        falseText="Not GIK"
+                        grayWhenFalse
+                      />
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-end">
