@@ -166,7 +166,8 @@ model DonorOfferItem {
   unitType        String
   quantityPerUnit Int
 
-  quantity Int
+  quantity        Int
+  requestQuantity Int?
 
   requests DonorOfferItemRequest[]
   items    Item[]

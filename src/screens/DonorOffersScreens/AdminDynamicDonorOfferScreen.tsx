@@ -31,6 +31,17 @@ export default function AdminDynamicDonorOfferScreen() {
   const [items, setItems] = useState<DonorOfferItemWithRequests[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [donorOffer, setDonorOffer] = useState<DonorOffer>();
+  const [editing, setEditing] = useState(false);
+
+  const firstEdit = items.some((item) => item.requestQuantity === null);
+
+  const setRequestQuantity = (index: number, value: number) =>
+    setItems((prev) => {
+      const newVal = [...prev];
+      newVal[index].requestQuantity = value;
+
+      return newVal;
+    });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +57,16 @@ export default function AdminDynamicDonorOfferScreen() {
         const { donorOffer, itemsWithRequests } = await response.json();
         setItems(itemsWithRequests);
         setDonorOffer(donorOffer);
+
+        if (
+          (itemsWithRequests as DonorOfferItemWithRequests[]).some(
+            (item) => item.requestQuantity === null
+          )
+        ) {
+          setEditing(true);
+        } else {
+          setEditing(false);
+        }
       } catch (e) {
         toast.error("Error fetching item requests", {
           position: "bottom-right",
@@ -58,6 +79,28 @@ export default function AdminDynamicDonorOfferScreen() {
 
     fetchData();
   }, [donorOfferId]);
+
+  const handleSave = () => {
+    (async () => {
+      const resp = await fetch(`/api/donorOffers/${donorOfferId}/requests`, {
+        method: "PUT",
+        body: JSON.stringify({
+          requests: items.map((item) => ({
+            title: item.title,
+            type: item.type,
+            expirationDate: item.expirationDate,
+            unitType: item.unitType,
+            quantityPerUnit: item.quantityPerUnit,
+            quantity: item.requestQuantity || 0,
+          })),
+        }),
+      });
+
+      if (!resp.ok) return toast.error("Error saving request data");
+
+      setEditing(false);
+    })();
+  };
 
   return (
     <>
@@ -104,16 +147,35 @@ export default function AdminDynamicDonorOfferScreen() {
             <div className="flex flex-row gap-3">
               {donorOffer?.state === DonorOfferState.UNFINALIZED ? (
                 <>
-                  <button
-                    onClick={() => router.push("/donorOffers")}
-                    className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-1 rounded-md font-medium hover:bg-red-50 transition"
-                  >
+                  <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-1 rounded-md font-medium hover:bg-red-50 transition">
                     <ShareFat size={18} weight="fill" />
                     Export Partner Requests
                   </button>
-                  <button className="flex items-center gap-2 border border-red-500 text-white bg-red-500 px-4 py-1 rounded-md font-medium hover:bg-red-600 transition">
-                    Save
-                  </button>
+                  {editing ? (
+                    <>
+                      {!firstEdit && (
+                        <button
+                          className="flex items-center gap-2 border border-red-500 text-red-600 bg-red-500 bg-opacity-25 px-4 py-1 rounded-md font-medium hover:bg-opacity-35 transition"
+                          onClick={() => setEditing(false)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button
+                        className="flex items-center gap-2 border border-red-500 text-white bg-red-500 px-4 py-1 rounded-md font-medium hover:bg-red-600 transition"
+                        onClick={handleSave}
+                      >
+                        Save
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="flex items-center gap-2 border border-red-500 text-white bg-red-500 px-4 py-1 rounded-md font-medium hover:bg-red-600 transition"
+                      onClick={() => setEditing(true)}
+                    >
+                      Edit
+                    </button>
+                  )}
                 </>
               ) : (
                 <button className="flex items-center gap-2 border border-red-500 text-white bg-red-500 px-4 py-1 rounded-md font-medium hover:bg-red-600 transition">
@@ -134,7 +196,7 @@ export default function AdminDynamicDonorOfferScreen() {
                   <th className="px-4 py-2 text-left">Unit Type</th>
                   <th className="px-4 py-2 text-left">Qty/Unit</th>
                   <th className="px-4 py-2 text-left">Quantity</th>
-                  {donorOffer?.state === DonorOfferState.UNFINALIZED ? (
+                  {editing ? (
                     <>
                       <th className="px-4 py-2 text-left">Request Summary</th>
                       <th className="px-4 py-2 rounded-tr-lg text-left">
@@ -159,7 +221,7 @@ export default function AdminDynamicDonorOfferScreen() {
                       onClick={() =>
                         donorOffer?.state === DonorOfferState.FINALIZED &&
                         router.push(
-                          `/donorOffers/${donorOfferId}/itemRequests/${item.id}`,
+                          `/donorOffers/${donorOfferId}/itemRequests/${item.id}`
                         )
                       }
                     >
@@ -183,7 +245,7 @@ export default function AdminDynamicDonorOfferScreen() {
                       <td className="px-4 py-2">
                         {formatTableValue(item.quantity)}
                       </td>
-                      {donorOffer?.state === DonorOfferState.UNFINALIZED && (
+                      {editing && (
                         <>
                           <td className="px-4 py-2">
                             {item.requests?.length > 0 ? (
@@ -191,7 +253,7 @@ export default function AdminDynamicDonorOfferScreen() {
                                 Total -{" "}
                                 {item.requests?.reduce(
                                   (sum, request) => sum + request.quantity,
-                                  0,
+                                  0
                                 )}
                                 {item.requests?.map((request) => (
                                   <div key={request.id}>
@@ -209,11 +271,19 @@ export default function AdminDynamicDonorOfferScreen() {
                             <input
                               type="number"
                               className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              min={0}
+                              value={item.requestQuantity || 0}
+                              onChange={(e) =>
+                                setRequestQuantity(
+                                  index,
+                                  parseInt(e.currentTarget.value)
+                                )
+                              }
                             />
                           </td>
                         </>
                       )}
-                      {donorOffer?.state !== DonorOfferState.UNFINALIZED && (
+                      {!editing && (
                         <td
                           className="px-4 py-2"
                           onClick={(e) => e.stopPropagation()}
