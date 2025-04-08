@@ -4,7 +4,11 @@ import React, { useEffect, useState } from "react";
 import { Item } from "@prisma/client";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
-import { ChatTeardropText, DotsThree, PencilSimple, TrashSimple,
+import {
+  ChatTeardropText,
+  DotsThree,
+  PencilSimple,
+  TrashSimple,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
@@ -26,6 +30,7 @@ export default function UnallocatedItemsLineItemsScreen() {
   const [requests, setRequests] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
   useEffect(() => {
@@ -65,7 +70,6 @@ export default function UnallocatedItemsLineItemsScreen() {
       <EditUniqueLineItemModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        item={selectedItem}
       />
       <div className="flex items-center justify-between gap-1 mb-4">
         <div className="flex row">
@@ -226,12 +230,12 @@ export default function UnallocatedItemsLineItemsScreen() {
                             onClick={async () => {
                               const confirmed = confirm(
                                 //TODO: Delete graphic
-                                `Are you sure you want to delete item "${item.lotNumber || item.id}"?`,
+                                `Are you sure you want to delete item "${item.lotNumber || item.id}"?`
                               );
                               if (!confirmed) return;
                               const res = await fetch(
                                 `/api/unallocatedItems/${item.id}`,
-                                { method: "DELETE" },
+                                { method: "DELETE" }
                               );
                               if (!res.ok) {
                                 toast.error("Failed to delete item");
@@ -239,7 +243,7 @@ export default function UnallocatedItemsLineItemsScreen() {
                               }
                               toast.success("Item deleted successfully!");
                               setRequests((prev) =>
-                                prev.filter((req) => req.id !== item.id),
+                                prev.filter((req) => req.id !== item.id)
                               );
                             }}
                           >
