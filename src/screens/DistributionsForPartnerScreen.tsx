@@ -37,7 +37,7 @@ const tabs = [
 export default function DistributionsForPartnerScreen() {
   const { partnerId } = useParams();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>("signOffs");
+  const [activeTab, setActiveTab] = useState<string>("hiddenItems");
   const [partnerName, setPartnerName] = useState<string | null>(null);
 
   useEffect(() => {
