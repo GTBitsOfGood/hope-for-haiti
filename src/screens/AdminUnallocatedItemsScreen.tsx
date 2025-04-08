@@ -12,11 +12,13 @@ import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { QuantizedGeneralItemStringDate } from "@/types";
 
 enum ExpirationFilterKey {
+  ALL = "All",
   ZERO_TO_THREE = "Expiring (0-3 Months)",
   THREE_TO_SIX = "Expiring (3-6 Months)",
   SIX_PLUS = "Expiring (6+ Months)",
 }
 const expirationFilterTabs = [
+  ExpirationFilterKey.ALL,
   ExpirationFilterKey.ZERO_TO_THREE,
   ExpirationFilterKey.THREE_TO_SIX,
   ExpirationFilterKey.SIX_PLUS,
@@ -57,7 +59,7 @@ export default function AdminUnallocatedItemsScreen() {
   const [items, setItems] = useState<QuantizedGeneralItemStringDate[]>([]);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ExpirationFilterKey>(
-    ExpirationFilterKey.ZERO_TO_THREE
+    ExpirationFilterKey.ALL
   );
   const [isLoading, setIsLoading] = useState(true);
 

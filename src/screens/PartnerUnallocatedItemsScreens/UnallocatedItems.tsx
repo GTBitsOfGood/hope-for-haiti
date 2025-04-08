@@ -9,6 +9,7 @@ import { RequestPriority } from "@prisma/client";
 import ModalTextField from "@/components/ModalTextField";
 import toast from "react-hot-toast";
 import { formatTableValue } from "@/utils/format";
+import { format } from "date-fns";
 
 const priorityOptions = [
   {
@@ -29,6 +30,7 @@ interface GeneralItem {
   title: string;
   type: string;
   expirationDate: string;
+  requested: boolean;
   unitType: string;
   quantityPerUnit: string;
   quantity: number;
@@ -142,7 +144,9 @@ function RequestItemsModal({
             {items.map((item, i) => (
               <tr key={JSON.stringify(item)}>
                 <td className="px-2">{item.title}</td>
-                <td className="px-2">{item.expirationDate}</td>
+                <td className="px-2">
+                  {format(item.expirationDate, "M/d/yyyy")}
+                </td>
                 <td className="px-2">
                   <div className="w-32">
                     <ModalDropDown
@@ -317,19 +321,21 @@ export default function UnallocatedItems() {
                     className={`bg-white data-[odd=true]:bg-gray-50 break-words`}
                   >
                     <td className="px-4 py-2">
-                      <input
-                        className="rounded bg-gray-primary bg-opacity-[0.025] border-gray-primary border-opacity-10"
-                        type="checkbox"
-                        name={`item-${index}`}
-                        checked={selectedItems.includes(item)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            addToSelectedItems(item);
-                          } else {
-                            removeFromSelectedItems(item);
-                          }
-                        }}
-                      />
+                      {!item.requested && (
+                        <input
+                          className="rounded bg-gray-primary bg-opacity-[0.025] border-gray-primary border-opacity-10"
+                          type="checkbox"
+                          name={`item-${index}`}
+                          checked={selectedItems.includes(item)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              addToSelectedItems(item);
+                            } else {
+                              removeFromSelectedItems(item);
+                            }
+                          }}
+                        />
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       {formatTableValue(item.title)}
@@ -350,7 +356,7 @@ export default function UnallocatedItems() {
                       {formatTableValue(item.quantityPerUnit)}
                     </td>
                     <td className="px-4 py-2">
-                      {false ? ( // !! TODO: Make this conditional based on item requested status !!
+                      {item.requested ? (
                         <div className="px-2 py-0.5 inline-block rounded bg-amber-primary bg-opacity-20 text-gray-primary">
                           Requested
                         </div>
