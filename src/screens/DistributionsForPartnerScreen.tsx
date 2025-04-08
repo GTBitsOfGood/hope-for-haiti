@@ -60,6 +60,8 @@ export default function DistributionsForPartnerScreen() {
   const handleClick = () => {
     if (activeTab === "signOffs") {
       router.push(`/distributions/${partnerId}/createSignOff`);
+    } else if (["hiddenItems", "visibleItems"].includes(activeTab)) {
+      router.push(`/distributions/${partnerId}/addItem`);
     }
   };
 
