@@ -19,6 +19,8 @@ type DataItem = {
   lotNumber: string;
   palletNumber: string;
   boxNumber: string;
+  donorShippingNumber: string;
+  hfhShippingNumber: string;
   unitPrice: string;
   maxRequestLimit: string;
   ndc: string;

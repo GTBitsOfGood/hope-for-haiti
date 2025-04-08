@@ -13,6 +13,8 @@ type DataItem = {
   lotNumber: string;
   palletNumber: string;
   boxNumber: string;
+  donorShippingNumber: string;
+  hfhShippingNumber: string;
   unitPrice: string;
   maxRequestLimit: string;
   ndc: string;
@@ -138,6 +140,20 @@ export default function DataTable({ data }: DataTableProps) {
                   "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
                 }
               >
+                Donor Shipping #
+              </th>
+              <th
+                className={
+                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
+                }
+              >
+                HfH Shipping #
+              </th>
+              <th
+                className={
+                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
+                }
+              >
                 Unit Price
               </th>
               <th
@@ -189,20 +205,21 @@ export default function DataTable({ data }: DataTableProps) {
                     className="px-4 py-4 min-w-32 border-gray-300 font-light text-zinc-800"
                   >
                     <span
-                      className={`${header === "visible"
-                        ? item.visible
-                          ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                          : "bg-red-50 px-2 py-1 rounded text-red-700"
-                        : header === "gik"
-                          ? item.gik
+                      className={`${
+                        header === "visible"
+                          ? item.visible
                             ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                            : "px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary"
-                          : header === "allowAllocations"
-                            ? item.allowAllocations
+                            : "bg-red-50 px-2 py-1 rounded text-red-700"
+                          : header === "gik"
+                            ? item.gik
                               ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                              : "bg-red-50 px-2 py-1 rounded text-red-700"
-                            : ""
-                        }`}
+                              : "px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary"
+                            : header === "allowAllocations"
+                              ? item.allowAllocations
+                                ? "bg-green-50 px-2 py-1 rounded text-green-700"
+                                : "bg-red-50 px-2 py-1 rounded text-red-700"
+                              : ""
+                      }`}
                     >
                       {header === "visible"
                         ? item.visible
@@ -217,10 +234,10 @@ export default function DataTable({ data }: DataTableProps) {
                               ? "GIK"
                               : "Not GIK"
                             : header === "expirationDate" ||
-                              header === "datePosted"
+                                header === "datePosted"
                               ? formatDate(
-                                item[header as keyof DataItem] as string
-                              ) // Format date fields
+                                  item[header as keyof DataItem] as string
+                                ) // Format date fields
                               : (item[header as keyof DataItem] as string)}
                     </span>
                   </td>
