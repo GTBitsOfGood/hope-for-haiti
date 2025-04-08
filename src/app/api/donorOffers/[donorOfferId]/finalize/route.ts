@@ -109,8 +109,6 @@ type DonorOfferItem = z.infer<typeof DonorOfferItemSchema>;
 
 // Schema for the donor offer itself
 const DonorOfferSchema = z.object({
-  offerName: z.string().min(1, "Offer name is required"),
-  donorName: z.string().optional(),
   partnerResponseDeadline: z.date(),
   donorResponseDeadline: z.date(),
   state: z.nativeEnum(DonorOfferState).default(DonorOfferState.FINALIZED),
@@ -229,8 +227,6 @@ export async function POST(
   const formData = await request.formData();
 
   // Extract donor offer data from form
-  const offerName = formData.get("offerName") as string;
-  const donorName = (formData.get("donorName") as string) || "";
   const partnerRequestDeadline = formData.get(
     "partnerRequestDeadline"
   ) as string;
@@ -271,8 +267,6 @@ export async function POST(
 
   // Validate donor offer data
   const donorOfferData = {
-    offerName,
-    donorName,
     partnerResponseDeadline: partnerDeadline,
     donorResponseDeadline: donorDeadline,
     state: state || DonorOfferState.FINALIZED,
