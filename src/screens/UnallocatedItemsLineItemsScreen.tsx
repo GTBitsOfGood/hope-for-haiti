@@ -4,12 +4,15 @@ import React, { useEffect, useState } from "react";
 import { Item } from "@prisma/client";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
-import { ChatTeardropText, DotsThree } from "@phosphor-icons/react";
+import { ChatTeardropText, DotsThree, PencilSimple, TrashSimple,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
 import { formatTableValue } from "@/utils/format";
 import StatusTag from "@/components/StatusTag";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import EditUniqueLineItemModal from "@/components/UnallocatedItems/EditUniqueLineItem";
 
 export default function UnallocatedItemsLineItemsScreen() {
   const searchParams = useSearchParams();
@@ -22,6 +25,8 @@ export default function UnallocatedItemsLineItemsScreen() {
 
   const [requests, setRequests] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,6 +62,11 @@ export default function UnallocatedItemsLineItemsScreen() {
 
   return (
     <>
+      <EditUniqueLineItemModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        item={selectedItem}
+      />
       <div className="flex items-center justify-between gap-1 mb-4">
         <div className="flex row">
           <Link
@@ -121,7 +131,7 @@ export default function UnallocatedItemsLineItemsScreen() {
                 <React.Fragment key={index}>
                   <tr
                     data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
+                    className="bg-white data-[odd=true]:bg-gray-50 border-b transition-colors"
                   >
                     <td className="px-4 py-2">
                       {formatTableValue(item.quantity)}
@@ -190,9 +200,57 @@ export default function UnallocatedItemsLineItemsScreen() {
                       />
                     </td>
                     <td className="px-4 py-2">
-                      <div className="flex justify-end">
-                        <DotsThree weight="bold" />
-                      </div>
+                      <Menu as="div" className="relative float-right">
+                        <MenuButton>
+                          <DotsThree weight="bold" />
+                        </MenuButton>
+                        <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+                          <MenuItem
+                            as="button"
+                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => {
+                              setSelectedItem(item);
+                              setIsEditModalOpen(true);
+                            }}
+                          >
+                            <PencilSimple
+                              className="inline-block mr-2"
+                              size={22}
+                            />
+                            Edit item details
+                          </MenuItem>
+
+                          <MenuItem
+                            as="button"
+                            className="flex w-full px-3 py-2 text-sm text-red-700 hover:bg-red-100"
+                            onClick={async () => {
+                              const confirmed = confirm(
+                                //TODO: Delete graphic
+                                `Are you sure you want to delete item "${item.lotNumber || item.id}"?`,
+                              );
+                              if (!confirmed) return;
+                              const res = await fetch(
+                                `/api/unallocatedItems/${item.id}`,
+                                { method: "DELETE" },
+                              );
+                              if (!res.ok) {
+                                toast.error("Failed to delete item");
+                                return;
+                              }
+                              toast.success("Item deleted successfully!");
+                              setRequests((prev) =>
+                                prev.filter((req) => req.id !== item.id),
+                              );
+                            }}
+                          >
+                            <TrashSimple
+                              className="inline-block mr-2"
+                              size={22}
+                            />
+                            Delete item
+                          </MenuItem>
+                        </MenuItems>
+                      </Menu>
                     </td>
                   </tr>
                 </React.Fragment>
