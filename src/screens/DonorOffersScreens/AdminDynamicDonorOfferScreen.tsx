@@ -197,7 +197,7 @@ export default function AdminDynamicDonorOfferScreen() {
                   <th className="px-4 py-2 text-left">Unit Type</th>
                   <th className="px-4 py-2 text-left">Qty/Unit</th>
                   <th className="px-4 py-2 text-left">Quantity</th>
-                  {editing ? (
+                  {donorOffer?.state === DonorOfferState.UNFINALIZED ? (
                     <>
                       <th className="px-4 py-2 text-left">Request Summary</th>
                       <th className="px-4 py-2 rounded-tr-lg text-left">
@@ -246,7 +246,7 @@ export default function AdminDynamicDonorOfferScreen() {
                       <td className="px-4 py-2">
                         {formatTableValue(item.quantity)}
                       </td>
-                      {editing && (
+                      {donorOffer?.state === DonorOfferState.UNFINALIZED && (
                         <>
                           <td className="px-4 py-2">
                             {item.requests?.length > 0 ? (
@@ -269,22 +269,26 @@ export default function AdminDynamicDonorOfferScreen() {
                             )}
                           </td>
                           <td className="px-4 py-2">
-                            <input
-                              type="number"
-                              className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              min={0}
-                              value={item.requestQuantity || 0}
-                              onChange={(e) =>
-                                setRequestQuantity(
-                                  index,
-                                  parseInt(e.currentTarget.value)
-                                )
-                              }
-                            />
+                            {editing ? (
+                              <input
+                                type="number"
+                                className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                min={0}
+                                value={item.requestQuantity || 0}
+                                onChange={(e) =>
+                                  setRequestQuantity(
+                                    index,
+                                    parseInt(e.currentTarget.value)
+                                  )
+                                }
+                              />
+                            ) : (
+                              <p>{item.requestQuantity}</p>
+                            )}
                           </td>
                         </>
                       )}
-                      {!editing && (
+                      {donorOffer?.state === DonorOfferState.FINALIZED && (
                         <td
                           className="px-4 py-2"
                           onClick={(e) => e.stopPropagation()}
