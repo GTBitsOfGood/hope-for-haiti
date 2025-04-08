@@ -1,8 +1,13 @@
-import { authenticationError, authorizationError } from "@/util/responses";
+import {
+  argumentError,
+  authenticationError,
+  authorizationError,
+  ok,
+} from "@/util/responses";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { UserType, Item, ShippingStatus } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { UserType, Item, ShippingStatus, ShipmentStatus } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 
 const ALLOWED_USER_TYPES: UserType[] = [
   UserType.ADMIN,
@@ -74,4 +79,56 @@ export async function GET() {
     shippingStatuses: statuses,
     items: itemMap,
   });
+}
+
+export async function PUT(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return authenticationError("Session required");
+  }
+  if (
+    session.user.type !== UserType.STAFF &&
+    session.user.type !== UserType.ADMIN &&
+    session.user.type !== UserType.SUPER_ADMIN
+  ) {
+    return authorizationError("Unauthorized");
+  }
+
+  const url = new URL(req.url);
+  const donorShippingNumber = url.searchParams.get("donorShippingNumber");
+  const hfhShippingNumber = url.searchParams.get("hfhShippingNumber");
+  const valueStr = url.searchParams.get("value");
+
+  if (!donorShippingNumber || !hfhShippingNumber || !valueStr) {
+    return argumentError(
+      "Must set donorShippingNumber, hfhShippingNumber, and value params",
+    );
+  }
+
+  if (!Object.keys(ShipmentStatus).includes(valueStr)) {
+    return argumentError(
+      `Value must be one of: ${Object.keys(ShipmentStatus).join(", ")}`,
+    );
+  }
+
+  const value = valueStr as ShipmentStatus;
+
+  await db.shippingStatus.upsert({
+    where: {
+      donorShippingNumber_hfhShippingNumber: {
+        donorShippingNumber,
+        hfhShippingNumber,
+      },
+    },
+    update: {
+      value,
+    },
+    create: {
+      donorShippingNumber,
+      hfhShippingNumber,
+      value,
+    },
+  });
+
+  return ok();
 }

@@ -1,67 +1,63 @@
-import { ShippingStatus, Item } from "@prisma/client";
+import { ShippingStatus, Item, ShipmentStatus } from "@prisma/client";
 import { CgChevronRight, CgSpinner } from "react-icons/cg";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
 
 interface ShippingStatusTableProps {
   openModal: (
     hfhShippingNumber: string,
     donorShippingNumber: string,
-    items: ItemEntry[]
+    items: ItemEntry[],
   ) => void;
 }
 
-const statusTags = {
-  WAITING_ARRIVAL_FROM_DONOR: (
-    <div className="inline-block bg-[#CD1EC7] bg-opacity-20 text-gray-primary px-2 py-1 rounded">
-      Waiting arrival from donor
-    </div>
-  ),
-  LOAD_ON_SHIP_AIR: (
-    <div className="inline-block bg-[#EC610B] bg-opacity-20 text-gray-primary px-2 py-1 rounded">
-      Loaded on ship/air
-    </div>
-  ),
-  ARRIVED_IN_HAITI: (
-    <div className="inline-block bg-[#ECB70B] bg-opacity-20 text-gray-primary px-2 py-1 rounded">
-      Arrived in Haiti
-    </div>
-  ),
-  CLEARED_CUSTOMS: (
-    <div className="inline-block bg-[#829D20] bg-opacity-20 text-gray-primary px-2 py-1 rounded">
-      Cleared customs
-    </div>
-  ),
-  ARRIVED_AT_DEPO: (
-    <div className="inline-block bg-[#C7EAD8] text-gray-primary px-2 py-1 rounded">
-      Arrived at depo
-    </div>
-  ),
-  INVENTORIES: (
-    <div className="inline-block bg-[#2774AE] bg-opacity-20 text-gray-primary px-2 py-1 rounded">
-      Inventoried
-    </div>
-  ),
-  READY_FOR_DISTRIBUTION: (
-    <div className="inline-block bg-[#0A7B40] bg-opacity-80 text-white px-2 py-1 rounded">
-      Ready for distribution
-    </div>
-  ),
-};
+const statusOptions = [
+  {
+    value: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
+    label: "Waiting arrival from donor",
+    color: "#CD1EC7",
+  },
+  {
+    value: ShipmentStatus.LOAD_ON_SHIP_AIR,
+    label: "Loaded on ship/air",
+    color: "#EC610B",
+  },
+  {
+    value: ShipmentStatus.ARRIVED_IN_HAITI,
+    label: "Arrived in Haiti",
+    color: "#ECB70B",
+  },
+  {
+    value: ShipmentStatus.CLEARED_CUSTOMS,
+    label: "Cleared customs",
+    color: "#829D20",
+  },
+  {
+    value: ShipmentStatus.ARRIVED_AT_DEPO,
+    label: "Arrived at depo",
+    color: "#C7EAD8",
+  },
+  { value: ShipmentStatus.INVENTORIES, label: "Inventoried", color: "#2774AE" },
+  {
+    value: ShipmentStatus.READY_FOR_DISTRIBUTION,
+    label: "Ready for distribution",
+    color: "#0A7B40",
+  },
+];
 
 export default function ShippingStatusTable({
   openModal,
 }: ShippingStatusTableProps) {
   const [shippingStatuses, setShippingStatuses] = useState<ShippingStatus[]>(
-    []
+    [],
   );
 
   const [items, setItems] = useState<ItemEntry[][]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    setTimeout(async () => {
-      const response = await fetch("api/shippingStatus", {
+  const fetchData = useCallback(() => {
+    (async () => {
+      const response = await fetch("/api/shippingStatus", {
         method: "GET",
         cache: "no-store",
       });
@@ -77,12 +73,34 @@ export default function ShippingStatusTable({
               quantityTotal: 0,
               comment: item.notes,
             };
-          })
-        )
+          }),
+        ),
       );
       setIsLoading(false);
-    }, 1000);
+    })();
   }, []);
+
+  const handleSelectStatus = (
+    donorShippingNumber: string,
+    hfhShippingNumber: string,
+    status: ShipmentStatus,
+  ) => {
+    (async () => {
+      await fetch(
+        `/api/shippingStatus?donorShippingNumber=${donorShippingNumber}&hfhShippingNumber=${hfhShippingNumber}&value=${status}`,
+        {
+          method: "PUT",
+        },
+      );
+
+      fetchData();
+    })();
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center mt-8">
@@ -90,6 +108,7 @@ export default function ShippingStatusTable({
       </div>
     );
   }
+
   return (
     <div className="overflow-x-scroll">
       <table className="mt-4 rounded-t-lg overflow-hidden table-fixed w-full">
@@ -116,7 +135,25 @@ export default function ShippingStatusTable({
               >
                 <td className="px-4 py-2">{status.donorShippingNumber}</td>
                 <td className="px-4 py-2">{status.hfhShippingNumber}</td>
-                <td className="px-4 py-2">{statusTags[status.value]}</td>
+                <td className="px-4 py-2">
+                  <select
+                    className={`w-full rounded text-gray-primary border-none bg-opacity-20 p-2 text-[16px] focus:outline-none bg-[${statusOptions.find((opt) => opt.value === status.value)?.color}]`}
+                    value={status.value}
+                    onChange={(e) =>
+                      handleSelectStatus(
+                        status.donorShippingNumber,
+                        status.hfhShippingNumber,
+                        e.target.value as ShipmentStatus,
+                      )
+                    }
+                  >
+                    {statusOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td className="px-4 py-2">
                   <span className="rounded flex justify-center items-center">
                     <CgChevronRight
@@ -126,7 +163,7 @@ export default function ShippingStatusTable({
                         openModal(
                           status.hfhShippingNumber,
                           status.donorShippingNumber,
-                          items[status.id] || []
+                          items[status.id] || [],
                         );
                       }}
                       className="cursor-pointer"
@@ -138,6 +175,14 @@ export default function ShippingStatusTable({
           ))}
         </tbody>
       </table>
+
+      {/* Load in shipping status colors here */}
+      <br className="bg-[#CD1EC7] hidden" />
+      <br className="bg-[#EC610B] hidden" />
+      <br className="bg-[#ECB70B] hidden" />
+      <br className="bg-[#829D20] hidden" />
+      <br className="bg-[#C7EAD8] hidden" />
+      <br className="bg-[#0A7B40] hidden" />
     </div>
   );
 }

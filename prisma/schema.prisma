@@ -250,6 +250,8 @@ model ShippingStatus {
   hfhShippingNumber   String
 
   value ShipmentStatus
+
+  @@unique([donorShippingNumber, hfhShippingNumber])
 }
 
 model SignOff {
