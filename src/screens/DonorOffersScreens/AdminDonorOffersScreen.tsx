@@ -205,6 +205,11 @@ export default function AdminDonorOffersScreen() {
                           <MenuItem
                             as="button"
                             className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() =>
+                              router.push(
+                                `/donorOffers/${offer.donorOfferId}/edit`
+                              )
+                            }
                           >
                             <PencilSimple
                               className="inline-block mr-2"

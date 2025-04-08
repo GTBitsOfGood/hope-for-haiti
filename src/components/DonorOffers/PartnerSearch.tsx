@@ -119,7 +119,6 @@ export const PartnerSearch = ({
       <div>
         <label className="block text-sm font-light text-black mb-1">
           Partners who can view this offer
-          <span className="text-red-500">*</span>
         </label>
         <div className="relative w-full lg:w-1/2">
           <div className="flex items-center flex-wrap border border-gray-300 rounded-md bg-zinc-50 p-1">

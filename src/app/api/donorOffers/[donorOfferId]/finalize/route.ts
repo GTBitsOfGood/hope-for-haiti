@@ -25,6 +25,8 @@ const requiredKeys = [
   "lotNumber",
   "palletNumber",
   "boxNumber",
+  "donorShippingNumber",
+  "hfhShippingNumber",
   "unitPrice",
   "maxRequestLimit",
   "ndc",
@@ -68,6 +70,8 @@ const DonorOfferItemSchema = z.object({
   lotNumber: z.string(),
   palletNumber: z.string(),
   boxNumber: z.string(),
+  donorShippingNumber: z.string(),
+  hfhShippingNumber: z.string(),
   unitPrice: z
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
