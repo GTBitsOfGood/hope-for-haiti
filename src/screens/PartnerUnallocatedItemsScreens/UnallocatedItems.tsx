@@ -1,28 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
-import { CgSpinner } from "react-icons/cg";
-import React from "react";
 import ModalDropDown from "@/components/ModalDropDown";
-import { RequestPriority } from "@prisma/client";
 import ModalTextField from "@/components/ModalTextField";
-import toast from "react-hot-toast";
+import PriorityTag from "@/components/PriorityTag";
 import { formatTableValue } from "@/utils/format";
+import { MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
+import { RequestPriority } from "@prisma/client";
 import { format } from "date-fns";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { CgSpinner } from "react-icons/cg";
 
-const priorityOptions = [
+export const priorityOptions = [
   {
     value: RequestPriority.LOW,
     label: "Low",
+    fullLabel: <PriorityTag priority="LOW" />,
   },
   {
     value: RequestPriority.MEDIUM,
     label: "Medium",
+    fullLabel: <PriorityTag priority="MEDIUM" />,
   },
   {
     value: RequestPriority.HIGH,
     label: "High",
+    fullLabel: <PriorityTag priority="HIGH" />,
   },
 ];
 
@@ -80,7 +83,7 @@ function RequestItemsModal({
   items: GeneralItem[];
 }) {
   const [formData, setFormData] = useState<RequestData[]>(
-    items.map(() => ({ priority: null, quantity: 0, comments: "" })),
+    items.map(() => ({ priority: null, quantity: 0, comments: "" }))
   );
   const updateItemAtIndex = (index: number, updates: object) => {
     setFormData((formData) => {
@@ -106,7 +109,7 @@ function RequestItemsModal({
       const resp = await fetch("/api/unallocatedItemRequest", {
         method: "POST",
         body: JSON.stringify(
-          items.map((item, i) => ({ generalItem: item, ...formData[i] })),
+          items.map((item, i) => ({ generalItem: item, ...formData[i] }))
         ),
       });
 
@@ -229,7 +232,7 @@ export default function UnallocatedItems() {
 
   useEffect(() => {
     setSelectedItems((prev) =>
-      prev.filter((item) => filteredItems.includes(item)),
+      prev.filter((item) => filteredItems.includes(item))
     );
   }, [activeTab, filteredItems]);
 

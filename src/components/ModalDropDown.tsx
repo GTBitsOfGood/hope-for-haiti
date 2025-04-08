@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
 
 interface ModalDropDownOption {
+  fullLabel: ReactNode;
   label: string;
   value: string;
 }
@@ -12,16 +13,8 @@ interface ModalDropDownProps {
   name: string;
   placeholder?: string;
   options: ModalDropDownOption[];
+  defaultSelected?: { label: string; value: string };
   onSelect?: (value: string) => void;
-}
-
-export function StringToModalDropDownOption(
-  strs: string[]
-): ModalDropDownOption[] {
-  return strs.map((str) => ({
-    label: str,
-    value: str,
-  }));
 }
 
 export default function ModalDropDown({
@@ -30,18 +23,23 @@ export default function ModalDropDown({
   name,
   placeholder = "Select an option",
   options,
+  defaultSelected,
   onSelect,
 }: ModalDropDownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedOptionValue, setSelectedOptionValue] = useState("");
-  const [selectedOptionLabel, setSelectedOptionLabel] = useState("");
+  const [selectedOptionValue, setSelectedOptionValue] = useState(
+    defaultSelected?.value ?? ""
+  );
+  const [selectedOptionLabel, setSelectedOptionLabel] = useState(
+    defaultSelected?.label ?? ""
+  );
   const dropdownRef = useRef<HTMLDivElement>(null); // Attach ref to the root <div>
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
   };
 
-  const handleSelect = (option: ModalDropDownOption) => {
+  const handleSelect = (option: { label: string; value: string }) => {
     setSelectedOptionValue(option.value);
     setSelectedOptionLabel(option.label);
     setIsOpen(false); // Close the dropdown after selecting an option
@@ -97,7 +95,7 @@ export default function ModalDropDown({
                   handleSelect({ label: option.label, value: option.value })
                 }
               >
-                {option.label}
+                {option.fullLabel}
               </li>
             ))}
           </ul>

@@ -4,7 +4,7 @@ import { authenticationError, authorizationError, ok } from "@/util/responses";
 import { RequestPriority, UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
-interface GeneralItem {
+export interface GeneralItem {
   title: string;
   type: string;
   expirationDate: string;
