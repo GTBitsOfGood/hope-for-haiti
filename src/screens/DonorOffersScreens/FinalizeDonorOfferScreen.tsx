@@ -370,7 +370,7 @@ export default function FinalizeDonorOfferScreen() {
 
       {errors && errors.length > 0 && <ErrorDisplay errors={errors} />}
 
-      {preview && <PreviewTable data={data} />}
+      {preview && <PreviewTable final={true} data={data} />}
 
       <div className="flex justify-end mt-4">
         <button

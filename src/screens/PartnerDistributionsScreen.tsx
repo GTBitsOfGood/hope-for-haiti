@@ -66,7 +66,7 @@ export default function PartnerUnallocatedItemsScreen() {
           <ExclamationMark weight="fill" size="48" />
           <div className="ml-5">
             For any questions, comments, concerns about your distribution please
-            contact (hope for haiti email)
+            contact yvette@hopeforhaiti.com.
           </div>
         </div>
       </div>

@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import FileUpload from "@/components/FileUpload";
 import { DonorOfferState } from "@prisma/client";
-import { 
-  FileInfoDisplay, 
-  ErrorDisplay, 
-  PreviewTable, 
-  DonorOfferItem, 
-  PartnerSearch, 
+import {
+  FileInfoDisplay,
+  ErrorDisplay,
+  PreviewTable,
+  DonorOfferItem,
+  PartnerSearch,
   Partner,
   DonorOfferSuccessModal,
-  DonorOfferErrorModal
+  DonorOfferErrorModal,
 } from "@/components/DonorOffers";
 import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 import { useSession } from "next-auth/react";
@@ -18,10 +18,10 @@ import { useRouter } from "next/navigation";
 export default function CreateDonorOfferScreen() {
   const { data: session } = useSession();
   const router = useRouter();
-  
+
   // Add file input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // File upload state
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState(0);
@@ -29,7 +29,7 @@ export default function CreateDonorOfferScreen() {
   const [fileUploaded, setFileUploaded] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File>();
-  
+
   // Donor offer form state
   const [offerName, setOfferName] = useState("");
   const [donorName, setDonorName] = useState("");
@@ -37,7 +37,7 @@ export default function CreateDonorOfferScreen() {
   const [donorRequestDeadline, setDonorRequestDeadline] = useState("");
   // State is automatically set to UNFINALIZED
   const [selectedPartners, setSelectedPartners] = useState<Partner[]>([]);
-  
+
   // Data and UI state
   const [data, setData] = useState<DonorOfferItem[]>([]);
   const [preview, setPreview] = useState(false);
@@ -45,14 +45,14 @@ export default function CreateDonorOfferScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false);
-  
+
   // Redirect partners to donor offers page
   useEffect(() => {
     if (session?.user?.type === "PARTNER") {
       router.replace("/donorOffers");
     }
   }, [session, router]);
-  
+
   // If user is a partner, don't render the create screen
   if (session?.user?.type === "PARTNER") {
     return null;
@@ -61,17 +61,24 @@ export default function CreateDonorOfferScreen() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Validate form fields before processing the file
-    if (!offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline) {
-      setErrors(["Please fill out all required fields (Offer Name, Donor Name, Partner Request Deadline, Donor Request Deadline) before uploading a file."]);
+    if (
+      !offerName ||
+      !donorName ||
+      !partnerRequestDeadline ||
+      !donorRequestDeadline
+    ) {
+      setErrors([
+        "Please fill out all required fields (Offer Name, Donor Name, Partner Request Deadline, Donor Request Deadline) before uploading a file.",
+      ]);
       // Reset file input when validation fails
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
       return;
     }
-    
+
     setUploadedFile(file);
     setFileLoading(true);
     setFileName(file.name);
@@ -87,9 +94,9 @@ export default function CreateDonorOfferScreen() {
       formData.append("partnerRequestDeadline", partnerRequestDeadline);
       formData.append("donorRequestDeadline", donorRequestDeadline);
       formData.append("state", DonorOfferState.UNFINALIZED);
-      
+
       // Add partner IDs to form data
-      selectedPartners.forEach(partner => {
+      selectedPartners.forEach((partner) => {
         formData.append("partnerIds", partner.id.toString());
       });
 
@@ -117,13 +124,15 @@ export default function CreateDonorOfferScreen() {
       console.error("File processing error:", error);
       setFileError(true);
       setFileLoading(false);
-      setErrors(["An error occurred while processing the file. Please try again."]);
+      setErrors([
+        "An error occurred while processing the file. Please try again.",
+      ]);
     }
   };
 
   const showPreview = () => {
     if (!fileUploaded || fileError) return;
-    
+
     setPreview(true);
   };
 
@@ -136,12 +145,12 @@ export default function CreateDonorOfferScreen() {
     setFileSize(0);
     setFileLoading(false);
     setUploadedFile(undefined);
-    
+
     // Reset UI states
     setIsSuccess(false);
     setIsError(false);
     setErrors([]);
-    
+
     // Reset file input value
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -151,7 +160,7 @@ export default function CreateDonorOfferScreen() {
   const handleSubmit = async () => {
     if (!uploadedFile) return;
     setIsLoading(true);
-    
+
     try {
       const formData = new FormData();
       formData.append("file", uploadedFile);
@@ -160,9 +169,9 @@ export default function CreateDonorOfferScreen() {
       formData.append("partnerRequestDeadline", partnerRequestDeadline);
       formData.append("donorRequestDeadline", donorRequestDeadline);
       formData.append("state", DonorOfferState.UNFINALIZED);
-      
+
       // Add partner IDs to form data
-      selectedPartners.forEach(partner => {
+      selectedPartners.forEach((partner) => {
         formData.append("partnerIds", partner.id.toString());
       });
 
@@ -183,7 +192,9 @@ export default function CreateDonorOfferScreen() {
     } catch (error) {
       setIsLoading(false);
       console.error("Error creating donor offer:", error);
-      setErrors(["An error occurred while creating the donor offer. Please try again."]);
+      setErrors([
+        "An error occurred while creating the donor offer. Please try again.",
+      ]);
     }
   };
 
@@ -220,18 +231,6 @@ export default function CreateDonorOfferScreen() {
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Partner Request Deadline<span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={partnerRequestDeadline}
-            onChange={(e) => setPartnerRequestDeadline(e.target.value)}
-            className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-light text-black mb-1">
             Donor Request Deadline<span className="text-red-500">*</span>
           </label>
           <input
@@ -243,7 +242,19 @@ export default function CreateDonorOfferScreen() {
           />
         </div>
         <div>
-          <PartnerSearch 
+          <label className="block text-sm font-light text-black mb-1">
+            Partner Request Deadline<span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={partnerRequestDeadline}
+            onChange={(e) => setPartnerRequestDeadline(e.target.value)}
+            className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
+            required
+          />
+        </div>
+        <div>
+          <PartnerSearch
             selectedPartners={selectedPartners}
             onPartnersChange={setSelectedPartners}
           />
@@ -262,7 +273,7 @@ export default function CreateDonorOfferScreen() {
       )}
 
       <h2 className="mt-6 mb-1 font-light text-sm">Uploaded</h2>
-      <FileInfoDisplay 
+      <FileInfoDisplay
         fileName={fileName}
         fileSize={fileSize}
         fileError={fileError}
@@ -270,9 +281,9 @@ export default function CreateDonorOfferScreen() {
       />
 
       {errors && errors.length > 0 && <ErrorDisplay errors={errors} />}
-      
-      {preview && <PreviewTable data={data} />}
-      
+
+      {preview && <PreviewTable final={false} data={data} />}
+
       <div className="flex justify-end mt-4">
         <button
           onClick={resetUpload}
@@ -289,10 +300,22 @@ export default function CreateDonorOfferScreen() {
           </button>
         ) : (
           <button
-            disabled={!fileUploaded || fileError || !offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline}
+            disabled={
+              !fileUploaded ||
+              fileError ||
+              !offerName ||
+              !donorName ||
+              !partnerRequestDeadline ||
+              !donorRequestDeadline
+            }
             onClick={showPreview}
             className={
-              fileUploaded && !fileError && offerName && donorName && partnerRequestDeadline && donorRequestDeadline
+              fileUploaded &&
+              !fileError &&
+              offerName &&
+              donorName &&
+              partnerRequestDeadline &&
+              donorRequestDeadline
                 ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
                 : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
             }
@@ -301,17 +324,13 @@ export default function CreateDonorOfferScreen() {
           </button>
         )}
       </div>
-      
-      {isLoading && (
-        <BulkAddLoadingModal />
-      )}
-      
-      {isSuccess && (
-        <DonorOfferSuccessModal />
-      )}
-      
+
+      {isLoading && <BulkAddLoadingModal />}
+
+      {isSuccess && <DonorOfferSuccessModal />}
+
       {isError && (
-        <DonorOfferErrorModal 
+        <DonorOfferErrorModal
           setErrorOpen={setIsError}
           resetUpload={resetUpload}
           errors={errors}

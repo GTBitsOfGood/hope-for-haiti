@@ -21,7 +21,7 @@ const requiredKeys = [
   "title",
   "type",
   "quantity",
-  "expiration",
+  "expirationDate",
   "unitType",
   "quantityPerUnit",
 ];
@@ -37,14 +37,17 @@ const DonorOfferItemSchema = z.object({
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  expiration: z
+  expirationDate: z
     .union([
       z.coerce.date(),
       z.string().transform((val) => (val.trim() === "" ? undefined : val)),
     ])
     .optional(),
   unitType: z.string(),
-  quantityPerUnit: z.number(),
+  quantityPerUnit: z
+    .string()
+    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
+    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
 });
 
 // Schema for the donor offer itself
@@ -105,6 +108,7 @@ export async function POST(request: NextRequest) {
   }
 
   let jsonData: unknown[] = [];
+  const validDonorOfferItems: (typeof DonorOfferItemSchema._type)[] = [];
 
   try {
     if (fileExt === "xlsx") {
@@ -135,7 +139,6 @@ export async function POST(request: NextRequest) {
     }
 
     const errors: string[] = [];
-    const validDonorOfferItems: (typeof DonorOfferItemSchema._type)[] = [];
 
     jsonData.forEach((row, index) => {
       const parsed = DonorOfferItemSchema.safeParse(row);
@@ -157,38 +160,43 @@ export async function POST(request: NextRequest) {
     if (errors.length > 0) {
       return NextResponse.json({ errors }, { status: 400 });
     }
+  } catch (error) {
+    console.error(error);
+    return argumentError("Error processing file");
+  }
 
-    // Validate donor offer details
-    const donorOfferData = {
-      offerName,
-      donorName,
-      partnerResponseDeadline: new Date(partnerRequestDeadline),
-      donorResponseDeadline: new Date(donorRequestDeadline),
-      state,
-    };
+  // Validate donor offer details
+  const donorOfferData = {
+    offerName,
+    donorName,
+    partnerResponseDeadline: new Date(partnerRequestDeadline),
+    donorResponseDeadline: new Date(donorRequestDeadline),
+    state,
+  };
 
-    const donorOfferValidation = DonorOfferSchema.safeParse(donorOfferData);
-    if (!donorOfferValidation.success) {
-      const errorMessages = donorOfferValidation.error.issues
-        .map((issue) => {
-          const field = issue.path.join(".");
-          return `Field '${field}': ${issue.message}`;
-        })
-        .join("; ");
-      return NextResponse.json(
-        { errors: [`Error validating donor offer: ${errorMessages}`] },
-        { status: 400 }
-      );
-    }
+  const donorOfferValidation = DonorOfferSchema.safeParse(donorOfferData);
+  if (!donorOfferValidation.success) {
+    const errorMessages = donorOfferValidation.error.issues
+      .map((issue) => {
+        const field = issue.path.join(".");
+        return `Field '${field}': ${issue.message}`;
+      })
+      .join("; ");
+    return NextResponse.json(
+      { errors: [`Error validating donor offer: ${errorMessages}`] },
+      { status: 400 }
+    );
+  }
 
-    if (preview) {
-      return NextResponse.json({
-        donorOfferItems: validDonorOfferItems.slice(0, 8),
-      });
-    }
+  if (preview) {
+    return NextResponse.json({
+      donorOfferItems: validDonorOfferItems.slice(0, 8),
+    });
+  }
 
+  await db.$transaction(async (tx) => {
     // Create the donor offer first
-    const donorOffer = await db.donorOffer.create({
+    const donorOffer = await tx.donorOffer.create({
       data: donorOfferData,
     });
 
@@ -196,15 +204,14 @@ export async function POST(request: NextRequest) {
     const itemsWithDonorOfferId = validDonorOfferItems.map((item) => ({
       ...item,
       donorOfferId: donorOffer.id,
-      unitSize: 1, // Default unit size
     }));
 
-    await db.donorOfferItem.createMany({ data: itemsWithDonorOfferId });
+    await tx.donorOfferItem.createMany({ data: itemsWithDonorOfferId });
 
     // Create partner visibility relationships if partner IDs are provided
     if (partnerIds.length > 0) {
       // Validate that all partner IDs exist
-      const partners = await db.user.findMany({
+      const partners = await tx.user.findMany({
         where: {
           id: {
             in: partnerIds,
@@ -221,21 +228,16 @@ export async function POST(request: NextRequest) {
       }
 
       // Create the partner visibility relationships
-      await db.donorOfferPartnerVisibility.createMany({
+      await tx.donorOfferPartnerVisibility.createMany({
         data: partnerIds.map((partnerId) => ({
           donorOfferId: donorOffer.id,
           partnerId: partnerId,
         })),
       });
     }
+  });
 
-    return NextResponse.json({
-      success: true,
-      donorOfferId: donorOffer.id,
-      createdCount: validDonorOfferItems.length,
-    });
-  } catch (error) {
-    console.error(error);
-    return argumentError("Error processing file");
-  }
+  return NextResponse.json({
+    success: true,
+  });
 }

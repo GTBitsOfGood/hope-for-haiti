@@ -9,32 +9,7 @@ import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
 import { formatTableValue } from "@/utils/format";
-
-interface StatusTagProps {
-  value: boolean;
-  trueText: string;
-  falseText: string;
-  grayWhenFalse?: boolean;
-}
-
-const StatusTag = ({
-  value,
-  trueText,
-  falseText,
-  grayWhenFalse = false,
-}: StatusTagProps) => (
-  <span
-    className={`inline-block px-2 py-1 rounded-md text-sm ${
-      value
-        ? "bg-green-50 text-green-700"
-        : grayWhenFalse
-          ? "bg-gray-100 text-gray-700"
-          : "bg-red-50 text-red-700"
-    }`}
-  >
-    {value ? trueText : falseText}
-  </span>
-);
+import StatusTag from "@/components/StatusTag";
 
 export default function DonorOfferLineItemsScreen() {
   const { donorOfferId, itemId } = useParams();

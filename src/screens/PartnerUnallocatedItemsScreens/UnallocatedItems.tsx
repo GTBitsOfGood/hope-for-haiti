@@ -8,6 +8,7 @@ import ModalDropDown from "@/components/ModalDropDown";
 import { RequestPriority } from "@prisma/client";
 import ModalTextField from "@/components/ModalTextField";
 import toast from "react-hot-toast";
+import { formatTableValue } from "@/utils/format";
 
 const priorityOptions = [
   {
@@ -77,7 +78,7 @@ function RequestItemsModal({
   items: GeneralItem[];
 }) {
   const [formData, setFormData] = useState<RequestData[]>(
-    items.map(() => ({ priority: null, quantity: 0, comments: "" }))
+    items.map(() => ({ priority: null, quantity: 0, comments: "" })),
   );
   const updateItemAtIndex = (index: number, updates: object) => {
     setFormData((formData) => {
@@ -103,7 +104,7 @@ function RequestItemsModal({
       const resp = await fetch("/api/unallocatedItemRequest", {
         method: "POST",
         body: JSON.stringify(
-          items.map((item, i) => ({ generalItem: item, ...formData[i] }))
+          items.map((item, i) => ({ generalItem: item, ...formData[i] })),
         ),
       });
 
@@ -199,7 +200,7 @@ function RequestItemsModal({
             onClick={handleSubmit}
             className="block grow bg-red-500 text-center text-white py-1 px-4 rounded font-medium hover:bg-red-600 transition"
           >
-            Add item
+            Request items
           </button>
         </div>
       </div>
@@ -224,7 +225,7 @@ export default function UnallocatedItems() {
 
   useEffect(() => {
     setSelectedItems((prev) =>
-      prev.filter((item) => filteredItems.includes(item))
+      prev.filter((item) => filteredItems.includes(item)),
     );
   }, [activeTab, filteredItems]);
 
@@ -297,7 +298,7 @@ export default function UnallocatedItems() {
         <div className="overflow-x-scroll">
           <table className="mt-4 rounded-t-lg overflow-hidden table-fixed w-full">
             <thead>
-              <tr className="bg-gray-primary bg-opacity-5 text-gray-primary text-opacity-70 border-b-2 break-words">
+              <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
                 <th className="px-4 py-2 w-[48px]"></th>
                 <th className="px-4 py-2 text-left font-bold">Title</th>
                 <th className="px-4 py-2 text-left font-bold">Type</th>
@@ -330,14 +331,24 @@ export default function UnallocatedItems() {
                         }}
                       />
                     </td>
-                    <td className="px-4 py-2">{item.title}</td>
-                    <td className="px-4 py-2">{item.type}</td>
-                    <td className="px-4 py-2">{item.quantity}</td>
                     <td className="px-4 py-2">
-                      {item.expirationDate || "N/A"}
+                      {formatTableValue(item.title)}
                     </td>
-                    <td className="px-4 py-2">{item.unitType}</td>
-                    <td className="px-4 py-2">{item.quantityPerUnit}</td>
+                    <td className="px-4 py-2">{formatTableValue(item.type)}</td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.quantity)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {item.expirationDate
+                        ? new Date(item.expirationDate).toLocaleDateString()
+                        : "N/A"}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.unitType)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {formatTableValue(item.quantityPerUnit)}
+                    </td>
                     <td className="px-4 py-2">
                       {false ? ( // !! TODO: Make this conditional based on item requested status !!
                         <div className="px-2 py-0.5 inline-block rounded bg-amber-primary bg-opacity-20 text-gray-primary">

@@ -5,12 +5,10 @@ import {
   HandHeart,
   House,
   List,
-  ListHeart,
   Package,
   UserCircle,
   X,
   UserList,
-  MapTrifold,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -68,38 +66,24 @@ function NavLinks() {
         label="Unallocated Items"
         icon={<Cube size={22} />}
       />
-      {isStaff && (
-        <NavLink href="/map" label="Map" icon={<MapTrifold size={22} />} />
-      )}
+    
       <NavLink
         href="/donorOffers"
         label="Donor Offers"
         icon={<HandHeart size={22} />}
       />
-      <NavLink
+      {isStaff && (
+        <NavLink
         href="/distributions"
         label="Distributions"
-        icon={<HandHeart size={22} />}
+        icon={<Package size={22} />}
       />
+      )}
       {isPartner && (
         <NavLink
           href="/distributions"
           label="My Distributions"
           icon={<Package size={22} />}
-        />
-      )}
-      {isPartner && (
-        <NavLink
-          href="/wishlist"
-          label="My Wishlist"
-          icon={<ListHeart size={22} />}
-        />
-      )}
-      {isStaff && (
-        <NavLink
-          href="/wishlists"
-          label="Partner Wishlist"
-          icon={<ListHeart size={22} />}
         />
       )}
       <NavLink
@@ -113,12 +97,18 @@ function NavLinks() {
 }
 
 function DesktopNavbar() {
+  const { user } = useUser();
+  const isStaff =
+    user?.type === "STAFF" ||
+    user?.type === "ADMIN" ||
+    user?.type === "SUPER_ADMIN";
+
   return (
     <nav className="h-screen relative flex-0 bg-blue-light w-16 md:min-w-60 p-2 sm:flex flex-col items-center md:rounded-r-3xl hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.svg" alt="Hope for Haiti Logo" className="mt-6 mb-2" />
 
-      <h1 className="mt-2 font-bold hidden md:block">Partner Portal</h1>
+      <h1 className="mt-2 font-bold hidden md:block">{isStaff ? "Admin Portal" : "Partner Portal"}</h1>
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
 
