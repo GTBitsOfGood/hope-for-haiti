@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
 
 interface ModalDropDownOption {
-  fullLabel: ReactNode;
+  fullLabel?: ReactNode;
   label: string;
   value: string;
 }
@@ -95,7 +95,7 @@ export default function ModalDropDown({
                   handleSelect({ label: option.label, value: option.value })
                 }
               >
-                {option.fullLabel}
+                {option.fullLabel ?? option.label}
               </li>
             ))}
           </ul>
