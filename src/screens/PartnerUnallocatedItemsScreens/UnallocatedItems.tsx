@@ -273,7 +273,7 @@ export default function UnallocatedItems() {
             <Plus size={18} /> Filter
           </button>
           <button
-            className="flex items-center gap-2 border border-red-500 text-red-500 bg-white disabled:bg-gray-primary disabled:border-none disabled:opacity-10 disabled:text-white px-4 py-2 rounded-lg font-medium hover:opacity-15 transition"
+            className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition disabled:bg-gray-primary disabled:border-none disabled:opacity-10 disabled:text-white"
             disabled={selectedItems.length === 0}
             onClick={() => setRequestModalOpen(true)}
           >
