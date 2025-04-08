@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { authenticationError, authorizationError } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { DonorOfferState, UserType } from "@prisma/client";
+import { isAfter } from "date-fns";
 import { NextResponse } from "next/server";
 
 /**
@@ -37,13 +38,34 @@ async function getPartnerDonorOffers(partnerId: number) {
       },
     },
   });
-  const formattedDonorOffers = donorOffers.map((offer) => ({
-    donorOfferId: offer.id,
-    offerName: offer.offerName,
-    donorName: offer.donorName,
-    responseDeadline: offer.partnerResponseDeadline,
-    state: offer.state,
-  }));
+  const donorOfferItemRequests = await db.donorOfferItemRequest.findMany({
+    where: {
+      partnerId: partnerId,
+    },
+  });
+  const formattedDonorOffers = donorOffers.map((offer) => {
+    let state = null;
+
+    if (
+      offer.state === DonorOfferState.ARCHIVED ||
+      isAfter(new Date(), offer.partnerResponseDeadline)
+    ) {
+      state = DonorOfferState.ARCHIVED;
+    }
+
+    if (donorOfferItemRequests.length === 0) {
+      state = DonorOfferState.UNFINALIZED;
+    } else {
+      state = DonorOfferState.FINALIZED;
+    }
+    return {
+      donorOfferId: offer.id,
+      offerName: offer.offerName,
+      donorName: offer.donorName,
+      responseDeadline: offer.partnerResponseDeadline,
+      state: state,
+    };
+  });
 
   return NextResponse.json(formattedDonorOffers);
 }
