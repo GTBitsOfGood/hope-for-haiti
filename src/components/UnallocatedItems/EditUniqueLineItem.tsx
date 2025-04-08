@@ -8,13 +8,11 @@ import { X } from "@phosphor-icons/react";
 interface EditUniqueLineItemProps {
   isOpen: boolean;
   onClose: () => void;
-  item: any;
 }
 
 export default function EditUniqueLineItemModal({
   isOpen,
   onClose,
-  item,
 }: EditUniqueLineItemProps) {
   const [itemTitle, setItemTitle] = useState("");
   const [donorName, setDonorName] = useState("");
