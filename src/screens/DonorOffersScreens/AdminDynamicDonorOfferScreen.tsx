@@ -32,8 +32,7 @@ export default function AdminDynamicDonorOfferScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [donorOffer, setDonorOffer] = useState<DonorOffer>();
   const [editing, setEditing] = useState(false);
-
-  const firstEdit = items.some((item) => item.requestQuantity === null);
+  const [firstTime, setFirstTime] = useState(false);
 
   const setRequestQuantity = (index: number, value: number) =>
     setItems((prev) => {
@@ -64,6 +63,7 @@ export default function AdminDynamicDonorOfferScreen() {
           )
         ) {
           setEditing(true);
+          setFirstTime(true);
         } else {
           setEditing(false);
         }
@@ -153,7 +153,7 @@ export default function AdminDynamicDonorOfferScreen() {
                   </button>
                   {editing ? (
                     <>
-                      {!firstEdit && (
+                      {!firstTime && (
                         <button
                           className="flex items-center gap-2 border border-red-500 text-red-600 bg-red-500 bg-opacity-25 px-4 py-1 rounded-md font-medium hover:bg-opacity-35 transition"
                           onClick={() => setEditing(false)}

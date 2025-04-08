@@ -36,10 +36,10 @@ export async function PUT(
 
   await db.$transaction(async (tx) => {
     await Promise.all(
-      data.requests.map((itemRequest) =>
-        tx.donorOfferItem.update({
-          where: {
-            donorOfferId_title_type_expirationDate_unitType_quantityPerUnit: {
+      data.requests.map((itemRequest) => {
+        tx.donorOfferItem
+          .findFirst({
+            where: {
               donorOfferId: donorOfferId,
               title: itemRequest.title,
               type: itemRequest.type,
@@ -47,12 +47,21 @@ export async function PUT(
               unitType: itemRequest.unitType,
               quantityPerUnit: itemRequest.quantityPerUnit || 0,
             },
-          },
-          data: {
-            requestQuantity: itemRequest.quantity,
-          },
-        })
-      )
+          })
+          .then((donorOfferItem) => {
+            if (!donorOfferItem)
+              throw "Couldn't find matching donor offer item";
+
+            tx.donorOfferItem.update({
+              where: {
+                id: donorOfferItem.id,
+              },
+              data: {
+                requestQuantity: itemRequest.quantity,
+              },
+            });
+          });
+      })
     );
   });
 
