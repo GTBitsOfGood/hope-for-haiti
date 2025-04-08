@@ -9,7 +9,7 @@ import {
 } from "@/util/responses";
 import { parseDateIfDefined } from "@/util/util";
 import { RequestPriority, UserType } from "@prisma/client";
-import { format } from "date-fns";
+import { isEqual } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
@@ -54,6 +54,29 @@ export async function GET(request: NextRequest) {
   const scopeVisibility =
     session.user.type === UserType.PARTNER ? { visible: true } : {};
 
+  // Get Unique Set of Unallocated Items. Can optimize by running only on items found
+  const uniqueUnallocatedItemRequest = await db.unallocatedItemRequest.findMany(
+    {
+      distinct: [
+        "title",
+        "type",
+        "expirationDate",
+        "unitType",
+        "quantityPerUnit",
+      ],
+      select: {
+        title: true,
+        type: true,
+        expirationDate: true,
+        unitType: true,
+        quantityPerUnit: true,
+      },
+      where: {
+        partnerId: parseInt(session.user.id),
+      },
+    }
+  );
+
   // Get all unclaimed items that expire after expirationDateAfter and before expirationDateBefore
   const tableItems = (
     await db.item.groupBy({
@@ -79,8 +102,23 @@ export async function GET(request: NextRequest) {
       },
     })
   ).map((item) => {
+    const requestedItem = uniqueUnallocatedItemRequest.find(
+      (unallocatedItem) => {
+        return (
+          item.title === unallocatedItem.title &&
+          item.type === unallocatedItem.type &&
+          isEqual(
+            item.expirationDate ?? "",
+            unallocatedItem.expirationDate ?? ""
+          ) &&
+          item.unitType === unallocatedItem.unitType &&
+          item.quantityPerUnit === unallocatedItem.quantityPerUnit
+        );
+      }
+    );
     const copy = {
       ...item,
+      requested: requestedItem !== undefined,
       quantity: item._sum.quantity,
       expirationDate: item.expirationDate?.toISOString(),
       _sum: undefined,
@@ -89,21 +127,41 @@ export async function GET(request: NextRequest) {
     return copy;
   });
 
-  const unitTypesSet = new Set<string>();
-  const donorNamesSet = new Set<string>();
-  const itemTypesSet = new Set<string>();
-  const items = await db.item.findMany();
-  items.forEach((item) => {
-    if (item.unitType) unitTypesSet.add(item.unitType);
-    donorNamesSet.add(item.donorName);
-    itemTypesSet.add(item.type);
+  const donorNames = await db.item.findMany({
+    distinct: "donorName",
+    select: {
+      donorName: true,
+    },
+    orderBy: {
+      donorName: "asc",
+    },
+  });
+
+  const unitTypes = await db.item.findMany({
+    distinct: "unitType",
+    select: {
+      unitType: true,
+    },
+    orderBy: {
+      unitType: "asc",
+    },
+  });
+
+  const itemTypes = await db.item.findMany({
+    distinct: "type",
+    select: {
+      type: true,
+    },
+    orderBy: {
+      type: "asc",
+    },
   });
 
   return NextResponse.json({
     items: tableItems,
-    unitTypes: Array.from(unitTypesSet).sort(),
-    donorNames: Array.from(donorNamesSet).sort(),
-    itemTypes: Array.from(itemTypesSet).sort(),
+    unitTypes: unitTypes.map((item) => item.unitType),
+    donorNames: donorNames.map((item) => item.donorName),
+    itemTypes: itemTypes.map((item) => item.type),
   });
 }
 
