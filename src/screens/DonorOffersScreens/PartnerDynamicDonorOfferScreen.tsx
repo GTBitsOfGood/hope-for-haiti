@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, ChangeEvent } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -21,25 +21,6 @@ import { formatTableValue } from "@/utils/format";
  * There is a bug where after redirection, the home page icon disappears.
  * Bug where after reidrection, error is shown twice
  */
-
-// Main component --------------------------------------------------------------
-interface EditableRequest extends Omit<DonorOfferItemsRequestsDTO, "priority"> {
-  priority?: RequestPriority | null;
-  localId: number;
-}
-
-function parsePriority(value: string): RequestPriority | undefined {
-  switch (value) {
-    case "LOW":
-      return RequestPriority.LOW;
-    case "MEDIUM":
-      return RequestPriority.MEDIUM;
-    case "HIGH":
-      return RequestPriority.HIGH;
-    default:
-      return undefined;
-  }
-}
 
 function getPriorityColor(value: RequestPriority | ""): string {
   switch (value) {
@@ -65,7 +46,7 @@ export default function PartnerDynamicDonorOfferScreen() {
 
   // Main data states
   const [donorOfferName, setDonorOfferName] = useState("");
-  const [editedRequests, setEditedRequests] = useState<EditableRequest[]>([]);
+  const [items, setItems] = useState<DonorOfferItemsRequestsDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -93,14 +74,9 @@ export default function PartnerDynamicDonorOfferScreen() {
         }
         const data = (await res.json()) as DonorOfferItemsRequestsResponse;
         setDonorOfferName(data.donorOfferName);
-        const items = data.donorOfferItemsRequests ?? [];
-        const withIds: EditableRequest[] = items.map((row, index) => ({
-          ...row,
-          priority: row.priority ?? null,
-          localId: index,
-        }));
-        setEditedRequests(withIds);
-        if (withIds.length === 0) {
+        const items = data.donorOfferItemsRequests;
+        setItems(items);
+        if (items.some((item) => item.requestId === null)) {
           setIsEditing(true);
         }
       } catch (error) {
@@ -114,66 +90,31 @@ export default function PartnerDynamicDonorOfferScreen() {
     return () => clearTimeout(timer);
   }, [donorOfferId, router]);
 
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    localId: number
-  ) => {
-    const { name, value } = e.target;
-    setEditedRequests((prev) =>
-      prev.map((row) => {
-        if (row.localId === localId) {
-          if (name === "quantityRequested") {
-            return {
-              ...row,
-              quantityRequested: value === "" ? 0 : parseInt(value, 10),
-            };
-          }
-          if (name === "priority") {
-            return {
-              ...row,
-              priority: parsePriority(value) ?? null,
-            };
-          }
-        }
-        return row;
-      })
-    );
-  };
+  const updateItem = (
+    index: number,
+    changes: Partial<DonorOfferItemsRequestsDTO>
+  ) =>
+    setItems((prev) => {
+      const newVal = [...prev];
+      newVal[index] = { ...newVal[index], ...changes };
+
+      return newVal;
+    });
 
   const handleSubmitAll = async () => {
-    const rowsToSave = editedRequests.filter(
-      (r) =>
-        r.quantityRequested > 0 ||
-        r.priority != null ||
-        (r.comments && r.comments.trim() !== "")
-    );
-    for (const r of rowsToSave) {
-      const hasQty = r.quantityRequested > 0;
-      const hasPrio = r.priority != null;
-      if ((hasQty && !hasPrio) || (!hasQty && hasPrio)) {
-        toast.error(
-          "Both quantity and priority must be filled in for each updated row."
-        );
-        return;
-      }
-    }
-    const finalRequests: DonorOfferItemsRequestsDTO[] = rowsToSave.map((r) => ({
-      requestId: r.requestId,
-      donorOfferItemId: r.donorOfferItemId,
-      title: r.title,
-      type: r.type,
-      expiration: r.expiration,
-      quantity: r.quantity,
-      unitSize: r.unitSize,
-      quantityRequested: r.quantityRequested,
-      comments: r.comments,
-      priority: r.priority,
-    }));
+    if (
+      items.some(
+        (item) =>
+          (item.quantityRequested || 0) > 0 && (item.priority || "") === ""
+      )
+    )
+      return toast.error("Must set priority if requesting an item");
+
     try {
       const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requests: finalRequests }),
+        body: JSON.stringify({ requests: items }),
       });
       if (!res.ok) {
         toast.error("Error updating donor offer items.");
@@ -187,8 +128,8 @@ export default function PartnerDynamicDonorOfferScreen() {
     }
   };
 
-  const handleCommentClick = (localId: number) => {
-    const row = editedRequests.find((r) => r.localId === localId);
+  const handleCommentClick = (index: number) => {
+    const row = items[index];
     if (!row) return;
     setSelectedRequestId(row.requestId ?? null);
     setSelectedDonorOfferItemId(row.donorOfferItemId);
@@ -202,7 +143,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       setIsModalOpen(false);
       return;
     }
-    const row = editedRequests.find((r) => r.requestId === selectedRequestId);
+    const row = items.find((r) => r.requestId === selectedRequestId);
     if (!row) {
       setIsModalOpen(false);
       return;
@@ -229,7 +170,7 @@ export default function PartnerDynamicDonorOfferScreen() {
         toast.error("Error updating comment.");
         return;
       }
-      setEditedRequests((prev) =>
+      setItems((prev) =>
         prev.map((r) =>
           r.requestId === selectedRequestId
             ? { ...r, comments: modalComment }
@@ -333,11 +274,8 @@ export default function PartnerDynamicDonorOfferScreen() {
               </tr>
             </thead>
             <tbody className="[&>tr]:border-b [&>tr]:border-[rgba(34,7,11,0.1)] [&>tr:last-child]:border-0 [&>tr:nth-child(odd)]:bg-[rgba(34,7,11,0.025)] [&>tr:nth-child(even)]:bg-white">
-              {editedRequests.map((row, index) => (
-                <tr
-                  key={`${row.localId}-${row.donorOfferItemId}-${row.requestId}-${index}`}
-                  className="text-[16px]"
-                >
+              {items.map((row, index) => (
+                <tr key={row.donorOfferItemId} className="text-[16px]">
                   <td className="px-4 py-3">{formatTableValue(row.title)}</td>
                   <td className="px-4 py-3">{formatTableValue(row.type)}</td>
                   <td className="px-4 py-3">
@@ -353,8 +291,13 @@ export default function PartnerDynamicDonorOfferScreen() {
                       <input
                         type="number"
                         name="quantityRequested"
-                        value={row.quantityRequested || ""}
-                        onChange={(e) => handleInputChange(e, row.localId)}
+                        min={0}
+                        value={row.quantityRequested || 0}
+                        onChange={(e) =>
+                          updateItem(index, {
+                            quantityRequested: parseInt(e.currentTarget.value),
+                          })
+                        }
                         className="w-[60px] bg-[rgba(249,249,249)] border-2 border-[rgba(34,7,11,0.1)] rounded-[4px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[rgba(34,7,11,0.1)]"
                       />
                     ) : (
@@ -366,7 +309,11 @@ export default function PartnerDynamicDonorOfferScreen() {
                       <select
                         name="priority"
                         value={row.priority ?? ""}
-                        onChange={(e) => handleInputChange(e, row.localId)}
+                        onChange={(e) =>
+                          updateItem(index, {
+                            priority: e.currentTarget.value as RequestPriority,
+                          })
+                        }
                         className="appearance-none -webkit-appearance-none text-[16px] text-[#22070B] border-2 border-[rgba(34,7,11,0.1)] rounded-[4px] px-2 py-1 w-auto focus:outline-none focus:ring-1 focus:ring-[rgba(34,7,11,0.1)]"
                         style={{
                           backgroundColor: getPriorityColor(row.priority ?? ""),
@@ -392,7 +339,7 @@ export default function PartnerDynamicDonorOfferScreen() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => handleCommentClick(row.localId)}>
+                    <button onClick={() => handleCommentClick(index)}>
                       <img
                         src="/assets/chat_sign.svg"
                         alt="Comment"

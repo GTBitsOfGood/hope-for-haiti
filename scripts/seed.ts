@@ -262,14 +262,14 @@ async function run() {
               create: sample(randInt(2, 4), generalItems).map((item) => ({
                 ...item,
                 quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: Array.from({ length: 4 }, () => ({
-                    partnerId: pick(partners).id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(Object.keys(RequestPriority)),
-                  })),
-                },
+                // requests: {
+                //   create: Array.from({ length: 4 }, () => ({
+                //     partnerId: pick(partners).id,
+                //     quantity: randInt(1, 8),
+                //     comments: "pls give me this",
+                //     priority: pick(Object.keys(RequestPriority)),
+                //   })),
+                // },
               })),
             },
             partnerVisibilities: {
@@ -288,14 +288,14 @@ async function run() {
               create: sample(randInt(2, 4), generalItems).map((item) => ({
                 ...item,
                 quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: Array.from({ length: 4 }, () => ({
-                    partnerId: pick(partners).id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(Object.keys(RequestPriority)),
-                  })),
-                },
+                // requests: {
+                //   create: Array.from({ length: 4 }, () => ({
+                //     partnerId: pick(partners).id,
+                //     quantity: randInt(1, 8),
+                //     comments: "pls give me this",
+                //     priority: pick(Object.keys(RequestPriority)),
+                //   })),
+                // },
               })),
             },
             partnerVisibilities: {
@@ -314,14 +314,14 @@ async function run() {
               create: sample(randInt(2, 4), generalItems).map((item) => ({
                 ...item,
                 quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: Array.from({ length: 4 }, () => ({
-                    partnerId: pick(partners).id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(Object.keys(RequestPriority)),
-                  })),
-                },
+                // requests: {
+                //   create: Array.from({ length: 4 }, () => ({
+                //     partnerId: pick(partners).id,
+                //     quantity: randInt(1, 8),
+                //     comments: "pls give me this",
+                //     priority: pick(Object.keys(RequestPriority)),
+                //   })),
+                // },
               })),
             },
             partnerVisibilities: {
@@ -340,14 +340,14 @@ async function run() {
               create: sample(randInt(2, 4), generalItems).map((item) => ({
                 ...item,
                 quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: Array.from({ length: 4 }, () => ({
-                    partnerId: pick(partners).id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(Object.keys(RequestPriority)),
-                  })),
-                },
+                // requests: {
+                //   create: Array.from({ length: 4 }, () => ({
+                //     partnerId: pick(partners).id,
+                //     quantity: randInt(1, 8),
+                //     comments: "pls give me this",
+                //     priority: pick(Object.keys(RequestPriority)),
+                //   })),
+                // },
               })),
             },
             partnerVisibilities: {

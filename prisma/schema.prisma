@@ -185,11 +185,13 @@ model DonorOfferItemRequest {
   partner   User @relation(fields: [partnerId], references: [id])
 
   quantity                        Int
-  comments                        String
-  priority                        RequestPriority
+  comments                        String?
+  priority                        RequestPriority?
   DonorOfferItemRequestAllocation DonorOfferItemRequestAllocation[]
 
   createdAt DateTime @default(now())
+
+  @@unique([donorOfferItemId, partnerId])
 }
 
 model DonorOfferPartnerVisibility {

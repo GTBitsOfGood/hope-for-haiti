@@ -12,17 +12,17 @@ export interface DonorOfferItemDTO {
 }
 
 export interface DonorOfferItemsRequestsDTO {
-    requestId: number;
-    donorOfferItemId: number;
-    title: string;
-    type: string;
-    expiration?: string | null;
-    quantity: number;
-    unitSize: number;
-    quantityRequested: number;
-    comments: string;
-    priority?: RequestPriority | null;
-  }  
+  requestId: number | null;
+  donorOfferItemId: number;
+  title: string;
+  type: string;
+  expiration?: string | null;
+  quantity: number;
+  unitSize: number;
+  quantityRequested: number;
+  comments: string;
+  priority?: RequestPriority | null;
+}
 
 //The name is sent back to help display the donor name in the UI.
 export interface DonorOfferItemsRequestsResponse {

@@ -50,7 +50,7 @@ export default function PartnerDonorOffersScreen() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Donor Offers (Partner View)</h1>
+      <h1 className="text-2xl font-semibold">Donor Offers</h1>
 
       {/* search bar */}
       <div className="flex items-center w-full py-4 mt-3 relative">
