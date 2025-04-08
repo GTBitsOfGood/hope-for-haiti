@@ -24,7 +24,10 @@ const ALLOWED_USER_TYPES: UserType[] = [
  * @returns 400 if expirationDateAfter or expirationDateBefore are invalid ISO-8601 timestamps
  * @returns 200 and a json response with the unallocated items
  */
-export async function GET() {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ partnerId: string }> }
+) {
   const session = await auth();
   if (!session?.user) {
     return authenticationError("Session required");
@@ -33,11 +36,45 @@ export async function GET() {
   if (!ALLOWED_USER_TYPES.includes(session.user.type)) {
     return authorizationError("You are not authorized to access this resource");
   }
+  const partnerId = parseInt((await params).partnerId);
 
   const shippingNumberPairs = await db.item.findMany({
     where: {
-      donorShippingNumber: { not: null },
-      hfhShippingNumber: { not: null },
+      AND: [
+        {
+          donorShippingNumber: { not: null },
+          hfhShippingNumber: { not: null },
+        },
+        {
+          OR: [
+            {
+              unallocatedItemRequestAllocations: {
+                some: {
+                  partnerId,
+                },
+              },
+            },
+            {
+              unallocatedItemRequestAllocations: {
+                some: {
+                  unallocatedItemRequest: {
+                    partnerId,
+                  },
+                },
+              },
+            },
+            {
+              donorOfferItemRequestAllocations: {
+                some: {
+                  donorOfferItemRequest: {
+                    partnerId,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
     },
     distinct: ["donorShippingNumber", "hfhShippingNumber"],
   });
