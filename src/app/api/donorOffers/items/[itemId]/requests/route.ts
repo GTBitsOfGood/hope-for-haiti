@@ -23,6 +23,7 @@ export async function GET(
   const requests = await db.donorOfferItemRequest.findMany({
     where: { donorOfferItemId: itemId },
     include: {
+      donorOfferItem: true,
       partner: {
         select: {
           name: true,

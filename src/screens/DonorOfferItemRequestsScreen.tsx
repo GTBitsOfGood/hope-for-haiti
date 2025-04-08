@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { MagnifyingGlass, ChatTeardropText } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   DonorOffer,
@@ -18,6 +18,8 @@ import { Tooltip } from "react-tooltip";
 import { formatTableValue } from "@/utils/format";
 
 type RequestWithAllocations = DonorOfferItemRequest & {
+  donorOfferItem: DonorOfferItem;
+
   allocations: (DonorOfferItemRequestAllocation & {
     item: Item;
   })[];
@@ -50,6 +52,7 @@ const Priority = ({ priority }: { priority: string | null }) => {
 };
 
 export default function DonorOfferItemRequestsScreen() {
+  const router = useRouter();
   const { donorOfferId, itemId } = useParams();
 
   const [requests, setRequests] = useState<RequestWithAllocations[]>([]);
@@ -70,6 +73,7 @@ export default function DonorOfferItemRequestsScreen() {
 
         const data = await response.json();
         setRequests(data);
+        console.log(data);
       } catch (e) {
         toast.error("Error fetching donor offer item request", {
           position: "bottom-right",
@@ -219,7 +223,28 @@ export default function DonorOfferItemRequestsScreen() {
                               </div>
                             ))}
                             <button
-                              onClick={() => {}}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                router.push(
+                                  `/newDonorOfferAllocation?${new URLSearchParams(
+                                    {
+                                      donorOfferItemRequestId:
+                                        item.id.toString(),
+                                      title: item.donorOfferItem.title,
+                                      type: item.donorOfferItem.type,
+                                      unitType: item.donorOfferItem.unitType,
+                                      quantityPerUnit:
+                                        item.donorOfferItem.quantityPerUnit.toString(),
+                                      ...(item.donorOfferItem.expirationDate
+                                        ? {
+                                            expirationDate: item.donorOfferItem
+                                              .expirationDate as unknown as string,
+                                          }
+                                        : {}),
+                                    }
+                                  ).toString()}`
+                                );
+                              }}
                               className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70"
                             >
                               + Add
@@ -227,7 +252,27 @@ export default function DonorOfferItemRequestsScreen() {
                           </>
                         ) : (
                           <button
-                            onClick={() => {}}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(
+                                `/newDonorOfferAllocation?${new URLSearchParams(
+                                  {
+                                    donorOfferItemRequestId: item.id.toString(),
+                                    title: item.donorOfferItem.title,
+                                    type: item.donorOfferItem.type,
+                                    unitType: item.donorOfferItem.unitType,
+                                    quantityPerUnit:
+                                      item.donorOfferItem.quantityPerUnit.toString(),
+                                    ...(item.donorOfferItem.expirationDate
+                                      ? {
+                                          expirationDate: item.donorOfferItem
+                                            .expirationDate as unknown as string,
+                                        }
+                                      : {}),
+                                  }
+                                ).toString()}`
+                              );
+                            }}
                             className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100"
                           >
                             + Add Allocation

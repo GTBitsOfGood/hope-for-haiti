@@ -46,12 +46,16 @@ export async function POST(request: NextRequest) {
 
   const form = await request.formData();
   const unallocatedItemRequestId = form.get("unallocatedItemRequestId");
+  const donorOfferItemRequestId = form.get("donorOfferItemRequestId");
   const partnerId = form.get("partnerId");
   const quantity = form.get("quantity");
   const itemId = form.get("itemId");
   const visible = form.get("visible") === "true" || false;
 
-  if (!quantity || (!unallocatedItemRequestId && !partnerId)) {
+  if (
+    !quantity ||
+    (!unallocatedItemRequestId && !partnerId && !donorOfferItemRequestId)
+  ) {
     return argumentError("Missing one or more required fields.");
   }
 
@@ -128,41 +132,37 @@ export async function POST(request: NextRequest) {
     return notFoundError("Item not found with the specified attributes.");
   }
 
-  const totalAllocated = await db.unallocatedItemRequestAllocation.aggregate({
-    _sum: {
-      quantity: true,
-    },
-    where: {
-      itemId: item.id,
-    },
-  });
-  if (
-    totalAllocated._sum.quantity &&
-    item.quantity - totalAllocated._sum.quantity < parsedQuantity
-  ) {
-    return argumentError(
-      "Not enough items in inventory to fulfill the allocation request."
-    );
+  if (unallocatedItemRequestId) {
+    const allocation = await db.unallocatedItemRequestAllocation.create({
+      data: {
+        ...(unallocatedItemRequestId
+          ? {
+              unallocatedItemRequestId: parseInt(
+                unallocatedItemRequestId.toString()
+              ),
+            }
+          : partnerId
+            ? { partnerId: parseInt(partnerId.toString()) }
+            : {}),
+        itemId: item.id,
+        quantity: parsedQuantity,
+        visible,
+      },
+    });
+
+    return NextResponse.json({ message: "Allocation created", allocation });
+  } else {
+    const allocation = await db.donorOfferItemRequestAllocation.create({
+      data: {
+        donorOfferItemRequestId: parseInt(donorOfferItemRequestId as string),
+        itemId: item.id,
+        quantity: parsedQuantity,
+        visible,
+      },
+    });
+
+    return NextResponse.json({ message: "Allocation created", allocation });
   }
-
-  const allocation = await db.unallocatedItemRequestAllocation.create({
-    data: {
-      ...(unallocatedItemRequestId
-        ? {
-            unallocatedItemRequestId: parseInt(
-              unallocatedItemRequestId.toString()
-            ),
-          }
-        : partnerId
-          ? { partnerId: parseInt(partnerId.toString()) }
-          : {}),
-      itemId: item.id,
-      quantity: parsedQuantity,
-      visible,
-    },
-  });
-
-  return NextResponse.json({ message: "Allocation created", allocation });
 }
 
 /**
