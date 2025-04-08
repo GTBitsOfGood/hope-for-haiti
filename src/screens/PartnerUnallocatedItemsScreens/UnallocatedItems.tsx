@@ -199,7 +199,7 @@ function RequestItemsModal({
             onClick={handleSubmit}
             className="block grow bg-red-500 text-center text-white py-1 px-4 rounded font-medium hover:bg-red-600 transition"
           >
-            Add item
+            Request items
           </button>
         </div>
       </div>
