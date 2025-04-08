@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   DotsThree,
   MagnifyingGlass,
@@ -47,9 +47,8 @@ export default function AdminDonorOffersScreen() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(() => {
+    (async () => {
       try {
         const res = await fetch("/api/donorOffers", {
           cache: "no-store",
@@ -65,10 +64,12 @@ export default function AdminDonorOffersScreen() {
       } finally {
         setIsLoading(false);
       }
-    };
-
-    fetchData();
+    })();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const filteredOffers = offers.filter((offer) => {
     if (activeTab === StatusFilterKey.UNFINALIZED) {
@@ -80,6 +81,18 @@ export default function AdminDonorOffersScreen() {
     }
     return true;
   });
+
+  const handleArchive = (donorOfferId: number) => {
+    (async () => {
+      const resp = await fetch(`/api/donorOffers/${donorOfferId}/archive`, {
+        method: "POST",
+      });
+      if (!resp.ok) return toast.error("Error archiving donor offer");
+
+      toast.success("Donor offer archived");
+      fetchData();
+    })();
+  };
 
   return (
     <>
@@ -214,6 +227,7 @@ export default function AdminDonorOffersScreen() {
                           <MenuItem
                             as="button"
                             className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => handleArchive(offer.donorOfferId)}
                           >
                             <Archive className="inline-block mr-2" size={22} />
                             Archive Offer
