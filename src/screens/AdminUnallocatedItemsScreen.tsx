@@ -75,7 +75,9 @@ export default function AdminUnallocatedItemsScreen() {
   const fetchData = useCallback(() => {
     (async () => {
       try {
-        const response = await fetch(generateFetchUrl(activeTab));
+        const response = await fetch(generateFetchUrl(activeTab), {
+          cache: "no-store",
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch unallocated items");
         }
