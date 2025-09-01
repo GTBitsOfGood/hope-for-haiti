@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import { apiRequest, HTTPRequestType } from "./useApiClient";
 
 
@@ -25,44 +25,33 @@ export function useFetch<T = unknown>(
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(conditionalFetch);
   const [error, setError] = useState<string | null>(null);
-  
-  const onSuccessRef = useRef(onSuccess);
-  const onErrorRef = useRef(onError);
-  
-  onSuccessRef.current = onSuccess;
-  onErrorRef.current = onError;
 
-  const fetchData = useCallback(async (overrideOptions?: Partial<RequestInit>) => {
+  const fetchData = async (overrideOptions?: Partial<RequestInit>) => {
     try {
       setIsLoading(true);
       setError(null);
       
       const finalOptions = overrideOptions ? { ...fetchOptions, ...overrideOptions } : fetchOptions;
       const result = await apiRequest<T>(endpoint, (finalOptions['method'] ?? 'GET') as HTTPRequestType, finalOptions);
+      console.log('result', result);
 
       setData(result);
-      
-      if (onSuccessRef.current) {
-        onSuccessRef.current(result);
-      }
+      onSuccess?.(result);
     } catch (err) {
       const errorMessage = (err as Error).message;
       console.error(`Failed to fetch ${endpoint}:`, err);
       setError(errorMessage);
-      
-      if (onErrorRef.current) {
-        onErrorRef.current(errorMessage);
-      }
+      onError?.(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [endpoint, fetchOptions]);
+  };
 
   useEffect(() => {
     if (conditionalFetch) {
       fetchData();
     }
-  }, [endpoint, conditionalFetch, fetchData]);
+  }, [endpoint, conditionalFetch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refetch = (overrideOptions?: Partial<RequestInit>) => {
     fetchData(overrideOptions);
