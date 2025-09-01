@@ -13,7 +13,10 @@ const updateShippingStatusSchema = z.object({
   value: z.nativeEnum(ShipmentStatus),
 });
 
-export async function GET() {
+export async function GET(
+  _: NextRequest,
+  { params }: { params: Promise<{ partnerId: string }> }
+) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -24,7 +27,12 @@ export async function GET() {
       throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
-    const result = await ShippingStatusService.getShippingStatuses();
+    const partnerId = parseInt((await params).partnerId);
+    if (isNaN(partnerId)) {
+      throw new ArgumentError("Invalid partner ID");
+    }
+
+    const result = await ShippingStatusService.getPartnerShippingStatuses(partnerId);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

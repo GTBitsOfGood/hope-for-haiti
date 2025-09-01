@@ -2,6 +2,7 @@ import { ShippingStatus, Item, ShipmentStatus } from "@prisma/client";
 import { CgChevronRight, CgSpinner } from "react-icons/cg";
 import React, { useCallback, useEffect, useState } from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
+import { useParams } from "next/navigation";
 
 interface ShippingStatusTableProps {
   openModal: (
@@ -48,6 +49,8 @@ const statusOptions = [
 export default function ShippingStatusTable({
   openModal,
 }: ShippingStatusTableProps) {
+  const { partnerId } = useParams();
+
   const [shippingStatuses, setShippingStatuses] = useState<ShippingStatus[]>(
     []
   );
@@ -57,7 +60,7 @@ export default function ShippingStatusTable({
 
   const fetchData = useCallback(() => {
     (async () => {
-      const response = await fetch("/api/shippingStatus", {
+      const response = await fetch(`/api/shippingStatus/${partnerId}`, {
         method: "GET",
         cache: "no-store",
       });
