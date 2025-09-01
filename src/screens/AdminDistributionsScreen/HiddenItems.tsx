@@ -1,54 +1,43 @@
 import { DistributionRecord } from "@/types";
 import DistributionTable from "./DistributionTable";
 import { useParams } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { CgSpinner } from "react-icons/cg";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
+
+interface DistributionsResponse {
+  records: DistributionRecord[];
+}
 
 export default function HiddenItems() {
   const { partnerId } = useParams();
-  const [distributions, setDistributions] = useState<DistributionRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const fetchData = useCallback(() => {
-    (async () => {
-      const distributions = await fetch(
-        `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}&visible=false`,
-        { cache: "no-store" }
-      );
 
-      if (!distributions.ok) {
-        throw new Error();
-      }
+  const { data: distributionsData, isLoading, refetch: fetchData } = useFetch<DistributionsResponse>(
+    `/api/distributions?partnerId=${encodeURIComponent((partnerId ?? "") as string)}&visible=false`,
+    {
+      cache: "no-store",
+      onError: (error) => {
+        console.log(error);
+        toast.error("Error fetching hidden items", {
+          position: "bottom-right",
+        });
+      },
+    }
+  );
 
-      const data = await distributions.json();
-      setDistributions(data.records);
-
-      setIsLoading(false);
-    })();
-  }, [partnerId]);
-
-  useEffect(fetchData, [fetchData]);
+  const { apiClient } = useApiClient();
 
   const makeAllVisible = async () => {
     try {
-      const res = await fetch(
-        `/api/distributions/toggleVisibility?partnerId=${partnerId}&visible=true`,
-        {
-          method: "PUT",
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error();
-      }
-
+      await apiClient.put(`/api/distributions/toggleVisibility?partnerId=${partnerId}&visible=true`);
       toast.success("Made all items visible");
       fetchData();
-    } catch (e) {
+    } catch (error) {
+      console.log(error);
       toast.error("Error changing visibility", {
         position: "bottom-right",
       });
-      console.log(e);
     }
   };
 
@@ -67,7 +56,7 @@ export default function HiddenItems() {
       <DistributionTable
         refetch={fetchData}
         visible={false}
-        distributions={distributions}
+        distributions={distributionsData?.records || []}
       />
     </div>
   );

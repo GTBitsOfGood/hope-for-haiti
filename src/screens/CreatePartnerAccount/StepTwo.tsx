@@ -20,10 +20,10 @@ export default function StepTwo({
 }: StepTwoProps) {
   return (
     <>
-      <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
+      <h2 className="text-[24px] font-bold text-[#22070B] mb-2">
         Create partner account
       </h2>
-      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5 font-[Open_Sans]">
+      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5">
         Contact information
       </h3>
 
@@ -37,7 +37,7 @@ export default function StepTwo({
           key={section}
           className={`mb-8 ${index > 0 ? "border-t border-[#22070B]/10 mt-6 pt-6" : ""}`}
         >
-          <h4 className="text-[18px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
+          <h4 className="text-[18px] font-bold text-[#22070B] mb-2">
             {section}
           </h4>
           <div className="grid grid-cols-3 gap-4">
@@ -74,13 +74,13 @@ export default function StepTwo({
               },
             ].map(({ label, placeholder, name }) => (
               <div key={label}>
-                <label className="block text-[16px] font-normal text-[#22070B] font-[Open_Sans] mb-2">
+                <label className="block text-[16px] font-normal text-[#22070B] mb-2">
                   {label}
                 </label>
                 <input
                   className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-                  text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] 
-                  border-solid border-[1px]"
+                  text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] 
+                  border-solid"
                   placeholder={placeholder}
                   name={name + "-" + contactName}
                   value={
@@ -98,13 +98,13 @@ export default function StepTwo({
       ))}
 
       <div className="border-t border-[#22070B]/10 mt-6 pt-6 mb-8">
-        <h4 className="text-[18px] text-[#22070B] mb-2 font-[Open_Sans]">
+        <h4 className="text-[18px] text-[#22070B] mb-2">
           WhatsApp Contact
         </h4>
         <input
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-          text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] 
-          border-solid border-[1px]"
+          text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] 
+          border-solid"
           placeholder="WhatsApp contact"
           name="contactWhatsAppName"
           value={partnerDetails.contactWhatsAppName || ""}
@@ -113,13 +113,13 @@ export default function StepTwo({
       </div>
 
       <div className="mb-8">
-        <h4 className="text-[18px] text-[#22070B] mb-2 font-[Open_Sans]">
+        <h4 className="text-[18px] text-[#22070B] mb-2">
           WhatsApp Number
         </h4>
         <input
           className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-          text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] 
-          border-solid border-[1px]"
+          text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] 
+          border-solid"
           placeholder="000-000-0000"
           name="contactWhatsAppNumber"
           value={partnerDetails.contactWhatsAppNumber || ""}
@@ -128,7 +128,7 @@ export default function StepTwo({
       </div>
       <div className="flex justify-between mt-6">
         <button
-          className="text-mainRed font-semibold font-[Open_Sans]"
+          className="text-mainRed font-semibold"
           onClick={handleCancelClick}
           type="button"
         >
@@ -136,14 +136,14 @@ export default function StepTwo({
         </button>
         <div>
           <button
-            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4 font-[Open_Sans]"
+            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4"
             onClick={prevStep}
             type="button"
           >
             Previous
           </button>
           <button
-            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold font-[Open_Sans]"
+            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold"
             onClick={nextStep}
           >
             Next

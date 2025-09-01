@@ -1,4 +1,4 @@
-import { sendEmail } from "@/util/email";
+import { sendEmail } from "@/email";
 import { jest } from "@jest/globals";
 import { mockReset } from "jest-mock-extended";
 

@@ -1,101 +1,62 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
 import {
-  argumentError,
-  conflictError,
-  notFoundError,
-  authenticationError,
-  authorizationError,
+  AuthenticationError,
+  AuthorizationError,
+  ArgumentError,
+  errorResponse,
   ok,
-} from "@/util/responses";
-import { UserType } from "@prisma/client";
+} from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { zfd } from "zod-form-data";
-import * as argon2 from "argon2";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import UserService from "@/services/userService";
 
-const ALLOWED_USER_TYPES: UserType[] = [
-  UserType.ADMIN,
-  UserType.STAFF,
-  UserType.SUPER_ADMIN,
-];
-
-/**
- * Retrieve a list of all User records.
- * Only accessible to users with STAFF, ADMIN, or SUPER_ADMIN roles.
- *
- * @returns 401 if the request is not authenticated
- * @returns 403 if the user does not have the required role
- * @returns 200 with a list of users, including their email and role type
- */
-export async function GET() {
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-
-  const { user } = session;
-  if (!ALLOWED_USER_TYPES.includes(user.type)) {
-    return authorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-  }
-
-  const users = await db.user.findMany({
-    select: {
-      email: true,
-      type: true,
-      name: true,
-    },
-  });
-
-  return NextResponse.json(users, { status: 200 });
-}
-
-const schema = zfd.formData({
+const createUserSchema = zfd.formData({
   inviteToken: zfd.text(),
   password: zfd.text(),
 });
 
-/**
- * Creates a new User record.
- * Parameters are passed via form data.
- * @param inviteToken Corresponds to token in existing UserInvite record
- * @param password Password for new User account
- * @returns 400 if bad form data or expired UserInvite
- * @returns 404 if UserInvite does not exist
- * @returns 409 if User record for corresponding UserInvite already exists
- * @returns 200
- */
-export async function POST(req: NextRequest) {
-  const parsed = schema.safeParse(await req.formData());
-  if (!parsed.success) {
-    return argumentError("Invalid user data");
-  }
-
-  const { inviteToken, password } = parsed.data;
-  const userInvite = await db.userInvite.findUnique({
-    where: {
-      token: inviteToken,
-    },
-  });
-  if (!userInvite) {
-    return notFoundError("Invite does not exist");
-  } else if (userInvite.expiration < new Date()) {
-    return argumentError("Invite has expired");
-  }
+export async function GET() {
   try {
-    await db.user.create({
-      data: {
-        name: userInvite.name,
-        email: userInvite.email,
-        passwordHash: await argon2.hash(password),
-        type: userInvite.userType,
-      },
-    });
-  } catch (e) {
-    if (e instanceof PrismaClientKnownRequestError) {
-      if (e.code === "P2002") {
-        return conflictError("User already exists");
-      }
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
     }
-    throw e;
+  
+    const { user } = session;
+    if (!UserService.isAdmin(user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+  
+    const users = await UserService.getUsers();
+  
+    return NextResponse.json(users, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
   }
-  return ok();
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const parsed = createUserSchema.safeParse(await req.formData());
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const { inviteToken, password } = parsed.data;
+
+    await UserService.createUserFromInvite({ inviteToken, password });
+    
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

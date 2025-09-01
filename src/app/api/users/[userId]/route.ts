@@ -1,38 +1,46 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
+import UserService from "@/services/userService";
 import {
-  authenticationError,
-  authorizationError,
-  argumentError,
-} from "@/util/responses";
+	AuthenticationError,
+	AuthorizationError,
+	ArgumentError,
+	errorResponse,
+} from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
-import { UserType } from "@prisma/client";
+import { z } from "zod";
 
-const ALLOWED_USER_TYPES: UserType[] = [
-  UserType.ADMIN,
-  UserType.STAFF,
-  UserType.SUPER_ADMIN,
-];
+const paramSchema = z.object({
+	userId: z
+		.string()
+		.transform((val) => parseInt(val, 10))
+		.pipe(z.number().int().positive("User ID must be a positive integer")),
+});
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+	_: NextRequest,
+	{ params }: { params: Promise<{ userId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-  if (!ALLOWED_USER_TYPES.includes(session.user.type)) {
-    return authorizationError("Unauthorized");
-  }
-  const userIdNum = parseInt((await params).userId);
-  if (isNaN(userIdNum)) return argumentError("Partner Id must be an integer");
+	try {
+		const session = await auth();
+		if (!session?.user) {
+			throw new AuthenticationError("Session required");
+		}
 
-  const user = await db.user.findUnique({
-    where: {
-      id: userIdNum,
-    },
-  });
+		if (!UserService.isAdmin(session.user.type)) {
+			throw new AuthorizationError("Must be ADMIN, STAFF, or SUPER_ADMIN");
+		}
 
-  return NextResponse.json({
-    user,
-  });
+		const { userId } = await params;
+		const parsed = paramSchema.safeParse({ userId });
+		
+		if (!parsed.success) {
+			throw new ArgumentError(parsed.error.message);
+		}
+
+		const user = await UserService.getUserById(parsed.data.userId);
+
+		return NextResponse.json({ user }, { status: 200 });
+	} catch (error) {
+		return errorResponse(error);
+	}
 }

@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import {
   DonorOfferItemsRequestsDTO,
   DonorOfferItemsRequestsResponse,
-} from "./types";
+} from "@/types/donorOffer.types";
 
 test("Should return 401 if session is invalid", async () => {
   await testApiHandler({

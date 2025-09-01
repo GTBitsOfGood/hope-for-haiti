@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   DotsThree,
   MagnifyingGlass,
@@ -15,6 +15,8 @@ import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { useFetch } from "@/hooks/useFetch";
+import { AdminDonorOffer } from "@/types/api/donorOffer.types";
 
 enum StatusFilterKey {
   UNFINALIZED = "Unfinalized",
@@ -28,50 +30,25 @@ const statusFilterTabs = [
   StatusFilterKey.ARCHIVED,
 ] as const;
 
-interface AdminDonorOffer {
-  donorOfferId: number;
-  offerName: string;
-  donorName: string;
-  responseDeadline: string;
-  state: DonorOfferState;
-  invitedPartners: {
-    name: string;
-    responded: boolean;
-  }[];
-}
-
 export default function AdminDonorOffersScreen() {
-  const [offers, setOffers] = useState<AdminDonorOffer[]>([]);
   const [activeTab, setActiveTab] = useState<string>(
     StatusFilterKey.UNFINALIZED
   );
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const fetchData = useCallback(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/donorOffers", {
-          cache: "no-store",
-        });
-        if (!res.ok) {
-          throw new Error(`Error: ${res.status} ${res.statusText}`);
-        }
-        const data = await res.json();
-        setOffers(data);
-      } catch (error) {
-        toast.error("An error occurred while fetching data");
-        console.error("Fetch error:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
+  
+  const {
+    data: offers,
+    isLoading,
+    refetch: refetchOffers,
+  } = useFetch<AdminDonorOffer[]>("/api/donorOffers", {
+    cache: "no-store",
+    onError: (error) => {
+      toast.error("An error occurred while fetching data");
+      console.error("Fetch error:", error);
+    },
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const filteredOffers = offers.filter((offer) => {
+  const filteredOffers = (offers || []).filter((offer) => {
     if (activeTab === StatusFilterKey.UNFINALIZED) {
       return offer.state === DonorOfferState.UNFINALIZED;
     } else if (activeTab === StatusFilterKey.FINALIZED) {
@@ -84,13 +61,20 @@ export default function AdminDonorOffersScreen() {
 
   const handleArchive = (donorOfferId: number) => {
     (async () => {
-      const resp = await fetch(`/api/donorOffers/${donorOfferId}/archive`, {
-        method: "POST",
-      });
-      if (!resp.ok) return toast.error("Error archiving donor offer");
-
-      toast.success("Donor offer archived");
-      fetchData();
+      try {
+        const resp = await fetch(`/api/donorOffers/${donorOfferId}/archive`, {
+          method: "POST",
+        });
+        if (!resp.ok) {
+          toast.error("Error archiving donor offer");
+          return;
+        }
+        toast.success("Donor offer archived");
+        refetchOffers();
+      } catch (error) {
+        toast.error("Error archiving donor offer");
+        console.error("Archive error:", error);
+      }
     })();
   };
 

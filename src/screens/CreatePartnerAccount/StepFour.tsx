@@ -24,10 +24,10 @@ export default function StepFour({
 }: StepFourProps) {
   return (
     <>
-      <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
+      <h2 className="text-[24px] font-bold text-[#22070B] mb-2">
         Create partner account
       </h2>
-      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5 font-[Open_Sans]">
+      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5">
         Facility information
       </h3>
 
@@ -163,7 +163,7 @@ export default function StepFour({
           </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-            text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
+            text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px]"
             placeholder="Input name"
             name="emergencyMedicalRecordsSystemName"
             value={partnerDetails.emergencyMedicalRecordsSystemName || ""}
@@ -190,7 +190,7 @@ export default function StepFour({
       </label>
       <input
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-        text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
+        text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] mb-8"
         placeholder="Number"
         name="numberOfInpatientBeds"
         value={partnerDetails.numberOfInpatientBeds || ""}
@@ -202,7 +202,7 @@ export default function StepFour({
       </label>
       <input
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-        text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
+        text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] mb-8"
         placeholder="Number"
         name="numberOfPatientsServedAnnually"
         value={partnerDetails.numberOfPatientsServedAnnually || ""}
@@ -230,7 +230,7 @@ export default function StepFour({
           </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-            text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
+            text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px]"
             placeholder="Service"
             name="communityMobileOutreachDescription"
             value={partnerDetails.communityMobileOutreachDescription || ""}
@@ -252,20 +252,20 @@ export default function StepFour({
 
       <div className="flex justify-between mt-6">
         <button
-          className="text-mainRed font-semibold font-[Open_Sans]"
+          className="text-mainRed font-semibold"
           onClick={handleCancelClick}
         >
           Cancel account creation
         </button>
         <div>
           <button
-            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4 font-[Open_Sans]"
+            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4"
             onClick={prevStep}
           >
             Previous
           </button>
           <button
-            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold font-[Open_Sans]"
+            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold"
             onClick={nextStep}
           >
             Next

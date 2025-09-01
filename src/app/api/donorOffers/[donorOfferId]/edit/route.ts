@@ -1,26 +1,48 @@
-import { db } from "@/db";
 import { NextRequest, NextResponse } from "next/server";
-import { DonorOfferState } from "@prisma/client";
+import { z } from "zod";
+
+import { auth } from "@/auth";
+import UserService from "@/services/userService";
+import DonorOfferService from "@/services/donorOfferService";
+import {
+  ArgumentError,
+  AuthenticationError,
+  AuthorizationError,
+  errorResponse,
+} from "@/util/errors";
+
+const paramSchema = z.object({
+  donorOfferId: z
+    .string()
+    .transform((val) => parseInt(val))
+    .pipe(z.number().int().positive("Invalid donor offer ID")),
+});
 
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
-  const { donorOfferId } = await params;
-  const donorOffer = await db.donorOffer.findUnique({
-    where: { id: parseInt(donorOfferId) },
-    include: {
-      items: true,
-      partnerVisibilities: {
-        select: {
-          partner: {
-            select: { id: true, name: true },
-          },
-        },
-      },
-    },
-  });
-  return NextResponse.json(donorOffer);
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("You are not allowed to view this");
+    }
+
+    const { donorOfferId } = await params;
+    const parsed = paramSchema.safeParse({ donorOfferId });
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const result = await DonorOfferService.getDonorOfferForEdit(parsed.data.donorOfferId);
+    return NextResponse.json(result);
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function PUT(
@@ -28,91 +50,25 @@ export async function PUT(
   { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("You are not allowed to edit this");
+    }
+
     const { donorOfferId } = await params;
+    const parsed = paramSchema.safeParse({ donorOfferId });
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
     const formData = await req.formData();
-
-    const offerName = formData.get("offerName") as string;
-    const donorName = formData.get("donorName") as string;
-    const partnerRequestDeadline = formData.get(
-      "partnerRequestDeadline"
-    ) as string;
-    const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-    const partnerIds = formData.getAll("partnerIds") as string[];
-    const items = formData
-      .getAll("items")
-      .map((item) => JSON.parse(item as string));
-
-    // Start a transaction to ensure all operations succeed or fail together
-    const result = await db.$transaction(async (tx) => {
-      // Update the donor offer
-      const updatedDonorOffer = await tx.donorOffer.update({
-        where: { id: parseInt(donorOfferId) },
-        data: {
-          offerName,
-          donorName,
-          partnerResponseDeadline: new Date(partnerRequestDeadline),
-          donorResponseDeadline: new Date(donorRequestDeadline),
-          state: DonorOfferState.UNFINALIZED,
-        },
-      });
-
-      // Delete all existing partner visibilities
-      await tx.donorOfferPartnerVisibility.deleteMany({
-        where: { donorOfferId: parseInt(donorOfferId) },
-      });
-
-      // Create new partner visibilities
-      await tx.donorOfferPartnerVisibility.createMany({
-        data: partnerIds.map((partnerId) => ({
-          donorOfferId: parseInt(donorOfferId),
-          partnerId: parseInt(partnerId),
-        })),
-      });
-
-      // Process items
-      for (const item of items) {
-        if (item.id) {
-          // Update existing item
-          await tx.donorOfferItem.update({
-            where: { id: item.id },
-            data: {
-              title: item.title,
-              type: item.type,
-              quantity: item.quantity,
-              expirationDate: item.expirationDate
-                ? new Date(item.expirationDate)
-                : null,
-              unitType: item.unitType,
-              quantityPerUnit: item.quantityPerUnit,
-            },
-          });
-        } else {
-          // Create new item
-          await tx.donorOfferItem.create({
-            data: {
-              donorOfferId: parseInt(donorOfferId),
-              title: item.title,
-              type: item.type,
-              quantity: item.quantity,
-              expirationDate: item.expirationDate
-                ? new Date(item.expirationDate)
-                : null,
-              unitType: item.unitType,
-              quantityPerUnit: item.quantityPerUnit,
-            },
-          });
-        }
-      }
-
-      return updatedDonorOffer;
-    });
-
+    const result = await DonorOfferService.updateDonorOfferFromForm(parsed.data.donorOfferId, formData);
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error updating donor offer:", error);
-    return NextResponse.json(
-      { error: "Failed to update donor offer" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 }

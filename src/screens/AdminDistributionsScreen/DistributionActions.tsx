@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useApiClient } from "@/hooks/useApiClient";
 
 export default function DistributionActions({
   refetch,
@@ -21,47 +22,39 @@ export default function DistributionActions({
   distribution: DistributionRecord;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { apiClient } = useApiClient();
+
   const toggleVisibility = async () => {
     try {
-      const res = await fetch(
-        `/api/distributions/toggleVisibility?allocType=${distribution.allocationType}&id=${distribution.allocationId}&visible=${!visible}`,
-        {
-          method: "PUT",
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error();
-      }
-
+      await apiClient.put(`/api/distributions/toggleVisibility?allocType=${distribution.allocationType}&id=${distribution.allocationId}&visible=${!visible}`);
       refetch();
-    } catch (e) {
+      toast.success(`Item ${visible ? 'hidden from' : 'made visible to'} partner`, {
+        position: "bottom-right",
+      });
+    } catch (error) {
+      console.log(error);
       toast.error("Error changing visibility", {
         position: "bottom-right",
       });
-      console.log(e);
     }
   };
 
   const removeItem = async () => {
-    // try {
-    //   const res = await fetch(`/api/distributions/${distribution.id}`, {
-    //     method: "DELETE",
-    //   });
-    //   if (!res.ok) {
-    //     throw new Error();
-    //   }
-    //   setDistributions((oldDistributions: DistributionItem[]) => {
-    //     return oldDistributions.filter((old) => old.id !== distribution.id);
-    //   });
-    //   setIsOpen(false);
-    // } catch (e) {
-    //   toast.error("Error removing item", {
-    //     position: "bottom-right",
-    //   });
-    //   console.log(e);
-    // }
+    try {
+      await apiClient.delete(`/api/distributions/${distribution.allocationId}`);
+      setIsOpen(false);
+      refetch();
+      toast.success("Item removed from distribution", {
+        position: "bottom-right",
+      });
+    } catch (error) {
+      console.log(error);
+      toast.error("Error removing item", {
+        position: "bottom-right",
+      });
+    }
   };
+
   return (
     <>
       {isOpen ? (

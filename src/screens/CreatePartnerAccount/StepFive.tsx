@@ -22,10 +22,10 @@ export default function StepFive({
 }: StepFiveProps) {
   return (
     <>
-      <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
+      <h2 className="text-[24px] font-bold text-[#22070B] mb-2">
         Create partner account
       </h2>
-      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5 font-[Open_Sans]">
+      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5">
         Infrastructure and services
       </h3>
 
@@ -36,7 +36,7 @@ export default function StepFive({
       <textarea
         className="w-full h-[160px] p-3 border border-[#22070B]/10 bg-[#F9F9F9] 
         text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
-        font-[Open_Sans] rounded-[4px] resize-none mb-8"
+        rounded-[4px] resize-none mb-8"
         placeholder="Description"
         name="facilityDescription"
         value={partnerDetails.facilityDescription || ""}
@@ -64,7 +64,7 @@ export default function StepFive({
           </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-            text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
+            text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px]"
             placeholder="Answer"
             name="cleanWaterDescription"
             value={partnerDetails.cleanWaterDescription || ""}
@@ -105,7 +105,7 @@ export default function StepFive({
           </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-            text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
+            text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px]"
             placeholder="Answer"
             name="sanitationFacilitiesLockableFromInside"
             value={partnerDetails.sanitationFacilitiesLockableFromInside || ""}
@@ -147,7 +147,7 @@ export default function StepFive({
           <textarea
             className="w-full h-[160px] p-3 border border-[#22070B]/10 bg-[#F9F9F9] 
             text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
-            font-[Open_Sans] rounded-[4px] resize-none"
+            rounded-[4px] resize-none"
             placeholder="Describe"
             name="medicationDisposalProcessDescription"
             value={partnerDetails.medicationDisposalProcessDescription || ""}
@@ -190,7 +190,7 @@ export default function StepFive({
           </label>
           <input
             className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-            text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px]"
+            text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px]"
             placeholder="Describe"
             name="pickupVehicleType"
             value={partnerDetails.pickupVehicleType || ""}
@@ -243,20 +243,20 @@ export default function StepFive({
 
       <div className="flex justify-between mt-6">
         <button
-          className="text-mainRed font-semibold font-[Open_Sans]"
+          className="text-mainRed font-semibold"
           onClick={handleCancelClick}
         >
           Cancel account creation
         </button>
         <div>
           <button
-            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4 font-[Open_Sans]"
+            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4"
             onClick={prevStep}
           >
             Previous
           </button>
           <button
-            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold font-[Open_Sans]"
+            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold"
             onClick={nextStep}
           >
             Next

@@ -1,86 +1,71 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import { authenticationError, authorizationError, ok } from "@/util/responses";
-import { RequestPriority, UserType } from "@prisma/client";
+import { errorResponse, ok } from "@/util/errors";
+import { UnallocatedItemService } from "@/services/unallocatedItemService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
+import { UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { RequestPriority } from "@prisma/client";
 
-export interface GeneralItem {
-  title: string;
-  type: string;
-  expirationDate: string;
-  unitType: string;
-  quantityPerUnit: number;
-}
-
-interface ItemRequest {
-  generalItem: GeneralItem;
-
-  priority: RequestPriority;
-  quantity: string;
-  comments: string;
-}
+const createMultipleRequestsSchema = z.array(z.object({
+  generalItem: z.object({
+    title: z.string(),
+    type: z.string(),
+    expirationDate: z.string(),
+    unitType: z.string(),
+    quantityPerUnit: z.number(),
+  }),
+  priority: z.nativeEnum(RequestPriority),
+  quantity: z.string(),
+  comments: z.string(),
+}));
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session) return authenticationError("Session required");
-  if (!session?.user) return authenticationError("User not found");
-  if (session.user.type !== UserType.PARTNER)
-    return authorizationError("User must be a partner");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-  const reqBody: ItemRequest[] = await req.json();
-  const data = reqBody.map((req) => ({
-    partnerId: parseInt(session.user.id),
-    title: req.generalItem.title,
-    type: req.generalItem.type,
-    expirationDate: req.generalItem.expirationDate
-      ? new Date(req.generalItem.expirationDate)
-      : null,
-    quantityPerUnit: req.generalItem.quantityPerUnit,
-    unitType: req.generalItem.unitType,
+    if (session.user.type !== UserType.PARTNER) {
+      throw new AuthorizationError("User must be a partner");
+    }
 
-    priority: req.priority,
-    quantity: parseInt(req.quantity),
-    comments: req.comments,
-  }));
+    const reqBody = await req.json();
+    const parsed = createMultipleRequestsSchema.safeParse(reqBody);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
 
-  await db.unallocatedItemRequest.createMany({
-    data: data,
-  });
+    await UnallocatedItemService.createMultipleUnallocatedItemRequests({
+      requests: parsed.data,
+      partnerId: parseInt(session.user.id),
+    });
 
-  return ok();
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function GET() {
-  const session = await auth();
-  if (!session) return authenticationError("Session required");
-  if (!session?.user) return authenticationError("User not found");
-  if (session.user.type !== UserType.PARTNER)
-    return authorizationError("User must be a partner");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-  const requests = (
-    await db.unallocatedItemRequest.findMany({
-      where: { partnerId: parseInt(session.user.id) },
-      select: {
-        id: true,
-        title: true,
-        expirationDate: true,
-        unitType: true,
-        quantityPerUnit: true,
+    if (session.user.type !== UserType.PARTNER) {
+      throw new AuthorizationError("User must be a partner");
+    }
 
-        priority: true,
-        quantity: true,
-        createdAt: true,
-        comments: true,
-      },
-      orderBy: {
-        id: "asc",
-      },
-    })
-  ).map((req) => ({
-    ...req,
-    expirationDate: req.expirationDate?.toLocaleDateString(),
-    createdAt: req.createdAt.toLocaleDateString(),
-  }));
+    const requests = await UnallocatedItemService.getPartnerUnallocatedItemRequests(
+      parseInt(session.user.id)
+    );
 
-  return NextResponse.json(requests, { status: 200 });
+    return NextResponse.json(requests, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

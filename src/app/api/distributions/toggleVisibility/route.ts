@@ -1,69 +1,69 @@
-import { auth } from "@/auth";
-import { db } from "@/db";
-import {
-  authenticationError,
-  authorizationError,
-  argumentError,
-  ok,
-} from "@/util/responses";
-import { UserType } from "@prisma/client";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
-const AUTHORIZED_USER_TYPES = [
-  UserType.ADMIN,
-  UserType.SUPER_ADMIN,
-] as UserType[];
+import { auth } from "@/auth";
+import UserService from "@/services/userService";
+import DistributionService from "@/services/distributionService";
+import {
+  ArgumentError,
+  AuthenticationError,
+  AuthorizationError,
+  errorResponse,
+} from "@/util/errors";
+
+const searchParamsSchema = z.object({
+  visible: z
+    .string()
+    .transform((val) => val === "true")
+    .pipe(z.boolean()),
+  allocType: z.enum(["unallocated", "donorOffer"]).optional(),
+  id: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : undefined))
+    .pipe(z.number().int().positive().optional()),
+  partnerId: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : undefined))
+    .pipe(z.number().int().positive().optional()),
+});
 
 export async function PUT(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-  if (!AUTHORIZED_USER_TYPES.includes(session.user.type)) {
-    return authorizationError("Unauthorized");
-  }
-
-  const url = new URL(request.url);
-  const visible = (url.searchParams.get("visible") || "") === "true";
-
-  const allocTypeStr = url.searchParams.get("allocType");
-  const idStr = url.searchParams.get("id");
-  if (allocTypeStr && idStr) {
-    const id = parseInt(idStr);
-    if (Number.isNaN(id)) return argumentError("Invalid ID");
-
-    if (allocTypeStr === "unallocated") {
-      await db.unallocatedItemRequestAllocation.update({
-        where: {
-          id,
-        },
-        data: { visible },
-      });
-    } else if (allocTypeStr === "donorOffer") {
-      await db.donorOfferItemRequestAllocation.update({
-        where: {
-          id,
-        },
-        data: { visible },
-      });
-    } else {
-      return argumentError("invalid allocation type");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
     }
 
-    return ok();
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError("You are not allowed to toggle visibility");
+    }
+
+    const searchParams = new URL(request.url).searchParams;
+    const parsed = searchParamsSchema.safeParse({
+      visible: searchParams.get("visible"),
+      allocType: searchParams.get("allocType"),
+      id: searchParams.get("id"),
+      partnerId: searchParams.get("partnerId"),
+    });
+
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const { visible, allocType, id, partnerId } = parsed.data;
+
+    if (allocType && id) {
+      await DistributionService.toggleAllocationVisibility(allocType, id, visible);
+    } else if (partnerId) {
+      await DistributionService.togglePartnerVisibility(partnerId, visible);
+    } else {
+      throw new ArgumentError("Either allocType with id or partnerId must be provided");
+    }
+
+    return NextResponse.json({ message: "OK" }, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
   }
-
-  const partnerIdStr = url.searchParams.get("partnerId") || "";
-  const partnerId = parseInt(partnerIdStr);
-  if (Number.isNaN(partnerId)) return argumentError("Invalid partner ID");
-  await db.$transaction(async (tx) => {
-    await tx.unallocatedItemRequestAllocation.updateMany({
-      where: { OR: [{ partnerId }, { unallocatedItemRequest: { partnerId } }] },
-      data: { visible },
-    });
-    await tx.donorOfferItemRequestAllocation.updateMany({
-      where: { donorOfferItemRequest: { partnerId } },
-      data: { visible },
-    });
-  });
-
-  return ok();
 }

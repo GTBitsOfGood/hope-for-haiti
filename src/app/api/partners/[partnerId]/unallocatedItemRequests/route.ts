@@ -1,59 +1,48 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import {
-  argumentError,
-  authenticationError,
-  authorizationError,
-} from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { errorResponse } from "@/util/errors";
+import { PartnerService } from "@/services/partnerService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import UserService from "@/services/userService";
 
-interface UnallocatedItemRequestsResponse {
-  unallocatedItemRequests: {
-    id: number;
-    itemId: number;
-    quantity: number;
-    comments: string;
-  }[];
-}
+const paramSchema = z.object({
+  partnerId: z.string().transform((val) => {
+    const parsed = parseInt(val);
+    if (isNaN(parsed)) {
+      throw new Error("partnerId must be a valid number");
+    }
+    return parsed;
+  }),
+});
 
-/**
- * Handles GET requests to retrieve unallocated item requests that relate to a partner id.
- * @param req - the incoming request (unused)
- * @param params - the partner id to retrieve unallocated item requests for
- * @returns 401 if the session is invalid
- * @returns 403 if the user type isn't staff, admin, or super admin
- * @returns 400 if the partner id is not an integer
- * @returns 200 and a json response with the unallocated item requests associated with the partnerId
- */
 export async function GET(
-  req: Request,
+  _: Request,
   { params }: { params: Promise<{ partnerId: string }> }
 ) {
-  const session = await auth();
-  if (!session) return authenticationError("Session required");
-  if (!session?.user) return authenticationError("User not found");
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  )
-    return authorizationError("Unauthorized");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-  const partnerId = parseInt((await params).partnerId);
-  if (isNaN(partnerId)) return argumentError("Partner Id must be an integer");
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
 
-  const unallocatedItemRequests = await db.unallocatedItemRequest.findMany({
-    where: { partnerId },
-    select: {
-      id: true,
-      // itemId: true,
-      quantity: true,
-      comments: true,
-    },
-  });
+    const resolvedParams = await params;
+    const parsed = paramSchema.safeParse(resolvedParams);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
 
-  return NextResponse.json({
-    unallocatedItemRequests,
-  } as UnallocatedItemRequestsResponse);
+    const unallocatedItemRequests = await PartnerService.getPartnerUnallocatedItemRequests(parsed.data.partnerId);
+
+    return NextResponse.json({
+      unallocatedItemRequests,
+    }, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

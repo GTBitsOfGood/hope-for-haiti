@@ -7,9 +7,11 @@ import { formatTableValue } from "@/utils/format";
 import { MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { RequestPriority } from "@prisma/client";
 import { format } from "date-fns";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { CgSpinner } from "react-icons/cg";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
 
 export const priorityOptions = [
   {
@@ -87,6 +89,9 @@ function RequestItemsModal({
   const [formData, setFormData] = useState<RequestData[]>(
     items.map(() => ({ priority: null, quantity: 0, comments: "" }))
   );
+
+  const { isLoading: isSubmitting, apiClient } = useApiClient();
+
   const updateItemAtIndex = (index: number, updates: object) => {
     setFormData((formData) => {
       const fd = [...formData];
@@ -97,7 +102,7 @@ function RequestItemsModal({
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     for (let i = 0; i < formData.length; i++) {
       const row = formData[i];
       const itemStr = `${items[i].title} (${items[i].expirationDate})`;
@@ -107,22 +112,17 @@ function RequestItemsModal({
         return toast.error(`Must request at least one of ${itemStr}`);
     }
 
-    (async () => {
-      const resp = await fetch("/api/unallocatedItemRequest", {
-        method: "POST",
-        body: JSON.stringify(
-          items.map((item, i) => ({ generalItem: item, ...formData[i] }))
-        ),
+    try {
+      const requestData = items.map((item, i) => ({ generalItem: item, ...formData[i] }));
+      await apiClient.post("/api/unallocatedItemRequest", {
+        body: JSON.stringify(requestData),
       });
-
-      if (resp.ok) {
-        toast.success("Request submitted");
-        onClose(true);
-        onSuccess();
-      } else {
-        toast.error("An error occurred");
-      }
-    })();
+      toast.success("Request submitted");
+      onClose(true);
+      onSuccess();
+    } catch {
+      toast.error("An error occurred");
+    }
   };
 
   return (
@@ -210,9 +210,10 @@ function RequestItemsModal({
           </button>
           <button
             onClick={handleSubmit}
-            className="block grow bg-red-500 text-center text-white py-1 px-4 rounded font-medium hover:bg-red-600 transition"
+            disabled={isSubmitting}
+            className="block grow bg-red-500 text-center text-white py-1 px-4 rounded font-medium hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Request items
+            {isSubmitting ? "Submitting..." : "Request items"}
           </button>
         </div>
       </div>
@@ -221,11 +222,9 @@ function RequestItemsModal({
 }
 
 export default function UnallocatedItems() {
-  const [activeTab, setActiveTab] = useState<string>("All"); //this is for the row of tabs for table filtering
+  const [activeTab, setActiveTab] = useState<string>("All");
   const [items, setItems] = useState<GeneralItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<GeneralItem[]>([]);
-
-  const [isLoading, setIsLoading] = useState(true);
 
   const [selectedItems, setSelectedItems] = useState<GeneralItem[]>([]);
   const addToSelectedItems = (item: GeneralItem) =>
@@ -235,28 +234,26 @@ export default function UnallocatedItems() {
 
   const [requestModalOpen, setRequestModalOpen] = useState(false);
 
+  const { isLoading, refetch: refetchItems } = useFetch<{ items: GeneralItem[] }>(
+    "/api/unallocatedItems",
+    {
+      cache: "no-store",
+      onSuccess: (data) => {
+        setItems(data.items);
+        setFilteredItems(data.items);
+      },
+      onError: (error) => {
+        console.error("Error fetching unallocated items:", error);
+        toast.error("Failed to fetch unallocated items");
+      },
+    }
+  );
+
   useEffect(() => {
     setSelectedItems((prev) =>
       prev.filter((item) => filteredItems.includes(item))
     );
   }, [activeTab, filteredItems]);
-
-  const fetchData = useCallback(() => {
-    (async () => {
-      const response = await fetch("api/unallocatedItems", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      setItems(data.items);
-      setFilteredItems(data.items);
-      setIsLoading(false);
-    })();
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const filterItems = (key: ExpirationFilterKey) => {
     setActiveTab(key);
@@ -393,7 +390,7 @@ export default function UnallocatedItems() {
             if (clear) setSelectedItems([]);
             setRequestModalOpen(false);
           }}
-          onSuccess={() => fetchData()}
+          onSuccess={() => refetchItems()}
         />
       )}
     </>

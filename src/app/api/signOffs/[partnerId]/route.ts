@@ -1,46 +1,46 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import { authenticationError, authorizationError } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { errorResponse } from "@/util/errors";
+import { SignOffService } from "@/services/signOffService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import UserService from "@/services/userService";
+
+const paramSchema = z.object({
+  partnerId: z.string().transform((val) => {
+    const parsed = parseInt(val);
+    if (isNaN(parsed)) {
+      throw new Error("partnerId must be a valid number");
+    }
+    return parsed;
+  }),
+});
 
 export async function GET(
-  req: NextRequest,
+  _: NextRequest,
   { params }: { params: Promise<{ partnerId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return authenticationError("Session required");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const resolvedParams = await params;
+    const parsed = paramSchema.safeParse(resolvedParams);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const signOffs = await SignOffService.getSignOffsByPartner(parsed.data.partnerId);
+
+    return NextResponse.json(signOffs, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
   }
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  ) {
-    return authorizationError("Unauthorized");
-  }
-
-  const partnerIdNum = parseInt((await params).partnerId);
-
-  const signOffs = await db.signOff.findMany({
-    where: { partnerId: partnerIdNum },
-    include: {
-      distributions: true,
-      _count: {
-        select: {
-          distributions: true,
-        },
-      },
-    },
-  });
-
-  return NextResponse.json(
-    signOffs.map((signOff) => ({
-      staffName: signOff.staffMemberName,
-      numberOfItems: signOff._count.distributions,
-      dateCreated: signOff.createdAt, // TODO what is this
-      signOffDate: signOff.createdAt,
-      status: "-",
-    }))
-  );
 }

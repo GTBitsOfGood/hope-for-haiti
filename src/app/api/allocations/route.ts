@@ -1,293 +1,68 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/db";
-import {
-  authenticationError,
-  argumentError,
-  authorizationError,
-  notFoundError,
-} from "@/util/responses";
-import { UserType } from "@prisma/client";
-import { editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
+import { ArgumentError, AuthenticationError, AuthorizationError } from "@/util/errors";
+import { errorResponse } from "@/util/errors";
+import UserService from "@/services/userService";
+import AllocationService from "@/services/allocationService";
+import { createAllocationFormSchema, editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
 
-/**
- * POST: Create an UnallocatedItemRequestAllocation.
- * Accepts form data to match an existing Item and allocate it to an unallocated item request.
- *
- * @params unallocatedItemRequestId ID of the UnallocatedItemRequest
- * @params title Item title to match
- * @params type Item type to match
- * @params expiration Item expiration to match
- * @params unitType
- * @params quantityPerUnit
- * @params donorName Donor name of item to match
- * @params lotNumber Lot number to match
- * @params palletNumber Pallet number to match
- * @params boxNumber Box number to match
- * @params quantity Quantity to allocate
- * @params itemId ID of the item to allocate (optional)
- * @params visible Boolean to determine if the allocation is visible (default: false)
- * @params partnerId ID of the partner to allocate to (optional)
- *
- * @returns 400 if any field is missing or invalid
- * @returns 404 if no item is found with matching fields
- * @returns 200 and the created allocation if successful
- */
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  ) {
-    return authorizationError("Unauthorized");
-  }
-
-  const form = await request.formData();
-  const unallocatedItemRequestId = form.get("unallocatedItemRequestId");
-  const donorOfferItemRequestId = form.get("donorOfferItemRequestId");
-  const partnerId = form.get("partnerId");
-  const quantity = form.get("quantity");
-  const itemId = form.get("itemId");
-  const visible = form.get("visible") === "true" || false;
-
-  if (
-    !quantity ||
-    (!unallocatedItemRequestId && !partnerId && !donorOfferItemRequestId)
-  ) {
-    return argumentError("Missing one or more required fields.");
-  }
-
-  const parsedQuantity = parseInt(quantity.toString());
-
-  if (isNaN(parsedQuantity)) {
-    return argumentError("Invalid number value in form data.");
-  }
-
-  if (unallocatedItemRequestId && partnerId) {
-    return argumentError(
-      "Cannot specify both unallocatedItemRequestId and partnerId."
-    );
-  }
-
-  let item;
-  if (itemId) {
-    const parsedItemId = parseInt(itemId.toString());
-    if (isNaN(parsedItemId)) {
-      return argumentError("Invalid number value in form data.");
-    }
-    item = await db.item.findUnique({
-      where: {
-        id: parsedItemId,
-      },
-    });
-  } else {
-    const title = form.get("title");
-    const type = form.get("type");
-    const expirationDate = form.get("expirationDate");
-    const unitType = form.get("unitType");
-    const quantityPerUnit = form.get("quantityPerUnit");
-    const donorName = form.get("donorName");
-    const lotNumber = form.get("lotNumber");
-    const palletNumber = form.get("palletNumber");
-    const boxNumber = form.get("boxNumber");
-
-    if (
-      !title ||
-      !type ||
-      !expirationDate ||
-      !unitType ||
-      !quantityPerUnit ||
-      !donorName ||
-      !lotNumber ||
-      !palletNumber ||
-      !boxNumber
-    ) {
-      return argumentError("Missing one or more required fields.");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
     }
 
-    const parsedQuantityPerUnit = parseInt(quantityPerUnit.toString());
-
-    if (isNaN(parsedQuantityPerUnit)) {
-      return argumentError("Invalid number value in form data.");
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
-    item = await db.item.findFirst({
-      where: {
-        title: title.toString(),
-        type: type.toString(),
-        expirationDate: new Date(expirationDate.toString()),
-        unitType: unitType.toString(),
-        quantityPerUnit: parseInt(quantityPerUnit.toString()),
-        donorName: donorName.toString(),
-        lotNumber: lotNumber.toString(),
-        palletNumber: palletNumber.toString(),
-        boxNumber: boxNumber.toString(),
-      },
-    });
-  }
+    const form = await request.formData();
+    const parsed = createAllocationFormSchema.safeParse(form);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
 
-  if (!item) {
-    return notFoundError("Item not found with the specified attributes.");
-  }
-
-  if (unallocatedItemRequestId) {
-    const allocation = await db.unallocatedItemRequestAllocation.create({
-      data: {
-        ...(unallocatedItemRequestId
-          ? {
-              unallocatedItemRequestId: parseInt(
-                unallocatedItemRequestId.toString()
-              ),
-            }
-          : partnerId
-            ? { partnerId: parseInt(partnerId.toString()) }
-            : {}),
-        itemId: item.id,
-        quantity: parsedQuantity,
-        visible,
-      },
+    const result = await AllocationService.createAllocation({
+      ...parsed.data,
+      visible: parsed.data.visible || false,
     });
 
-    return NextResponse.json({ message: "Allocation created", allocation });
-  } else {
-    const allocation = await db.donorOfferItemRequestAllocation.create({
-      data: {
-        donorOfferItemRequestId: parseInt(donorOfferItemRequestId as string),
-        itemId: item.id,
-        quantity: parsedQuantity,
-        visible,
-      },
+    return NextResponse.json({ 
+      message: "Allocation created", 
+      allocation: result.allocation 
     });
-
-    return NextResponse.json({ message: "Allocation created", allocation });
+  } catch (error) {
+    return errorResponse(error);
   }
 }
 
-/**
- * Editting an existing unallocated item request allocation.
- * @param req
- * @returns 200 on success
- * @returns 400 if any field is missing or invalid
- * @returns 404 if no item is found with matching fields
- * @returns 403 if user is not authorized
- * @returns 401 if user is not authenticated
- */
 export async function PUT(request: NextRequest) {
-  const session = await auth();
-  if (!session) return authenticationError("Session required");
-  if (!session?.user) return authenticationError("User not found");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  ) {
-    return authorizationError("Unauthorized");
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const form = await request.formData();
+    const parsed = editAllocationFormSchema.safeParse(form);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const updatedAllocation = await AllocationService.updateAllocation(parsed.data);
+
+    return NextResponse.json({
+      message: "Allocation request modified",
+      unallocatedItemRequestAllocation: updatedAllocation,
+    });
+  } catch (error) {
+    return errorResponse(error);
   }
-
-  // Handle PUT request logic here
-  const form = await request.formData();
-  const parsedForm = editAllocationFormSchema.safeParse(form);
-  if (!parsedForm.success) {
-    return argumentError("Invalid form data: " + parsedForm.error.format());
-  }
-
-  const {
-    allocationId,
-    title,
-    type,
-    expirationDate,
-    unitType,
-    quantityPerUnit,
-    donorName,
-    lotNumber,
-    palletNumber,
-    boxNumber,
-    quantity,
-  } = parsedForm.data;
-
-  const allocation = await db.unallocatedItemRequestAllocation.findUnique({
-    where: {
-      id: allocationId,
-    },
-    include: {
-      unallocatedItemRequest: true,
-    },
-  });
-  if (!allocation) {
-    return notFoundError("Allocation not found");
-  }
-
-  // Find the item
-  const item = await db.item.findFirst({
-    where: {
-      title,
-      type,
-      expirationDate,
-      unitType,
-      quantityPerUnit,
-      donorName,
-      lotNumber,
-      palletNumber,
-      boxNumber,
-    },
-  });
-
-  if (!item) {
-    return notFoundError("Item not found with the specified attributes.");
-  }
-
-  // Check if there are enough items in the inventory
-  const totalAllocated = await db.unallocatedItemRequestAllocation.aggregate({
-    _sum: {
-      quantity: true,
-    },
-    where: {
-      itemId: item.id,
-      NOT: {
-        id: allocationId,
-      },
-    },
-  });
-  if (
-    totalAllocated._sum.quantity &&
-    item.quantity - totalAllocated._sum.quantity < quantity
-  ) {
-    return argumentError(
-      "Not enough items in inventory to fulfill the allocation request."
-    );
-  }
-
-  // Update the allocation
-  const updatedAllocation = await db.unallocatedItemRequestAllocation.update({
-    where: {
-      id: allocationId,
-    },
-    data: {
-      itemId: item.id,
-      quantity: quantity,
-    },
-  });
-  if (!updatedAllocation) {
-    return notFoundError("Allocation not found");
-  }
-
-  // Update the quantity for unallocated item request
-  // const updatedUnallocatedItemRequest = await db.unallocatedItemRequest.update({
-  //   where: {
-  //     id: allocation.unallocatedItemRequestId,
-  //   },
-  //   data: {
-  //     quantity: {
-  //       increment: quantity,
-  //     },
-  //   },
-  // });
-
-  return NextResponse.json({
-    message: "Allocation request modified",
-    unallocatedItemRequestAllocation: updatedAllocation,
-  });
 }

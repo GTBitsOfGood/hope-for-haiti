@@ -99,7 +99,7 @@ export default function ShippingStatusTable({
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   if (isLoading) {
     return (

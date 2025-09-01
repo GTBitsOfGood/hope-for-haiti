@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
@@ -12,8 +13,10 @@ import CommentModalDonorOffers from "@/components/DonorOffers/CommentModalDonorO
 import {
   DonorOfferItemsRequestsDTO,
   DonorOfferItemsRequestsResponse,
-} from "@/app/api/donorOffers/[donorOfferId]/types";
+} from "@/types/api/donorOffer.types";
 import { formatTableValue } from "@/utils/format";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
 
 /**
  * Search bar and buttons cover the menu bar when looking at mobile view.
@@ -22,7 +25,7 @@ import { formatTableValue } from "@/utils/format";
  * Bug where after reidrection, error is shown twice
  */
 
-function getPriorityColor(value: RequestPriority | ""): string {
+function getPriorityColor(value: string | RequestPriority | "" | null | undefined): string {
   switch (value) {
     case "LOW":
       return "rgba(10,123,64,0.2)";
@@ -35,7 +38,8 @@ function getPriorityColor(value: RequestPriority | ""): string {
   }
 }
 
-function titleCasePriority(value: RequestPriority): string {
+function titleCasePriority(value: string | RequestPriority): string {
+  if (!value) return "";
   const lower = value.toLowerCase();
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
@@ -47,7 +51,6 @@ export default function PartnerDynamicDonorOfferScreen() {
   // Main data states
   const [donorOfferName, setDonorOfferName] = useState("");
   const [items, setItems] = useState<DonorOfferItemsRequestsDTO[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
   // Modal states for comment updates
@@ -61,34 +64,31 @@ export default function PartnerDynamicDonorOfferScreen() {
     null
   );
 
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
-          method: "GET",
-        });
-        if (res.status === 404) {
-          toast.error("Donor offer not found");
-          router.push("/donorOffers");
-          return;
-        }
-        const data = (await res.json()) as DonorOfferItemsRequestsResponse;
-        setDonorOfferName(data.donorOfferName);
-        const items = data.donorOfferItemsRequests;
-        setItems(items);
-        if (items.some((item) => item.requestId === null)) {
-          setIsEditing(true);
-        }
-      } catch (error) {
+  const {
+    isLoading,
+    refetch: refetchDonorOffer,
+  } = useFetch<DonorOfferItemsRequestsResponse>(`/api/donorOffers/${donorOfferId}`, {
+    method: "GET",
+    onSuccess: (data) => {
+      setDonorOfferName(data.donorOfferName);
+      const items = data.donorOfferItemsRequests;
+      setItems(items);
+      if (items.some((item: DonorOfferItemsRequestsDTO) => item.requestId === null)) {
+        setIsEditing(true);
+      }
+    },
+    onError: (error) => {
+      if (error.includes("404")) {
+        toast.error("Donor offer not found");
+        router.push("/donorOffers");
+      } else {
         toast.error("Failed to fetch donor offer data");
         console.error("Fetch error:", error);
-      } finally {
-        setIsLoading(false);
       }
-    }, 500);
+    },
+  });
 
-    return () => clearTimeout(timer);
-  }, [donorOfferId, router]);
+  const { apiClient } = useApiClient();
 
   const updateItem = (
     index: number,
@@ -111,20 +111,14 @@ export default function PartnerDynamicDonorOfferScreen() {
       return toast.error("Must set priority if requesting an item");
 
     try {
-      const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
-        method: "POST",
+      await apiClient.post(`/api/donorOffers/${donorOfferId}`, {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requests: items }),
+        body: JSON.stringify({ requests: items })
       });
-      if (!res.ok) {
-        toast.error("Error updating donor offer items.");
-        return;
-      }
       toast.success("All changes saved to DB!");
       setIsEditing(false);
-    } catch (error) {
-      toast.error("Network error while updating donor offer items.");
-      console.error("Error in handleSubmitAll:", error);
+    } catch {
+      toast.error("Error updating donor offer items.");
     }
   };
 
@@ -160,29 +154,26 @@ export default function PartnerDynamicDonorOfferScreen() {
       comments: modalComment,
       priority: row.priority,
     };
+    // Update local state immediately for better UX
+    setItems((prev) =>
+      prev.map((r) =>
+        r.requestId === selectedRequestId
+          ? { ...r, comments: modalComment }
+          : r
+      )
+    );
+
     try {
-      const res = await fetch(`/api/donorOffers/${donorOfferId}`, {
-        method: "POST",
+      await apiClient.post(`/api/donorOffers/${donorOfferId}`, {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requests: [payloadRow] }),
+        body: JSON.stringify({ requests: [payloadRow] })
       });
-      if (!res.ok) {
-        toast.error("Error updating comment.");
-        return;
-      }
-      setItems((prev) =>
-        prev.map((r) =>
-          r.requestId === selectedRequestId
-            ? { ...r, comments: modalComment }
-            : r
-        )
-      );
-      toast.success("Comment updated!");
-    } catch (error) {
-      console.error("Error updating comment:", error);
+      toast.success("Comment updated successfully!");
+      setIsModalOpen(false);
+      refetchDonorOffer();
+    } catch {
       toast.error("Error updating comment.");
     }
-    setIsModalOpen(false);
   };
 
   const handleCloseModal = () => {
@@ -340,11 +331,13 @@ export default function PartnerDynamicDonorOfferScreen() {
                   </td>
                   <td className="px-4 py-3">
                     <button onClick={() => handleCommentClick(index)}>
-                      <img
+                      <Image
                         src="/assets/chat_sign.svg"
                         alt="Comment"
+                        width={20}
+                        height={20}
                         style={{ filter: commentIconFilter }}
-                        className={`w-5 h-5 ${
+                        className={`${
                           row.comments ? "opacity-90" : "opacity-30"
                         } hover:opacity-100`}
                       />

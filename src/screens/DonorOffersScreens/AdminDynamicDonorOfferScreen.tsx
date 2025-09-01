@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DotsThree, MagnifyingGlass, ShareFat } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import React from "react";
@@ -15,6 +15,8 @@ import {
 import toast from "react-hot-toast";
 import { formatTableValue } from "@/utils/format";
 import { Menu, MenuButton, MenuItems } from "@headlessui/react";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
 
 type DonorOfferItemWithRequests = DonorOfferItem & {
   requests: (DonorOfferItemRequest & {
@@ -29,10 +31,39 @@ export default function AdminDynamicDonorOfferScreen() {
   const { donorOfferId } = useParams();
 
   const [items, setItems] = useState<DonorOfferItemWithRequests[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [donorOffer, setDonorOffer] = useState<DonorOffer>();
   const [editing, setEditing] = useState(false);
   const [firstTime, setFirstTime] = useState(false);
+
+  const {
+    isLoading
+  } = useFetch<{ donorOffer: DonorOffer; itemsWithRequests: DonorOfferItemWithRequests[] }>(`/api/donorOffers/${donorOfferId}`, {
+    cache: "no-store",
+    onSuccess: (data) => {
+      const { donorOffer, itemsWithRequests } = data;
+      setItems(itemsWithRequests);
+      setDonorOffer(donorOffer);
+
+      if (
+        (itemsWithRequests as DonorOfferItemWithRequests[]).some(
+          (item) => item.requestQuantity === null
+        )
+      ) {
+        setEditing(true);
+        setFirstTime(true);
+      } else {
+        setEditing(false);
+      }
+    },
+    onError: (error) => {
+      toast.error("Error fetching item requests", {
+        position: "bottom-right",
+      });
+      console.error("Fetch error:", error);
+    },
+  });
+
+  const { apiClient } = useApiClient();
 
   const setRequestQuantity = (index: number, value: number) =>
     setItems((prev) => {
@@ -42,48 +73,9 @@ export default function AdminDynamicDonorOfferScreen() {
       return newVal;
     });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/donorOffers/${donorOfferId}`, {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          throw new Error();
-        }
-
-        const { donorOffer, itemsWithRequests } = await response.json();
-        setItems(itemsWithRequests);
-        setDonorOffer(donorOffer);
-
-        if (
-          (itemsWithRequests as DonorOfferItemWithRequests[]).some(
-            (item) => item.requestQuantity === null
-          )
-        ) {
-          setEditing(true);
-          setFirstTime(true);
-        } else {
-          setEditing(false);
-        }
-      } catch (e) {
-        toast.error("Error fetching item requests", {
-          position: "bottom-right",
-        });
-        console.log(e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [donorOfferId]);
-
-  const handleSave = () => {
-    (async () => {
-      const resp = await fetch(`/api/donorOffers/${donorOfferId}/requests`, {
-        method: "PUT",
+  const handleSave = async () => {
+    try {
+      await apiClient.put(`/api/donorOffers/${donorOfferId}/requests`, {
         body: JSON.stringify({
           requests: items.map((item) => ({
             title: item.title,
@@ -95,12 +87,12 @@ export default function AdminDynamicDonorOfferScreen() {
           })),
         }),
       });
-
-      if (!resp.ok) return toast.error("Error saving request data");
-
       setEditing(false);
       setFirstTime(false);
-    })();
+      toast.success("Request data saved successfully!");
+    } catch {
+      toast.error("Error saving request data");
+    }
   };
 
   return (

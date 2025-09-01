@@ -1,6 +1,6 @@
 import ModalTextField from "@/components/ModalTextField";
 import { X } from "@phosphor-icons/react";
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { FormState, ItemRequest } from "./MyRequests";
 
 interface MyRequestCommentModalProps {
@@ -18,13 +18,14 @@ export default function MyRequestCommentModal({
   open,
   setOpen,
 }: MyRequestCommentModalProps) {
+  const [initialComment] = useState(formState.comments);
   const handleSubmit = async () => {
     setOpen(false);
   };
 
   const handleClose = () => {
     setFormState((prevValue) => {
-      return { ...prevValue, comments: "" };
+      return { ...prevValue, comments: initialComment };
     });
     setOpen(false);
   };

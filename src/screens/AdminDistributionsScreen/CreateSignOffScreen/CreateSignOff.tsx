@@ -1,6 +1,6 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import CreateSignOffTable from "./CreateSignOffTable";
+import CreateSignOffTable from "@/components/CreateSignOff/CreateSignOffTable";
 import { useParams } from "next/navigation";
 import { DistributionRecord } from "@/types";
 

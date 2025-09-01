@@ -1,26 +1,43 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import { authenticationError, authorizationError, ok } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { errorResponse, ok } from "@/util/errors";
+import { UnallocatedItemService } from "@/services/unallocatedItemService";
+import UserService from "@/services/userService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextRequest } from "next/server";
+import { z } from "zod";
 
-const AUTHORIZED_USER_TYPES = [
-  UserType.ADMIN,
-  UserType.SUPER_ADMIN,
-] as UserType[];
+const paramSchema = z.object({
+  itemId: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().int().positive("Item ID must be a positive integer")),
+});
 
 export async function DELETE(
-  request: NextRequest,
+  _: NextRequest,
   { params }: { params: Promise<{ itemId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-  if (!AUTHORIZED_USER_TYPES.includes(session.user.type)) {
-    return authorizationError("Unauthorized");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
+    }
+
+    const { itemId } = await params;
+    const parsed = paramSchema.safeParse({ itemId: itemId });
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    await UnallocatedItemService.deleteItem(parsed.data.itemId);
+
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
   }
-  const itemId = parseInt((await params).itemId);
-
-  await db.item.delete({ where: { id: itemId } });
-
-  return ok();
 }

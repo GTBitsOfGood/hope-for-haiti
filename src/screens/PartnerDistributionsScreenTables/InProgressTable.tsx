@@ -3,7 +3,7 @@
 import React from "react";
 import ShipmentStatusLabel from "./ShipmentStatusLabel";
 import { format } from "date-fns";
-import { AllocatedItem } from "@/app/api/distributions/types";
+import { AllocatedItem } from "@/types/api/distribution.types";
 
 interface InProgressTableProps {
   items: AllocatedItem[];

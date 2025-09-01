@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { formatTableValue } from "@/utils/format";
@@ -9,7 +9,16 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { QuantizedGeneralItemStringDate } from "@/types";
+
+interface UnallocatedItemData {
+  title: string;
+  type: string;
+  quantity: number;
+  expirationDate: string | null;
+  unitType: string;
+  quantityPerUnit: number;
+}
+import { useFetch } from "@/hooks/useFetch";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -56,96 +65,69 @@ function generateFetchUrl(filterKey: ExpirationFilterKey): string {
 }
 
 export default function AdminUnallocatedItemsScreen() {
-  const [items, setItems] = useState<QuantizedGeneralItemStringDate[]>([]);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ExpirationFilterKey>(
     ExpirationFilterKey.ALL
   );
-  const [isLoading, setIsLoading] = useState(true);
 
-  const [addItemExpanded, setAddItemExpanded] = useState(false); // whether the 'add item' dropdown is expanded or not
-  const [isModalOpen, setIsModalOpen] = useState(false); // whether the add item modal form is open or not
+  const [addItemExpanded, setAddItemExpanded] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formSuccess, setFormSuccess] = useState(false);
+  
+  const [filteredItems, setFilteredItems] = useState<UnallocatedItemData[] | null>(null);
 
-  const [unitTypes, setUnitTypes] = useState<string[]>([]); // All the unit types
-  const [donorNames, setDonorNames] = useState<string[]>([]); // All the donor names
-  const [itemTypes, setItemTypes] = useState<string[]>([]); // All the item types
+  const {
+    isLoading,
+    refetch: refetchItems,
+    data
+  } = useFetch<{
+    items: UnallocatedItemData[];
+    unitTypes: string[];
+    donorNames: string[];
+    itemTypes: string[];
+  }>("/api/unallocatedItems", {
+    cache: "no-store",
+    onError: (error) => {
+      console.error("Error fetching unallocated items:", error);
+      toast.error("Failed to fetch unallocated items");
+    },
+  });
 
-  const [formSuccess, setFormSuccess] = useState(false); // whether the form was submitted successfully or not
+  const items = filteredItems || data?.items || [];
+  const unitTypes = data?.unitTypes || [];
+  const donorNames = data?.donorNames || [];
+  const itemTypes = data?.itemTypes || [];
 
-  const fetchData = useCallback(() => {
-    (async () => {
-      try {
-        const response = await fetch(generateFetchUrl(activeTab), {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          throw new Error("Failed to fetch unallocated items");
-        }
-
-        const data = await response.json();
-
-        setItems(data.items);
-        setUnitTypes(data.unitTypes);
-        setDonorNames(data.donorNames);
-        setItemTypes(data.itemTypes);
-      } catch (error) {
-        console.error("Error fetching unallocated items:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [activeTab]);
-
-  useEffect(fetchData, [fetchData, formSuccess]);
+  useEffect(() => {
+    if (formSuccess) {
+      refetchItems();
+      setFilteredItems(null);
+      setFormSuccess(false);
+    }
+  }, [formSuccess, refetchItems]);
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
-    setIsLoading(true);
-
-    let expirationDateBefore: string | null = null;
-    let expirationDateAfter: string | null = null;
-    const today = new Date();
-
-    if (key === ExpirationFilterKey.ZERO_TO_THREE) {
-      expirationDateBefore = new Date(
-        today.setMonth(today.getMonth() + 3)
-      ).toISOString();
-    } else if (key === ExpirationFilterKey.THREE_TO_SIX) {
-      expirationDateAfter = new Date(
-        today.setMonth(today.getMonth() + 3)
-      ).toISOString();
-      expirationDateBefore = new Date(
-        today.setMonth(today.getMonth() + 6)
-      ).toISOString();
-    } else if (key === ExpirationFilterKey.SIX_PLUS) {
-      expirationDateAfter = new Date(
-        today.setMonth(today.getMonth() + 6)
-      ).toISOString();
-    }
-
-    const url = new URL("/api/unallocatedItems", window.location.origin);
-    if (expirationDateBefore)
-      url.searchParams.set("expirationDateBefore", expirationDateBefore);
-    if (expirationDateAfter)
-      url.searchParams.set("expirationDateAfter", expirationDateAfter);
+    
     try {
-      const res = await fetch(url.toString());
-      if (!res.ok) {
-        throw new Error(`Error: ${res.status} ${res.statusText}`);
+      const response = await fetch(generateFetchUrl(key), {
+        cache: "no-store",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch filtered items");
       }
-      const data = await res.json();
-      setItems(data.items); // Update UI with API data
+      
+      const filterData = await response.json();
+      setFilteredItems(filterData.items);
     } catch (error) {
-      toast.error("Failed to fetch items");
       console.error("Filter fetch error:", error);
-    } finally {
-      setIsLoading(false);
+      toast.error("Failed to fetch items");
     }
   };
 
   return (
     <>
-      {/* The lists are added for the drop downs */}
       {isModalOpen ? (
         <AddItemModal
           setIsOpen={setIsModalOpen}

@@ -1,11 +1,11 @@
 "use client";
 
-import { SignedDistributions } from "@/app/api/distributions/types";
+import { SignedDistribution } from "@/types/api/distribution.types";
 import { useRouter } from "next/navigation";
 import React from "react";
 
 interface InProgressTableProps {
-  entries: SignedDistributions[];
+  entries: SignedDistribution[];
 }
 
 export default function CompleteTable({ entries }: InProgressTableProps) {

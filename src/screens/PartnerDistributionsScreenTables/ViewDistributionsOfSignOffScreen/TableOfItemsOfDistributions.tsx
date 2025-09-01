@@ -1,6 +1,6 @@
 "use client";
 
-import { DistributionItem } from "@/app/api/distributions/signOffs/[signOffId]/types";
+import { DistributionItem } from "@/types/api/distribution.types";
 import { format } from "date-fns";
 import React from "react";
 

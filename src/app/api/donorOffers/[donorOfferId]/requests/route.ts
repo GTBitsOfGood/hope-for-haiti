@@ -1,72 +1,66 @@
-import { auth } from "@/auth";
-import { db } from "@/db";
-import { GeneralItem } from "@/types";
-import { authenticationError, authorizationError, ok } from "@/util/responses";
-import { UserType } from "@prisma/client";
 import { NextRequest } from "next/server";
+import { z } from "zod";
 
-type GeneralItemRequest = GeneralItem & {
-  quantity: number;
-  expirationDate: string;
-};
+import { auth } from "@/auth";
+import DonorOfferService from "@/services/donorOfferService";
+import UserService from "@/services/userService";
+import {
+  ArgumentError,
+  AuthenticationError,
+  AuthorizationError,
+  errorResponse,
+  ok,
+} from "@/util/errors";
 
-interface RequestBody {
-  requests: GeneralItemRequest[];
-}
+const paramSchema = z.object({
+  donorOfferId: z
+    .string()
+    .transform((val) => parseInt(val))
+    .pipe(z.number().int().positive("Donor offer ID must be a positive integer")),
+});
+
+const requestBodySchema = z.object({
+  requests: z.array(z.object({
+    title: z.string(),
+    type: z.string(),
+    expirationDate: z.string(),
+    unitType: z.string(),
+    quantity: z.number().optional(),
+  })),
+});
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return authenticationError("Session required");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const { donorOfferId } = await params;
+    const parsed = paramSchema.safeParse({ donorOfferId });
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const rawBody = await req.json();
+    const bodyParsed = requestBodySchema.safeParse(rawBody);
+    
+    if (!bodyParsed.success) {
+      throw new ArgumentError(bodyParsed.error.message);
+    }
+
+    await DonorOfferService.updateDonorOfferRequests(parsed.data.donorOfferId, bodyParsed.data.requests);
+
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
   }
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  ) {
-    return authorizationError("Unauthorized");
-  }
-
-  const data: RequestBody = await req.json();
-
-  const donorOfferId = parseInt((await params).donorOfferId);
-
-  await db.$transaction(async (tx) => {
-    await Promise.all(
-      data.requests.map((itemRequest) => {
-        return new Promise(async (resolve) => {
-          const donorOfferItem = await tx.donorOfferItem.findFirst({
-            where: {
-              donorOfferId: donorOfferId,
-              title: itemRequest.title,
-              type: itemRequest.type,
-              expirationDate: itemRequest.expirationDate,
-              unitType: itemRequest.unitType,
-            },
-          });
-
-          if (!donorOfferItem)
-            return console.log(
-              `Couldn't find matching donor offer item: ${itemRequest.title}`
-            );
-
-          await tx.donorOfferItem.update({
-            where: {
-              id: donorOfferItem.id,
-            },
-            data: {
-              requestQuantity: itemRequest.quantity || 0,
-            },
-          });
-
-          resolve(null);
-        });
-      })
-    );
-  });
-
-  return ok();
 }

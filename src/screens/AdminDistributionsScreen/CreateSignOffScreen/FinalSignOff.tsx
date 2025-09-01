@@ -1,6 +1,6 @@
 import { Dispatch, Fragment, SetStateAction, useState } from "react";
-import FinalSignOffTable from "./FinalSignOffTable";
-import SignatureModal from "./SignatureModal";
+import FinalSignOffTable from "@/components/CreateSignOff/FinalSignOffTable";
+import SignatureModal from "@/components/CreateSignOff/SignatureModal";
 import Image from "next/image";
 import { DistributionRecordWithActualQuantity } from "@/types";
 

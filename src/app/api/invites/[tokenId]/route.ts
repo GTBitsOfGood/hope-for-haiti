@@ -1,34 +1,38 @@
-import { db } from "@/db";
-import { argumentError } from "@/util/responses";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
-interface Response {
-  email: string;
-  name: string;
-}
+import UserService from "@/services/userService";
+import {
+  ArgumentError,
+  errorResponse,
+} from "@/util/errors";
 
-/**
- * Returns the invite with the given token.
- *
- * @param token Token of the invite to find
- *
- * @returns 400 if invite does not exist or is expired
- * @returns {Response} and 200
- */
+const paramSchema = z.object({
+  tokenId: z
+    .string()
+    .min(1, "Token is required")
+    .trim(),
+});
+
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ tokenId: string }> }
 ) {
-  const { tokenId } = await params;
-  const invite = await db.userInvite.findUnique({
-    where: { token: tokenId },
-    select: { email: true, name: true, expiration: true },
-  });
-  if (!invite || invite.expiration < new Date())
-    return argumentError("Invalid invite token");
+  try {
+    const { tokenId } = await params;
+    
+    const parsed = paramSchema.safeParse({ tokenId });
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
 
-  return NextResponse.json<Response>({
-    email: invite.email,
-    name: invite.name,
-  });
+    const invite = await UserService.getUserInviteByToken(parsed.data.tokenId);
+    
+    return NextResponse.json({
+      email: invite.email,
+      name: invite.name,
+    }, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

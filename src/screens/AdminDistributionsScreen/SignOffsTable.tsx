@@ -1,7 +1,8 @@
 import { format } from "date-fns";
 import { useParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import toast from "react-hot-toast";
+import { useFetch } from "@/hooks/useFetch";
 
 interface SignOff {
   staffName: string;
@@ -14,16 +15,12 @@ interface SignOff {
 export default function SignOffsTable() {
   const { partnerId } = useParams();
 
-  const [signOffs, setSignOffs] = useState<SignOff[] | null>(null);
-  useEffect(() => {
-    (async () => {
-      const resp = await fetch(`/api/signOffs/${partnerId}`);
-      if (!resp.ok) return toast.error("Failed to get sign offs");
-
-      const data = await resp.json();
-      setSignOffs(data);
-    })();
-  }, [partnerId]);
+  const { data: signOffs } = useFetch<SignOff[]>(`/api/signOffs/${partnerId}`, {
+    onError: (error) => {
+      console.log(error);
+      toast.error("Failed to get sign offs");
+    },
+  });
 
   return (
     <div className="overflow-x-scroll pb-32">

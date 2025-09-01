@@ -7,8 +7,8 @@ import React from "react";
 import {
   AllocatedItem,
   PartnerDistributionsResponse,
-  SignedDistributions,
-} from "@/app/api/distributions/types";
+  SignedDistribution,
+} from "@/types/api/distribution.types";
 import InProgressTable from "./PartnerDistributionsScreenTables/InProgressTable";
 import CompleteTable from "./PartnerDistributionsScreenTables/CompleteTable";
 import { useSearchParams } from "next/navigation";
@@ -21,7 +21,7 @@ enum Tab {
 export default function PartnerUnallocatedItemsScreen() {
   const [items, setItems] = useState<AllocatedItem[]>([]);
   const [signedDistributions, setSignedDistributions] = useState<
-    SignedDistributions[]
+  SignedDistribution[]
   >([]);
   const defaultTab = useSearchParams().get("table")
     ? Tab.COMPLETE

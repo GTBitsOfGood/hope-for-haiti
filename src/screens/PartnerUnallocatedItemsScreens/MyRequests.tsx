@@ -9,12 +9,15 @@ import {
   PencilSimple,
   X,
 } from "@phosphor-icons/react";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import { priorityOptions } from "./UnallocatedItems";
 import MyRequestCommentModal from "./MyRequestCommentModal";
 import { cn } from "@/util/util";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
+import { RequestPriority } from "@prisma/client";
 
 export type ItemRequest = {
   id: number;
@@ -30,18 +33,18 @@ export type ItemRequest = {
 };
 
 export default function MyRequests() {
-  const [data, setData] = useState<ItemRequest[]>([]);
-
-  const fetchData = useCallback(async () => {
-    const resp = await fetch("/api/unallocatedItemRequest", {
+  const { data, refetch: refetchRequests } = useFetch<ItemRequest[]>(
+    "/api/unallocatedItemRequest",
+    {
       cache: "no-store",
-    });
-    setData(await resp.json());
-  }, []);
+      onError: (error) => {
+        console.error("Error fetching requests:", error);
+        toast.error("Failed to fetch requests");
+      },
+    }
+  );
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const requestsData = data || [];
 
   return (
     <>
@@ -90,12 +93,12 @@ export default function MyRequests() {
           </tr>
         </thead>
         <tbody>
-          {data?.map((item, index) => (
+          {requestsData.map((item, index) => (
             <MyRequestRow
               key={index}
               item={item}
               index={index}
-              refetch={fetchData}
+              refetch={refetchRequests}
             />
           ))}
         </tbody>
@@ -131,7 +134,9 @@ function MyRequestRow({ item, index, refetch }: Props) {
     comments: item.comments,
   });
 
-  const handleSubmit = () => {
+  const { isLoading: isUpdating, apiClient } = useApiClient();
+
+  const handleSubmit = async () => {
     const itemStr = `${item.title} (${item.expirationDate})`;
 
     if (!formState.priority)
@@ -139,9 +144,8 @@ function MyRequestRow({ item, index, refetch }: Props) {
     if (formState.quantity < 1)
       return toast.error(`Must request at least one of ${itemStr}`);
 
-    (async () => {
-      const resp = await fetch("/api/updateUnallocatedItemRequest", {
-        method: "POST",
+    try {
+      await apiClient.post("/api/updateUnallocatedItemRequest", {
         body: JSON.stringify({
           id: item.id,
           priority: formState.priority,
@@ -149,15 +153,12 @@ function MyRequestRow({ item, index, refetch }: Props) {
           comments: formState.comments,
         }),
       });
-
-      if (resp.ok) {
-        toast.success("Request submitted");
-        refetch();
-        setEditting(false);
-      } else {
-        toast.error("An error occurred");
-      }
-    })();
+      toast.success("Request submitted");
+      refetch();
+      setEditting(false);
+    } catch {
+      toast.error("An error occurred");
+    }
   };
 
   return (
@@ -257,8 +258,10 @@ function MyRequestRow({ item, index, refetch }: Props) {
               <X className="text-red-primary" size={20} />
             </div>
             <div
-              className="bg-blue-primary rounded-md size-7 flex items-center justify-center cursor-pointer"
-              onClick={handleSubmit}
+              className={`bg-blue-primary rounded-md size-7 flex items-center justify-center cursor-pointer ${
+                isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              onClick={isUpdating ? undefined : handleSubmit}
             >
               <Check className="text-white" size={20} />
             </div>

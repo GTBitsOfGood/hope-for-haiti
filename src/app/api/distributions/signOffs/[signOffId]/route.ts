@@ -1,77 +1,57 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import { authenticationError, notFoundError } from "@/util/responses";
-import { DistributionItem } from "./types";
-import { NextRequest, NextResponse } from "next/server";
+import { ArgumentError, AuthenticationError, AuthorizationError, NotFoundError } from "@/util/errors";
+import { errorResponse } from "@/util/errors";
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import UserService from "@/services/userService";
+import { SignOffService } from "@/services/signOffService";
+import { NextResponse } from "next/server";
 import { format } from "date-fns";
 
-/**
- * Gets the signed distributions for a given sign off ID.
- * @param _
- * @param param1
- * @returns
- */
+const paramSchema = z.object({
+  signOffId: z
+    .string()
+    .transform((val) => parseInt(val))
+    .pipe(z.number().int().positive("Sign off ID must be a positive integer")),
+});
+
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ signOffId: string }> }
 ) {
-  const session = await auth();
-  if (!session) {
-    return authenticationError("User not authenticated");
-  }
-  if (!session.user) {
-    return authenticationError("User not authenticated");
-  }
-
-  const signOffId = parseInt((await params).signOffId);
-  const signOff = await db.signOff.findUnique({
-    where: { id: signOffId },
-    include: { distributions: true },
-  });
-  if (!signOff) {
-    return notFoundError("Sign off not found");
-  }
-
-  const items: DistributionItem[] = [];
-  for (const distribution of signOff.distributions) {
-    let item = null;
-    let quantityAllocated = null;
-    if (distribution.unallocatedItemRequestAllocationId) {
-      const allocation = await db.unallocatedItemRequestAllocation.findUnique({
-        where: { id: distribution.unallocatedItemRequestAllocationId },
-        include: { unallocatedItem: true },
-      });
-      item = allocation?.unallocatedItem;
-      quantityAllocated = allocation?.quantity;
-
-      // console.log(allocation?.quantity);
-
-      if (item && quantityAllocated !== undefined)
-        items.push({
-          ...item,
-          quantityAllocated: quantityAllocated,
-        });
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
     }
-    if (distribution.donorOfferItemRequestAllocationId) {
-      const allocation = await db.donorOfferItemRequestAllocation.findUnique({
-        where: { id: distribution.donorOfferItemRequestAllocationId },
-        include: { item: true },
-      });
-      item = allocation?.item;
-      quantityAllocated = allocation?.quantity;
 
-      if (item && quantityAllocated !== undefined)
-        items.push({
-          ...item,
-          quantityAllocated: quantityAllocated,
-        });
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
-  }
 
-  return NextResponse.json({
-    itemDistributions: items,
-    signOff: {
-      date: format(signOff.date, "MM/dd/yyyy"),
-    },
-  });
+    const resolvedParams = await params;
+    const parsed = paramSchema.safeParse({
+      signOffId: resolvedParams.signOffId,
+    });
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const { signOffId } = parsed.data;
+    
+    const signOff = await SignOffService.getSignOffById(signOffId);
+    if (!signOff) {
+      throw new NotFoundError("Sign off not found");
+    }
+    
+    return NextResponse.json({
+      itemDistributions: signOff.distributions,
+      signOff: {
+        date: format(signOff.date, "MM/dd/yyyy"),
+      },
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

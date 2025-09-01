@@ -1,84 +1,64 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import {
-  authenticationError,
-  authorizationError,
-  argumentError,
-} from "@/util/responses";
-import { parseDateIfDefined } from "@/util/util";
-import { UserType } from "@prisma/client";
+import { errorResponse } from "@/util/errors";
+import { UnallocatedItemService } from "@/services/unallocatedItemService";
+import UserService from "@/services/userService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const paramSchema = z.object({
   title: z.string(),
   type: z.string(),
-  expirationDate: z.string().nullable(), // some items have undefined expiration
+  expirationDate: z
+    .string()
+    .nullable()
+    .transform((val) => {
+      if (!val) return null;
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? null : date;
+    }),
   unitType: z.string(),
-  quantityPerUnit: z.string(),
+  quantityPerUnit: z
+    .string()
+    .transform((val) => parseInt(val))
+    .pipe(z.number().int().positive("Quantity per unit must be a positive integer")),
 });
 
-/**
- * Handles GET requests to retrieve unallocated line items.
- * @param request - the incoming request (unused)
- * @param params - the item id to retrieve unallocated item requests for
- * @returns 400 if the search params are missing or invalid
- * @returns 401 if the session is invalid
- * @returns 403 if the user type isn't staff, admin, or super admin
- * @returns 200 and a json response with the items
- */
 export async function GET(request: NextRequest) {
-  // Validate session
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  )
-    return authorizationError("Unauthorized");
-
-  const params = request.nextUrl.searchParams;
-
-  const parsed = paramSchema.safeParse({
-    title: params.get("title"),
-    type: params.get("type"),
-    expirationDate: params.get("expirationDate"),
-    unitType: params.get("unitType"),
-    quantityPerUnit: params.get("quantityPerUnit"),
-  });
-
-  if (!parsed.success) {
-    return argumentError("Invalid search parameters");
-  }
-
-  let expirationDate: Date | null;
-  if (parsed.data.expirationDate) {
-    expirationDate = parseDateIfDefined(parsed.data.expirationDate) ?? null;
-    if (expirationDate === null) {
-      return argumentError("Expiration must be a valid ISO-8601 timestamp");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
     }
-  } else {
-    expirationDate = null;
-  }
 
-  const quantityPerUnit = parseInt(parsed.data.quantityPerUnit);
-  if (isNaN(quantityPerUnit)) {
-    return argumentError("Quantity per unit must be an integer");
-  }
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
 
-  // Get all unallocated item requests for the specified item
-  const items = await db.item.findMany({
-    where: {
+    const params = request.nextUrl.searchParams;
+
+    const parsed = paramSchema.safeParse({
+      title: params.get("title"),
+      type: params.get("type"),
+      expirationDate: params.get("expirationDate"),
+      unitType: params.get("unitType"),
+      quantityPerUnit: params.get("quantityPerUnit"),
+    });
+
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const result = await UnallocatedItemService.getLineItems({
       title: parsed.data.title,
       type: parsed.data.type,
-      expirationDate: expirationDate ?? null,
+      expirationDate: parsed.data.expirationDate,
       unitType: parsed.data.unitType,
-      quantityPerUnit,
-    },
-  });
+      quantityPerUnit: parsed.data.quantityPerUnit,
+    });
 
-  return NextResponse.json({
-    items,
-  });
+    return NextResponse.json(result, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

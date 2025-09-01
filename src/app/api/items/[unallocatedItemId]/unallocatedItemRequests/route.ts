@@ -1,61 +1,48 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import {
-  argumentError,
-  authenticationError,
-  authorizationError,
-} from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { errorResponse } from "@/util/errors";
+import { ItemService } from "@/services/itemService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import UserService from "@/services/userService";
 
-interface UnallocatedItemRequestsResponse {
-  unallocatedItemRequests: {
-    id: number;
-    partnerId: number;
-    quantity: number;
-    comments: string;
-  }[];
-}
+const paramSchema = z.object({
+  unallocatedItemId: z.string().transform((val) => {
+    const parsed = parseInt(val);
+    if (isNaN(parsed)) {
+      throw new Error("unallocatedItemId must be a valid number");
+    }
+    return parsed;
+  }),
+});
 
-/**
- * Handles GET requests to retrieve unallocated item requests that relate to an item id.
- * @param request - the incoming request (unused)
- * @param params - the item id to retrieve unallocated item requests for
- * @returns 401 if the session is invalid
- * @returns 403 if the user type isn't staff, admin, or super admin
- * @returns 400 if the item id is not an integer
- * @returns 200 and a json response with the unallocated item requests
- */
 export async function GET(
-  request: Request,
+  _: Request,
   { params }: { params: Promise<{ unallocatedItemId: string }> }
 ) {
-  // Validate session
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  )
-    return authorizationError("Unauthorized");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-  // Get item id from request parameters
-  const itemId = parseInt((await params).unallocatedItemId);
-  if (isNaN(itemId)) return argumentError("Item Id must be an integer");
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
 
-  // Get all unallocated item requests for the specified item
-  const unallocatedItemRequests = await db.unallocatedItemRequest.findMany({
-    // where: { itemId },
-    select: {
-      id: true,
-      partnerId: true,
-      quantity: true,
-      comments: true,
-    },
-  });
+    const resolvedParams = await params;
+    const parsed = paramSchema.safeParse(resolvedParams);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
 
-  return NextResponse.json({
-    unallocatedItemRequests,
-  } as UnallocatedItemRequestsResponse);
+    const unallocatedItemRequests = await ItemService.getUnallocatedItemRequestsForItem(parsed.data.unallocatedItemId);
+
+    return NextResponse.json({
+      unallocatedItemRequests,
+    }, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

@@ -1,49 +1,51 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import {
-  argumentError,
-  authenticationError,
-  notFoundError,
-} from "@/util/responses";
-import { UserType } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { ArgumentError, AuthenticationError, AuthorizationError, NotFoundError } from "@/util/errors";
+import { errorResponse } from "@/util/errors";
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import UserService from "@/services/userService";
+import { PartnerService } from "@/services/partnerService";
+import { SignOffService } from "@/services/signOffService";
+import { NextResponse } from "next/server";
 
-/**
- * Gets the sign offs for a given partner ID.
- * @param _
- * @param param1
- * @returns
- */
+const paramSchema = z.object({
+  partnerId: z
+    .string()
+    .transform((val) => parseInt(val))
+    .pipe(z.number().int().positive("Partner ID must be a positive integer")),
+});
+
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session) {
-    return authenticationError("User not authenticated");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const params = request.nextUrl.searchParams;
+    const parsed = paramSchema.safeParse({
+      partnerId: params.get("partnerId"),
+    });
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const { partnerId } = parsed.data;
+    
+    const partner = await PartnerService.getPartnerById(partnerId);
+    if (!partner) {
+      throw new NotFoundError("Partner not found");
+    }
+    
+    const signOffs = await SignOffService.getSignOffsByPartner(partnerId);
+    
+    return NextResponse.json({ items: signOffs });
+  } catch (error) {
+    return errorResponse(error);
   }
-  if (!session.user) {
-    return authenticationError("User not authenticated");
-  }
-
-  const partnerUserId = request.nextUrl.searchParams.get("partnerId");
-  if (!partnerUserId) return argumentError("Partner user ID is missing");
-
-  const partnerIdNum = parseInt(partnerUserId);
-  if (isNaN(partnerIdNum)) return argumentError("Invalid partner user ID");
-
-  const partner = await db.user.findUnique({ where: { id: partnerIdNum } });
-  if (!partner || partner.type !== UserType.PARTNER) {
-    return argumentError("Partner not found");
-  }
-
-  const signOff = await db.signOff.findMany({
-    where: { partnerId: partner.id },
-    include: { distributions: true },
-  });
-
-  if (!signOff) {
-    return notFoundError("Sign off not found");
-  }
-
-  return NextResponse.json({
-    items: signOff,
-  });
 }

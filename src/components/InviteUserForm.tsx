@@ -4,6 +4,7 @@ import { useState } from "react";
 import { UserType } from "@prisma/client";
 import { Open_Sans } from "next/font/google";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -89,10 +90,11 @@ export default function InviteUserForm({
               You can view the current status from the account management page.
             </p>
             <div className="flex justify-center mb-8">
-              <img
+              <Image
                 src="/assets/blue_arrow.svg"
                 alt="Success"
-                className="w-30 h-30"
+                width={120}
+                height={120}
               />
             </div>
 

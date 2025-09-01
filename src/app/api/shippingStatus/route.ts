@@ -1,134 +1,65 @@
-import {
-  argumentError,
-  authenticationError,
-  authorizationError,
-  ok,
-} from "@/util/responses";
-import { db } from "@/db";
 import { auth } from "@/auth";
-import { UserType, Item, ShippingStatus, ShipmentStatus } from "@prisma/client";
+import { errorResponse, ok } from "@/util/errors";
+import { ShippingStatusService } from "@/services/shippingStatusService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
+import { ShipmentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import UserService from "@/services/userService";
 
-const ALLOWED_USER_TYPES: UserType[] = [
-  UserType.ADMIN,
-  UserType.STAFF,
-  UserType.SUPER_ADMIN,
-];
+const updateShippingStatusSchema = z.object({
+  donorShippingNumber: z.string(),
+  hfhShippingNumber: z.string(),
+  value: z.nativeEnum(ShipmentStatus),
+});
 
-/**
- * Handles GET requests to retrieve unallocated items from the items table.
- * Parameters are passed in the URL query string.
- * @params expirationDateBefore: ISO-8601 timestamp that returned items expire before
- * @params expirationDateAfter: ISO-8601 timestamp that returned items expire after
- * @returns 401 if the session is invalid
- * @returns 400 if expirationDateAfter or expirationDateBefore are invalid ISO-8601 timestamps
- * @returns 200 and a json response with the unallocated items
- */
 export async function GET() {
-  const session = await auth();
-  if (!session?.user) {
-    return authenticationError("Session required");
-  }
-
-  if (!ALLOWED_USER_TYPES.includes(session.user.type)) {
-    return authorizationError("You are not authorized to access this resource");
-  }
-
-  const shippingNumberPairs = await db.item.findMany({
-    where: {
-      donorShippingNumber: { not: null },
-      hfhShippingNumber: { not: null },
-    },
-    distinct: ["donorShippingNumber", "hfhShippingNumber"],
-  });
-
-  const itemMap: Item[][] = [];
-  const statuses: ShippingStatus[] = [];
-  let i = 0;
-  for (const pair of shippingNumberPairs) {
-    const donorShippingNumber = pair.donorShippingNumber as string;
-    const hfhShippingNumber = pair.hfhShippingNumber as string;
-    const status = await db.shippingStatus.findFirst({
-      where: {
-        donorShippingNumber: donorShippingNumber,
-        hfhShippingNumber: hfhShippingNumber,
-      },
-    });
-    if (status) {
-      statuses.push({ ...status, id: i });
-    } else {
-      statuses.push({
-        id: i,
-        donorShippingNumber: donorShippingNumber,
-        hfhShippingNumber: hfhShippingNumber,
-        value: "WAITING_ARRIVAL_FROM_DONOR",
-      });
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
     }
 
-    const items = await db.item.findMany({
-      where: {
-        donorShippingNumber: donorShippingNumber,
-        hfhShippingNumber: hfhShippingNumber,
-      },
-    });
-    itemMap.push(items);
-    i++;
-  }
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
 
-  return NextResponse.json({
-    shippingStatuses: statuses,
-    items: itemMap,
-  });
+    const result = await ShippingStatusService.getShippingStatuses();
+
+    return NextResponse.json(result, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return authenticationError("Session required");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const url = new URL(req.url);
+    const searchParams = {
+      donorShippingNumber: url.searchParams.get("donorShippingNumber"),
+      hfhShippingNumber: url.searchParams.get("hfhShippingNumber"),
+      value: url.searchParams.get("value"),
+    };
+
+    const parsed = updateShippingStatusSchema.safeParse(searchParams);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    await ShippingStatusService.updateShippingStatus(parsed.data);
+
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
   }
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  ) {
-    return authorizationError("Unauthorized");
-  }
-
-  const url = new URL(req.url);
-  const donorShippingNumber = url.searchParams.get("donorShippingNumber");
-  const hfhShippingNumber = url.searchParams.get("hfhShippingNumber");
-  const valueStr = url.searchParams.get("value");
-
-  if (!donorShippingNumber || !hfhShippingNumber || !valueStr) {
-    return argumentError(
-      "Must set donorShippingNumber, hfhShippingNumber, and value params"
-    );
-  }
-
-  if (!Object.keys(ShipmentStatus).includes(valueStr)) {
-    return argumentError(
-      `Value must be one of: ${Object.keys(ShipmentStatus).join(", ")}`
-    );
-  }
-
-  const value = valueStr as ShipmentStatus;
-
-  await db.shippingStatus.upsert({
-    where: {
-      donorShippingNumber_hfhShippingNumber: {
-        donorShippingNumber,
-        hfhShippingNumber,
-      },
-    },
-    update: {
-      value,
-    },
-    create: {
-      donorShippingNumber,
-      hfhShippingNumber,
-      value,
-    },
-  });
-
-  return ok();
 }

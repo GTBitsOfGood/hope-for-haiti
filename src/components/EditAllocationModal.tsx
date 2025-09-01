@@ -8,7 +8,7 @@ import ModalTextField from "./ModalTextField";
 import ModalAutoTextField from "./ModalAutoTextField";
 import toast from "react-hot-toast";
 import { editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
-import { UnallocatedItem } from "@/app/api/unallocatedItemRequests/types";
+import { UnallocatedItem } from "@/types/api/unallocatedItem.types";
 import { Item, UnallocatedItemRequestAllocation } from "@prisma/client";
 
 interface EditAllocationModalProps {

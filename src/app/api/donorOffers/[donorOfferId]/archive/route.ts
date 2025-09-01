@@ -1,29 +1,47 @@
-import { auth } from "@/auth";
-import { db } from "@/db";
-import { authenticationError, authorizationError, ok } from "@/util/responses";
-import { DonorOfferState, UserType } from "@prisma/client";
 import { NextRequest } from "next/server";
+import { z } from "zod";
+
+import { auth } from "@/auth";
+import UserService from "@/services/userService";
+import DonorOfferService from "@/services/donorOfferService";
+import {
+  ArgumentError,
+  AuthenticationError,
+  AuthorizationError,
+  errorResponse,
+  ok,
+} from "@/util/errors";
+
+const paramSchema = z.object({
+  donorOfferId: z
+    .string()
+    .transform((val) => parseInt(val))
+    .pipe(z.number().int().positive("Invalid donor offer ID")),
+});
 
 export async function POST(
-  req: NextRequest,
+  _: NextRequest,
   { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-  if (
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN &&
-    session.user.type !== UserType.STAFF
-  ) {
-    return authorizationError("Unauthorized user type");
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const { donorOfferId } = await params;
+    const parsed = paramSchema.safeParse({ donorOfferId });
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    await DonorOfferService.archiveDonorOffer(parsed.data.donorOfferId);
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
   }
-
-  const donorOfferId = parseInt((await params).donorOfferId);
-  await db.donorOffer.update({
-    where: { id: donorOfferId },
-    data: { state: DonorOfferState.ARCHIVED },
-  });
-
-  return ok();
 }

@@ -29,7 +29,7 @@ export default function PartnerUnallocatedItemsScreen() {
               className="px-2 py-1 text-md font-medium text-gray-primary text-opacity-70 relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-gray-primary data-[active=true]:bottom-[-1px] data-[active=true]:text-opacity-100"
               onClick={() => {
                 setActiveItemTab(tab);
-              }} // !! TODO: Implement tab switching when My Requests screen is implemented !!
+              }}
             >
               <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
             </button>

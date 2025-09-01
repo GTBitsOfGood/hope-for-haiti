@@ -2,50 +2,29 @@
 
 import { formatTableValue } from "@/utils/format";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
 import { CgSpinner } from "react-icons/cg";
-
-/**
- * Search bar covers the menu bar when looking at mobile view.
- *  - It's because of the z-layer of the search bar is too high.
- */
 import { useRouter } from "next/navigation";
+import { useFetch } from "@/hooks/useFetch";
+import { DonorOfferDto } from "@/types/ui/donorOffer.types";
 
-interface DonorOfferDTO {
-  donorOfferId: number;
-  offerName: string;
-  donorName: string;
-  responseDeadline: Date;
-  state: "pending" | "submitted" | "closed" | null;
-}
+
 
 export default function PartnerDonorOffersScreen() {
-  const [isLoading, setIsLoading] = useState(true); // Manage table loading state
-  const [donorOffers, setDonorOffers] = useState<DonorOfferDTO[]>([]); // Hold donor offers
   const router = useRouter();
 
-  useEffect(() => {
-    setTimeout(async () => {
-      const response = await fetch("/api/donorOffers", {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      const formattedData = data.map((offer: DonorOfferDTO) => ({
-        ...offer,
-        responseDeadline: new Date(offer.responseDeadline),
-      }));
-      setDonorOffers(formattedData);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+  const {
+    data: rawDonorOffers,
+    isLoading,
+  } = useFetch<DonorOfferDto[]>("/api/donorOffers", {
+    method: "GET",
+    cache: "no-store",
+  });
 
-  useEffect(() => {
-    console.log(
-      "Donor Offer Keys:",
-      donorOffers.map((offer) => offer.donorOfferId)
-    );
-  }, [donorOffers]);
+  // Format the data to ensure responseDeadline is a Date object
+  const donorOffers = (rawDonorOffers || []).map((offer) => ({
+    ...offer,
+    responseDeadline: new Date(offer.responseDeadline),
+  }));
 
   return (
     <>

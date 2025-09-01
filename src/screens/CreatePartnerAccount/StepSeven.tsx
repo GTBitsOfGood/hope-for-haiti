@@ -22,10 +22,10 @@ export default function StepSeven({
 }: StepSevenProps) {
   return (
     <>
-      <h2 className="text-[24px] font-bold text-[#22070B] mb-2 font-[Open_Sans]">
+      <h2 className="text-[24px] font-bold text-[#22070B] mb-2">
         Create partner account
       </h2>
-      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5 font-[Open_Sans]">
+      <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-5">
         Finances
       </h3>
 
@@ -35,7 +35,7 @@ export default function StepSeven({
       <textarea
         className="w-full h-[160px] p-3 border border-[#22070B]/10 bg-[#F9F9F9] 
         text-[16px] text-[#22070B] placeholder:text-[#22070B]/50 
-        font-[Open_Sans] rounded-[4px] resize-none mb-8"
+        rounded-[4px] resize-none mb-8"
         placeholder="Paragraph"
         name="patientsWhoCannotPay"
         value={partnerDetails.patientsWhoCannotPay || ""}
@@ -47,7 +47,7 @@ export default function StepSeven({
       </label>
       <input
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-        text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
+        text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] mb-8"
         placeholder="Percentage"
         name="percentageOfPatientsNeedingFinancialAid"
         value={partnerDetails.percentageOfPatientsNeedingFinancialAid || ""}
@@ -59,7 +59,7 @@ export default function StepSeven({
       </label>
       <input
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-        text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
+        text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] mb-8"
         placeholder="Percentage"
         name="percentageOfPatientsReceivingFreeTreatment"
         value={partnerDetails.percentageOfPatientsReceivingFreeTreatment || ""}
@@ -140,7 +140,7 @@ export default function StepSeven({
       </label>
       <input
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-        text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
+        text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] mb-8"
         placeholder="List"
         name="numberOfTreatmentsPrescribedAnnually"
         value={partnerDetails.numberOfTreatmentsPrescribedAnnually || ""}
@@ -186,7 +186,7 @@ export default function StepSeven({
             ] === "true" && (
               <input
                 className="w-3/5 p-2 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-                text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] 
+                text-[#22070B] placeholder:text-[#22070B]/50 
                 rounded-[4px] ml-auto"
                 placeholder="Number"
                 name={`${key}ServedLastYear`}
@@ -203,7 +203,7 @@ export default function StepSeven({
       </label>
       <input
         className="w-full p-3 border border-[#22070B]/10 bg-[#F9F9F9] text-[16px] 
-        text-[#22070B] placeholder:text-[#22070B]/50 font-[Open_Sans] rounded-[4px] mb-8"
+        text-[#22070B] placeholder:text-[#22070B]/50 rounded-[4px] mb-8"
         placeholder="List"
         name="totalPatientsServedLastYear"
         value={partnerDetails.totalPatientsServedLastYear || ""}
@@ -212,20 +212,20 @@ export default function StepSeven({
 
       <div className="flex justify-between mt-6">
         <button
-          className="text-mainRed font-semibold font-[Open_Sans]"
+          className="text-mainRed font-semibold"
           onClick={handleCancelClick}
         >
           Cancel account creation
         </button>
         <div>
           <button
-            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4 font-[Open_Sans]"
+            className="border border-mainRed text-mainRed px-6 py-3 rounded-[4px] font-semibold mr-4"
             onClick={prevStep}
           >
             Previous
           </button>
           <button
-            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold font-[Open_Sans]"
+            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold"
             onClick={nextStep}
           >
             Next

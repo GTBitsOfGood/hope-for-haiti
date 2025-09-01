@@ -1,58 +1,51 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import { SignedOffDistribution } from "@/types";
-import { authenticationError, authorizationError, ok } from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { errorResponse, ok } from "@/util/errors";
+import { SignOffService } from "@/services/signOffService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextRequest } from "next/server";
+import { z } from "zod";
+import UserService from "@/services/userService";
 
-interface RequestBody {
-  partnerId: string | number;
-  staffName: string;
-  partnerName: string;
-  date: string;
-  signatureBlob: string;
-  distributions: SignedOffDistribution[];
-}
+const createSignOffSchema = z.object({
+  partnerId: z.union([z.string(), z.number()]).transform((val) => 
+    typeof val === 'string' ? parseInt(val) : val
+  ),
+  staffName: z.string(),
+  partnerName: z.string(),
+  date: z.string(),
+  signatureBlob: z.string(),
+  distributions: z.array(z.object({
+    allocationType: z.enum(["unallocated", "donorOffer"]),
+    allocationId: z.number(),
+    actualQuantity: z.number(),
+  })),
+});
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return authenticationError("Session required");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const reqBody = await req.json();
+    const parsed = createSignOffSchema.safeParse(reqBody);
+    
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    await SignOffService.createSignOff({
+      ...parsed.data,
+      date: new Date(parsed.data.date),
+    });
+
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
   }
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  ) {
-    return authorizationError("Unauthorized");
-  }
-
-  const data: RequestBody = await req.json();
-  data.partnerId = parseInt(data.partnerId as string);
-
-  await db.signOff.create({
-    data: {
-      staffMemberName: data.staffName,
-      partnerName: data.partnerName,
-      date: new Date(data.date),
-      partnerId: data.partnerId,
-      distributions: {
-        createMany: {
-          data: data.distributions.map((dist) => ({
-            partnerId: data.partnerId as number,
-            ...(dist.allocationType === "unallocated"
-              ? {
-                  unallocatedItemRequestAllocationId: dist.allocationId,
-                }
-              : {
-                  donorOfferItemRequestAllocationId: dist.allocationId,
-                }),
-            actualQuantity: dist.actualQuantity,
-          })),
-        },
-      },
-    },
-  });
-
-  return ok();
 }

@@ -1,35 +1,27 @@
 import { auth } from "@/auth";
-import { authenticationError, authorizationError } from "@/util/responses";
+import { errorResponse } from "@/util/errors";
+import { PartnerService } from "@/services/partnerService";
+import { AuthenticationError, AuthorizationError } from "@/util/errors";
 import { NextResponse } from "next/server";
-import { UserType } from "@prisma/client";
-import { db } from "@/db";
+import UserService from "@/services/userService";
 
-interface Response {
-  partnerEmails: string[];
-}
-
-const AUTHORIZED_USER_TYPES = [UserType.SUPER_ADMIN] as UserType[];
-
-/**
- * Retrieves a list of names, emails, and number of unallocated item requests for all partners.
- * @returns 401 if the request is not authenticated
- * @returns 403 if the user is not STAFF, ADMIN, or SUPER_ADMIN
- * @returns 200 and a list of partner names, details, and unallocated item counts
- */
 export async function GET(): Promise<NextResponse> {
-  const session = await auth();
-  if (!session?.user) return authenticationError("Session required");
-  if (!AUTHORIZED_USER_TYPES.includes(session.user.type))
-    return authorizationError("You are not allowed to view this");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-  const partners = await db.user.findMany({
-    where: { type: UserType.PARTNER },
-    select: {
-      email: true,
-    },
-  });
+    if (!UserService.isSuperAdmin(session.user.type)) {
+      throw new AuthorizationError("Must be SUPER_ADMIN");
+    }
 
-  return NextResponse.json<Response>({
-    partnerEmails: partners.map((p) => p.email),
-  });
+    const partnerEmails = await PartnerService.getPartnerEmails();
+
+    return NextResponse.json({
+      partnerEmails,
+    }, { status: 200 });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

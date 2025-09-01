@@ -1,124 +1,63 @@
 import { auth } from "@/auth";
-import { db } from "@/db";
-import {
-  argumentError,
-  authenticationError,
-  authorizationError,
-} from "@/util/responses";
-import { UserType } from "@prisma/client";
+import { errorResponse } from "@/util/errors";
+import { UnallocatedItemService } from "@/services/unallocatedItemService";
+import UserService from "@/services/userService";
+import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
-import { UnallocatedItem } from "./types";
+import { z } from "zod";
 
-/**
- * Handles GET requests to fetch unallocated item requests. For the flow, also returns the items with an extra attribute quantity left.
- * Requires query params title, type, expiration, and unitSize.
- * @param req - the incoming request
- * @returns 200 with all requests and their allocations
- * @returns 400 if the query parameters are invalid
- * @returns 401 if the session is invalid
- * @returns 403 if the user is not staff, admin, or super-admin
- */
+const paramSchema = z.object({
+  title: z.string(),
+  type: z.string(),
+  expirationDate: z
+    .string()
+    .nullable()
+    .transform((val) => {
+      if (!val) return null;
+      const date = new Date(val);
+      return isNaN(date.getTime()) ? null : date;
+    }),
+  unitType: z.string(),
+  quantityPerUnit: z
+    .string()
+    .transform((val) => parseInt(val))
+    .pipe(z.number().int().positive("Quantity per unit must be a positive integer")),
+});
+
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session) return authenticationError("Session required");
-  if (!session?.user) return authenticationError("User not found");
-
-  if (
-    session.user.type !== UserType.STAFF &&
-    session.user.type !== UserType.ADMIN &&
-    session.user.type !== UserType.SUPER_ADMIN
-  ) {
-    return authorizationError("Unauthorized");
-  }
-
-  const url = new URL(req.url);
-  const title = url.searchParams.get("title");
-  const type = url.searchParams.get("type");
-  const expirationDateParam = url.searchParams.get("expirationDate");
-  const unitType = url.searchParams.get("unitType");
-  const quantityPerUnitParam = url.searchParams.get("quantityPerUnit");
-  if (!title || !type || !unitType || !quantityPerUnitParam) {
-    return argumentError("Missing required query parameters");
-  }
-  const quantityPerUnit = parseInt(quantityPerUnitParam);
-  if (isNaN(quantityPerUnit)) {
-    return argumentError("Invalid quantityPerUnitParam parameter");
-  }
-
-  const expirationDate = expirationDateParam
-    ? new Date(expirationDateParam)
-    : null;
-  if (expirationDate && isNaN(expirationDate.getTime())) {
-    return argumentError("Invalid expiration parameter");
-  }
-
   try {
-    const requests = await db.unallocatedItemRequest.findMany({
-      where: {
-        title: title,
-        type: type,
-        expirationDate: expirationDate,
-        unitType: unitType,
-        quantityPerUnit: quantityPerUnit,
-      },
-      include: {
-        partner: {
-          select: {
-            name: true,
-          },
-        },
-      },
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const url = new URL(req.url);
+    const parsed = paramSchema.safeParse({
+      title: url.searchParams.get("title"),
+      type: url.searchParams.get("type"),
+      expirationDate: url.searchParams.get("expirationDate"),
+      unitType: url.searchParams.get("unitType"),
+      quantityPerUnit: url.searchParams.get("quantityPerUnit"),
     });
 
-    const allocations = await Promise.all(
-      requests.map(async (request) => {
-        return await db.unallocatedItemRequestAllocation.findMany({
-          where: {
-            unallocatedItemRequestId: request.id,
-          },
-          include: {
-            unallocatedItem: true,
-          },
-        });
-      })
-    );
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
 
-    const items = await db.item.findMany({
-      where: {
-        title: title,
-        type: type,
-        expirationDate: expirationDate,
-        unitType: unitType,
-        quantityPerUnit: quantityPerUnit,
-      },
+    const result = await UnallocatedItemService.getUnallocatedItemRequests({
+      title: parsed.data.title,
+      type: parsed.data.type,
+      expirationDate: parsed.data.expirationDate,
+      unitType: parsed.data.unitType,
+      quantityPerUnit: parsed.data.quantityPerUnit,
     });
-    const modifiedItems: UnallocatedItem[] = await Promise.all(
-      items.map(async (item) => {
-        const quantityAllocated =
-          await db.unallocatedItemRequestAllocation.aggregate({
-            _sum: {
-              quantity: true,
-            },
-            where: {
-              itemId: item.id,
-            },
-          });
-        return {
-          ...item,
-          quantityLeft: item.quantity - (quantityAllocated._sum.quantity || 0),
-        };
-      })
-    );
 
-    return NextResponse.json({
-      requests: requests.map((request, index) => ({
-        ...request,
-        allocations: allocations[index],
-      })),
-      items: modifiedItems,
-    });
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    console.error("Error fetching unallocated item requests:", error);
-    return argumentError("Failed to fetch unallocated item requests");
+    return errorResponse(error);
   }
 }
