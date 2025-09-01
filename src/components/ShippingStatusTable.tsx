@@ -1,8 +1,11 @@
 import { ShippingStatus, Item, ShipmentStatus } from "@prisma/client";
 import { CgChevronRight, CgSpinner } from "react-icons/cg";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
 import { useParams } from "next/navigation";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
+import { toast } from "react-hot-toast";
 
 interface ShippingStatusTableProps {
   openModal: (
@@ -46,63 +49,45 @@ const statusOptions = [
   },
 ];
 
+interface ShippingStatusData {
+  shippingStatuses: ShippingStatus[];
+  items: Item[][];
+}
+
 export default function ShippingStatusTable({
   openModal,
 }: ShippingStatusTableProps) {
   const { partnerId } = useParams();
+  const { apiClient } = useApiClient();
 
-  const [shippingStatuses, setShippingStatuses] = useState<ShippingStatus[]>(
-    []
+  const { data, isLoading, error, refetch } = useFetch<ShippingStatusData>(
+    `/api/shippingStatus/${partnerId}`,
+    {
+      onError: (error) => {
+        toast.error(`Failed to fetch shipping statuses: ${error}`);
+      },
+    }
   );
 
-  const [items, setItems] = useState<ItemEntry[][]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  const fetchData = useCallback(() => {
-    (async () => {
-      const response = await fetch(`/api/shippingStatus/${partnerId}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data = await response.json();
-      setShippingStatuses(data.shippingStatuses);
-      setItems(
-        data.items.map((itemRow: Item[]) =>
-          itemRow.map((item: Item) => {
-            return {
-              ...item,
-              quantityAllocated: 0,
-              quantityAvailable: 0,
-              quantityTotal: 0,
-              comment: item.notes,
-            };
-          })
-        )
-      );
-      setIsLoading(false);
-    })();
-  }, []);
-
-  const handleSelectStatus = (
-    donorShippingNumber: string,
-    hfhShippingNumber: string,
-    status: ShipmentStatus
-  ) => {
-    (async () => {
-      await fetch(
-        `/api/shippingStatus?donorShippingNumber=${donorShippingNumber}&hfhShippingNumber=${hfhShippingNumber}&value=${status}`,
-        {
-          method: "PUT",
-        }
-      );
-
-      fetchData();
-    })();
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const handleSelectStatus = useCallback(
+    async (
+      donorShippingNumber: string,
+      hfhShippingNumber: string,
+      status: ShipmentStatus
+    ) => {
+      try {
+        await apiClient.put(
+          `/api/shippingStatus?donorShippingNumber=${donorShippingNumber}&hfhShippingNumber=${hfhShippingNumber}&value=${status}`
+        );
+        
+        toast.success("Shipping status updated successfully");
+        refetch();
+      } catch (error) {
+        toast.error(`Failed to update shipping status: ${(error as Error).message}`);
+      }
+    },
+    [apiClient, refetch]
+  );
 
   if (isLoading) {
     return (
@@ -111,6 +96,42 @@ export default function ShippingStatusTable({
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center mt-8">
+        <p className="text-red-500">Error loading shipping statuses: {error}</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex justify-center items-center mt-8">
+        <p className="text-gray-500">No shipping status data available</p>
+      </div>
+    );
+  }
+
+  const shippingStatuses = data.shippingStatuses;
+  const items = data.items.map((itemRow: Item[]) =>
+    itemRow.map((item: Item): ItemEntry => {
+      return {
+        title: item.title,
+        quantityAllocated: 0,
+        quantityAvailable: 0,
+        quantityTotal: 0,
+        donorName: item.donorName,
+        palletNumber: parseInt(item.palletNumber) || 0,
+        boxNumber: parseInt(item.boxNumber) || 0,
+        lotNumber: parseInt(item.lotNumber) || 0,
+        unitPrice: item.unitPrice.toNumber(),
+        donorShippingNumber: item.donorShippingNumber || "",
+        hfhShippingNumber: item.hfhShippingNumber || "",
+        comment: item.notes || "",
+      };
+    })
+  );
 
   return (
     <div className="overflow-x-scroll">
