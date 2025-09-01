@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { apiRequest, HTTPRequestType } from "./useApiClient";
 
 
@@ -25,6 +25,12 @@ export function useFetch<T = unknown>(
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(conditionalFetch);
   const [error, setError] = useState<string | null>(null);
+  
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
 
   const fetchData = useCallback(async (overrideOptions?: Partial<RequestInit>) => {
     try {
@@ -36,21 +42,21 @@ export function useFetch<T = unknown>(
 
       setData(result);
       
-      if (onSuccess) {
-        onSuccess(result);
+      if (onSuccessRef.current) {
+        onSuccessRef.current(result);
       }
     } catch (err) {
       const errorMessage = (err as Error).message;
       console.error(`Failed to fetch ${endpoint}:`, err);
       setError(errorMessage);
       
-      if (onError) {
-        onError(errorMessage);
+      if (onErrorRef.current) {
+        onErrorRef.current(errorMessage);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [endpoint, fetchOptions, onSuccess, onError]);
+  }, [endpoint, fetchOptions]);
 
   useEffect(() => {
     if (conditionalFetch) {
