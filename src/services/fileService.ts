@@ -3,6 +3,7 @@ import {
   generateBlobSASQueryParameters,
   BlobSASPermissions,
   StorageSharedKeyCredential,
+  ContainerClient,
 } from "@azure/storage-blob";
 import { NotFoundError, ArgumentError, InternalError } from "@/util/errors";
 import * as XLSX from "xlsx";
@@ -26,26 +27,32 @@ const requiredKeys = [
 const containsRequiredKeys = (fields?: string[]) =>
   fields ? requiredKeys.every((key) => fields.includes(key)) : false;
 
-const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME as string;
-const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING as string;
-const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME as string;
-const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY as string;
+const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME;
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 
-const sharedKeyCredential = new StorageSharedKeyCredential(
-  accountName,
-  accountKey
-);
+// Only initialize Azure clients if environment variables are available
+let sharedKeyCredential: StorageSharedKeyCredential | null = null;
+let blobServiceClient: BlobServiceClient | null = null;
+let containerClient: ContainerClient | null = null;
 
-const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
-const containerClient = blobServiceClient.getContainerClient(containerName);
+if (accountName && accountKey && connectionString && containerName) {
+  sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+  blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+  containerClient = blobServiceClient.getContainerClient(containerName);
+}
 
 export default class FileService {
   static async generateUploadUrl(blobName: string): Promise<UploadUrlResult> {
+    if (!containerClient || !sharedKeyCredential) {
+      throw new InternalError("Azure Storage not configured");
+    }
 
     const blobClient = containerClient.getBlockBlobClient(blobName);
 
     const sasOptions = {
-      containerName,
+      containerName: containerName!,
       blobName,
       permissions: BlobSASPermissions.parse("w"),
       startsOn: new Date(),
@@ -67,6 +74,9 @@ export default class FileService {
   }
 
   static async getMostRecentFile(): Promise<RecentFileResult> {
+    if (!containerClient || !sharedKeyCredential) {
+      throw new InternalError("Azure Storage not configured");
+    }
 
     let latestBlobName: string | null = null;
     let latestModifiedTime = new Date(0);
@@ -89,7 +99,7 @@ export default class FileService {
 
     const sasToken = generateBlobSASQueryParameters(
       {
-        containerName,
+        containerName: containerName!,
         blobName: latestBlobName,
         permissions: BlobSASPermissions.parse("r"),
         startsOn: new Date(),
@@ -108,11 +118,15 @@ export default class FileService {
   }
 
   static async generateReadUrl(filename: string): Promise<ReadUrlResult> {
+    if (!containerClient || !sharedKeyCredential) {
+      throw new InternalError("Azure Storage not configured");
+    }
+
     const blobClient = containerClient.getBlockBlobClient(filename);
 
     const sasToken = generateBlobSASQueryParameters(
       {
-        containerName,
+        containerName: containerName!,
         blobName: filename,
         permissions: BlobSASPermissions.parse("r"),
         startsOn: new Date(),

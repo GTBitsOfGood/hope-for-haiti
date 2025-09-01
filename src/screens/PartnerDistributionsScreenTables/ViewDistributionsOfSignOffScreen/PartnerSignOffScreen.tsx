@@ -6,9 +6,10 @@ import { CgSpinner } from "react-icons/cg";
 import React from "react";
 import {
   DistributionItem,
-  SignedDistributions,
-} from "@/app/api/distributions/signOffs/[signOffId]/types";
+} from "@/types/api/distribution.types";
 import { useRouter, useParams } from "next/navigation";
+import { useFetch } from "@/hooks/useFetch";
+import { toast } from "react-hot-toast";
 import TableOfItemsOfDistributions from "./TableOfItemsOfDistributions";
 
 enum Tab {
@@ -16,28 +17,27 @@ enum Tab {
   COMPLETE = "Complete",
 }
 
+interface SignOffData {
+  itemDistributions: DistributionItem[];
+  signOff: {
+    date: string;
+  };
+}
+
 export default function PartnerSignOffScreen() {
-  const [items, setItems] = useState<DistributionItem[]>([]);
-  const [signOffDate, setSignOffDate] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>(Tab.COMPLETE); //this is for the row of tabs
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const signOffId = useParams().signOffId;
 
-  useEffect(() => {
-    setTimeout(async () => {
-      const response = await fetch(`/api/distributions/signOffs/${signOffId}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-      const data: SignedDistributions =
-        (await response.json()) as SignedDistributions;
-      console.log(data);
-      setSignOffDate(data.signOff.date);
-      setItems(data.itemDistributions);
-      setIsLoading(false);
-    }, 1000);
-  }, [signOffId]);
+  const { data, isLoading, error } = useFetch<SignOffData>(
+    `/api/distributions/signOffs/${signOffId}`,
+    {
+      conditionalFetch: !!signOffId,
+      onError: (error) => {
+        toast.error(`Failed to fetch sign off data: ${error}`);
+      },
+    }
+  );
 
   useEffect(() => {
     if (activeTab === Tab.IN_PROGRESS) {
@@ -45,6 +45,33 @@ export default function PartnerSignOffScreen() {
       return;
     }
   }, [activeTab, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center mt-8">
+        <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center mt-8">
+        <p className="text-red-500">Error loading sign off data: {error}</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex justify-center items-center mt-8">
+        <p className="text-gray-500">No sign off data available</p>
+      </div>
+    );
+  }
+
+  const { itemDistributions: items, signOff } = data;
+  const signOffDate = signOff.date;
 
   return (
     <>
@@ -95,22 +122,16 @@ export default function PartnerSignOffScreen() {
         })}
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center mt-8">
-          <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-        </div>
-      ) : (
-        (() => {
-          switch (activeTab) {
-            case Tab.IN_PROGRESS:
-              return <></>;
-            case Tab.COMPLETE:
-              return <TableOfItemsOfDistributions entries={items} />;
-            default:
-              return <></>;
-          }
-        })()
-      )}
+      {(() => {
+        switch (activeTab) {
+          case Tab.IN_PROGRESS:
+            return <></>;
+          case Tab.COMPLETE:
+            return <TableOfItemsOfDistributions entries={items} />;
+          default:
+            return <></>;
+        }
+      })()}
     </>
   );
 }
