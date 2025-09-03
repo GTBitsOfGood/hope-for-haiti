@@ -2,6 +2,7 @@ import { db } from "@/db";
 import {
   CreateWishlistData,
   UpdateWishlistData,
+  WishlistStats,
 } from "@/types/api/wishlist.types";
 import { NotFoundError } from "@/util/errors";
 import { $Enums } from "@prisma/client";
@@ -78,13 +79,7 @@ export class WishlistService {
     ]);
 
     const statsByPartner: {
-      [partnerId: number]: {
-        partnerName: string;
-        totalCount: number;
-        lowCount: number;
-        mediumCount: number;
-        highCount: number;
-      };
+      [partnerId: number]: Omit<WishlistStats, "partnerId">;
     } = {};
 
     for (const partner of partners) {
@@ -115,6 +110,6 @@ export class WishlistService {
     return Object.entries(statsByPartner).map(([partnerId, stats]) => ({
       partnerId: Number(partnerId),
       ...stats,
-    }));
+    })) as WishlistStats[];
   }
 }

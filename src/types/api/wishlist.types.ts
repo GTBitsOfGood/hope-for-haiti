@@ -17,3 +17,12 @@ export interface UpdateWishlistData {
   priority?: $Enums.RequestPriority;
   comments?: string;
 }
+
+export interface WishlistStats {
+  partnerId: number;
+  partnerName: string;
+  totalCount: number;
+  lowCount: number;
+  mediumCount: number;
+  highCount: number;
+}
