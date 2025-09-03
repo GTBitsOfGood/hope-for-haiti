@@ -2,7 +2,6 @@ import { updateWishlistSchema } from "@/schema/wishlist";
 import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
 import { ArgumentError, errorResponse, ok } from "@/util/errors";
-import { $Enums } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 /**
@@ -39,9 +38,8 @@ export async function PATCH(
     }
 
     await WishlistService.updateWishlist({
-      ...parsed.data,
       id: Number(wishlistId),
-      priority: parsed.data.priority as $Enums.RequestPriority,
+      ...parsed.data,
     });
 
     return ok();
