@@ -31,7 +31,7 @@ export async function PATCH(
 
     // Check ID first to avoid revealing the existence/non-existence of the wishlist item to an unauthorized user
     if (wishlistItem?.partnerId !== Number(session.user.id)) {
-      throw new ArgumentError("Cannot update wishlist item");
+      throw new ArgumentError("Cannot update another partner's wishlist item");
     }
 
     if (!wishlistItem) {
@@ -43,6 +43,36 @@ export async function PATCH(
       id: Number(wishlistId),
       priority: parsed.data.priority as $Enums.RequestPriority,
     });
+
+    return ok();
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function DELETE(
+  _: NextRequest,
+  { params }: { params: Promise<{ wishlistId: string }> }
+) {
+  try {
+    const session = await UserService.authRequirePartner();
+
+    const { wishlistId } = await params;
+
+    const wishlistItem = await WishlistService.getWishlistItem(
+      Number(wishlistId)
+    );
+
+    // Check ID first to avoid revealing the existence/non-existence of the wishlist item to an unauthorized user
+    if (wishlistItem?.partnerId !== Number(session.user.id)) {
+      throw new ArgumentError("Cannot delete another partner's wishlist item");
+    }
+
+    if (!wishlistItem) {
+      throw new ArgumentError("Wishlist item not found");
+    }
+
+    await WishlistService.deleteWishlist(Number(wishlistId));
 
     return ok();
   } catch (error) {
