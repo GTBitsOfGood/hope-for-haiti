@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
 import { CreateWishlistData } from "@/types/api/wishlist.types";
 import {
@@ -8,7 +9,7 @@ import {
   ok,
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const postParamSchema = z.object({
@@ -49,6 +50,54 @@ export async function POST(req: NextRequest) {
     await WishlistService.createWishlist(wishlist);
 
     return ok();
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    let partnerId = Number(new URL(req.url).searchParams.get("partnerId"));
+
+    // Only let partners see their own wishlists. Default partnerId to their own
+    if (session.user.type === $Enums.UserType.PARTNER) {
+      if (partnerId && partnerId !== Number(session.user.id)) {
+        throw new AuthenticationError(
+          "Cannot access wishlists for other partners"
+        );
+      }
+
+      partnerId = Number(session.user.id);
+    }
+
+    if (partnerId) {
+      if (Number.isNaN(partnerId)) {
+        throw new ArgumentError("partnerId must be a number");
+      }
+
+      if (partnerId <= 0) {
+        throw new ArgumentError("partnerId must be a positive number");
+      }
+
+      const wishlists = await WishlistService.getWishlistsByPartner(partnerId);
+      return NextResponse.json(wishlists, {
+        status: 200,
+      });
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthenticationError("Must be staff");
+    }
+
+    const stats = await WishlistService.getWishlistsStatsByPartner();
+    return NextResponse.json(stats, {
+      status: 200,
+    });
   } catch (error) {
     return errorResponse(error);
   }
