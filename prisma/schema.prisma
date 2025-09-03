@@ -45,6 +45,7 @@ model User {
   distributions                     Distribution[]
   unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
   signOffs                          SignOff[]
+  wishlists                         Wishlist[]
 }
 
 model UserInvite {
@@ -271,4 +272,19 @@ model SignOff {
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   distributions Distribution[]
+}
+
+model Wishlist {
+  id Int @id @default(autoincrement())
+
+  name     String
+  unitSize String
+  quantity Int
+  priority RequestPriority
+
+  lastUpdated DateTime @updatedAt
+
+  comment   String
+  partnerId Int
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
