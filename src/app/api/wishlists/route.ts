@@ -50,6 +50,6 @@ export async function POST(req: NextRequest) {
 
     return ok();
   } catch (error) {
-    errorResponse(error);
+    return errorResponse(error);
   }
 }
