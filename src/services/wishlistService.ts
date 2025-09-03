@@ -15,6 +15,9 @@ export class WishlistService {
     });
   }
 
+  /**
+   * Automatically updates lastUpdated
+   */
   static async updateWishlist(data: UpdateWishlistData) {
     try {
       await db.wishlist.update({
@@ -41,6 +44,14 @@ export class WishlistService {
 
   static async deleteWishlist(id: number) {
     await db.wishlist.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  static async getWishlistItem(id: number) {
+    return await db.wishlist.findUnique({
       where: {
         id,
       },
