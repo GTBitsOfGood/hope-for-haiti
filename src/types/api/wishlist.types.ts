@@ -9,13 +9,9 @@ export interface CreateWishlistData {
   comments: string;
 }
 
-export interface UpdateWishlistData {
+export interface UpdateWishlistData
+  extends Partial<Omit<CreateWishlistData, "partnerId">> {
   id: number;
-  name?: string;
-  unitSize?: string;
-  quantity?: number;
-  priority?: $Enums.RequestPriority;
-  comments?: string;
 }
 
 export interface WishlistStats {
