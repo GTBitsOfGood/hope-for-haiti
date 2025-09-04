@@ -279,7 +279,7 @@ model Wishlist {
 
   name     String
   unitSize String
-  quantity Decimal
+  quantity Int
   priority RequestPriority
 
   lastUpdated DateTime @updatedAt
