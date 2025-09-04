@@ -24,13 +24,7 @@ export class WishlistService {
         where: {
           id: data.id,
         },
-        data: {
-          name: data.name,
-          unitSize: data.unitSize,
-          quantity: data.quantity,
-          priority: data.priority,
-          comments: data.comments,
-        },
+        data,
       });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
