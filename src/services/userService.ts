@@ -208,7 +208,7 @@ export default class UserService {
   }
 
   /**
-   * Checks that the user is signed in and is a partner.
+   * Checks that the user is signed in and is a partner. Throws an error if not.
    * @returns the session
    */
   static async authRequirePartner() {
