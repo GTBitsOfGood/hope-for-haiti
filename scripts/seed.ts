@@ -68,7 +68,7 @@ const partnerDetailsTemplate = {
     orgTitle: "Regional Director",
     primaryTelephone: "+509 1234-5678",
     secondaryTelephone: "+509 1234-5679",
-    email: "marie.joseph@hopemedicine.ht"
+    email: "marie.joseph@hopemedicine.ht",
   },
   medicalContact: {
     firstName: "Jean",
@@ -76,7 +76,7 @@ const partnerDetailsTemplate = {
     orgTitle: "Chief Medical Officer",
     primaryTelephone: "+509 2345-6789",
     secondaryTelephone: "+509 2345-6790",
-    email: "jean.baptiste@hopemedicine.ht"
+    email: "jean.baptiste@hopemedicine.ht",
   },
   adminDirectorContact: {
     firstName: "Pierre",
@@ -84,7 +84,7 @@ const partnerDetailsTemplate = {
     orgTitle: "Administrative Director",
     primaryTelephone: "+509 3456-7890",
     secondaryTelephone: "+509 3456-7891",
-    email: "pierre.morel@hopemedicine.ht"
+    email: "pierre.morel@hopemedicine.ht",
   },
   pharmacyContact: {
     firstName: "Claire",
@@ -92,18 +92,20 @@ const partnerDetailsTemplate = {
     orgTitle: "Chief Pharmacist",
     primaryTelephone: "+509 4567-8901",
     secondaryTelephone: "+509 4567-8902",
-    email: "claire.dumas@hopemedicine.ht"
+    email: "claire.dumas@hopemedicine.ht",
   },
   contactWhatsAppName: "Dr. Marie Joseph",
   contactWhatsAppNumber: "+509 1234-5678",
 
   // Introduction
-  organizationHistory: "Established to provide quality healthcare services to underserved communities in Haiti. Our mission is to improve health outcomes through accessible medical care and community outreach programs.",
+  organizationHistory:
+    "Established to provide quality healthcare services to underserved communities in Haiti. Our mission is to improve health outcomes through accessible medical care and community outreach programs.",
   supportRequested: "ongoing_support",
   yearOrganizationEstablished: 2015,
   registeredWithMssp: true,
   proofOfRegistationWithMssp: "mssp_registration_certificate.pdf",
-  programUpdatesSinceLastReport: "Expanded maternal health services and added mobile clinic outreach program",
+  programUpdatesSinceLastReport:
+    "Expanded maternal health services and added mobile clinic outreach program",
 
   // Facility
   facilityType: ["clinic", "primary_care", "health_center"],
@@ -114,10 +116,12 @@ const partnerDetailsTemplate = {
   numberOfInpatientBeds: 25,
   numberOfPatientsServedAnnually: 12000,
   communityMobileOutreachOffered: true,
-  communityMobileOutreachDescription: "Weekly mobile clinics to remote communities, providing basic healthcare and health education",
+  communityMobileOutreachDescription:
+    "Weekly mobile clinics to remote communities, providing basic healthcare and health education",
 
   // Infrastructure and Services
-  facilityDescription: "Modern healthcare facility with emergency care, maternal health, pediatrics, and pharmacy services",
+  facilityDescription:
+    "Modern healthcare facility with emergency care, maternal health, pediatrics, and pharmacy services",
   cleanWaterAccessible: true,
   cleanWaterDescription: "Municipal water supply with backup well water system",
   closestSourceOfCleanWater: "",
@@ -126,17 +130,26 @@ const partnerDetailsTemplate = {
   electricityAvailable: true,
   accessibleByDisablePatients: true,
   medicationDisposalProcessDefined: true,
-  medicationDisposalProcessDescription: "Proper pharmaceutical waste disposal following WHO guidelines with licensed waste management company",
+  medicationDisposalProcessDescription:
+    "Proper pharmaceutical waste disposal following WHO guidelines with licensed waste management company",
   pickupVehiclePresent: true,
   pickupVehicleType: "Ambulance and supply truck",
   pickupLocations: ["port_au_prince"],
 
   // Programs and Services Provided
-  medicalServicesProvided: ["pediatrics", "maternal_care", "lab_tests", "immunizations", "chronic_diseases"],
-  otherMedicalServicesProvided: "Health education, Community outreach, Vaccination programs",
+  medicalServicesProvided: [
+    "pediatrics",
+    "maternal_care",
+    "lab_tests",
+    "immunizations",
+    "chronic_diseases",
+  ],
+  otherMedicalServicesProvided:
+    "Health education, Community outreach, Vaccination programs",
 
   // Finances
-  patientsWhoCannotPay: "Sliding scale fees and charity care program available for patients who cannot afford treatment",
+  patientsWhoCannotPay:
+    "Sliding scale fees and charity care program available for patients who cannot afford treatment",
   percentageOfPatientsNeedingFinancialAid: 65,
   percentageOfPatientsReceivingFreeTreatment: 30,
   annualSpendingOnMedicationsAndMedicalSupplies: "50001_to_100000",
@@ -170,8 +183,15 @@ const partnerDetailsTemplate = {
   other: "2 lab technicians, 1 social worker",
 
   // Medical Supplies
-  mostNeededMedicalSupplies: ["anti_infectives", "cardiovascular", "bandages", "syringes_needles", "vitamins_minerals"],
-  otherSpecialityItemsNeeded: "Blood pressure monitors, glucometers, wound care supplies"
+  mostNeededMedicalSupplies: [
+    "anti_infectives",
+    "cardiovascular",
+    "bandages",
+    "syringes_needles",
+    "vitamins_minerals",
+  ],
+  otherSpecialityItemsNeeded:
+    "Blood pressure monitors, glucometers, wound care supplies",
 };
 
 const generalItems: Array<GeneralItem> = [
@@ -275,7 +295,9 @@ function genItem(props: Partial<Item> = {}): Omit<Item, "id"> {
   const template = pick(itemTemplates);
   return {
     ...template,
-    expirationDate: template.expirationDate ? new Date(template.expirationDate) : null,
+    expirationDate: template.expirationDate
+      ? new Date(template.expirationDate)
+      : null,
     donorName: pick(donorNames),
     quantity: randInt(1, 10) * 10,
     lotNumber: pick(lots),
@@ -365,17 +387,17 @@ async function run() {
           // Vary some details to make each partner unique
           yearOrganizationEstablished: 2010 + (i % 10),
           numberOfInpatientBeds: 15 + (i % 20),
-          numberOfPatientsServedAnnually: 8000 + (i * 500),
+          numberOfPatientsServedAnnually: 8000 + i * 500,
           numberOfDoctors: 2 + (i % 5),
           numberOfNurses: 8 + (i % 10),
           numberOfMidwives: 1 + (i % 4),
           numberOfPharmacists: 1 + (i % 3),
           totalNumberOfStaff: 30 + (i % 25),
-          totalPatientsServedLastYear: 7500 + (i * 400),
-          menServedLastYear: 2000 + (i * 100),
-          womenServedLastYear: 2500 + (i * 120),
-          boysServedLastYear: 1500 + (i * 80),
-          girlsServedLastYear: 1500 + (i * 80),
+          totalPatientsServedLastYear: 7500 + i * 400,
+          menServedLastYear: 2000 + i * 100,
+          womenServedLastYear: 2500 + i * 120,
+          boysServedLastYear: 1500 + i * 80,
+          girlsServedLastYear: 1500 + i * 80,
         },
       })),
     });
@@ -411,6 +433,20 @@ async function run() {
       }),
     });
 
+    await tx.wishlist.createManyAndReturn({
+      data: Array.from({ length: 20 }, () => {
+        const genItem = pick(generalItems);
+        return {
+          partnerId: pick(partners).id,
+          name: genItem.title,
+          unitSize: genItem.unitType,
+          priority: pick(Object.values(RequestPriority)) as RequestPriority,
+          quantity: randInt(1, 4) * 5,
+          comments: "pls",
+        };
+      }),
+    });
+
     await Promise.all(
       (
         [
@@ -429,7 +465,9 @@ async function run() {
                     partnerId: partner.id,
                     quantity: randInt(1, 8),
                     comments: "pls give me this",
-                    priority: pick(Object.values(RequestPriority)) as RequestPriority,
+                    priority: pick(
+                      Object.values(RequestPriority)
+                    ) as RequestPriority,
                   })),
                 },
               })),
@@ -455,7 +493,9 @@ async function run() {
                     partnerId: partner.id,
                     quantity: randInt(1, 8),
                     comments: "pls give me this",
-                    priority: pick(Object.values(RequestPriority)) as RequestPriority,
+                    priority: pick(
+                      Object.values(RequestPriority)
+                    ) as RequestPriority,
                   })),
                 },
               })),
@@ -481,7 +521,9 @@ async function run() {
                     partnerId: partner.id,
                     quantity: randInt(1, 8),
                     comments: "pls give me this",
-                    priority: pick(Object.values(RequestPriority)) as RequestPriority,
+                    priority: pick(
+                      Object.values(RequestPriority)
+                    ) as RequestPriority,
                   })),
                 },
               })),
@@ -507,7 +549,9 @@ async function run() {
                     partnerId: partner.id,
                     quantity: randInt(1, 8),
                     comments: "pls give me this",
-                    priority: pick(Object.values(RequestPriority)) as RequestPriority,
+                    priority: pick(
+                      Object.values(RequestPriority)
+                    ) as RequestPriority,
                   })),
                 },
               })),
