@@ -1,4 +1,4 @@
-export default function UserInviteTemplate({
+export default function PartnerInviteReminderTemplate({
   inviteUrl,
 }: {
   inviteUrl: string;
@@ -34,7 +34,7 @@ export default function UserInviteTemplate({
   return (
     <div style={styles.container}>
       <div style={styles.box}>
-        <h1 style={styles.header}>Your invite link</h1>
+        <h1 style={styles.header}>Reminder: Your invite link</h1>
         <a style={styles.text} href={inviteUrl}>
           Click here to register
         </a>

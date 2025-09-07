@@ -8,9 +8,7 @@ import {
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from "uuid";
-import { render } from "@react-email/render";
-import { sendEmail } from "@/email";
-import UserInviteTemplate from "@/email/templates/UserInvite";
+import { emailClient } from "@/email";
 import {
   CreateUserFromInviteData,
   CreateUserInviteData,
@@ -97,8 +95,7 @@ export default class UserService {
       });
 
       const inviteUrl = `${data.origin}/register?token=${token}`;
-      const html = await render(UserInviteTemplate({ inviteUrl }));
-      await sendEmail(data.email, "Your Invite Link", html);
+      await emailClient.sendUserInvite(data.email, { inviteUrl });
     });
   }
 
