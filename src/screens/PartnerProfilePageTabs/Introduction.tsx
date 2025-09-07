@@ -1,38 +1,78 @@
 "use client";
 
-import React from "react";
-
-interface IntroductionData {
-  organizationHistory: string;
-  typeOfSupportRequested: string;
-  dateEstablished: string;
-  isRegisteredWithMSSP: string;
-  programUpdatesSinceLastReport: string;
-}
+import React, { useState } from "react";
+import { PartnerDetails } from "@/schema/partnerDetails";
 
 interface IntroductionProps {
   isEditingOrg: boolean;
   setIsEditingOrg: React.Dispatch<React.SetStateAction<boolean>>;
-  introductionData: IntroductionData;
-  setIntroductionData: React.Dispatch<React.SetStateAction<IntroductionData>>;
+  partnerDetails: PartnerDetails;
+  onSave: (updatedDetails: Partial<PartnerDetails>) => Promise<void>;
+  isSaving: boolean;
 }
 
 export default function Introduction({
   isEditingOrg,
   setIsEditingOrg,
-  introductionData,
-  setIntroductionData,
+  partnerDetails,
+  onSave,
+  isSaving,
 }: IntroductionProps) {
+  const [formData, setFormData] = useState({
+    organizationHistory: partnerDetails.organizationHistory,
+    supportRequested: partnerDetails.supportRequested,
+    yearOrganizationEstablished: partnerDetails.yearOrganizationEstablished,
+    registeredWithMssp: partnerDetails.registeredWithMssp,
+    proofOfRegistationWithMssp: partnerDetails.proofOfRegistationWithMssp,
+    programUpdatesSinceLastReport: partnerDetails.programUpdatesSinceLastReport,
+  });
+
+  const handleSave = async () => {
+    await onSave(formData);
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      organizationHistory: partnerDetails.organizationHistory,
+      supportRequested: partnerDetails.supportRequested,
+      yearOrganizationEstablished: partnerDetails.yearOrganizationEstablished,
+      registeredWithMssp: partnerDetails.registeredWithMssp,
+      proofOfRegistationWithMssp: partnerDetails.proofOfRegistationWithMssp,
+      programUpdatesSinceLastReport:
+        partnerDetails.programUpdatesSinceLastReport,
+    });
+    setIsEditingOrg(false);
+  };
+
+  const supportOptions = [
+    { value: "ongoing_support", label: "Ongoing Support" },
+    { value: "mobile_clinic_support", label: "Mobile Clinic Support" },
+    { value: "one_time_request", label: "One Time Request" },
+    { value: "project_support", label: "Project Support" },
+  ];
+
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center">
         <h3 className="text-[20px] font-bold text-[#2774AE]">Introduction</h3>
-        <button
-          onClick={() => setIsEditingOrg(!isEditingOrg)}
-          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-        >
-          {isEditingOrg ? "Save" : "Edit"}
-        </button>
+        <div className="flex gap-2">
+          {isEditingOrg && (
+            <button
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="border border-gray-400 text-gray-600 px-4 py-2 rounded-[4px] font-semibold hover:bg-gray-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={isEditingOrg ? handleSave : () => setIsEditingOrg(true)}
+            disabled={isSaving}
+            className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10 disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : isEditingOrg ? "Save" : "Edit"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-4 max-w-xl">
@@ -40,20 +80,19 @@ export default function Introduction({
           Organization history
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={introductionData.organizationHistory}
+          <textarea
+            value={formData.organizationHistory}
             onChange={(e) =>
-              setIntroductionData({
-                ...introductionData,
+              setFormData({
+                ...formData,
                 organizationHistory: e.target.value,
               })
             }
-            className="border p-1"
+            className="border p-1 min-h-[100px]"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {introductionData.organizationHistory}
+            {partnerDetails.organizationHistory}
           </p>
         )}
 
@@ -61,41 +100,52 @@ export default function Introduction({
           Type of support requested
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={introductionData.typeOfSupportRequested}
+          <select
+            value={formData.supportRequested}
             onChange={(e) =>
-              setIntroductionData({
-                ...introductionData,
-                typeOfSupportRequested: e.target.value,
+              setFormData({
+                ...formData,
+                supportRequested: e.target
+                  .value as typeof formData.supportRequested,
               })
             }
             className="border p-1"
-          />
+          >
+            {supportOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {introductionData.typeOfSupportRequested}
+            {supportOptions.find(
+              (opt) => opt.value === partnerDetails.supportRequested
+            )?.label || partnerDetails.supportRequested}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Date organization was established
+          Year organization was established
         </p>
         {isEditingOrg ? (
           <input
-            type="text"
-            value={introductionData.dateEstablished}
+            type="number"
+            min="1800"
+            max={new Date().getFullYear()}
+            value={formData.yearOrganizationEstablished}
             onChange={(e) =>
-              setIntroductionData({
-                ...introductionData,
-                dateEstablished: e.target.value,
+              setFormData({
+                ...formData,
+                yearOrganizationEstablished:
+                  parseInt(e.target.value) || new Date().getFullYear(),
               })
             }
             className="border p-1"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {introductionData.dateEstablished}
+            {partnerDetails.yearOrganizationEstablished}
           </p>
         )}
 
@@ -103,41 +153,68 @@ export default function Introduction({
           Is your organization registered with MSSP?
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={introductionData.isRegisteredWithMSSP}
+          <select
+            value={formData.registeredWithMssp.toString()}
             onChange={(e) =>
-              setIntroductionData({
-                ...introductionData,
-                isRegisteredWithMSSP: e.target.value,
+              setFormData({
+                ...formData,
+                registeredWithMssp: e.target.value === "true",
               })
             }
             className="border p-1"
-          />
+          >
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {introductionData.isRegisteredWithMSSP}
+            {partnerDetails.registeredWithMssp ? "Yes" : "No"}
           </p>
+        )}
+
+        {formData.registeredWithMssp && (
+          <>
+            <p className="text-[18px] font-semibold text-[#22070B]">
+              Proof of registration with MSSP
+            </p>
+            {isEditingOrg ? (
+              <input
+                type="text"
+                value={formData.proofOfRegistationWithMssp}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    proofOfRegistationWithMssp: e.target.value,
+                  })
+                }
+                className="border p-1"
+                placeholder="Document name or reference"
+              />
+            ) : (
+              <p className="text-[16px] text-[#22070B]">
+                {partnerDetails.proofOfRegistationWithMssp || "Not provided"}
+              </p>
+            )}
+          </>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
           Program updates since last report
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={introductionData.programUpdatesSinceLastReport}
+          <textarea
+            value={formData.programUpdatesSinceLastReport}
             onChange={(e) =>
-              setIntroductionData({
-                ...introductionData,
+              setFormData({
+                ...formData,
                 programUpdatesSinceLastReport: e.target.value,
               })
             }
-            className="border p-1"
+            className="border p-1 min-h-[100px]"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {introductionData.programUpdatesSinceLastReport}
+            {partnerDetails.programUpdatesSinceLastReport}
           </p>
         )}
       </div>

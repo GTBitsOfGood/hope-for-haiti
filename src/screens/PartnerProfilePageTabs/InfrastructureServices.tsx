@@ -1,193 +1,227 @@
 "use client";
 
-import React from "react";
-
-interface InfrastructureData {
-  facilityDescription: string;
-  accessToCleanWater: string;
-  sanitationFacilities: string;
-  electricityAtFacility: string;
-  disabledAccess: string;
-  medicationDisposalProcess: string;
-  vehicleForSupplies: string;
-}
+import React, { useState } from "react";
+import { PartnerDetails } from "@/schema/partnerDetails";
 
 interface InfrastructureServicesProps {
   isEditingOrg: boolean;
   setIsEditingOrg: React.Dispatch<React.SetStateAction<boolean>>;
-  infrastructureData: InfrastructureData;
-  setInfrastructureData: React.Dispatch<
-    React.SetStateAction<InfrastructureData>
-  >;
+  partnerDetails: PartnerDetails;
+  onSave: (updatedDetails: Partial<PartnerDetails>) => Promise<void>;
+  isSaving: boolean;
 }
 
 export default function InfrastructureServices({
   isEditingOrg,
   setIsEditingOrg,
-  infrastructureData,
-  setInfrastructureData,
+  partnerDetails,
+  onSave,
+  isSaving,
 }: InfrastructureServicesProps) {
+  const [formData, setFormData] = useState({
+    facilityDescription: partnerDetails.facilityDescription,
+    cleanWaterAccessible: partnerDetails.cleanWaterAccessible,
+    cleanWaterDescription: partnerDetails.cleanWaterDescription,
+    closestSourceOfCleanWater: partnerDetails.closestSourceOfCleanWater,
+    sanitationFacilitiesPresent: partnerDetails.sanitationFacilitiesPresent,
+    sanitationFacilitiesLockableFromInside:
+      partnerDetails.sanitationFacilitiesLockableFromInside,
+    electricityAvailable: partnerDetails.electricityAvailable,
+    accessibleByDisablePatients: partnerDetails.accessibleByDisablePatients,
+    medicationDisposalProcessDefined:
+      partnerDetails.medicationDisposalProcessDefined,
+    medicationDisposalProcessDescription:
+      partnerDetails.medicationDisposalProcessDescription,
+    pickupVehiclePresent: partnerDetails.pickupVehiclePresent,
+    pickupVehicleType: partnerDetails.pickupVehicleType,
+    pickupLocations: partnerDetails.pickupLocations,
+  });
+
+  const handleSave = async () => {
+    await onSave(formData);
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      facilityDescription: partnerDetails.facilityDescription,
+      cleanWaterAccessible: partnerDetails.cleanWaterAccessible,
+      cleanWaterDescription: partnerDetails.cleanWaterDescription,
+      closestSourceOfCleanWater: partnerDetails.closestSourceOfCleanWater,
+      sanitationFacilitiesPresent: partnerDetails.sanitationFacilitiesPresent,
+      sanitationFacilitiesLockableFromInside:
+        partnerDetails.sanitationFacilitiesLockableFromInside,
+      electricityAvailable: partnerDetails.electricityAvailable,
+      accessibleByDisablePatients: partnerDetails.accessibleByDisablePatients,
+      medicationDisposalProcessDefined:
+        partnerDetails.medicationDisposalProcessDefined,
+      medicationDisposalProcessDescription:
+        partnerDetails.medicationDisposalProcessDescription,
+      pickupVehiclePresent: partnerDetails.pickupVehiclePresent,
+      pickupVehicleType: partnerDetails.pickupVehicleType,
+      pickupLocations: partnerDetails.pickupLocations,
+    });
+    setIsEditingOrg(false);
+  };
+
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center">
         <h3 className="text-[20px] font-bold text-[#2774AE]">
           Infrastructure & Services
         </h3>
-        <button
-          onClick={() => setIsEditingOrg(!isEditingOrg)}
-          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-        >
-          {isEditingOrg ? "Save" : "Edit"}
-        </button>
+        <div className="flex gap-2">
+          {isEditingOrg && (
+            <button
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="border border-gray-400 text-gray-600 px-4 py-2 rounded-[4px] font-semibold hover:bg-gray-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={isEditingOrg ? handleSave : () => setIsEditingOrg(true)}
+            disabled={isSaving}
+            className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10 disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : isEditingOrg ? "Save" : "Edit"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-4 max-w-xl">
         <p className="text-[18px] font-semibold text-[#22070B]">
-          General description of facility including the type and number of
-          buildings
+          Facility Description
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={infrastructureData.facilityDescription}
+          <textarea
+            value={formData.facilityDescription}
             onChange={(e) =>
-              setInfrastructureData({
-                ...infrastructureData,
-                facilityDescription: e.target.value,
-              })
+              setFormData({ ...formData, facilityDescription: e.target.value })
             }
-            className="border p-1"
+            className="border p-1 min-h-[100px]"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {infrastructureData.facilityDescription}
+            {partnerDetails.facilityDescription}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Does your facility provide access to clean water?
+          Clean Water Accessible
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={infrastructureData.accessToCleanWater}
+          <select
+            value={formData.cleanWaterAccessible.toString()}
             onChange={(e) =>
-              setInfrastructureData({
-                ...infrastructureData,
-                accessToCleanWater: e.target.value,
+              setFormData({
+                ...formData,
+                cleanWaterAccessible: e.target.value === "true",
               })
             }
             className="border p-1"
-          />
+          >
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {infrastructureData.accessToCleanWater}
+            {partnerDetails.cleanWaterAccessible ? "Yes" : "No"}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Does your facility have sanitation facilities?
+          Electricity Available
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={infrastructureData.sanitationFacilities}
+          <select
+            value={formData.electricityAvailable.toString()}
             onChange={(e) =>
-              setInfrastructureData({
-                ...infrastructureData,
-                sanitationFacilities: e.target.value,
+              setFormData({
+                ...formData,
+                electricityAvailable: e.target.value === "true",
               })
             }
             className="border p-1"
-          />
+          >
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {infrastructureData.sanitationFacilities}
+            {partnerDetails.electricityAvailable ? "Yes" : "No"}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Is there electricity at your facility?
+          Accessible by Disabled Patients
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={infrastructureData.electricityAtFacility}
+          <select
+            value={formData.accessibleByDisablePatients.toString()}
             onChange={(e) =>
-              setInfrastructureData({
-                ...infrastructureData,
-                electricityAtFacility: e.target.value,
+              setFormData({
+                ...formData,
+                accessibleByDisablePatients: e.target.value === "true",
               })
             }
             className="border p-1"
-          />
+          >
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {infrastructureData.electricityAtFacility}
+            {partnerDetails.accessibleByDisablePatients ? "Yes" : "No"}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Is your facility accessible to disabled patients?
+          Pickup Vehicle Present
         </p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={infrastructureData.disabledAccess}
+          <select
+            value={formData.pickupVehiclePresent.toString()}
             onChange={(e) =>
-              setInfrastructureData({
-                ...infrastructureData,
-                disabledAccess: e.target.value,
+              setFormData({
+                ...formData,
+                pickupVehiclePresent: e.target.value === "true",
               })
             }
             className="border p-1"
-          />
+          >
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {infrastructureData.disabledAccess}
+            {partnerDetails.pickupVehiclePresent ? "Yes" : "No"}
           </p>
         )}
 
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Does your facility have a proper medication disposal process?
-        </p>
-        {isEditingOrg ? (
-          <input
-            type="text"
-            value={infrastructureData.medicationDisposalProcess}
-            onChange={(e) =>
-              setInfrastructureData({
-                ...infrastructureData,
-                medicationDisposalProcess: e.target.value,
-              })
-            }
-            className="border p-1"
-          />
-        ) : (
-          <p className="text-[16px] text-[#22070B]">
-            {infrastructureData.medicationDisposalProcess}
-          </p>
-        )}
-
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Do you have a vehicle to pick up supplies from the depot?
-        </p>
-        {isEditingOrg ? (
-          <input
-            type="text"
-            value={infrastructureData.vehicleForSupplies}
-            onChange={(e) =>
-              setInfrastructureData({
-                ...infrastructureData,
-                vehicleForSupplies: e.target.value,
-              })
-            }
-            className="border p-1"
-          />
-        ) : (
-          <p className="text-[16px] text-[#22070B]">
-            {infrastructureData.vehicleForSupplies}
-          </p>
+        {formData.pickupVehiclePresent && (
+          <>
+            <p className="text-[18px] font-semibold text-[#22070B]">
+              Vehicle Type
+            </p>
+            {isEditingOrg ? (
+              <input
+                type="text"
+                value={formData.pickupVehicleType}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    pickupVehicleType: e.target.value,
+                  })
+                }
+                className="border p-1"
+              />
+            ) : (
+              <p className="text-[16px] text-[#22070B]">
+                {partnerDetails.pickupVehicleType}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

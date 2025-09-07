@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { User } from "@prisma/client";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
+import { PartnerDetails, Contact } from "@/schema/partnerDetails";
 import GeneralInfo from "./PartnerProfilePageTabs/GeneralInfo";
 import ContactInformation from "./PartnerProfilePageTabs/ContactInformation";
 import Introduction from "./PartnerProfilePageTabs/Introduction";
@@ -26,98 +29,188 @@ const TABS: string[] = [
   "Staff Information",
 ];
 
+const defaultContact: Contact = {
+  firstName: "",
+  lastName: "",
+  orgTitle: "",
+  primaryTelephone: "",
+  secondaryTelephone: "",
+  email: "",
+};
+
+const defaultPartnerDetails: PartnerDetails = {
+  siteName: "",
+  address: "",
+  department: "",
+  gpsCoordinates: "",
+  website: "",
+  socialMedia: "",
+
+  regionalContact: defaultContact,
+  medicalContact: defaultContact,
+  adminDirectorContact: defaultContact,
+  pharmacyContact: defaultContact,
+  contactWhatsAppName: "",
+  contactWhatsAppNumber: "",
+
+  organizationHistory: "",
+  supportRequested: "ongoing_support",
+  yearOrganizationEstablished: new Date().getFullYear(),
+  registeredWithMssp: false,
+  proofOfRegistationWithMssp: "",
+  programUpdatesSinceLastReport: "",
+
+  facilityType: [],
+  organizationType: [],
+  governmentRun: false,
+  emergencyMedicalRecordsSystemPresent: false,
+  emergencyMedicalRecordsSystemName: "",
+  numberOfInpatientBeds: 0,
+  numberOfPatientsServedAnnually: 0,
+  communityMobileOutreachOffered: false,
+  communityMobileOutreachDescription: "",
+
+  facilityDescription: "",
+  cleanWaterAccessible: false,
+  cleanWaterDescription: "",
+  closestSourceOfCleanWater: "",
+  sanitationFacilitiesPresent: false,
+  sanitationFacilitiesLockableFromInside: false,
+  electricityAvailable: false,
+  accessibleByDisablePatients: false,
+  medicationDisposalProcessDefined: false,
+  medicationDisposalProcessDescription: "",
+  pickupVehiclePresent: false,
+  pickupVehicleType: "",
+  pickupLocations: [],
+
+  medicalServicesProvided: [],
+  otherMedicalServicesProvided: "",
+
+  patientsWhoCannotPay: "",
+  percentageOfPatientsNeedingFinancialAid: 0,
+  percentageOfPatientsReceivingFreeTreatment: 0,
+  annualSpendingOnMedicationsAndMedicalSupplies: "1_to_5000",
+  numberOfPrescriptionsPrescribedAnnuallyTracked: false,
+  numberOfTreatmentsPrescribedAnnually: 0,
+  anyMenServedLastYear: false,
+  menServedLastYear: 0,
+  anyWomenServedLastYear: false,
+  womenServedLastYear: 0,
+  anyBoysServedLastYear: false,
+  boysServedLastYear: 0,
+  anyGirlsServedLastYear: false,
+  girlsServedLastYear: 0,
+  anyBabyBoysServedLastYear: false,
+  babyBoysServedLastYear: 0,
+  anyBabyGirlsServedLastYear: false,
+  babyGirlsServedLastYear: 0,
+  totalPatientsServedLastYear: 0,
+
+  numberOfDoctors: 0,
+  numberOfNurses: 0,
+  numberOfMidwives: 0,
+  numberOfAuxilaries: 0,
+  numberOfStatisticians: 0,
+  numberOfPharmacists: 0,
+  numberOfCHW: 0,
+  numberOfAdministrative: 0,
+  numberOfHealthOfficers: 0,
+  totalNumberOfStaff: 0,
+  other: "",
+
+  mostNeededMedicalSupplies: [],
+  otherSpecialityItemsNeeded: "",
+};
+
 export default function ProfileScreenPartner({
   user,
 }: PartnerProfileScreenProps) {
   const [activeTab, setActiveTab] = useState("General information");
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingOrg, setIsEditingOrg] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const {
+    data: partnerDetails,
+    isLoading,
+    error,
+    refetch,
+  } = useFetch<PartnerDetails>(`/api/partnerDetails/${user.id}`, {
+    onError: (error) => {
+      console.error("Failed to load partner details:", error);
+    },
+  });
+
+  const { apiClient } = useApiClient();
+
+  const currentPartnerDetails = partnerDetails || defaultPartnerDetails;
 
   const [userData, setUserData] = useState({
-    email: "example@gmail.com",
+    email: user.email,
     password: "********",
   });
 
-  useEffect(() => {
-    setUserData({
-      email: user.email,
-      password: "********",
-    });
-  }, [user]);
+  const handleSavePartnerDetails = async (
+    updatedDetails: Partial<PartnerDetails>
+  ) => {
+    if (isSaving) return;
 
-  const [orgData, setOrgData] = useState({
-    siteName: "partner org name",
-    address: "123-456-7890",
-    department: "123 address somewhere street",
-    gpsCoordinates: "123 address somewhere street",
-    website: "60",
-    socialMedia: "Nonprofit",
-  });
+    try {
+      setIsSaving(true);
 
-  const [contactData, setContactData] = useState({
-    regionalContact: "name",
-    medicalContact: "name",
-    adminDirector: "name",
-    pharmacy: "name",
-    whatsAppContact: "60",
-    whatsAppNumber: "60",
-  });
+      // Merge current details with updates
+      const updatedPartnerDetails = {
+        ...currentPartnerDetails,
+        ...updatedDetails,
+      };
 
-  const [introductionData, setIntroductionData] = useState({
-    organizationHistory: "partner org name",
-    typeOfSupportRequested: "123-456-7890",
-    dateEstablished: "123 address somewhere street",
-    isRegisteredWithMSSP: "123 address somewhere street",
-    programUpdatesSinceLastReport: "60",
-  });
+      // Create FormData for the API
+      const formData = new FormData();
+      formData.append("partnerDetails", JSON.stringify(updatedPartnerDetails));
 
-  const [facilityData, setFacilityData] = useState({
-    typeOfFacility: "partner org name",
-    governmentRunOrganization: "123 address somewhere street",
-    hasEMRSystem: "123 address somewhere street",
-    numberOfInpatientBeds: "60",
-    numberOfPatientsServedAnnually: "Nonprofit",
-    communityMobileOutreach: "Nonprofit",
-  });
+      await apiClient.post(`/api/partnerDetails/${user.id}`, {
+        body: formData,
+      });
 
-  const [infrastructureData, setInfrastructureData] = useState({
-    facilityDescription: "partner org name",
-    accessToCleanWater: "123-456-7890",
-    sanitationFacilities: "123 address somewhere street",
-    electricityAtFacility: "123 address somewhere street",
-    disabledAccess: "60",
-    medicationDisposalProcess: "Nonprofit",
-    vehicleForSupplies: "Nonprofit",
-  });
+      // Refetch data to get updated details
+      refetch();
+      setIsEditingOrg(false);
+    } catch (error) {
+      console.error("Failed to save partner details:", error);
+      // You could add a toast notification here
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-  const [programServicesData, setProgramServicesData] = useState({
-    medicalServicesProvided: "partner org name",
-    otherServicesProvided: "123-456-7890",
-  });
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto py-8 px-6 font-[Open_Sans]">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-lg">Loading partner details...</div>
+        </div>
+      </div>
+    );
+  }
 
-  const [financesData, setFinancesData] = useState({
-    whatHappensPatientsCannotPay: "partner org name",
-    percentageNeedingFinancialAid: "123-456-7890",
-    percentageReceivingFreeTreatment: "123 address somewhere street",
-    annualSpendingMedications: "123 address somewhere street",
-    trackPrescriptionsEachYear: "60",
-    totalNumberOfTreatmentsAnnually: "Nonprofit",
-    numberOfPatientsServedLastYear: "Nonprofit",
-  });
-
-  const [staffData, setStaffData] = useState({
-    numberOfDoctors: "partner org name",
-    numberOfNurses: "123-456-7890",
-    numberOfMidwives: "123 address somewhere street",
-    numberOfHealthOfficers: "Nonprofit",
-    numberOfStatisticians: "60",
-    numberOfPharmacists: "Nonprofit",
-    numberOfCHW: "Nonprofit",
-    numberOfAdministrative: "Nonprofit",
-    numberOfAuxiliaries: "123 address somewhere street",
-    otherStaffNotListed: "Nonprofit",
-    totalNumberOfStaff: "Nonprofit",
-  });
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto py-8 px-6 font-[Open_Sans]">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-red-600">
+            Error loading partner details: {error}
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-6 font-[Open_Sans]">
@@ -199,64 +292,72 @@ export default function ProfileScreenPartner({
           <GeneralInfo
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            orgData={orgData}
-            setOrgData={setOrgData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
         {activeTab === "Contact information" && (
           <ContactInformation
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            contactData={contactData}
-            setContactData={setContactData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
         {activeTab === "Introduction" && (
           <Introduction
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            introductionData={introductionData}
-            setIntroductionData={setIntroductionData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
         {activeTab === "Facility Information" && (
           <FacilityInformation
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            facilityData={facilityData}
-            setFacilityData={setFacilityData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
         {activeTab === "Infrastructure & Services" && (
           <InfrastructureServices
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            infrastructureData={infrastructureData}
-            setInfrastructureData={setInfrastructureData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
         {activeTab === "Programs & Services Provided" && (
           <ProgramServices
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            programServicesData={programServicesData}
-            setProgramServicesData={setProgramServicesData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
         {activeTab === "Finances" && (
           <Finances
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            financesData={financesData}
-            setFinancesData={setFinancesData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
         {activeTab === "Staff Information" && (
           <StaffInformation
             isEditingOrg={isEditingOrg}
             setIsEditingOrg={setIsEditingOrg}
-            staffData={staffData}
-            setStaffData={setStaffData}
+            partnerDetails={currentPartnerDetails}
+            onSave={handleSavePartnerDetails}
+            isSaving={isSaving}
           />
         )}
       </div>

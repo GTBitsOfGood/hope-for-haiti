@@ -1,163 +1,192 @@
 "use client";
 
-import React from "react";
-
-interface StaffData {
-  numberOfDoctors: string;
-  numberOfNurses: string;
-  numberOfMidwives: string;
-  numberOfAuxiliaries: string;
-  numberOfStatisticians: string;
-  numberOfPharmacists: string;
-  numberOfCHW: string;
-  numberOfAdministrative: string;
-  numberOfHealthOfficers: string;
-  totalNumberOfStaff: string;
-  otherStaffNotListed: string;
-}
+import React, { useState } from "react";
+import { PartnerDetails } from "@/schema/partnerDetails";
 
 interface StaffInformationProps {
   isEditingOrg: boolean;
   setIsEditingOrg: React.Dispatch<React.SetStateAction<boolean>>;
-  staffData: StaffData;
-  setStaffData: React.Dispatch<React.SetStateAction<StaffData>>;
+  partnerDetails: PartnerDetails;
+  onSave: (updatedDetails: Partial<PartnerDetails>) => Promise<void>;
+  isSaving: boolean;
 }
 
 export default function StaffInformation({
   isEditingOrg,
   setIsEditingOrg,
-  staffData,
-  setStaffData,
+  partnerDetails,
+  onSave,
+  isSaving,
 }: StaffInformationProps) {
+  const [formData, setFormData] = useState({
+    numberOfDoctors: partnerDetails.numberOfDoctors,
+    numberOfNurses: partnerDetails.numberOfNurses,
+    numberOfMidwives: partnerDetails.numberOfMidwives,
+    numberOfAuxilaries: partnerDetails.numberOfAuxilaries,
+    numberOfStatisticians: partnerDetails.numberOfStatisticians,
+    numberOfPharmacists: partnerDetails.numberOfPharmacists,
+    numberOfCHW: partnerDetails.numberOfCHW,
+    numberOfAdministrative: partnerDetails.numberOfAdministrative,
+    numberOfHealthOfficers: partnerDetails.numberOfHealthOfficers,
+    totalNumberOfStaff: partnerDetails.totalNumberOfStaff,
+    other: partnerDetails.other,
+  });
+
+  const handleSave = async () => {
+    await onSave(formData);
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      numberOfDoctors: partnerDetails.numberOfDoctors,
+      numberOfNurses: partnerDetails.numberOfNurses,
+      numberOfMidwives: partnerDetails.numberOfMidwives,
+      numberOfAuxilaries: partnerDetails.numberOfAuxilaries,
+      numberOfStatisticians: partnerDetails.numberOfStatisticians,
+      numberOfPharmacists: partnerDetails.numberOfPharmacists,
+      numberOfCHW: partnerDetails.numberOfCHW,
+      numberOfAdministrative: partnerDetails.numberOfAdministrative,
+      numberOfHealthOfficers: partnerDetails.numberOfHealthOfficers,
+      totalNumberOfStaff: partnerDetails.totalNumberOfStaff,
+      other: partnerDetails.other,
+    });
+    setIsEditingOrg(false);
+  };
+
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center">
         <h3 className="text-[20px] font-bold text-[#2774AE]">
           Staff Information
         </h3>
-        <button
-          onClick={() => setIsEditingOrg(!isEditingOrg)}
-          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-        >
-          {isEditingOrg ? "Save" : "Edit"}
-        </button>
+        <div className="flex gap-2">
+          {isEditingOrg && (
+            <button
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="border border-gray-400 text-gray-600 px-4 py-2 rounded-[4px] font-semibold hover:bg-gray-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={isEditingOrg ? handleSave : () => setIsEditingOrg(true)}
+            disabled={isSaving}
+            className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10 disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : isEditingOrg ? "Save" : "Edit"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-4 max-w-xl">
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of doctors
+          Number of Doctors
         </p>
         {isEditingOrg ? (
           <input
-            type="text"
-            value={staffData.numberOfDoctors}
+            type="number"
+            min="0"
+            value={formData.numberOfDoctors}
             onChange={(e) =>
-              setStaffData({ ...staffData, numberOfDoctors: e.target.value })
-            }
-            className="border p-1"
-          />
-        ) : (
-          <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfDoctors}
-          </p>
-        )}
-
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of nurses
-        </p>
-        {isEditingOrg ? (
-          <input
-            type="text"
-            value={staffData.numberOfNurses}
-            onChange={(e) =>
-              setStaffData({ ...staffData, numberOfNurses: e.target.value })
-            }
-            className="border p-1"
-          />
-        ) : (
-          <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfNurses}
-          </p>
-        )}
-
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of midwives
-        </p>
-        {isEditingOrg ? (
-          <input
-            type="text"
-            value={staffData.numberOfMidwives}
-            onChange={(e) =>
-              setStaffData({ ...staffData, numberOfMidwives: e.target.value })
-            }
-            className="border p-1"
-          />
-        ) : (
-          <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfMidwives}
-          </p>
-        )}
-
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of auxiliaries
-        </p>
-        {isEditingOrg ? (
-          <input
-            type="text"
-            value={staffData.numberOfAuxiliaries}
-            onChange={(e) =>
-              setStaffData({
-                ...staffData,
-                numberOfAuxiliaries: e.target.value,
+              setFormData({
+                ...formData,
+                numberOfDoctors: parseInt(e.target.value) || 0,
               })
             }
             className="border p-1"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfAuxiliaries}
+            {partnerDetails.numberOfDoctors}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of statisticians
+          Number of Nurses
         </p>
         {isEditingOrg ? (
           <input
-            type="text"
-            value={staffData.numberOfStatisticians}
+            type="number"
+            min="0"
+            value={formData.numberOfNurses}
             onChange={(e) =>
-              setStaffData({
-                ...staffData,
-                numberOfStatisticians: e.target.value,
+              setFormData({
+                ...formData,
+                numberOfNurses: parseInt(e.target.value) || 0,
               })
             }
             className="border p-1"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfStatisticians}
+            {partnerDetails.numberOfNurses}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of pharmacists
+          Number of Midwives
         </p>
         {isEditingOrg ? (
           <input
-            type="text"
-            value={staffData.numberOfPharmacists}
+            type="number"
+            min="0"
+            value={formData.numberOfMidwives}
             onChange={(e) =>
-              setStaffData({
-                ...staffData,
-                numberOfPharmacists: e.target.value,
+              setFormData({
+                ...formData,
+                numberOfMidwives: parseInt(e.target.value) || 0,
               })
             }
             className="border p-1"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfPharmacists}
+            {partnerDetails.numberOfMidwives}
+          </p>
+        )}
+
+        <p className="text-[18px] font-semibold text-[#22070B]">
+          Number of Health Officers
+        </p>
+        {isEditingOrg ? (
+          <input
+            type="number"
+            min="0"
+            value={formData.numberOfHealthOfficers}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                numberOfHealthOfficers: parseInt(e.target.value) || 0,
+              })
+            }
+            className="border p-1"
+          />
+        ) : (
+          <p className="text-[16px] text-[#22070B]">
+            {partnerDetails.numberOfHealthOfficers}
+          </p>
+        )}
+
+        <p className="text-[18px] font-semibold text-[#22070B]">
+          Number of Pharmacists
+        </p>
+        {isEditingOrg ? (
+          <input
+            type="number"
+            min="0"
+            value={formData.numberOfPharmacists}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                numberOfPharmacists: parseInt(e.target.value) || 0,
+              })
+            }
+            className="border p-1"
+          />
+        ) : (
+          <p className="text-[16px] text-[#22070B]">
+            {partnerDetails.numberOfPharmacists}
           </p>
         )}
 
@@ -166,95 +195,58 @@ export default function StaffInformation({
         </p>
         {isEditingOrg ? (
           <input
-            type="text"
-            value={staffData.numberOfCHW}
+            type="number"
+            min="0"
+            value={formData.numberOfCHW}
             onChange={(e) =>
-              setStaffData({ ...staffData, numberOfCHW: e.target.value })
-            }
-            className="border p-1"
-          />
-        ) : (
-          <p className="text-[16px] text-[#22070B]">{staffData.numberOfCHW}</p>
-        )}
-
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of administrative
-        </p>
-        {isEditingOrg ? (
-          <input
-            type="text"
-            value={staffData.numberOfAdministrative}
-            onChange={(e) =>
-              setStaffData({
-                ...staffData,
-                numberOfAdministrative: e.target.value,
+              setFormData({
+                ...formData,
+                numberOfCHW: parseInt(e.target.value) || 0,
               })
             }
             className="border p-1"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfAdministrative}
+            {partnerDetails.numberOfCHW}
           </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
-          Number of health officers
+          Total Number of Staff
         </p>
         {isEditingOrg ? (
           <input
-            type="text"
-            value={staffData.numberOfHealthOfficers}
+            type="number"
+            min="0"
+            value={formData.totalNumberOfStaff}
             onChange={(e) =>
-              setStaffData({
-                ...staffData,
-                numberOfHealthOfficers: e.target.value,
+              setFormData({
+                ...formData,
+                totalNumberOfStaff: parseInt(e.target.value) || 0,
               })
             }
             className="border p-1"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {staffData.numberOfHealthOfficers}
+            {partnerDetails.totalNumberOfStaff}
           </p>
         )}
 
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Total number of staff
-        </p>
+        <p className="text-[18px] font-semibold text-[#22070B]">Other Staff</p>
         {isEditingOrg ? (
-          <input
-            type="text"
-            value={staffData.totalNumberOfStaff}
+          <textarea
+            value={formData.other}
             onChange={(e) =>
-              setStaffData({ ...staffData, totalNumberOfStaff: e.target.value })
+              setFormData({ ...formData, other: e.target.value })
             }
-            className="border p-1"
+            className="border p-1 min-h-[100px]"
+            placeholder="Describe other staff not listed above"
           />
         ) : (
           <p className="text-[16px] text-[#22070B]">
-            {staffData.totalNumberOfStaff}
-          </p>
-        )}
-
-        <p className="text-[18px] font-semibold text-[#22070B]">
-          Other staff not listed
-        </p>
-        {isEditingOrg ? (
-          <input
-            type="text"
-            value={staffData.otherStaffNotListed}
-            onChange={(e) =>
-              setStaffData({
-                ...staffData,
-                otherStaffNotListed: e.target.value,
-              })
-            }
-            className="border p-1"
-          />
-        ) : (
-          <p className="text-[16px] text-[#22070B]">
-            {staffData.otherStaffNotListed}
+            {partnerDetails.other || "None"}
           </p>
         )}
       </div>
