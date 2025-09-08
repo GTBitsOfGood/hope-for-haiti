@@ -159,13 +159,11 @@ export default function ProfileScreenPartner({
     try {
       setIsSaving(true);
 
-      // Merge current details with updates
       const updatedPartnerDetails = {
         ...currentPartnerDetails,
         ...updatedDetails,
       };
 
-      // Create FormData for the API
       const formData = new FormData();
       formData.append("partnerDetails", JSON.stringify(updatedPartnerDetails));
 
@@ -173,12 +171,10 @@ export default function ProfileScreenPartner({
         body: formData,
       });
 
-      // Refetch data to get updated details
       refetch();
       setIsEditingOrg(false);
     } catch (error) {
       console.error("Failed to save partner details:", error);
-      // You could add a toast notification here
     } finally {
       setIsSaving(false);
     }

@@ -11,7 +11,6 @@ interface ContactInformationProps {
   isSaving: boolean;
 }
 
-// Helper component for contact form fields
 const ContactForm = ({
   contact,
   onContactChange,

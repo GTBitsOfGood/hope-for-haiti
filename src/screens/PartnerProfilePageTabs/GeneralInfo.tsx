@@ -32,7 +32,6 @@ export default function GeneralInfo({
   };
 
   const handleCancel = () => {
-    // Reset form data to original values
     setFormData({
       siteName: partnerDetails.siteName,
       address: partnerDetails.address,
