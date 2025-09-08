@@ -3,6 +3,9 @@ import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
 import { ArgumentError, errorResponse, ok } from "@/util/errors";
 import { NextRequest } from "next/server";
+import { z } from "zod";
+
+const idSchema = z.number().min(1);
 
 /**
  * Updates a wishlist item. Allows changes to name, unit size, quantity, priority, and comments.
@@ -16,7 +19,12 @@ export async function PATCH(
   try {
     const session = await UserService.authRequirePartner();
 
-    const { wishlistId } = await params;
+    const parsedId = idSchema.safeParse(await params);
+    if (!parsedId.success) {
+      throw new ArgumentError("Invalid wishlist ID");
+    }
+
+    const wishlistId = parsedId.data;
     const body = await req.json();
 
     const parsed = updateWishlistSchema.safeParse(body);
