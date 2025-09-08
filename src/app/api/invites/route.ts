@@ -29,6 +29,25 @@ const schema = zfd
     }
   );
 
+export async function GET() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError("You are not allowed to view invites");
+    }
+
+    const invites = await UserService.getPendingInvites();
+
+    return Response.json(invites);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -45,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (!parseResult.success) {
       throw new ArgumentError(parseResult.error.message);
     }
-    
+
     const { email, name, userType, partnerDetails } = parseResult.data;
 
     const existingUser = await UserService.getUserByEmail(email);

@@ -1,10 +1,6 @@
 import { db } from "@/db";
-import { $Enums, UserType } from "@prisma/client";
-import {
-  ArgumentError,
-  NotFoundError,
-  ConflictError,
-} from "@/util/errors";
+import { UserType } from "@prisma/client";
+import { ArgumentError, NotFoundError, ConflictError } from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from "uuid";
@@ -28,6 +24,28 @@ export default class UserService {
       },
     });
     return users;
+  }
+
+  static async getPendingInvites() {
+    const invites = await db.userInvite.findMany({
+      where: {
+        expiration: {
+          gte: new Date(),
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        userType: true,
+        expiration: true,
+        partnerDetails: true,
+      },
+      orderBy: {
+        expiration: "desc",
+      },
+    });
+    return invites;
   }
 
   static async getUserById(userId: number) {
@@ -243,10 +261,11 @@ export default class UserService {
     return userType === UserType.SUPER_ADMIN;
   }
 
+
   /**
    * @returns false if user is undefined or not a partner, true if user is a partner
    */
-  static isPartner(user: { type: $Enums.UserType } | undefined) {
-    return user && user.type === $Enums.UserType.PARTNER;
+  static isPartner(user: { type: UserType } | undefined) {
+    return user && user.type === UserType.PARTNER;
   }
 }

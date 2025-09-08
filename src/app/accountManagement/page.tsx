@@ -10,33 +10,73 @@ import TableRow from "@/components/AccountManagement/TableRow";
 import { useFetch } from "@/hooks/useFetch";
 import { isStaff, isPartner } from "@/lib/userUtils";
 
+type UserInvite = {
+  id: number;
+  email: string;
+  name: string;
+  userType: UserType;
+  expiration: Date;
+};
+
+type UserOrInvite =
+  | (User & { isInvite?: false })
+  | (UserInvite & { isInvite: true });
+
 enum UserFilterKey {
   ALL = "All",
+  INVITES = "Invites",
   STAFF = "Hope for Haiti Staff",
   PARTNERS = "Partners",
 }
 
-const filterMap: Record<UserFilterKey, (user: User) => boolean> = {
+const filterMap: Record<UserFilterKey, (item: UserOrInvite) => boolean> = {
   [UserFilterKey.ALL]: () => true,
-  [UserFilterKey.STAFF]: (user) => isStaff(user.type),
-  [UserFilterKey.PARTNERS]: (user) => isPartner(user.type),
+  [UserFilterKey.INVITES]: (item) => item.isInvite === true,
+  [UserFilterKey.STAFF]: (item) => !item.isInvite && isStaff(item.type),
+  [UserFilterKey.PARTNERS]: (item) => !item.isInvite && isPartner(item.type),
 };
 
 export default function AccountManagementPage() {
-  const { data: users, isLoading } = useFetch<User[]>("/api/users", {
-    cache: "no-store",
-  });
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const { data: users, isLoading: isLoadingUsers } = useFetch<User[]>(
+    "/api/users",
+    {
+      cache: "no-store",
+    }
+  );
+  const { data: invites, isLoading: isLoadingInvites } = useFetch<UserInvite[]>(
+    "/api/invites",
+    {
+      cache: "no-store",
+    }
+  );
+
+  const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
 
+  const isLoading = isLoadingUsers || isLoadingInvites;
+
   useEffect(() => {
-    setFilteredUsers(users || []);
-  }, [users]);
+    const allItems: UserOrInvite[] = [
+      ...(invites || []).map((invite) => ({
+        ...invite,
+        isInvite: true as const,
+      })),
+      ...(users || []).map((user) => ({ ...user, isInvite: false as const })),
+    ];
+    setFilteredItems(allItems);
+  }, [users, invites]);
 
   const filterUsers = (type: UserFilterKey) => {
     setActiveTab(type);
-    setFilteredUsers((users || []).filter(filterMap[type]));
+    const allItems: UserOrInvite[] = [
+      ...(invites || []).map((invite) => ({
+        ...invite,
+        isInvite: true as const,
+      })),
+      ...(users || []).map((user) => ({ ...user, isInvite: false as const })),
+    ];
+    setFilteredItems(allItems.filter(filterMap[type]));
   };
 
   const router = useRouter();
@@ -110,11 +150,12 @@ export default function AccountManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user, index) => (
+              {filteredItems.map((item, index) => (
                 <TableRow
-                  key={index}
-                  user={user}
+                  key={`${item.isInvite ? "invite" : "user"}-${item.id}`}
+                  user={item}
                   index={index}
+                  isInvite={item.isInvite}
                   onManageClick={(user) => {
                     console.log("Manage user:", user);
                   }}
