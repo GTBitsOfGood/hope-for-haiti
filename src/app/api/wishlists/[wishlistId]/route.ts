@@ -21,7 +21,7 @@ export async function PATCH(
       throw new ArgumentError("Must be PARTNER");
     }
 
-    const parsedId = idSchema.safeParse(await params);
+    const parsedId = idSchema.safeParse((await params).wishlistId);
     if (!parsedId.success) {
       throw new ArgumentError("Invalid wishlist ID");
     }
@@ -67,7 +67,7 @@ export async function DELETE(
       throw new ArgumentError("Must be PARTNER");
     }
 
-    const parsedId = idSchema.safeParse(await params);
+    const parsedId = idSchema.safeParse((await params).wishlistId);
     if (!parsedId.success) {
       throw new ArgumentError("Invalid wishlist ID");
     }

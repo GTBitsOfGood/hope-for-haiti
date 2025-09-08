@@ -55,7 +55,6 @@ export async function GET(req: NextRequest) {
       .safeParse(req.nextUrl.searchParams.get("partnerId"));
 
     if (!parsedPartnerId.success) {
-      console.log(parsedPartnerId.error);
       throw new ArgumentError("Invalid partnerId");
     }
     let partnerId = parsedPartnerId.data;
