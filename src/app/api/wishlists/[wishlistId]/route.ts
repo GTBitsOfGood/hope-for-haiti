@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { idSchema, updateWishlistSchema } from "@/schema/wishlist";
 import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
@@ -14,7 +15,11 @@ export async function PATCH(
   { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const session = await UserService.authRequirePartner();
+    const session = await auth();
+
+    if (!UserService.isPartner(session?.user)) {
+      throw new ArgumentError("Must be PARTNER");
+    }
 
     const parsedId = idSchema.safeParse(await params);
     if (!parsedId.success) {
@@ -32,7 +37,7 @@ export async function PATCH(
     const wishlistItem = await WishlistService.getWishlistItem(wishlistId);
 
     // Check ID first to avoid revealing the existence/non-existence of the wishlist item to an unauthorized user
-    if (wishlistItem?.partnerId !== Number(session.user.id)) {
+    if (wishlistItem?.partnerId !== Number(session!.user.id)) {
       throw new ArgumentError("Cannot update another partner's wishlist item");
     }
 
@@ -56,7 +61,11 @@ export async function DELETE(
   { params }: { params: Promise<{ wishlistId: string }> }
 ) {
   try {
-    const session = await UserService.authRequirePartner();
+    const session = await auth();
+
+    if (!UserService.isPartner(session?.user)) {
+      throw new ArgumentError("Must be PARTNER");
+    }
 
     const parsedId = idSchema.safeParse(await params);
     if (!parsedId.success) {
@@ -67,7 +76,7 @@ export async function DELETE(
     const wishlistItem = await WishlistService.getWishlistItem(wishlistId);
 
     // Check ID first to avoid revealing the existence/non-existence of the wishlist item to an unauthorized user
-    if (wishlistItem?.partnerId !== Number(session.user.id)) {
+    if (wishlistItem?.partnerId !== Number(session!.user.id)) {
       throw new ArgumentError("Cannot delete another partner's wishlist item");
     }
 

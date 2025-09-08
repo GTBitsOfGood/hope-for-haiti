@@ -14,7 +14,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await UserService.authRequirePartner();
+    const session = await auth();
+
+    if (!UserService.isPartner(session?.user)) {
+      throw new ArgumentError("Only partners can create wishlist items");
+    }
 
     const body = await req.json();
     const result = createWishlistSchema.safeParse(body);
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const wishlist: CreateWishlistData = {
       ...result.data,
-      partnerId: Number(session.user.id),
+      partnerId: Number(session!.user.id),
       priority: result.data.priority as $Enums.RequestPriority,
     };
 

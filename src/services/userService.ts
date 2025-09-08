@@ -4,7 +4,6 @@ import {
   ArgumentError,
   NotFoundError,
   ConflictError,
-  AuthenticationError,
 } from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
@@ -17,7 +16,6 @@ import {
   CreateUserInviteData,
   UpdateUserData,
 } from "@/types/api/user.types";
-import { auth } from "@/auth";
 
 export default class UserService {
   static async getUsers() {
@@ -208,19 +206,9 @@ export default class UserService {
   }
 
   /**
-   * Checks that the user is signed in and is a partner. Throws an error if not.
-   * @returns the session
+   * @returns false if user is undefined or not a partner, true if user is a partner
    */
-  static async authRequirePartner() {
-    const session = await auth();
-    if (!session?.user) {
-      throw new AuthenticationError("Session required");
-    }
-
-    if (session.user.type !== $Enums.UserType.PARTNER) {
-      throw new AuthenticationError("Must be PARTNER");
-    }
-
-    return session;
+  static isPartner(user: { type: $Enums.UserType } | undefined) {
+    return user && user.type === $Enums.UserType.PARTNER;
   }
 }
