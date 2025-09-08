@@ -2,10 +2,8 @@ import { db } from "@/db";
 import {
   CreateWishlistData,
   UpdateWishlistData,
-  WishlistStats,
 } from "@/types/api/wishlist.types";
 import { NotFoundError } from "@/util/errors";
-import { $Enums } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export class WishlistService {
@@ -67,7 +65,7 @@ export class WishlistService {
         partnerName: string;
         totalCount: bigint;
         lowCount: bigint;
-        mediuCount: bigint;
+        mediumCount: bigint;
         highCount: bigint;
       }[]
     >`
