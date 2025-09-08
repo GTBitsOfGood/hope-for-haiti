@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { isPartner } from "@/lib/userUtils";
 import { createWishlistSchema, idSchema } from "@/schema/wishlist";
 import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
     let partnerId = parsedPartnerId.data;
 
     // Only let partners see their own wishlists. Default partnerId to their own
-    if (session.user.type === $Enums.UserType.PARTNER) {
+    if (UserService.isPartner(session.user)) {
       if (partnerId && partnerId !== Number(session.user.id)) {
         throw new AuthenticationError(
           "Cannot access wishlists for other partners"
