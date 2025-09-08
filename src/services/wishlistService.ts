@@ -61,12 +61,17 @@ export class WishlistService {
   }
 
   static async getWishlistsStatsByPartner() {
-    const wishlistPromise = db.wishlist.groupBy({
-      by: ["partnerId", "priority"],
-      _count: {
-        id: true,
-      },
-    });
+    const wishlistPromise = db.$queryRaw<
+      {
+        partnerId: number;
+        priority: $Enums.RequestPriority;
+        count: bigint;
+      }[]
+    >`
+      SELECT "partnerId", "priority", COUNT("priority") as count
+      FROM "Wishlist"
+      GROUP BY "partnerId", "priority"
+    `;
 
     const partnerPromise = db.user.findMany({
       where: {
@@ -98,16 +103,17 @@ export class WishlistService {
     }
 
     for (const wishlist of wishlists) {
-      statsByPartner[wishlist.partnerId].totalCount += wishlist._count.id;
+      const count = Number(wishlist.count);
+      statsByPartner[wishlist.partnerId].totalCount += count;
       switch (wishlist.priority) {
         case $Enums.RequestPriority.LOW:
-          statsByPartner[wishlist.partnerId].lowCount += wishlist._count.id;
+          statsByPartner[wishlist.partnerId].lowCount += count;
           break;
         case $Enums.RequestPriority.MEDIUM:
-          statsByPartner[wishlist.partnerId].mediumCount += wishlist._count.id;
+          statsByPartner[wishlist.partnerId].mediumCount += count;
           break;
         case $Enums.RequestPriority.HIGH:
-          statsByPartner[wishlist.partnerId].highCount += wishlist._count.id;
+          statsByPartner[wishlist.partnerId].highCount += count;
           break;
       }
     }
