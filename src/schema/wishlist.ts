@@ -29,3 +29,5 @@ export const updateWishlistSchema: ZodObject<
     Object.entries(createObj).map(([key, value]) => [key, value.optional()])
   ),
 });
+
+export const idSchema = z.number().min(1);

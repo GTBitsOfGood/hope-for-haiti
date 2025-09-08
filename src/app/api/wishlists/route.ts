@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { createWishlistSchema } from "@/schema/wishlist";
+import { createWishlistSchema, idSchema } from "@/schema/wishlist";
 import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
 import { CreateWishlistData } from "@/types/api/wishlist.types";
@@ -45,7 +45,14 @@ export async function GET(req: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    let partnerId = Number(new URL(req.url).searchParams.get("partnerId"));
+    const parsedPartnerId = idSchema.safeParse(
+      req.nextUrl.searchParams.get("partnerId")
+    );
+
+    if (!parsedPartnerId.success) {
+      throw new ArgumentError("Invalid partnerId");
+    }
+    let partnerId = parsedPartnerId.data;
 
     // Only let partners see their own wishlists. Default partnerId to their own
     if (session.user.type === $Enums.UserType.PARTNER) {
