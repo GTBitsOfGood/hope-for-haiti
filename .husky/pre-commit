@@ -1,1 +1,50 @@
-npm run lint
+#!/usr/bin/env bash
+
+# Cross-platform Husky pre-commit hook
+# Avoid relying on global/npm path (Windows Git Bash sometimes points to missing C:/Program Files/nodejs/npm)
+# Runs Next.js lint directly via node. Skips if Node too old or dependencies missing.
+
+set -euo pipefail
+
+# Ensure we run from repo root (husky sets cwd to .husky by default in some versions)
+cd "$(dirname "$0")/.."
+
+if ! command -v node >/dev/null 2>&1; then
+	echo "[husky] node not found in PATH - skipping lint" >&2
+	exit 0
+fi
+
+# Minimal Node version (adjust if project engines requirement changes)
+NODE_VERSION=$(node -p "process.versions.node")
+NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d. -f1)
+NODE_MINOR=$(echo "$NODE_VERSION" | cut -d. -f2)
+
+# Next.js requirement: ^18.18.0 || ^19.8.0 || >=20.0.0
+meets_req=false
+if [ "$NODE_MAJOR" -ge 20 ]; then
+	meets_req=true
+elif [ "$NODE_MAJOR" -eq 19 ] && [ "$NODE_MINOR" -ge 8 ]; then
+	meets_req=true
+elif [ "$NODE_MAJOR" -eq 18 ] && [ "$NODE_MINOR" -ge 18 ]; then
+	meets_req=true
+fi
+
+if [ "$meets_req" != true ]; then
+	echo "[husky] Node $NODE_VERSION does not satisfy Next.js required range (^18.18 || ^19.8 || >=20) - skipping lint" >&2
+	exit 0
+fi
+
+# If dependencies not installed, skip (e.g., during initial clone CI step)
+if [ ! -f node_modules/next/dist/bin/next ]; then
+	echo "[husky] node_modules not present - skipping lint" >&2
+	exit 0
+fi
+
+echo "[husky] Running lint (next lint)" >&2
+node node_modules/next/dist/bin/next lint || {
+	status=$?
+	echo "[husky] Lint failed (exit $status)" >&2
+	exit $status
+}
+
+echo "[husky] Lint passed" >&2
