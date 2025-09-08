@@ -61,66 +61,37 @@ export class WishlistService {
   }
 
   static async getWishlistsStatsByPartner() {
-    const wishlistPromise = db.$queryRaw<
+    const stats = await db.$queryRaw<
       {
         partnerId: number;
-        priority: $Enums.RequestPriority;
-        count: bigint;
+        partnerName: string;
+        totalCount: bigint;
+        lowCount: bigint;
+        mediuCount: bigint;
+        highCount: bigint;
       }[]
     >`
-      SELECT "partnerId", "priority", COUNT("priority") as count
-      FROM "Wishlist"
-      GROUP BY "partnerId", "priority"
+        SELECT 
+            u.id as "partnerId",
+            u.name as "partnerName",
+            COUNT(w.id) as "totalCount",
+            SUM(CASE WHEN w.priority = 'LOW' THEN 1 ELSE 0 END) as "lowCount",
+            SUM(CASE WHEN w.priority = 'MEDIUM' THEN 1 ELSE 0 END) as "mediumCount",
+            SUM(CASE WHEN w.priority = 'HIGH' THEN 1 ELSE 0 END) as "highCount"
+        FROM "User" u
+        LEFT JOIN "Wishlist" w ON u.id = w."partnerId"
+        WHERE u.type = 'PARTNER'
+        GROUP BY u.id, u.name
     `;
 
-    const partnerPromise = db.user.findMany({
-      where: {
-        type: $Enums.UserType.PARTNER,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
+    return stats.map(stat => ({
+        partnerId: stat.partnerId,
+        partnerName: stat.partnerName,
+        totalCount: Number(stat.totalCount),
+        lowCount: Number(stat.lowCount),
+        mediumCount: Number(stat.mediumCount),
+        highCount: Number(stat.highCount),
+    }));
 
-    const [wishlists, partners] = await Promise.all([
-      wishlistPromise,
-      partnerPromise,
-    ]);
-
-    const statsByPartner: {
-      [partnerId: number]: Omit<WishlistStats, "partnerId">;
-    } = {};
-
-    for (const partner of partners) {
-      statsByPartner[partner.id] = {
-        partnerName: partner.name,
-        totalCount: 0,
-        lowCount: 0,
-        mediumCount: 0,
-        highCount: 0,
-      };
-    }
-
-    for (const wishlist of wishlists) {
-      const count = Number(wishlist.count);
-      statsByPartner[wishlist.partnerId].totalCount += count;
-      switch (wishlist.priority) {
-        case $Enums.RequestPriority.LOW:
-          statsByPartner[wishlist.partnerId].lowCount += count;
-          break;
-        case $Enums.RequestPriority.MEDIUM:
-          statsByPartner[wishlist.partnerId].mediumCount += count;
-          break;
-        case $Enums.RequestPriority.HIGH:
-          statsByPartner[wishlist.partnerId].highCount += count;
-          break;
-      }
-    }
-
-    return Object.entries(statsByPartner).map(([partnerId, stats]) => ({
-      partnerId: Number(partnerId),
-      ...stats,
-    })) as WishlistStats[];
   }
 }
