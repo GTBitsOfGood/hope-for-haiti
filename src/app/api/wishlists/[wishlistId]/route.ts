@@ -32,9 +32,7 @@ export async function PATCH(
       throw new ArgumentError(parsed.error.message);
     }
 
-    const wishlistItem = await WishlistService.getWishlistItem(
-      Number(wishlistId)
-    );
+    const wishlistItem = await WishlistService.getWishlistItem(wishlistId);
 
     // Check ID first to avoid revealing the existence/non-existence of the wishlist item to an unauthorized user
     if (wishlistItem?.partnerId !== Number(session.user.id)) {
@@ -63,11 +61,13 @@ export async function DELETE(
   try {
     const session = await UserService.authRequirePartner();
 
-    const { wishlistId } = await params;
+    const parsedId = idSchema.safeParse(await params);
+    if (!parsedId.success) {
+      throw new ArgumentError("Invalid wishlist ID");
+    }
 
-    const wishlistItem = await WishlistService.getWishlistItem(
-      Number(wishlistId)
-    );
+    const wishlistId = parsedId.data;
+    const wishlistItem = await WishlistService.getWishlistItem(wishlistId);
 
     // Check ID first to avoid revealing the existence/non-existence of the wishlist item to an unauthorized user
     if (wishlistItem?.partnerId !== Number(session.user.id)) {
