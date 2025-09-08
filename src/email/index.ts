@@ -50,7 +50,7 @@ export async function sendEmail(
     from: fromEmail,
     subject,
     html,
-  });
+  }, Array.isArray(to));
 }
 
 export class EmailClient {
