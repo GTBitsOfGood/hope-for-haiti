@@ -54,17 +54,17 @@ export async function sendEmail(
 }
 
 export class EmailClient {
-  async sendUserInvite(to: string, props: { inviteUrl: string }) {
-    const html = await render(UserInviteTemplate({ ...props }));
+  static async sendUserInvite(to: string, props: { inviteUrl: string }) {
+    const html = await render(UserInviteTemplate(props));
     return sendEmail(to, "Your Invite Link", html);
   }
 
-  async sendPartnerInviteReminder(to: string, props: { inviteUrl: string }) {
-    const html = await render(ParterInviteReminderTemplate({ ...props }));
+  static async sendPartnerInviteReminder(to: string, props: { inviteUrl: string }) {
+    const html = await render(ParterInviteReminderTemplate(props));
     return sendEmail(to, "Reminder: Complete Your Account", html);
   }
 
-  async sendItemsExpiring(
+  static async sendItemsExpiring(
     to: string,
     props: {
       month: string;
@@ -75,25 +75,23 @@ export class EmailClient {
       }>;
     }
   ) {
-    const html = await render(ItemsExpiringTemplate({ ...props }));
+    const html = await render(ItemsExpiringTemplate(props));
     return sendEmail(to, `Items Expiring in ${props.month}`, html);
   }
 
-  async sendItemsVisible(
+  static async sendItemsVisible(
     to: string,
     props: { items: Array<{ name: string; quantity?: number }> }
   ) {
-    const html = await render(ItemsVisibleTemplate({ ...props }));
+    const html = await render(ItemsVisibleTemplate(props));
     return sendEmail(to, "New Items Visible", html);
   }
 
-  async sendDonorOfferCreated(
+  static async sendDonorOfferCreated(
     to: string | string[],
     props: { offerTitle: string; description?: string; donorName?: string }
   ) {
-    const html = await render(DonorOfferCreatedTemplate({ ...props }));
+    const html = await render(DonorOfferCreatedTemplate(props));
     return sendEmail(to, "Donor Offer Created", html);
   }
 }
-
-export const emailClient = new EmailClient();

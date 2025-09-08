@@ -8,7 +8,7 @@ import {
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from "uuid";
-import { emailClient } from "@/email";
+import { EmailClient } from "@/email";
 import {
   CreateUserFromInviteData,
   CreateUserInviteData,
@@ -95,7 +95,7 @@ export default class UserService {
       });
 
       const inviteUrl = `${data.origin}/register?token=${token}`;
-      await emailClient.sendUserInvite(data.email, { inviteUrl });
+      await EmailClient.sendUserInvite(data.email, { inviteUrl });
     });
   }
 
