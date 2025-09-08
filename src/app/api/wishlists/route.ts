@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const session = await auth();
 
     if (!UserService.isPartner(session?.user)) {
-      throw new ArgumentError("Only partners can create wishlist items");
+      throw new ArgumentError("Must be PARTNER");
     }
 
     const body = await req.json();
@@ -51,9 +51,11 @@ export async function GET(req: NextRequest) {
 
     const parsedPartnerId = idSchema
       .optional()
+      .nullable()
       .safeParse(req.nextUrl.searchParams.get("partnerId"));
 
     if (!parsedPartnerId.success) {
+      console.log(parsedPartnerId.error);
       throw new ArgumentError("Invalid partnerId");
     }
     let partnerId = parsedPartnerId.data;

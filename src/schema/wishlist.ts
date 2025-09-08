@@ -30,4 +30,4 @@ export const updateWishlistSchema: ZodObject<
   ),
 });
 
-export const idSchema = z.number().min(1);
+export const idSchema = z.coerce.number().int().positive();
