@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { User, UserType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
+import TableRow from "@/components/AccountManagement/TableRow";
 import { useFetch } from "@/hooks/useFetch";
-import { isStaff, isPartner, formatUserType } from "@/lib/userUtils";
+import { isStaff, isPartner } from "@/lib/userUtils";
 
 enum UserFilterKey {
   ALL = "All",
@@ -110,31 +111,14 @@ export default function AccountManagementPage() {
             </thead>
             <tbody>
               {filteredUsers.map((user, index) => (
-                <tr
+                <TableRow
                   key={index}
-                  data-odd={index % 2 !== 0}
-                  className="bg-white data-[odd=true]:bg-gray-50"
-                >
-                  <td className="border-b px-4 py-2">{user.name}</td>
-                  <td className="border-b px-4 py-2">{user.email}</td>
-                  <td className="border-b px-4 py-2">
-                    {formatUserType(user.type)}
-                  </td>
-                  <td className="border-b px-4 py-2">
-                    <span className="px-2 py-1 rounded bg-green-primary whitespace-nowrap">
-                      Account created
-                    </span>
-                  </td>
-                  <td className="border-b px-4 py-2">
-                    <div className="float-right">
-                      <DotsThree
-                        weight="bold"
-                        className="cursor-pointer"
-                        onClick={() => {}}
-                      />
-                    </div>
-                  </td>
-                </tr>
+                  user={user}
+                  index={index}
+                  onManageClick={(user) => {
+                    console.log("Manage user:", user);
+                  }}
+                />
               ))}
             </tbody>
           </table>
