@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { isPartner } from "@/lib/userUtils";
 import { createWishlistSchema, idSchema } from "@/schema/wishlist";
 import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
