@@ -49,9 +49,9 @@ export async function GET(req: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    const parsedPartnerId = idSchema.safeParse(
-      req.nextUrl.searchParams.get("partnerId")
-    );
+    const parsedPartnerId = idSchema
+      .optional()
+      .safeParse(req.nextUrl.searchParams.get("partnerId"));
 
     if (!parsedPartnerId.success) {
       throw new ArgumentError("Invalid partnerId");
@@ -70,14 +70,6 @@ export async function GET(req: NextRequest) {
     }
 
     if (partnerId) {
-      if (Number.isNaN(partnerId)) {
-        throw new ArgumentError("partnerId must be a number");
-      }
-
-      if (partnerId <= 0) {
-        throw new ArgumentError("partnerId must be a positive number");
-      }
-
       const wishlists = await WishlistService.getWishlistsByPartner(partnerId);
       return NextResponse.json(wishlists, {
         status: 200,
