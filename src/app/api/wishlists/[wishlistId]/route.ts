@@ -69,7 +69,7 @@ export async function DELETE(
 
     const parsedId = idSchema.safeParse((await params).wishlistId);
     if (!parsedId.success) {
-      throw new ArgumentError("Invalid wishlist ID");
+      throw new ArgumentError(parsedId.error.message);
     }
 
     const wishlistId = parsedId.data;
