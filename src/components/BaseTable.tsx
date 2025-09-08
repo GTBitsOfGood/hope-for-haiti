@@ -18,6 +18,7 @@ export default function BaseTable({
   headerClassName,
   pageSize,
 }: BaseTableProps) {
+  console.log(pageSize); // Just to use pageSize and avoid lint errors for now
   return (
     <div>
       <table className="mt-4 min-w-full">
