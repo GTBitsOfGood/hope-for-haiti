@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import BaseTable from "@/components/BaseTable";
 
 interface UnallocatedItemData {
   title: string;
@@ -73,13 +74,15 @@ export default function AdminUnallocatedItemsScreen() {
   const [addItemExpanded, setAddItemExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formSuccess, setFormSuccess] = useState(false);
-  
-  const [filteredItems, setFilteredItems] = useState<UnallocatedItemData[] | null>(null);
+
+  const [filteredItems, setFilteredItems] = useState<
+    UnallocatedItemData[] | null
+  >(null);
 
   const {
     isLoading,
     refetch: refetchItems,
-    data
+    data,
   } = useFetch<{
     items: UnallocatedItemData[];
     unitTypes: string[];
@@ -108,16 +111,16 @@ export default function AdminUnallocatedItemsScreen() {
 
   const filterItems = async (key: ExpirationFilterKey) => {
     setActiveTab(key);
-    
+
     try {
       const response = await fetch(generateFetchUrl(key), {
         cache: "no-store",
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch filtered items");
       }
-      
+
       const filterData = await response.json();
       setFilteredItems(filterData.items);
     } catch (error) {
@@ -207,30 +210,37 @@ export default function AdminUnallocatedItemsScreen() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div>
-          <table className="mt-4 min-w-full">
-            <thead>
-              <tr className="opacity-80 text-white font-bold border-b-2 bg-blue-primary">
-                <th className="px-4 py-2 text-left rounded-tl-lg">Title</th>
-                <th className="px-4 py-2 text-left">Type</th>
-                <th className="px-4 py-2 text-left">Quantity</th>
-                <th className="px-4 py-2 text-left">Expiration</th>
-                <th className="px-4 py-2 text-left">Unit type</th>
-                <th className="px-4 py-2 text-left">Qty/Unit</th>
-                <th className="px-4 py-2 text-left rounded-tr-lg w-12">
-                  Manage
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <React.Fragment key={index}>
-                  <tr
-                    data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 border-b data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100 cursor-pointer transition-colors`}
+        <BaseTable
+          headers={[
+            { label: "Title" },
+            { label: "Type" },
+            { label: "Quantity" },
+            { label: "Expiration" },
+            { label: "Unit type" },
+            { label: "Qty/Unit" },
+            { label: "Manage", className: "w-12" },
+          ]}
+          rows={items.map((item) => [
+            formatTableValue(item.title),
+            formatTableValue(item.type),
+            formatTableValue(item.quantity),
+            item.expirationDate
+              ? new Date(item.expirationDate).toLocaleDateString()
+              : "N/A",
+            formatTableValue(item.unitType),
+            formatTableValue(item.quantityPerUnit),
+            <div onClick={(e) => e.stopPropagation()} key={1}>
+              <Menu as="div" className="float-right relative">
+                <MenuButton>
+                  <DotsThree weight="bold" />
+                </MenuButton>
+                <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+                  <MenuItem
+                    as="button"
+                    className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => {
                       router.push(
-                        `/unallocatedItems/requests?${new URLSearchParams({
+                        `/unallocatedItems/lineItems?${new URLSearchParams({
                           title: item.title,
                           type: item.type,
                           unitType: item.unitType,
@@ -242,65 +252,16 @@ export default function AdminUnallocatedItemsScreen() {
                       );
                     }}
                   >
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.title)}
-                    </td>
-                    <td className="px-4 py-2">{formatTableValue(item.type)}</td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.quantity)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {item.expirationDate
-                        ? new Date(item.expirationDate).toLocaleDateString()
-                        : "N/A"}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.unitType)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.quantityPerUnit)}
-                    </td>
-                    <td
-                      className="px-4 py-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Menu as="div" className="float-right relative">
-                        <MenuButton>
-                          <DotsThree weight="bold" />
-                        </MenuButton>
-                        <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                          <MenuItem
-                            as="button"
-                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => {
-                              router.push(
-                                `/unallocatedItems/lineItems?${new URLSearchParams(
-                                  {
-                                    title: item.title,
-                                    type: item.type,
-                                    unitType: item.unitType,
-                                    quantityPerUnit:
-                                      item.quantityPerUnit.toString(),
-                                    ...(item.expirationDate
-                                      ? { expirationDate: item.expirationDate }
-                                      : {}),
-                                  }
-                                ).toString()}`
-                              );
-                            }}
-                          >
-                            <Eye className="inline-block mr-2" size={22} />
-                            View unique items
-                          </MenuItem>
-                        </MenuItems>
-                      </Menu>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <Eye className="inline-block mr-2" size={22} />
+                    View unique items
+                  </MenuItem>
+                </MenuItems>
+              </Menu>
+            </div>,
+          ])}
+          pageSize={10}
+          headerClassName="bg-blue-primary text-white opacity-80"
+        />
       )}
     </>
   );
