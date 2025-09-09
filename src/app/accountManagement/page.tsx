@@ -53,10 +53,11 @@ export default function AccountManagementPage() {
   const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const isLoading = isLoadingUsers || isLoadingInvites;
 
-  useEffect(() => {
+  const applyFilters = (tabFilter: UserFilterKey, search: string) => {
     const allItems: UserOrInvite[] = [
       ...(invites || []).map((invite) => ({
         ...invite,
@@ -64,19 +65,33 @@ export default function AccountManagementPage() {
       })),
       ...(users || []).map((user) => ({ ...user, isInvite: false as const })),
     ];
-    setFilteredItems(allItems);
-  }, [users, invites]);
+
+    let filtered = allItems.filter(filterMap[tabFilter]);
+
+    if (search.trim()) {
+      filtered = filtered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(search.toLowerCase()) ||
+          item.email.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    setFilteredItems(filtered);
+  };
+
+  useEffect(() => {
+    applyFilters(activeTab as UserFilterKey, searchQuery);
+  }, [users, invites, activeTab, searchQuery]);
 
   const filterUsers = (type: UserFilterKey) => {
     setActiveTab(type);
-    const allItems: UserOrInvite[] = [
-      ...(invites || []).map((invite) => ({
-        ...invite,
-        isInvite: true as const,
-      })),
-      ...(users || []).map((user) => ({ ...user, isInvite: false as const })),
-    ];
-    setFilteredItems(allItems.filter(filterMap[type]));
+    applyFilters(type, searchQuery);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    applyFilters(activeTab as UserFilterKey, query);
   };
 
   const router = useRouter();
@@ -104,7 +119,9 @@ export default function AccountManagementPage() {
           />
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Search by name or email"
+            value={searchQuery}
+            onChange={handleSearchChange}
             className="pl-10 pr-4 py-2 text-gray-primary/50 w-full border border-gray-primary/10 rounded-lg bg-[#F9F9F9] focus:outline-none focus:border-gray-400"
           />
         </div>
@@ -141,7 +158,6 @@ export default function AccountManagementPage() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          {/* Fixed Header */}
           <table className="w-full">
             <thead>
               <tr className="bg-gray-primary/5 border-b-2 border-gray-primary/10 text-gray-primary/70">
