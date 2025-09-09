@@ -140,58 +140,64 @@ export default function AdminDonorOffersScreen() {
               : []),
             { label: "Manage", className: "w-12" },
           ]}
-          rows={filteredOffers.map((offer) => [
-            offer.offerName,
-            offer.donorName,
-            ...(activeTab === StatusFilterKey.UNFINALIZED
-              ? [
-                  offer.responseDeadline
-                    ? new Date(offer.responseDeadline).toLocaleDateString()
-                    : "N/A",
-                  `${
-                    offer.invitedPartners.filter((partner) => partner.responded)
-                      .length
-                  }/${offer.invitedPartners.length}`,
-                ]
-              : []),
-            <div onClick={(e) => e.stopPropagation()} key={1}>
-              <Menu as="div" className="float-right relative">
-                <MenuButton>
-                  <DotsThree weight="bold" />
-                </MenuButton>
-                <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                  <MenuItem
-                    as="button"
-                    className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() =>
-                      router.push(`/donorOffers/${offer.donorOfferId}/edit`)
-                    }
-                  >
-                    <PencilSimple className="inline-block mr-2" size={22} />
-                    Edit Offer Details
-                  </MenuItem>
-                  <MenuItem
-                    as="button"
-                    className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() =>
-                      router.push(`/donorOffers/${offer.donorOfferId}/finalize`)
-                    }
-                  >
-                    <Upload className="inline-block mr-2" size={22} />
-                    Upload Final Offer
-                  </MenuItem>
-                  <MenuItem
-                    as="button"
-                    className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => handleArchive(offer.donorOfferId)}
-                  >
-                    <Archive className="inline-block mr-2" size={22} />
-                    Archive Offer
-                  </MenuItem>
-                </MenuItems>
-              </Menu>
-            </div>,
-          ])}
+          rows={filteredOffers.map((offer) => ({
+            cells: [
+              offer.offerName,
+              offer.donorName,
+              ...(activeTab === StatusFilterKey.UNFINALIZED
+                ? [
+                    offer.responseDeadline
+                      ? new Date(offer.responseDeadline).toLocaleDateString()
+                      : "N/A",
+                    `${
+                      offer.invitedPartners.filter(
+                        (partner) => partner.responded
+                      ).length
+                    }/${offer.invitedPartners.length}`,
+                  ]
+                : []),
+              <div onClick={(e) => e.stopPropagation()} key={1}>
+                <Menu as="div" className="float-right relative">
+                  <MenuButton>
+                    <DotsThree weight="bold" />
+                  </MenuButton>
+                  <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() =>
+                        router.push(`/donorOffers/${offer.donorOfferId}/edit`)
+                      }
+                    >
+                      <PencilSimple className="inline-block mr-2" size={22} />
+                      Edit Offer Details
+                    </MenuItem>
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() =>
+                        router.push(
+                          `/donorOffers/${offer.donorOfferId}/finalize`
+                        )
+                      }
+                    >
+                      <Upload className="inline-block mr-2" size={22} />
+                      Upload Final Offer
+                    </MenuItem>
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => handleArchive(offer.donorOfferId)}
+                    >
+                      <Archive className="inline-block mr-2" size={22} />
+                      Archive Offer
+                    </MenuItem>
+                  </MenuItems>
+                </Menu>
+              </div>,
+            ],
+            onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
+          }))}
           headerClassName="bg-blue-primary text-white opacity-80"
           pageSize={10}
         />

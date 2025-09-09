@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import { formatTableValue } from "@/utils/format";
+import BaseTable from "@/components/BaseTable";
 
 type RequestWithAllocations = DonorOfferItemRequest & {
   donorOfferItem: DonorOfferItem;
@@ -166,139 +167,109 @@ export default function DonorOfferItemRequestsScreen() {
               View Unique Line Items
             </Link>
           </div>
-          <div className="overflow-x-scroll">
-            <table className="mt-4 min-w-full">
-              <thead>
-                <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                  <th className="px-4 py-2 rounded-tl-lg text-left">Partner</th>
-                  <th className="px-4 py-2 text-left">Date requested</th>
-                  <th className="px-4 py-2 text-left">Requested quantity</th>
-                  <th className="px-4 py-2 text-left">Priority</th>
-                  <th className="px-4 py-2 text-left">Allocated quantity</th>
-                  <th className="px-4 py-2 text-left">
-                    Allocated summary (lot, pallet, box)
-                  </th>
-                  <th className="px-4 py-2 rounded-tr-lg text-left">Comment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((item, index) => (
-                  <React.Fragment key={index}>
-                    <tr
-                      data-odd={index % 2 !== 0}
-                      className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
+          <BaseTable
+            headers={[
+              { label: "Partner" },
+              { label: "Date requested" },
+              { label: "Requested quantity" },
+              { label: "Priority" },
+              { label: "Allocated quantity" },
+              { label: "Allocated summary (lot, pallet, box)" },
+              { label: "Comment" },
+            ]}
+            rows={requests.map((item) => ({
+              cells: [
+                formatTableValue(item.partner.name),
+                new Date(item.createdAt).toLocaleDateString(),
+                formatTableValue(item.quantity),
+                <Priority priority={item.priority} key={1} />,
+                formatTableValue(
+                  item.allocations?.reduce(
+                    (sum: number, alloc: DonorOfferItemRequestAllocation) =>
+                      sum + alloc.quantity,
+                    0
+                  )
+                ),
+                item.allocations && item.allocations.length > 0 ? (
+                  <div>
+                    {item.allocations.map((alloc) => (
+                      <div key={alloc.id}>
+                        <span className="font-bold">
+                          {formatTableValue(alloc.quantity)}
+                        </span>
+                        {` - ${alloc.item.lotNumber}, ${alloc.item.palletNumber}, ${alloc.item.boxNumber}`}
+                      </div>
+                    ))}
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        router.push(
+                          `/newDonorOfferAllocation?${new URLSearchParams({
+                            donorOfferItemRequestId: item.id.toString(),
+                            title: item.donorOfferItem.title,
+                            type: item.donorOfferItem.type,
+                            unitType: item.donorOfferItem.unitType,
+                            quantityPerUnit:
+                              item.donorOfferItem.quantityPerUnit.toString(),
+                            ...(item.donorOfferItem.expirationDate
+                              ? {
+                                  expirationDate: item.donorOfferItem
+                                    .expirationDate as unknown as string,
+                                }
+                              : {}),
+                          }).toString()}`
+                        );
+                      }}
+                      className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70"
                     >
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.partner.name)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {new Date(item.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.quantity)}
-                      </td>
-                      <td className="px-4 py-2">
-                        <Priority priority={item.priority} />
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(
-                          item.allocations?.reduce(
-                            (
-                              sum: number,
-                              alloc: DonorOfferItemRequestAllocation
-                            ) => sum + alloc.quantity,
-                            0
-                          )
-                        )}
-                      </td>
-                      <td className="px-4 py-2">
-                        {item.allocations && item.allocations.length > 0 ? (
-                          <>
-                            {item.allocations.map((alloc) => (
-                              <div key={alloc.id}>
-                                <span className="font-bold">
-                                  {formatTableValue(alloc.quantity)}
-                                </span>
-                                {` - ${alloc.item.lotNumber}, ${alloc.item.palletNumber}, ${alloc.item.boxNumber}`}
-                              </div>
-                            ))}
-                            <button
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                router.push(
-                                  `/newDonorOfferAllocation?${new URLSearchParams(
-                                    {
-                                      donorOfferItemRequestId:
-                                        item.id.toString(),
-                                      title: item.donorOfferItem.title,
-                                      type: item.donorOfferItem.type,
-                                      unitType: item.donorOfferItem.unitType,
-                                      quantityPerUnit:
-                                        item.donorOfferItem.quantityPerUnit.toString(),
-                                      ...(item.donorOfferItem.expirationDate
-                                        ? {
-                                            expirationDate: item.donorOfferItem
-                                              .expirationDate as unknown as string,
-                                          }
-                                        : {}),
-                                    }
-                                  ).toString()}`
-                                );
-                              }}
-                              className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70"
-                            >
-                              + Add
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              router.push(
-                                `/newDonorOfferAllocation?${new URLSearchParams(
-                                  {
-                                    donorOfferItemRequestId: item.id.toString(),
-                                    title: item.donorOfferItem.title,
-                                    type: item.donorOfferItem.type,
-                                    unitType: item.donorOfferItem.unitType,
-                                    quantityPerUnit:
-                                      item.donorOfferItem.quantityPerUnit.toString(),
-                                    ...(item.donorOfferItem.expirationDate
-                                      ? {
-                                          expirationDate: item.donorOfferItem
-                                            .expirationDate as unknown as string,
-                                        }
-                                      : {}),
-                                  }
-                                ).toString()}`
-                              );
-                            }}
-                            className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100"
-                          >
-                            + Add Allocation
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 flex justify-center">
-                        <ChatTeardropText
-                          data-tooltip-id={`comment-tooltip-${item.id}`}
-                          data-tooltip-content={item.comments}
-                          size={30}
-                          color={item.comments ? "black" : "lightgray"}
-                        />
-                        {item.comments && (
-                          <Tooltip
-                            id={`comment-tooltip-${item.id}`}
-                            className="max-w-40"
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      + Add
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      router.push(
+                        `/newDonorOfferAllocation?${new URLSearchParams({
+                          donorOfferItemRequestId: item.id.toString(),
+                          title: item.donorOfferItem.title,
+                          type: item.donorOfferItem.type,
+                          unitType: item.donorOfferItem.unitType,
+                          quantityPerUnit:
+                            item.donorOfferItem.quantityPerUnit.toString(),
+                          ...(item.donorOfferItem.expirationDate
+                            ? {
+                                expirationDate: item.donorOfferItem
+                                  .expirationDate as unknown as string,
+                              }
+                            : {}),
+                        }).toString()}`
+                      );
+                    }}
+                    className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100"
+                  >
+                    + Add Allocation
+                  </button>
+                ),
+                <div className="flex justify-center" key={1}>
+                  <ChatTeardropText
+                    data-tooltip-id={`comment-tooltip-${item.id}`}
+                    data-tooltip-content={item.comments}
+                    size={30}
+                    color={item.comments ? "black" : "lightgray"}
+                  />
+                  {item.comments && (
+                    <Tooltip
+                      id={`comment-tooltip-${item.id}`}
+                      className="max-w-40"
+                    />
+                  )}
+                </div>,
+              ],
+            }))}
+            headerClassName="bg-blue-primary opacity-80 text-white"
+            pageSize={10}
+          />
         </>
       )}
     </>

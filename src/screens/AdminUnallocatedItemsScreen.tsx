@@ -220,45 +220,47 @@ export default function AdminUnallocatedItemsScreen() {
             { label: "Qty/Unit" },
             { label: "Manage", className: "w-12" },
           ]}
-          rows={items.map((item) => [
-            formatTableValue(item.title),
-            formatTableValue(item.type),
-            formatTableValue(item.quantity),
-            item.expirationDate
-              ? new Date(item.expirationDate).toLocaleDateString()
-              : "N/A",
-            formatTableValue(item.unitType),
-            formatTableValue(item.quantityPerUnit),
-            <div onClick={(e) => e.stopPropagation()} key={1}>
-              <Menu as="div" className="float-right relative">
-                <MenuButton>
-                  <DotsThree weight="bold" />
-                </MenuButton>
-                <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                  <MenuItem
-                    as="button"
-                    className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => {
-                      router.push(
-                        `/unallocatedItems/lineItems?${new URLSearchParams({
-                          title: item.title,
-                          type: item.type,
-                          unitType: item.unitType,
-                          quantityPerUnit: item.quantityPerUnit.toString(),
-                          ...(item.expirationDate
-                            ? { expirationDate: item.expirationDate }
-                            : {}),
-                        }).toString()}`
-                      );
-                    }}
-                  >
-                    <Eye className="inline-block mr-2" size={22} />
-                    View unique items
-                  </MenuItem>
-                </MenuItems>
-              </Menu>
-            </div>,
-          ])}
+          rows={items.map((item) => ({
+            cells: [
+              formatTableValue(item.title),
+              formatTableValue(item.type),
+              formatTableValue(item.quantity),
+              item.expirationDate
+                ? new Date(item.expirationDate).toLocaleDateString()
+                : "N/A",
+              formatTableValue(item.unitType),
+              formatTableValue(item.quantityPerUnit),
+              <div onClick={(e) => e.stopPropagation()} key={1}>
+                <Menu as="div" className="float-right relative">
+                  <MenuButton>
+                    <DotsThree weight="bold" />
+                  </MenuButton>
+                  <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => {
+                        router.push(
+                          `/unallocatedItems/lineItems?${new URLSearchParams({
+                            title: item.title,
+                            type: item.type,
+                            unitType: item.unitType,
+                            quantityPerUnit: item.quantityPerUnit.toString(),
+                            ...(item.expirationDate
+                              ? { expirationDate: item.expirationDate }
+                              : {}),
+                          }).toString()}`
+                        );
+                      }}
+                    >
+                      <Eye className="inline-block mr-2" size={22} />
+                      View unique items
+                    </MenuItem>
+                  </MenuItems>
+                </Menu>
+              </div>,
+            ],
+          }))}
           pageSize={10}
           headerClassName="bg-blue-primary text-white opacity-80"
         />
