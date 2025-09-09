@@ -116,7 +116,7 @@ export default function AccountManagementPage() {
         </button>
       </div>
 
-      <div className="flex space-x-4 mt-3 border-b-2">
+      <div className="flex space-x-4 my-3 border-b-2">
         {Object.keys(filterMap).map((tab) => {
           const key = tab as UserFilterKey;
 
@@ -140,8 +140,9 @@ export default function AccountManagementPage() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-auto overflow-y-auto max-h-[72vh]">
-          <table className="mt-4 w-full">
+        <div className="overflow-x-auto">
+          {/* Fixed Header */}
+          <table className="w-full">
             <thead>
               <tr className="bg-gray-primary/5 border-b-2 border-gray-primary/10 text-gray-primary/70">
                 <th className="px-4 py-4 text-left w-1/5 rounded-tl-lg font-normal">
@@ -157,20 +158,26 @@ export default function AccountManagementPage() {
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {filteredItems.map((item, index) => (
-                <TableRow
-                  key={`${item.isInvite ? "invite" : "user"}-${item.id}`}
-                  user={item}
-                  index={index}
-                  isInvite={item.isInvite}
-                  onManageClick={(user) => {
-                    console.log("Manage user:", user);
-                  }}
-                />
-              ))}
-            </tbody>
           </table>
+
+          {/* Scrollable Body */}
+          <div className="overflow-y-auto max-h-[63vh]">
+            <table className="w-full">
+              <tbody>
+                {filteredItems.map((item, index) => (
+                  <TableRow
+                    key={`${item.isInvite ? "invite" : "user"}-${item.id}`}
+                    user={item}
+                    index={index}
+                    isInvite={item.isInvite}
+                    onManageClick={(user) => {
+                      console.log("Manage user:", user);
+                    }}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
