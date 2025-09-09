@@ -9,6 +9,7 @@ import {
   UserCircle,
   X,
   UserList,
+  ClipboardText,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -71,6 +72,11 @@ function NavLinks() {
         href="/donorOffers"
         label="Donor Offers"
         icon={<HandHeart size={22} />}
+      />
+      <NavLink
+        href="/wishlists"
+        label="Wishlists"
+        icon={<ClipboardText size={22} />}
       />
       {isStaff && (
         <NavLink
