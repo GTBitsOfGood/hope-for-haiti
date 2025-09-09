@@ -24,6 +24,62 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
     onError: () => {},
   });
 
+  /*
+   * ================= Planned API (examples) =================
+   * (1) Fetch partner wishlist items (already done by useFetch above):
+   *     GET /api/wishlists            -> for partner (their own items)
+   *     GET /api/wishlists?partnerId=123 -> staff viewing partner 123
+   *     Response: WishlistItem[]
+   *
+   * (2) Create a new wishlist item:
+   *     POST /api/wishlists
+   *     Body JSON: {
+   *       name: string;
+   *       unitSize: string;
+   *       quantity: number;
+   *       priority: "LOW" | "MEDIUM" | "HIGH";
+   *       comment?: string;
+   *     }
+   *     Returns: created WishlistItem (with id, createdAt, updatedAt)
+   *
+   * (3) Update an existing wishlist item (partial):
+   *     PATCH /api/wishlists/:itemId
+   *     Body JSON: UpdateWishlistItemBody (any subset of fields)
+   *     Returns: updated WishlistItem
+   *
+   * (4) Delete an item:
+   *     DELETE /api/wishlists/:itemId
+   *     Returns: { success: true }
+   *
+   * Example helper (uncomment when backend routes exist):
+   *
+   *   async function apiCreate(item: Omit<WishlistItem, 'id' | 'createdAt' | 'updatedAt'>) {
+   *     const res = await fetch('/api/wishlists', {
+   *       method: 'POST',
+   *       headers: { 'Content-Type': 'application/json' },
+   *       body: JSON.stringify(item),
+   *     });
+   *     if (!res.ok) throw new Error('Failed to create wishlist item');
+   *     return res.json() as Promise<WishlistItem>;
+   *   }
+   *
+   *   async function apiPatch(id: number, patch: UpdateWishlistItemBody) {
+   *     const res = await fetch(`/api/wishlists/${id}`, {
+   *       method: 'PATCH',
+   *       headers: { 'Content-Type': 'application/json' },
+   *       body: JSON.stringify(patch),
+   *     });
+   *     if (!res.ok) throw new Error('Failed to update wishlist item');
+   *     return res.json() as Promise<WishlistItem>;
+   *   }
+   *
+   *   async function apiDelete(id: number) {
+   *     const res = await fetch(`/api/wishlists/${id}`, { method: 'DELETE' });
+   *     if (!res.ok) throw new Error('Failed to delete wishlist item');
+   *   }
+   * ===========================================================
+   */
+
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
   const [editingIds, setEditingIds] = useState<Set<number>>(new Set());
@@ -58,7 +114,15 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
     const item = items.find((i) => i.id === id);
     if (!item) return;
     try {
-      // TODO(API): PATCH /api/wishlists/${partnerId ?? 'me'} with item fields.
+  // TODO(API): Replace local update with:
+  // const updated = await apiPatch(id, {
+  //   name: item.name,
+  //   unitSize: item.unitSize,
+  //   quantity: item.quantity,
+  //   priority: item.priority,
+  //   comment: item.comment,
+  // });
+  // applyLocalChange(id, updated);
       toast.success("Wishlist updated");
       cancelEdit(id);
     } catch (e) {
@@ -69,7 +133,7 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
   const remove = async (id: number) => {
     if (readOnly) return;
     try {
-      // TODO(API): DELETE /api/wishlists/${partnerId ?? 'me'} with { id }.
+  // TODO(API): await apiDelete(id);
       setItems((prev) => prev.filter((i) => i.id !== id));
       toast.success("Wishlist item removed");
     } catch (e) {
@@ -232,42 +296,48 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                     )}
                   </td>
                   <td className="px-4 py-2 w-[20%]">
-                    {readOnly ? null : (
-                      isEditing(it.id) ? (
-                        <div className="flex gap-2">
-                          <button
-                            className="border border-red-primary rounded-md size-7 flex items-center justify-center"
-                            onClick={() => cancelEdit(it.id)}
-                            title="Cancel"
-                          >
-                            <X className="text-red-primary" size={18} />
-                          </button>
-                          <button
-                            className="bg-blue-primary rounded-md size-7 flex items-center justify-center text-white"
-                            onClick={() => save(it.id)}
-                            title="Save"
-                          >
-                            <Check size={18} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button
-                            className="border rounded-md size-7 flex items-center justify-center"
-                            onClick={() => startEdit(it.id)}
-                            title="Edit"
-                          >
-                            <PencilSimple size={18} />
-                          </button>
-                          <button
-                            className="border rounded-md size-7 flex items-center justify-center"
-                            onClick={() => remove(it.id)}
-                            title="Delete"
-                          >
-                            <Trash size={18} />
-                          </button>
-                        </div>
-                      )
+                    {isEditing(it.id) && !readOnly ? (
+                      <div className="flex gap-2">
+                        <button
+                          className="border border-red-primary rounded-md size-7 flex items-center justify-center"
+                          onClick={() => cancelEdit(it.id)}
+                          title="Cancel"
+                        >
+                          <X className="text-red-primary" size={18} />
+                        </button>
+                        <button
+                          className="bg-blue-primary rounded-md size-7 flex items-center justify-center text-white"
+                          onClick={() => save(it.id)}
+                          title="Save"
+                        >
+                          <Check size={18} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          className={`border rounded-md size-7 flex items-center justify-center ${readOnly ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
+                          onClick={() => {
+                            if (readOnly) return; // inert in read-only mode
+                            startEdit(it.id);
+                          }}
+                          disabled={readOnly}
+                          title={readOnly ? "View only" : "Edit"}
+                        >
+                          <PencilSimple size={18} />
+                        </button>
+                        <button
+                          className={`border rounded-md size-7 flex items-center justify-center ${readOnly ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
+                          onClick={() => {
+                            if (readOnly) return; // inert in read-only mode
+                            remove(it.id);
+                          }}
+                          disabled={readOnly}
+                          title={readOnly ? "View only" : "Delete"}
+                        >
+                          <Trash size={18} />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

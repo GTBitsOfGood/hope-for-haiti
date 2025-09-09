@@ -15,6 +15,33 @@ export default function AdminWishlistScreen() {
     }
   );
 
+  /*
+   * ===== Planned Admin Wishlist API =====
+   * GET /api/wishlists (staff auth) -> WishlistAggregate[]
+   * Each aggregate row should be calculated server-side (counts by priority per partner).
+   * Example expected response element:
+   * {
+   *   partnerId: 42,
+   *   partnerName: "Hope Clinic",
+   *   totalCount: 12,
+   *   lowCount: 5,
+   *   medCount: 4,
+   *   highCount: 3
+   * }
+   *
+   * To implement server route (outline):
+   *   1. Identify user & ensure isStaff
+   *   2. Query wishlist items grouped by partner + priority.
+   *   3. Reduce to counts and return array sorted by partnerName.
+   *
+   * Prisma sketch (not yet implemented):
+   *   const rows = await prisma.wishlistItem.groupBy({
+   *     by: ['partnerId','priority'],
+   *     _count: { priority: true },
+   *   });
+   *   // then fold into the shape above using partner table for names.
+   */
+
   const [rows, setRows] = useState<WishlistAggregate[]>([]);
   useEffect(() => {
     if (data && Array.isArray(data)) setRows(data);

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+    #!/usr/bin/env bash
 
 # Cross-platform Husky pre-commit hook
 # Avoid relying on global/npm path (Windows Git Bash sometimes points to missing C:/Program Files/nodejs/npm)
