@@ -81,7 +81,7 @@ export default function AccountManagementPage() {
 
   useEffect(() => {
     applyFilters(activeTab as UserFilterKey, searchQuery);
-  }, [users, invites, activeTab, searchQuery]);
+  }, [users, invites, activeTab, searchQuery, applyFilters]);
 
   const filterUsers = (type: UserFilterKey) => {
     setActiveTab(type);
@@ -158,18 +158,18 @@ export default function AccountManagementPage() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead>
               <tr className="bg-gray-primary/5 border-b-2 border-gray-primary/10 text-gray-primary/70">
-                <th className="px-4 py-4 text-left w-1/5 rounded-tl-lg font-normal">
+                <th className="px-4 py-4 text-left w-1/4 rounded-tl-lg font-normal">
                   Name
                 </th>
-                <th className="px-4 py-4 text-left w-1/5 font-normal">Email</th>
+                <th className="px-4 py-4 text-left w-1/4 font-normal">Email</th>
                 <th className="px-4 py-4 text-left w-1/5 font-normal">Role</th>
                 <th className="px-4 py-4 text-left w-1/5 font-normal">
                   Status
                 </th>
-                <th className="px-4 py-4 text-left rounded-tr-lg w-1/12 font-normal">
+                <th className="px-4 py-4 text-right rounded-tr-lg w-1/12 font-normal">
                   Manage
                 </th>
               </tr>
@@ -178,7 +178,7 @@ export default function AccountManagementPage() {
 
           {/* Scrollable Body */}
           <div className="overflow-y-auto max-h-[63vh]">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <tbody>
                 {filteredItems.map((item, index) => (
                   <TableRow
