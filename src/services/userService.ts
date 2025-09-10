@@ -26,6 +26,7 @@ export default class UserService {
         email: true,
         type: true,
         name: true,
+        tag: true,
         enabled: true,
       },
     });
@@ -40,6 +41,7 @@ export default class UserService {
         email: true,
         type: true,
         name: true,
+        tag: true,
         enabled: true,
       },
     });
@@ -59,6 +61,7 @@ export default class UserService {
         email: true,
         type: true,
         name: true,
+        tag: true,
         enabled: true,
       },
     });
@@ -77,6 +80,21 @@ export default class UserService {
     }
     
     return invite;
+  }
+
+  static async getUserInvites() {
+    const invites = await db.userInvite.findMany({
+      select: { 
+        id: true,
+        token: true,
+        email: true,
+        userType: true, 
+        name: true,
+        partnerDetails: true,
+        expiration: true, 
+      },
+    });
+    return invites;
   }
 
   static async createUserInvite(data: CreateUserInviteData) {
@@ -99,6 +117,20 @@ export default class UserService {
       const inviteUrl = `${data.origin}/register?token=${token}`;
       const html = await render(UserInviteTemplate({ inviteUrl }));
       await sendEmail(data.email, "Your Invite Link", html);
+    });
+  }
+
+  static async deleteUserInvite(token: string) {
+    const userInvite = await db.userInvite.findUnique({
+      where: { token },
+    });
+
+    if (!userInvite) {
+      throw new NotFoundError("User Invite not found");
+    }
+
+    await db.userInvite.delete({
+      where: { token },
     });
   }
 
@@ -170,6 +202,7 @@ export default class UserService {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.type !== undefined) updateData.type = data.type;
+    if (data.tag !== undefined) updateData.tag = data.tag;
     if (data.enabled !== undefined) updateData.enabled = data.enabled;
 
     try {
@@ -190,6 +223,15 @@ export default class UserService {
     }
   }
 
+  static async getDistinctUserTags(): Promise<string[]> {
+    const results = await db.user.findMany({
+      where: { tag: { not: null } },
+      select: { tag: true },
+      distinct: ["tag"],
+    });
+
+    return results.map(r => r.tag).filter(tag => tag !== null);
+  }
 
   static isAdmin(userType: UserType): boolean {
     return (

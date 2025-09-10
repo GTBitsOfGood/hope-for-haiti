@@ -24,5 +24,6 @@ export interface UpdateUserData {
   name?: string;
   email?: string;
   type?: UserType;
+  tag?: string;
   enabled?: boolean;
 }
