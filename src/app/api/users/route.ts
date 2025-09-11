@@ -18,6 +18,7 @@ const createUserSchema = zfd.formData({
 
 const searchParamsSchema = z.object({
   includeInvites: z.string().optional().transform(val => val === "true")
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,9 +28,8 @@ export async function GET(request: NextRequest) {
     }
   
     const { user } = session;
-    // FIXME: permission & message mismatch
     if (!UserService.isAdmin(user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+      throw new AuthorizationError("Must be ADMIN, or SUPER_ADMIN");
     }
 
     const parsed = searchParamsSchema.safeParse({

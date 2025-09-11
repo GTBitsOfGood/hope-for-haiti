@@ -5,6 +5,7 @@ import {
 	AuthorizationError,
 	ArgumentError,
 	errorResponse,
+	ok,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";

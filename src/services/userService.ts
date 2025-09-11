@@ -120,17 +120,16 @@ export default class UserService {
   }
 
   static async deleteUserInvite(token: string) {
-    const userInvite = await db.userInvite.findUnique({
-      where: { token },
-    });
-
-    if (!userInvite) {
-      throw new NotFoundError("User Invite not found");
+    try {
+      await db.userInvite.delete({ where: { token } });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundError("Item not found");
+        }
+      }
+      throw error;
     }
-
-    await db.userInvite.delete({
-      where: { token },
-    });
   }
 
   static async createUserFromInvite(data: CreateUserFromInviteData) {
