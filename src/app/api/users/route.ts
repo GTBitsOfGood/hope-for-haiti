@@ -17,16 +17,7 @@ const createUserSchema = zfd.formData({
 });
 
 const searchParamsSchema = z.object({
-  includeInvites: z
-    .preprocess((val) => {
-      if (typeof val === "string") {
-        const lower = val.toLowerCase();
-        if (lower === "true") return true;
-        if (lower === "false") return false;
-      }
-      return val;
-    }, z.boolean().optional()),
-});
+  includeInvites: z.string().optional().transform(val => val === "true")
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,9 +32,8 @@ export async function GET(request: NextRequest) {
       throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
-    const { searchParams } = new URL(request.url);
     const parsed = searchParamsSchema.safeParse({
-      includeInvites: searchParams.get("includeInvites") ?? undefined,
+      includeInvites: request.nextUrl.searchParams.get("includeInvites")
     });
 
     if (!parsed.success) {

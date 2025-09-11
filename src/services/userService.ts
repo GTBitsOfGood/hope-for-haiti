@@ -90,7 +90,6 @@ export default class UserService {
         email: true,
         userType: true, 
         name: true,
-        partnerDetails: true,
         expiration: true, 
       },
     });
@@ -230,7 +229,7 @@ export default class UserService {
       distinct: ["tag"],
     });
 
-    return results.map(r => r.tag).filter(tag => tag !== null);
+    return results.map(r => r.tag as string);
   }
 
   static isAdmin(userType: UserType): boolean {

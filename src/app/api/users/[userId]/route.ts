@@ -91,7 +91,7 @@ export async function PATCH(
 				throw new ArgumentError("Cannot change role of a partner");
 			}
 			if (
-				currentUser.type === UserType.STAFF &&
+				UserService.isStaff(currentUser.type) &&
 				requestedRole === UserType.PARTNER
 			) {
 				throw new ArgumentError("Cannot change staff to partner");
@@ -107,9 +107,7 @@ export async function PATCH(
 			enabled: bodyParsed.data.enabled,
 		});
 
-		const user = await UserService.getUserById(parsed.data.userId);
-
-		return NextResponse.json({ user }, { status: 200 });
+		return ok();
 	} catch (error) {
 		return errorResponse(error);
 	}
