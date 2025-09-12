@@ -169,7 +169,7 @@ export default function AdminDistributionsScreen() {
                   ],
                 }))}
                 headerClassName="bg-blue-primary opacity-80 text-white font-bold"
-                pageSize={partnerAllocations.length}
+                pageSize={10}
               />
             )}
           </>
@@ -198,7 +198,7 @@ export default function AdminDistributionsScreen() {
                   ],
                 }))}
                 headerClassName="bg-blue-primary text-white opacity-80"
-                pageSize={signoffs.length}
+                pageSize={10}
               />
             )}
           </>
