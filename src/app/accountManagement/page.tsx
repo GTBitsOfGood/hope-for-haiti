@@ -10,11 +10,13 @@ import TableRow from "@/components/AccountManagement/TableRow";
 import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
 import EditModal from "@/components/AccountManagement/EditModal";
 import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
 import { isStaff, isPartner } from "@/lib/userUtils";
-import { EyeSlash, Trash, EnvelopeSimple } from "@phosphor-icons/react";
+import { EyeSlash, Trash, Eye } from "@phosphor-icons/react";
 
 type UserInvite = {
   id: number;
+  token: string;
   email: string;
   name: string;
   userType: UserType;
@@ -29,41 +31,54 @@ type UserOrInvite =
 enum UserFilterKey {
   ALL = "All",
   INVITES = "Invites",
+  EXPIRED = "Expired",
+  DEACTIVATED = "Deactivated",
   STAFF = "Hope for Haiti Staff",
   PARTNERS = "Partners",
 }
 
 const filterMap: Record<UserFilterKey, (item: UserOrInvite) => boolean> = {
   [UserFilterKey.ALL]: () => true,
-  [UserFilterKey.INVITES]: (item) => item.isInvite === true,
-  [UserFilterKey.STAFF]: (item) => !item.isInvite && isStaff(item.type),
-  [UserFilterKey.PARTNERS]: (item) => !item.isInvite && isPartner(item.type),
+  [UserFilterKey.INVITES]: (item) =>
+    item.isInvite === true &&
+    new Date() < new Date((item as UserInvite).expiration),
+  [UserFilterKey.EXPIRED]: (item) =>
+    item.isInvite === true &&
+    new Date() >= new Date((item as UserInvite).expiration),
+  [UserFilterKey.DEACTIVATED]: (item) =>
+    !item.isInvite && !(item as User).enabled,
+  [UserFilterKey.STAFF]: (item) =>
+    !item.isInvite && (item as User).enabled && isStaff((item as User).type),
+  [UserFilterKey.PARTNERS]: (item) =>
+    !item.isInvite && (item as User).enabled && isPartner((item as User).type),
 };
 
 export default function AccountManagementPage() {
-  const { data: users, isLoading: isLoadingUsers } = useFetch<User[]>(
-    "/api/users",
-    {
-      cache: "no-store",
-    }
-  );
-  const { data: invites, isLoading: isLoadingInvites } = useFetch<UserInvite[]>(
-    "/api/invites",
-    {
-      cache: "no-store",
-    }
-  );
+  const { apiClient } = useApiClient();
+
+  const {
+    data: users,
+    isLoading: isLoadingUsers,
+    refetch: refetchUsers,
+  } = useFetch<User[]>("/api/users", {
+    cache: "no-store",
+  });
+  const {
+    data: invites,
+    isLoading: isLoadingInvites,
+    refetch: refetchInvites,
+  } = useFetch<UserInvite[]>("/api/invites", {
+    cache: "no-store",
+  });
 
   const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Modal states
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeactivateModalOpen, setDeactivateModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
-  const [isSendReminderModalOpen, setSendReminderModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserOrInvite | null>(null);
 
   const isLoading = isLoadingUsers || isLoadingInvites;
@@ -116,12 +131,6 @@ export default function AccountManagementPage() {
     }
   };
 
-  // Modal handlers
-  const handleSendReminder = (user: UserOrInvite) => {
-    setSelectedUser(user);
-    setSendReminderModalOpen(true);
-  };
-
   const handleDeleteAccount = (user: UserOrInvite) => {
     setSelectedUser(user);
     setDeleteModalOpen(true);
@@ -137,17 +146,21 @@ export default function AccountManagementPage() {
     setDeactivateModalOpen(true);
   };
 
-  // Modal action handlers
-  const confirmSendReminder = () => {
-    console.log("Send reminder for:", selectedUser);
-    // TODO: Implement send reminder API call
-    setSendReminderModalOpen(false);
-    setSelectedUser(null);
-  };
+  const confirmDeleteAccount = async () => {
+    if (!selectedUser) return;
 
-  const confirmDeleteAccount = () => {
-    console.log("Delete account for:", selectedUser);
-    // TODO: Implement delete account API call
+    try {
+      if (selectedUser.isInvite) {
+        const invite = selectedUser as UserInvite;
+        await apiClient.delete(`/api/invites/${invite.token}`);
+        refetchInvites();
+      } else {
+        console.log("Delete user account for:", selectedUser);
+      }
+    } catch (error) {
+      console.error("Error deleting:", error);
+    }
+
     setDeleteModalOpen(false);
     setSelectedUser(null);
   };
@@ -158,21 +171,28 @@ export default function AccountManagementPage() {
     role: UserType;
   }) => {
     console.log("Edit account for:", selectedUser, "with data:", data);
-    // TODO: Implement edit account API call
     setEditModalOpen(false);
     setSelectedUser(null);
   };
 
-  const confirmDeactivateAccount = () => {
-    console.log("Deactivate account for:", selectedUser);
-    // TODO: Implement deactivate account API call
+  const confirmDeactivateAccount = async () => {
+    if (!selectedUser || selectedUser.isInvite) return;
+
+    try {
+      const isCurrentlyEnabled = (selectedUser as User).enabled;
+      await apiClient.patch(`/api/users/${selectedUser.id}`, {
+        body: JSON.stringify({ enabled: !isCurrentlyEnabled }),
+      });
+      refetchUsers();
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    }
+
     setDeactivateModalOpen(false);
     setSelectedUser(null);
   };
 
-  // Modal close handlers
   const closeAllModals = () => {
-    setSendReminderModalOpen(false);
     setDeleteModalOpen(false);
     setEditModalOpen(false);
     setDeactivateModalOpen(false);
@@ -251,7 +271,6 @@ export default function AccountManagementPage() {
             </thead>
           </table>
 
-          {/* Scrollable Body */}
           <div className="overflow-y-auto max-h-[63vh]">
             <table className="w-full table-fixed">
               <tbody>
@@ -261,7 +280,6 @@ export default function AccountManagementPage() {
                     user={item}
                     index={index}
                     isInvite={item.isInvite}
-                    onSendReminder={() => handleSendReminder(item)}
                     onDeleteAccount={() => handleDeleteAccount(item)}
                     onEditAccount={() => handleEditAccount(item)}
                     onDeactivateAccount={() => handleDeactivateAccount(item)}
@@ -280,20 +298,6 @@ export default function AccountManagementPage() {
         />
       )}
 
-      {/* Account Management Modals */}
-      <ConfirmationModal
-        title="Send reminder"
-        text={`Are you sure you would like to send a reminder to this user?
-This will send an email reminder about their pending invitation.`}
-        icon={<EnvelopeSimple size={78} />}
-        isOpen={isSendReminderModalOpen}
-        onClose={closeAllModals}
-        onCancel={closeAllModals}
-        onConfirm={confirmSendReminder}
-        confirmText="Send reminder"
-        confirmButtonClass="bg-blue-500 hover:bg-blue-600 text-white"
-      />
-
       <ConfirmationModal
         title="Delete account"
         text={`Are you sure you would like to delete this account?
@@ -307,15 +311,42 @@ Deleting an account will permanently remove all associated information from the 
       />
 
       <ConfirmationModal
-        title="Deactivate account"
-        text={`Are you sure you would like to deactivate this account?
-For partner accounts, deactivation means the partner will no longer have access to request distributions. However, admins will still retain access to view all historical data associated with the account.`}
-        icon={<EyeSlash size={78} />}
+        title={
+          selectedUser &&
+          !selectedUser.isInvite &&
+          (selectedUser as User).enabled
+            ? "Deactivate account"
+            : "Activate account"
+        }
+        text={
+          selectedUser &&
+          !selectedUser.isInvite &&
+          (selectedUser as User).enabled
+            ? `Are you sure you would like to deactivate this account?
+For partner accounts, deactivation means the partner will no longer have access to request distributions. However, admins will still retain access to view all historical data associated with the account.`
+            : `Are you sure you would like to activate this account?
+This will restore the user's access to the system.`
+        }
+        icon={
+          selectedUser &&
+          !selectedUser.isInvite &&
+          (selectedUser as User).enabled ? (
+            <EyeSlash size={78} />
+          ) : (
+            <Eye size={78} />
+          )
+        }
         isOpen={isDeactivateModalOpen}
         onClose={closeAllModals}
         onCancel={closeAllModals}
         onConfirm={confirmDeactivateAccount}
-        confirmText="Deactivate"
+        confirmText={
+          selectedUser &&
+          !selectedUser.isInvite &&
+          (selectedUser as User).enabled
+            ? "Deactivate"
+            : "Activate"
+        }
       />
 
       <EditModal

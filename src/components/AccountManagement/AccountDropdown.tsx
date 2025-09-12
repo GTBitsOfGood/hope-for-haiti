@@ -4,10 +4,10 @@ import {
   EnvelopeSimple,
   PencilSimple,
   EyeSlash,
+  Eye,
   Trash,
 } from "@phosphor-icons/react";
 import { UserType } from "@prisma/client";
-import { isStaff } from "@/lib/userUtils";
 
 interface DropdownItem {
   icon: React.ReactNode;
@@ -19,7 +19,7 @@ interface DropdownItem {
 interface AccountDropdownProps {
   isInvite: boolean;
   userType?: UserType;
-  onSendReminder?: () => void;
+  user?: { enabled?: boolean; expiration?: Date };
   onDeleteAccount?: () => void;
   onEditAccount?: () => void;
   onDeactivateAccount?: () => void;
@@ -27,19 +27,21 @@ interface AccountDropdownProps {
 
 export default function AccountDropdown({
   isInvite,
-  userType,
-  onSendReminder,
+  user,
   onDeleteAccount,
   onEditAccount,
   onDeactivateAccount,
 }: AccountDropdownProps) {
   const getDropdownItems = (): DropdownItem[] => {
     if (isInvite) {
+      // const isExpired =
+      //   user?.expiration && new Date() >= new Date(user.expiration);
       return [
         {
           icon: <EnvelopeSimple size={18} />,
           label: "Send reminder",
-          onClick: () => onSendReminder?.(),
+          onClick: () => {},
+          disabled: true,
         },
         {
           icon: <Trash size={18} />,
@@ -48,16 +50,16 @@ export default function AccountDropdown({
         },
       ];
     } else {
+      const isEnabled = user?.enabled !== false;
       return [
         {
           icon: <PencilSimple size={18} />,
           label: "Edit account",
           onClick: () => onEditAccount?.(),
-          disabled: userType ? !isStaff(userType) : false,
         },
         {
-          icon: <EyeSlash size={18} />,
-          label: "Deactivate account",
+          icon: isEnabled ? <EyeSlash size={18} /> : <Eye size={18} />,
+          label: isEnabled ? "Deactivate account" : "Activate account",
           onClick: () => onDeactivateAccount?.(),
         },
       ];

@@ -28,13 +28,9 @@ export default class UserService {
 
   static async getPendingInvites() {
     const invites = await db.userInvite.findMany({
-      where: {
-        expiration: {
-          gte: new Date(),
-        },
-      },
       select: {
         id: true,
+        token: true,
         email: true,
         name: true,
         userType: true,
