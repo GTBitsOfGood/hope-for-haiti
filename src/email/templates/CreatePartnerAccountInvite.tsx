@@ -1,14 +1,7 @@
 
-import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Html,
-  Preview,
-  Section,
-  Text,
-} from '@react-email/components';
+import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
+import { Tailwind } from '@react-email/tailwind';
+import tailwindConfig from '../../../tailwind.config';
 
 
 interface CreatePartnerAccountInviteProps {
@@ -24,26 +17,28 @@ export const CreatePartnerAccountInvite = ({
   return (
     <Html>
       <Head />
-      <Body style={main}>
-    <Preview>You&apos;re invited to create a {userRole} account</Preview>
-        <Container style={container}>
-          <Section>
-            <Text style={heading}>
-      You&apos;re invited!
-            </Text>
-            <Text style={text}>
-              You have been invited to create a <span style={{ color: '#E63946', fontWeight: 'bold' }}>{userRole}</span> account. Please click the button below to get started:
-            </Text>
-            <Button style={button} href={inviteLink}>
-              Create Account
-            </Button>
-            <Text style={text}>
-              If you did not expect this invitation, you can safely ignore this email.
-            </Text>
-            <Text style={text}>Thank you!</Text>
-          </Section>
-        </Container>
-      </Body>
+  <Tailwind config={{ theme: (tailwindConfig as any).theme }}>
+        <Body className="bg-blue-light py-2 font-sans">
+          <Preview>You&apos;re invited to create a {userRole} account</Preview>
+          <Container className="w-[600px] mx-auto text-left">
+            <Section>
+              <div className="bg-white border-2 border-blue-primary rounded-lg p-8">
+              <Text className="text-2xl font-bold text-mainRed mb-3">You&apos;re invited!</Text>
+              <Text className="text-base font-light text-gray-primary leading-[26px]">
+                You have been invited to create a <span className="text-mainRed font-bold">{userRole}</span> account. Please click the button below to get started:
+              </Text>
+              <Button className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3 mt-4" href={inviteLink}>
+                Create Account
+              </Button>
+              <Text className="text-base font-light text-gray-primary leading-[26px] mt-4">
+                If you did not expect this invitation, you can safely ignore this email.
+              </Text>
+              <Text className="text-base font-light text-gray-primary leading-[26px]">Thank you!</Text>
+              </div>
+            </Section>
+          </Container>
+        </Body>
+      </Tailwind>
     </Html>
   );
 };
@@ -57,48 +52,5 @@ CreatePartnerAccountInvite.PreviewProps = {
 export default CreatePartnerAccountInvite;
 
 
-const main = {
-  backgroundColor: '#f6f7ff', 
-  padding: '10px 0',
-};
-
-
-const container = {
-  backgroundColor: '#ffffff',
-  border: '2px solid #2774AE', 
-  borderRadius: '8px',
-  padding: '45px',
-};
-const heading = {
-  fontSize: '22px',
-  fontWeight: 'bold',
-  color: '#E63946', 
-  marginBottom: '18px',
-};
-
-
-const text = {
-  fontSize: '16px',
-  fontFamily:
-    "'Open Sans', 'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif",
-  fontWeight: '300',
-  color: '#22070B', 
-  lineHeight: '26px',
-};
-
-
-const button = {
-  backgroundColor: '#2774AE', 
-  borderRadius: '4px',
-  color: '#fff',
-  fontFamily: "'Open Sans', 'Helvetica Neue', Arial",
-  fontSize: '15px',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '210px',
-  padding: '14px 7px',
-  border: '2px solid #ac268bff', 
-  boxShadow: '0 2px 8px rgba(39, 116, 174, 0.08)',
-};
+// Tailwind via <Tailwind config={tailwindConfig}>
 
