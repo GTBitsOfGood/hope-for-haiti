@@ -1,7 +1,11 @@
-export default function UserInviteTemplate({
-  inviteUrl,
+export default function DonorOfferCreatedTemplate({
+  offerTitle,
+  description,
+  donorName,
 }: {
-  inviteUrl: string;
+  offerTitle: string;
+  description?: string;
+  donorName?: string;
 }) {
   const styles = {
     container: {
@@ -34,10 +38,10 @@ export default function UserInviteTemplate({
   return (
     <div style={styles.container}>
       <div style={styles.box}>
-        <h1 style={styles.header}>Your invite link</h1>
-        <a style={styles.text} href={inviteUrl}>
-          Click here to register
-        </a>
+        <h1 style={styles.header}>Donor Offer Created</h1>
+        <p style={styles.text}>Title: {offerTitle}</p>
+        <p style={styles.text}>Description: {description}</p>
+        <p style={styles.text}>Donor: {donorName}</p>
       </div>
     </div>
   );

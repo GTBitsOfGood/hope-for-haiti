@@ -1,8 +1,6 @@
-export default function UserInviteTemplate({
-  inviteUrl,
-}: {
-  inviteUrl: string;
-}) {
+type Item = { name: string; quantity?: number; expirationDate?: string };
+
+export default function ItemsExpiringTemplate({ month, items }: { month: string; items: Item[] }) {
   const styles = {
     container: {
       fontFamily: "Arial, sans-serif",
@@ -34,10 +32,20 @@ export default function UserInviteTemplate({
   return (
     <div style={styles.container}>
       <div style={styles.box}>
-        <h1 style={styles.header}>Your invite link</h1>
-        <a style={styles.text} href={inviteUrl}>
-          Click here to register
-        </a>
+        <h2 style={styles.header}>Items expiring in {month}</h2>
+        {items.length === 0 ? (
+          <p>No items are expiring this month.</p>
+        ) : (
+          <ul>
+            {items.map((item, i) => (
+              <li key={i}>
+                {item.name}
+                {item.quantity ? `- Quantity: ${item.quantity}` : ""}
+                {item.expirationDate ? `- Expiration Date: ${item.expirationDate}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
