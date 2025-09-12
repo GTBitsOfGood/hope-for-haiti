@@ -6,9 +6,7 @@ import { CgSpinner } from "react-icons/cg";
 import { User, UserType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
-import TableRow, {
-  TableRowItem,
-} from "@/components/AccountManagement/TableRow";
+import TableRow from "@/components/AccountManagement/TableRow";
 import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
 import EditModal from "@/components/AccountManagement/EditModal";
 import { useFetch } from "@/hooks/useFetch";
@@ -73,7 +71,7 @@ export default function AccountManagementPage() {
     cache: "no-store",
   });
 
-  const [filteredItems, setFilteredItems] = useState<TableRowItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -383,7 +381,7 @@ This will restore the user's access to the system.`
                 name: selectedUser.name,
                 email: selectedUser.email,
                 role: selectedUser.type || "STAFF",
-                tag: (selectedUser as User).tag || "",
+                tag: selectedUser.tag || "",
               }
             : undefined
         }

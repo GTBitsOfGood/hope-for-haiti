@@ -44,10 +44,8 @@ export default function EditModal({
     tag: "",
   });
 
-  // Fetch existing tags for the select options
   const { data: existingTags } = useFetch<string[]>("/api/users/tags");
 
-  // Update form data when initial data changes
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -71,7 +69,6 @@ export default function EditModal({
   };
 
   const handleCancel = () => {
-    // Reset form data to initial values
     if (initialData) {
       setFormData({
         name: initialData.name,
@@ -170,58 +167,7 @@ export default function EditModal({
                   ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
                   : "none",
                 "&:hover": {
-                  borderColor: state.isFocused ? "#ef4444" : "#9ca3af",
-                },
-                minHeight: "42px",
-              }),
-              option: (provided, state) => ({
-                ...provided,
-                backgroundColor: state.isSelected
-                  ? "#e1e4e8" // gray-800 - much more opaque
-                  : state.isFocused
-                    ? "#f3f4f6" // gray-100
-                    : "white",
-                color: state.isSelected ? "white" : "#374151",
-                "&:hover": {
-                  backgroundColor: state.isSelected ? "#1f2937" : "#f3f4f6",
-                  color: state.isSelected ? "white" : "#374151",
-                },
-                cursor: "pointer",
-                padding: "8px 12px",
-              }),
-              menu: (provided) => ({
-                ...provided,
-                zIndex: 50,
-                boxShadow:
-                  "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-              }),
-              menuList: (provided) => ({
-                ...provided,
-                padding: "4px",
-                borderRadius: "6px",
-              }),
-              placeholder: (provided) => ({
-                ...provided,
-                color: "#9ca3af",
-              }),
-              singleValue: (provided) => ({
-                ...provided,
-                color: "#374151",
-              }),
-              clearIndicator: (provided) => ({
-                ...provided,
-                color: "#9ca3af",
-                "&:hover": {
-                  color: "#ef4444",
-                },
-              }),
-              dropdownIndicator: (provided) => ({
-                ...provided,
-                color: "#9ca3af",
-                "&:hover": {
-                  color: "#374151",
+                  borderColor: state.isFocused ? "#ef4444" : "#d1d5db",
                 },
               }),
             }}
