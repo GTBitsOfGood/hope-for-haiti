@@ -35,7 +35,6 @@ export default class UserService {
         name: true,
         userType: true,
         expiration: true,
-        partnerDetails: true,
       },
       orderBy: {
         expiration: "desc",
@@ -95,13 +94,13 @@ export default class UserService {
 
   static async getUserInvites() {
     const invites = await db.userInvite.findMany({
-      select: { 
+      select: {
         id: true,
         token: true,
         email: true,
-        userType: true, 
+        userType: true,
         name: true,
-        expiration: true, 
+        expiration: true,
       },
     });
     return invites;
@@ -238,7 +237,7 @@ export default class UserService {
       distinct: ["tag"],
     });
 
-    return results.map(r => r.tag as string);
+    return results.map((r) => r.tag as string);
   }
 
   static isAdmin(userType: UserType): boolean {
@@ -256,7 +255,6 @@ export default class UserService {
   static isSuperAdmin(userType: UserType): boolean {
     return userType === UserType.SUPER_ADMIN;
   }
-
 
   /**
    * @returns false if user is undefined or not a partner, true if user is a partner

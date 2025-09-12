@@ -2,12 +2,12 @@ import { UserType } from "@prisma/client";
 import { formatUserType } from "@/lib/userUtils";
 import AccountDropdown from "./AccountDropdown";
 
-interface TableRowItem {
+export interface TableRowItem {
   id: number;
   token?: string;
   email: string;
   name: string;
-  tag?: string;
+  tag?: string | null;
   type?: UserType;
   userType?: UserType;
   isInvite?: boolean;
@@ -68,7 +68,7 @@ export default function TableRow({
       </td>
       <td className="border-b px-4 py-4 w-1/6">
         {user.tag ? (
-          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+          <span className="px-3 py-1 bg-red-primary/70 text-white rounded-md text-sm">
             {user.tag}
           </span>
         ) : (

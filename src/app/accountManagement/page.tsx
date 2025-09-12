@@ -6,7 +6,9 @@ import { CgSpinner } from "react-icons/cg";
 import { User, UserType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
-import TableRow from "@/components/AccountManagement/TableRow";
+import TableRow, {
+  TableRowItem,
+} from "@/components/AccountManagement/TableRow";
 import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
 import EditModal from "@/components/AccountManagement/EditModal";
 import { useFetch } from "@/hooks/useFetch";
@@ -71,7 +73,7 @@ export default function AccountManagementPage() {
     cache: "no-store",
   });
 
-  const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
+  const [filteredItems, setFilteredItems] = useState<TableRowItem[]>([]);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -165,12 +167,28 @@ export default function AccountManagementPage() {
     setSelectedUser(null);
   };
 
-  const confirmEditAccount = (data: {
+  const confirmEditAccount = async (data: {
     name: string;
     email: string;
     role: UserType;
+    tag: string;
   }) => {
-    console.log("Edit account for:", selectedUser, "with data:", data);
+    if (!selectedUser || selectedUser.isInvite) return;
+
+    try {
+      await apiClient.patch(`/api/users/${selectedUser.id}`, {
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          tag: data.tag,
+        }),
+      });
+      refetchUsers();
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+
     setEditModalOpen(false);
     setSelectedUser(null);
   };
@@ -350,7 +368,11 @@ This will restore the user's access to the system.`
       />
 
       <EditModal
-        title="Edit staff account"
+        title={
+          selectedUser && !selectedUser.isInvite && isStaff(selectedUser.type)
+            ? "Edit staff account"
+            : "Edit account"
+        }
         isOpen={isEditModalOpen}
         onClose={closeAllModals}
         onCancel={closeAllModals}
@@ -361,8 +383,14 @@ This will restore the user's access to the system.`
                 name: selectedUser.name,
                 email: selectedUser.email,
                 role: selectedUser.type || "STAFF",
+                tag: (selectedUser as User).tag || "",
               }
             : undefined
+        }
+        isStaffAccount={
+          selectedUser && !selectedUser.isInvite
+            ? isStaff(selectedUser.type)
+            : true
         }
       />
     </>

@@ -55,7 +55,6 @@ model UserInvite {
   userType       UserType
   email          String   @unique
   name           String
-  partnerDetails Json?
   expiration     DateTime
 }
 
