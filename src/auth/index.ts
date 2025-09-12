@@ -22,6 +22,7 @@ declare module "next-auth" {
     user: {
       id: string;
       type: UserType;
+      tag?: string;
     } & DefaultSession["user"];
   }
 }

@@ -33,6 +33,7 @@ model User {
   name         String
   passwordHash String
   type         UserType
+  tag          String?
   enabled      Boolean  @default(true)
 
   // Partner-only fields

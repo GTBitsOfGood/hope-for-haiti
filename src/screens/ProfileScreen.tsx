@@ -11,6 +11,7 @@ interface FetchedUser {
   email: string;
   name: string;
   type: string;
+  tag?: string;
 }
 
 export default function ProfileScreen() {
@@ -30,6 +31,7 @@ export default function ProfileScreen() {
         name: session.user.name ?? "",
         passwordHash: "",
         type: session.user.type,
+        tag: session.user.tag ?? "",
         enabled: true,
         partnerDetails: null,
       };
@@ -78,6 +80,7 @@ export default function ProfileScreen() {
           name: currentUser.name,
           passwordHash: "",
           type: currentUser.type as UserType,
+          tag: currentUser.tag ?? "",
           enabled: true,
           partnerDetails: null,
         });
