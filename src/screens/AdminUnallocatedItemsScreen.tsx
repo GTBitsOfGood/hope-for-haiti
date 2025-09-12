@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
-import { formatTableValue } from "@/utils/format";
 import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -222,14 +221,14 @@ export default function AdminUnallocatedItemsScreen() {
           ]}
           rows={items.map((item) => ({
             cells: [
-              formatTableValue(item.title),
-              formatTableValue(item.type),
-              formatTableValue(item.quantity),
+              item.title,
+              item.type,
+              item.quantity,
               item.expirationDate
                 ? new Date(item.expirationDate).toLocaleDateString()
                 : "N/A",
-              formatTableValue(item.unitType),
-              formatTableValue(item.quantityPerUnit),
+              item.unitType,
+              item.quantityPerUnit,
               <div onClick={(e) => e.stopPropagation()} key={1}>
                 <Menu as="div" className="float-right relative">
                   <MenuButton>
@@ -260,6 +259,19 @@ export default function AdminUnallocatedItemsScreen() {
                 </Menu>
               </div>,
             ],
+            onClick: () => {
+              router.push(
+                `/unallocatedItems/requests?${new URLSearchParams({
+                  title: item.title,
+                  type: item.type,
+                  unitType: item.unitType,
+                  quantityPerUnit: item.quantityPerUnit.toString(),
+                  ...(item.expirationDate
+                    ? { expirationDate: item.expirationDate }
+                    : {}),
+                }).toString()}`
+              );
+            },
           }))}
           pageSize={10}
           headerClassName="bg-blue-primary text-white opacity-80"

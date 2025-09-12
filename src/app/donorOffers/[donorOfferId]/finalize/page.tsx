@@ -49,9 +49,7 @@ export default function FinalizeDonorOfferPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  const {
-    isLoading: isLoadingDetails,
-  } = useFetch<{
+  const { isLoading: isLoadingDetails } = useFetch<{
     offerName: string;
     partnerRequestDeadline: string;
     donorRequestDeadline: string;
@@ -312,7 +310,9 @@ export default function FinalizeDonorOfferPage() {
         <DonorOfferErrorModal
           setErrorOpen={setIsError}
           resetUpload={resetUpload}
-          errors={["An error occurred while finalizing the donor offer. Please try again."]}
+          errors={[
+            "An error occurred while finalizing the donor offer. Please try again.",
+          ]}
         />
       )}
     </div>

@@ -32,6 +32,21 @@ export function tableConditional(
   return cond ? trueVal : falseVal;
 }
 
+export function renderHeaders(headers: React.ReactNode[]) {
+  return headers.map((header) =>
+    typeof header === "string" ? (
+      <th
+        key={header}
+        className="px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg"
+      >
+        {header}
+      </th>
+    ) : (
+      header
+    )
+  );
+}
+
 export default function BaseTable({
   headers,
   rows,
@@ -46,18 +61,7 @@ export default function BaseTable({
           <tr
             className={`text-left font-bold ${headerClassName ? headerClassName : ""} border-b-2`}
           >
-            {headers.map((header) =>
-              typeof header === "string" ? (
-                <th
-                  key={header}
-                  className="px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg"
-                >
-                  {header}
-                </th>
-              ) : (
-                header
-              )
-            )}
+            {renderHeaders(headers)}
           </tr>
         </thead>
         <tbody>

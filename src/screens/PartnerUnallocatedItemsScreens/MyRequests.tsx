@@ -18,6 +18,7 @@ import { cn } from "@/util/util";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import { RequestPriority } from "@prisma/client";
+import { renderHeaders } from "@/components/BaseTable";
 
 export type ItemRequest = {
   id: number;
@@ -77,19 +78,19 @@ export default function MyRequests() {
 
       <table className="mt-4 rounded-t-lg table-fixed w-full">
         <thead>
-          <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-            <th className="px-4 py-2 text-left font-bold">Title</th>
-            <th className="px-4 py-2 text-left font-bold">Type</th>
-            <th className="px-4 py-2 text-left font-bold">Priority</th>
-            <th className="px-4 py-2 text-left font-bold">
-              Quantity Requested
-            </th>
-            <th className="px-4 py-2 text-left font-bold">Expiration</th>
-            <th className="px-4 py-2 text-left font-bold">Unit Type</th>
-            <th className="px-4 py-2 text-left font-bold">Qty/Unit</th>
-            <th className="pl-4 py-2 text-left font-bold">Date Requested</th>
-            <th className="pl-4 py-2 text-left font-bold">Comments</th>
-            <th></th>
+          <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2 text-left">
+            {renderHeaders([
+              "Title",
+              "Type",
+              "Priority",
+              "Quantity Requested",
+              "Expiration",
+              "Unit Type",
+              "Qty/Unit",
+              "Date Requested",
+              "Comments",
+              "",
+            ])}
           </tr>
         </thead>
         <tbody>
@@ -259,7 +260,7 @@ function MyRequestRow({ item, index, refetch }: Props) {
             </div>
             <div
               className={`bg-blue-primary rounded-md size-7 flex items-center justify-center cursor-pointer ${
-                isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+                isUpdating ? "opacity-50 cursor-not-allowed" : ""
               }`}
               onClick={isUpdating ? undefined : handleSubmit}
             >

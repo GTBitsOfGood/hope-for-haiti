@@ -14,9 +14,9 @@ import {
   DonorOfferItemsRequestsDTO,
   DonorOfferItemsRequestsResponse,
 } from "@/types/api/donorOffer.types";
-import { formatTableValue } from "@/utils/format";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
+import BaseTable, { tableConditional } from "@/components/BaseTable";
 
 /**
  * Search bar and buttons cover the menu bar when looking at mobile view.
@@ -25,7 +25,9 @@ import { useApiClient } from "@/hooks/useApiClient";
  * Bug where after reidrection, error is shown twice
  */
 
-function getPriorityColor(value: string | RequestPriority | "" | null | undefined): string {
+function getPriorityColor(
+  value: string | RequestPriority | "" | null | undefined
+): string {
   switch (value) {
     case "LOW":
       return "rgba(10,123,64,0.2)";
@@ -64,29 +66,34 @@ export default function PartnerDynamicDonorOfferScreen() {
     null
   );
 
-  const {
-    isLoading,
-    refetch: refetchDonorOffer,
-  } = useFetch<DonorOfferItemsRequestsResponse>(`/api/donorOffers/${donorOfferId}`, {
-    method: "GET",
-    onSuccess: (data) => {
-      setDonorOfferName(data.donorOfferName);
-      const items = data.donorOfferItemsRequests;
-      setItems(items);
-      if (items.some((item: DonorOfferItemsRequestsDTO) => item.requestId === null)) {
-        setIsEditing(true);
+  const { isLoading, refetch: refetchDonorOffer } =
+    useFetch<DonorOfferItemsRequestsResponse>(
+      `/api/donorOffers/${donorOfferId}`,
+      {
+        method: "GET",
+        onSuccess: (data) => {
+          setDonorOfferName(data.donorOfferName);
+          const items = data.donorOfferItemsRequests;
+          setItems(items);
+          if (
+            items.some(
+              (item: DonorOfferItemsRequestsDTO) => item.requestId === null
+            )
+          ) {
+            setIsEditing(true);
+          }
+        },
+        onError: (error) => {
+          if (error.includes("404")) {
+            toast.error("Donor offer not found");
+            router.push("/donorOffers");
+          } else {
+            toast.error("Failed to fetch donor offer data");
+            console.error("Fetch error:", error);
+          }
+        },
       }
-    },
-    onError: (error) => {
-      if (error.includes("404")) {
-        toast.error("Donor offer not found");
-        router.push("/donorOffers");
-      } else {
-        toast.error("Failed to fetch donor offer data");
-        console.error("Fetch error:", error);
-      }
-    },
-  });
+    );
 
   const { apiClient } = useApiClient();
 
@@ -113,7 +120,7 @@ export default function PartnerDynamicDonorOfferScreen() {
     try {
       await apiClient.post(`/api/donorOffers/${donorOfferId}`, {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requests: items })
+        body: JSON.stringify({ requests: items }),
       });
       toast.success("All changes saved to DB!");
       setIsEditing(false);
@@ -157,16 +164,14 @@ export default function PartnerDynamicDonorOfferScreen() {
     // Update local state immediately for better UX
     setItems((prev) =>
       prev.map((r) =>
-        r.requestId === selectedRequestId
-          ? { ...r, comments: modalComment }
-          : r
+        r.requestId === selectedRequestId ? { ...r, comments: modalComment } : r
       )
     );
 
     try {
       await apiClient.post(`/api/donorOffers/${donorOfferId}`, {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requests: [payloadRow] })
+        body: JSON.stringify({ requests: [payloadRow] }),
       });
       toast.success("Comment updated successfully!");
       setIsModalOpen(false);
@@ -243,112 +248,100 @@ export default function PartnerDynamicDonorOfferScreen() {
           <CgSpinner className="w-12 h-12 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-[12px]">
-          <table className="w-full text-left border-collapse">
-            <thead
-              className="text-white text-[18px]"
-              style={{
-                backgroundColor: "rgba(39,116,174,0.8)",
-                borderBottom: "2px solid rgba(34,7,11,0.1)",
-              }}
-            >
-              <tr>
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Expiration</th>
-                <th className="px-4 py-3">Quantity</th>
-                <th className="px-4 py-3">Unit Type</th>
-                <th className="px-4 py-3">Qty/Unit</th>
-                <th className="px-4 py-3">Quantity Requested</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Comment</th>
-              </tr>
-            </thead>
-            <tbody className="[&>tr]:border-b [&>tr]:border-[rgba(34,7,11,0.1)] [&>tr:last-child]:border-0 [&>tr:nth-child(odd)]:bg-[rgba(34,7,11,0.025)] [&>tr:nth-child(even)]:bg-white">
-              {items.map((row, index) => (
-                <tr key={row.donorOfferItemId} className="text-[16px]">
-                  <td className="px-4 py-3">{formatTableValue(row.title)}</td>
-                  <td className="px-4 py-3">{formatTableValue(row.type)}</td>
-                  <td className="px-4 py-3">
-                    {formatTableValue(row.expiration)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {formatTableValue(row.quantity)}
-                  </td>
-                  <td className="px-4 py-3">Bottle</td>
-                  <td className="px-4 py-3">1</td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        name="quantityRequested"
-                        min={0}
-                        value={row.quantityRequested || 0}
-                        onChange={(e) =>
-                          updateItem(index, {
-                            quantityRequested: parseInt(e.currentTarget.value),
-                          })
-                        }
-                        className="w-[60px] bg-[rgba(249,249,249)] border-2 border-[rgba(34,7,11,0.1)] rounded-[4px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[rgba(34,7,11,0.1)]"
-                      />
-                    ) : (
-                      formatTableValue(row.quantityRequested)
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {isEditing ? (
-                      <select
-                        name="priority"
-                        value={row.priority ?? ""}
-                        onChange={(e) =>
-                          updateItem(index, {
-                            priority: e.currentTarget.value as RequestPriority,
-                          })
-                        }
-                        className="appearance-none -webkit-appearance-none text-[16px] text-[#22070B] border-2 border-[rgba(34,7,11,0.1)] rounded-[4px] px-2 py-1 w-auto focus:outline-none focus:ring-1 focus:ring-[rgba(34,7,11,0.1)]"
-                        style={{
-                          backgroundColor: getPriorityColor(row.priority ?? ""),
-                          minWidth: "3rem",
-                        }}
-                      >
-                        <option value="">Select</option>
-                        <option value="LOW">Low</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="HIGH">High</option>
-                      </select>
-                    ) : row.priority ? (
-                      <div
-                        className="inline-block px-2 py-1 rounded-md text-center"
-                        style={{
-                          backgroundColor: getPriorityColor(row.priority),
-                        }}
-                      >
-                        {titleCasePriority(row.priority)}
-                      </div>
-                    ) : (
-                      ""
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleCommentClick(index)}>
-                      <Image
-                        src="/assets/chat_sign.svg"
-                        alt="Comment"
-                        width={20}
-                        height={20}
-                        style={{ filter: commentIconFilter }}
-                        className={`${
-                          row.comments ? "opacity-90" : "opacity-30"
-                        } hover:opacity-100`}
-                      />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <BaseTable
+          headers={[
+            "Title",
+            "Type",
+            "Expiration",
+            "Quantity",
+            "Unit Type",
+            "Qty/Unit",
+            "Quantity Requested",
+            "Priority",
+            "Comment",
+          ]}
+          rows={items.map((item, index) => ({
+            cells: [
+              item.title,
+              item.type,
+              item.expiration,
+              item.quantity,
+              "Bottle",
+              "1", // Hardcoded -- replace when possible
+              ...tableConditional(
+                isEditing,
+                [
+                  <input
+                    type="number"
+                    name="quantityRequested"
+                    min={0}
+                    key="quantityRequested"
+                    value={item.quantityRequested || 0}
+                    onChange={(e) =>
+                      updateItem(index, {
+                        quantityRequested: parseInt(e.currentTarget.value),
+                      })
+                    }
+                    className="w-[60px] bg-[rgba(249,249,249)] border-2 border-[rgba(34,7,11,0.1)] rounded-[4px] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[rgba(34,7,11,0.1)]"
+                  />,
+                  <select
+                    name="priority"
+                    key="priority"
+                    value={item.priority ?? ""}
+                    onChange={(e) =>
+                      updateItem(index, {
+                        priority: e.currentTarget.value as RequestPriority,
+                      })
+                    }
+                    className="appearance-none -webkit-appearance-none text-[16px] text-[#22070B] border-2 border-[rgba(34,7,11,0.1)] rounded-[4px] px-2 py-1 w-auto focus:outline-none focus:ring-1 focus:ring-[rgba(34,7,11,0.1)]"
+                    style={{
+                      backgroundColor: getPriorityColor(item.priority ?? ""),
+                      minWidth: "3rem",
+                    }}
+                  >
+                    <option value="">Select</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>,
+                ],
+                [
+                  item.quantityRequested,
+                  item.priority ? (
+                    <div
+                      className="inline-block px-2 py-1 rounded-md text-center"
+                      style={{
+                        backgroundColor: getPriorityColor(item.priority),
+                      }}
+                    >
+                      {titleCasePriority(item.priority)}
+                    </div>
+                  ) : (
+                    ""
+                  ),
+                ]
+              ),
+
+              <button onClick={() => handleCommentClick(index)} key="comments">
+                <Image
+                  src="/assets/chat_sign.svg"
+                  alt="Comment"
+                  width={20}
+                  height={20}
+                  style={{ filter: commentIconFilter }}
+                  className={`${
+                    item.comments ? "opacity-90" : "opacity-30"
+                  } hover:opacity-100`}
+                  key="commentIcon"
+                />
+              </button>,
+            ],
+          }))}
+          pageSize={10}
+          headerClassName="bg-blue-primary text-white opacity-80"
+        />
       )}
+
       <CommentModalDonorOffers
         isOpen={isModalOpen}
         onClose={handleCloseModal}
