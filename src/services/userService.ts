@@ -1,9 +1,9 @@
 import { db } from "@/db";
-import { UserType } from "@prisma/client";
-import { 
-  ArgumentError, 
-  NotFoundError, 
-  ConflictError, 
+import { $Enums, UserType } from "@prisma/client";
+import {
+  ArgumentError,
+  NotFoundError,
+  ConflictError,
 } from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
@@ -12,11 +12,10 @@ import { EmailClient } from "@/email";
 import {
   CreateUserFromInviteData,
   CreateUserInviteData,
-  UpdateUserData
+  UpdateUserData,
 } from "@/types/api/user.types";
 
 export default class UserService {
-  
   static async getUsers() {
     const users = await db.user.findMany({
       select: {
@@ -43,11 +42,11 @@ export default class UserService {
         enabled: true,
       },
     });
-    
+
     if (!user) {
       throw new NotFoundError(`User with ID ${userId} not found`);
     }
-    
+
     return user;
   }
 
@@ -63,7 +62,7 @@ export default class UserService {
         enabled: true,
       },
     });
-    
+
     return user;
   }
 
@@ -72,11 +71,11 @@ export default class UserService {
       where: { token },
       select: { email: true, name: true, expiration: true },
     });
-    
+
     if (!invite || invite.expiration < new Date()) {
       throw new ArgumentError("Invalid invite token");
     }
-    
+
     return invite;
   }
 
@@ -151,7 +150,7 @@ export default class UserService {
     }
 
     const passwordHash = await argon2.hash(data.password);
-    
+
     try {
       await db.user.create({
         data: {
@@ -229,10 +228,7 @@ export default class UserService {
   }
 
   static isAdmin(userType: UserType): boolean {
-    return (
-      userType === UserType.ADMIN ||
-      userType === UserType.SUPER_ADMIN
-    );
+    return userType === UserType.ADMIN || userType === UserType.SUPER_ADMIN;
   }
 
   static isStaff(userType: UserType): boolean {
@@ -245,5 +241,12 @@ export default class UserService {
 
   static isSuperAdmin(userType: UserType): boolean {
     return userType === UserType.SUPER_ADMIN;
+  }
+
+  /**
+   * @returns false if user is undefined or not a partner, true if user is a partner
+   */
+  static isPartner(user: { type: $Enums.UserType } | undefined) {
+    return user && user.type === $Enums.UserType.PARTNER;
   }
 }

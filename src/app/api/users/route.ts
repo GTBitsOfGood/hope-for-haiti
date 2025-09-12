@@ -17,7 +17,7 @@ const createUserSchema = zfd.formData({
 });
 
 const searchParamsSchema = z.object({
-  includeInvites: z.string().optional().transform(val => val === "true")
+  includeInvites: z.string().optional().nullable().transform(val => val === "true")
 });
 
 export async function GET(request: NextRequest) {
