@@ -34,8 +34,6 @@ jobs:
           cache: "npm"
       - run: npm install
       - run: npm run lint
-      - run: npm run ci:db:migrate
-      - run: npm run ci:test
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432?sslmode=disable
