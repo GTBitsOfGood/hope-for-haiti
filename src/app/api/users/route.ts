@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     }
   
     const { user } = session;
-    if (!UserService.isAdmin(user.type)) {
-      throw new AuthorizationError("Must be ADMIN, or SUPER_ADMIN");
+    if (!UserService.isStaff(user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
     const parsed = searchParamsSchema.safeParse({
