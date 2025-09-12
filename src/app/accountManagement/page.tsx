@@ -7,8 +7,11 @@ import { User, UserType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
 import TableRow from "@/components/AccountManagement/TableRow";
+import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
+import EditModal from "@/components/AccountManagement/EditModal";
 import { useFetch } from "@/hooks/useFetch";
 import { isStaff, isPartner } from "@/lib/userUtils";
+import { EyeSlash, Trash, EnvelopeSimple } from "@phosphor-icons/react";
 
 type UserInvite = {
   id: number;
@@ -16,6 +19,7 @@ type UserInvite = {
   name: string;
   userType: UserType;
   expiration: Date;
+  tag?: string;
 };
 
 type UserOrInvite =
@@ -55,6 +59,13 @@ export default function AccountManagementPage() {
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // Modal states
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeactivateModalOpen, setDeactivateModalOpen] = useState(false);
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [isSendReminderModalOpen, setSendReminderModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserOrInvite | null>(null);
+
   const isLoading = isLoadingUsers || isLoadingInvites;
 
   const applyFilters = (tabFilter: UserFilterKey, search: string) => {
@@ -81,7 +92,7 @@ export default function AccountManagementPage() {
 
   useEffect(() => {
     applyFilters(activeTab as UserFilterKey, searchQuery);
-  }, [users, invites, activeTab, searchQuery, applyFilters]);
+  }, [users, invites, activeTab, searchQuery]);
 
   const filterUsers = (type: UserFilterKey) => {
     setActiveTab(type);
@@ -103,6 +114,69 @@ export default function AccountManagementPage() {
     } else {
       console.log("Sending invite link for", role);
     }
+  };
+
+  // Modal handlers
+  const handleSendReminder = (user: UserOrInvite) => {
+    setSelectedUser(user);
+    setSendReminderModalOpen(true);
+  };
+
+  const handleDeleteAccount = (user: UserOrInvite) => {
+    setSelectedUser(user);
+    setDeleteModalOpen(true);
+  };
+
+  const handleEditAccount = (user: UserOrInvite) => {
+    setSelectedUser(user);
+    setEditModalOpen(true);
+  };
+
+  const handleDeactivateAccount = (user: UserOrInvite) => {
+    setSelectedUser(user);
+    setDeactivateModalOpen(true);
+  };
+
+  // Modal action handlers
+  const confirmSendReminder = () => {
+    console.log("Send reminder for:", selectedUser);
+    // TODO: Implement send reminder API call
+    setSendReminderModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const confirmDeleteAccount = () => {
+    console.log("Delete account for:", selectedUser);
+    // TODO: Implement delete account API call
+    setDeleteModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const confirmEditAccount = (data: {
+    name: string;
+    email: string;
+    role: UserType;
+  }) => {
+    console.log("Edit account for:", selectedUser, "with data:", data);
+    // TODO: Implement edit account API call
+    setEditModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const confirmDeactivateAccount = () => {
+    console.log("Deactivate account for:", selectedUser);
+    // TODO: Implement deactivate account API call
+    setDeactivateModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  // Modal close handlers
+  const closeAllModals = () => {
+    setSendReminderModalOpen(false);
+    setDeleteModalOpen(false);
+    setEditModalOpen(false);
+    setDeactivateModalOpen(false);
+    setSelectedUser(null);
   };
 
   return (
@@ -161,12 +235,13 @@ export default function AccountManagementPage() {
           <table className="w-full table-fixed">
             <thead>
               <tr className="bg-gray-primary/5 border-b-2 border-gray-primary/10 text-gray-primary/70">
-                <th className="px-4 py-4 text-left w-1/4 rounded-tl-lg font-normal">
+                <th className="px-4 py-4 text-left w-1/5 rounded-tl-lg font-normal">
                   Name
                 </th>
-                <th className="px-4 py-4 text-left w-1/4 font-normal">Email</th>
-                <th className="px-4 py-4 text-left w-1/5 font-normal">Role</th>
-                <th className="px-4 py-4 text-left w-1/5 font-normal">
+                <th className="px-4 py-4 text-left w-1/5 font-normal">Email</th>
+                <th className="px-4 py-4 text-left w-1/6 font-normal">Role</th>
+                <th className="px-4 py-4 text-left w-1/6 font-normal">Tag</th>
+                <th className="px-4 py-4 text-left w-1/6 font-normal">
                   Status
                 </th>
                 <th className="px-4 py-4 text-right rounded-tr-lg w-1/12 font-normal">
@@ -186,9 +261,10 @@ export default function AccountManagementPage() {
                     user={item}
                     index={index}
                     isInvite={item.isInvite}
-                    onManageClick={(user) => {
-                      console.log("Manage user:", user);
-                    }}
+                    onSendReminder={() => handleSendReminder(item)}
+                    onDeleteAccount={() => handleDeleteAccount(item)}
+                    onEditAccount={() => handleEditAccount(item)}
+                    onDeactivateAccount={() => handleDeactivateAccount(item)}
                   />
                 ))}
               </tbody>
@@ -203,6 +279,61 @@ export default function AccountManagementPage() {
           onSubmit={handleInviteSubmit}
         />
       )}
+
+      {/* Account Management Modals */}
+      <ConfirmationModal
+        title="Send reminder"
+        text={`Are you sure you would like to send a reminder to this user?
+This will send an email reminder about their pending invitation.`}
+        icon={<EnvelopeSimple size={78} />}
+        isOpen={isSendReminderModalOpen}
+        onClose={closeAllModals}
+        onCancel={closeAllModals}
+        onConfirm={confirmSendReminder}
+        confirmText="Send reminder"
+        confirmButtonClass="bg-blue-500 hover:bg-blue-600 text-white"
+      />
+
+      <ConfirmationModal
+        title="Delete account"
+        text={`Are you sure you would like to delete this account?
+Deleting an account will permanently remove all associated information from the database. This action is irreversible.`}
+        icon={<Trash size={78} />}
+        isOpen={isDeleteModalOpen}
+        onClose={closeAllModals}
+        onCancel={closeAllModals}
+        onConfirm={confirmDeleteAccount}
+        confirmText="Delete account"
+      />
+
+      <ConfirmationModal
+        title="Deactivate account"
+        text={`Are you sure you would like to deactivate this account?
+For partner accounts, deactivation means the partner will no longer have access to request distributions. However, admins will still retain access to view all historical data associated with the account.`}
+        icon={<EyeSlash size={78} />}
+        isOpen={isDeactivateModalOpen}
+        onClose={closeAllModals}
+        onCancel={closeAllModals}
+        onConfirm={confirmDeactivateAccount}
+        confirmText="Deactivate"
+      />
+
+      <EditModal
+        title="Edit staff account"
+        isOpen={isEditModalOpen}
+        onClose={closeAllModals}
+        onCancel={closeAllModals}
+        onConfirm={confirmEditAccount}
+        initialData={
+          selectedUser && !selectedUser.isInvite
+            ? {
+                name: selectedUser.name,
+                email: selectedUser.email,
+                role: selectedUser.type || "STAFF",
+              }
+            : undefined
+        }
+      />
     </>
   );
 }

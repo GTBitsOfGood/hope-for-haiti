@@ -35,7 +35,6 @@ export default function AccountDropdown({
 }: AccountDropdownProps) {
   const getDropdownItems = (): DropdownItem[] => {
     if (isInvite) {
-      // Dropdown for pending invites
       return [
         {
           icon: <EnvelopeSimple size={18} />,
@@ -49,7 +48,6 @@ export default function AccountDropdown({
         },
       ];
     } else {
-      // Dropdown for created accounts
       return [
         {
           icon: <PencilSimple size={18} />,

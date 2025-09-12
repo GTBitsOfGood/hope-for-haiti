@@ -6,6 +6,7 @@ interface TableRowItem {
   id: number;
   email: string;
   name: string;
+  tag?: string;
   type?: UserType;
   userType?: UserType;
   isInvite?: boolean;
@@ -15,35 +16,22 @@ interface TableRowProps {
   user: TableRowItem;
   index: number;
   isInvite?: boolean;
-  onManageClick?: (user: TableRowItem) => void;
+  onSendReminder?: () => void;
+  onDeleteAccount?: () => void;
+  onEditAccount?: () => void;
+  onDeactivateAccount?: () => void;
 }
 
 export default function TableRow({
   user,
   index,
   isInvite = false,
+  onSendReminder,
+  onDeleteAccount,
+  onEditAccount,
+  onDeactivateAccount,
 }: TableRowProps) {
   const userType = user.type || user.userType;
-
-  const handleSendReminder = () => {
-    console.log("Send reminder for:", user);
-    // TODO: Implement send reminder functionality
-  };
-
-  const handleDeleteAccount = () => {
-    console.log("Delete account for:", user);
-    // TODO: Implement delete account functionality
-  };
-
-  const handleEditAccount = () => {
-    console.log("Edit account for:", user);
-    // TODO: Implement edit account functionality
-  };
-
-  const handleDeactivateAccount = () => {
-    console.log("Deactivate account for:", user);
-    // TODO: Implement deactivate account functionality
-  };
 
   return (
     <tr
@@ -51,12 +39,21 @@ export default function TableRow({
       data-odd={index % 2 !== 0}
       className="bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary"
     >
-      <td className="border-b px-4 py-4 w-1/4">{user.name}</td>
-      <td className="border-b px-4 py-4 w-1/4">{user.email}</td>
-      <td className="border-b px-4 py-4 w-1/5">
+      <td className="border-b px-4 py-4 w-1/5">{user.name}</td>
+      <td className="border-b px-4 py-4 w-1/5">{user.email}</td>
+      <td className="border-b px-4 py-4 w-1/6">
         {formatUserType(user.type || user.userType!)}
       </td>
-      <td className="border-b px-4 py-4 w-1/5">
+      <td className="border-b px-4 py-4 w-1/6">
+        {user.tag ? (
+          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+            {user.tag}
+          </span>
+        ) : (
+          <span className="italic text-gray-400">No tag</span>
+        )}
+      </td>
+      <td className="border-b px-4 py-4 w-1/6">
         <span
           className={`px-3 py-2 rounded whitespace-nowrap ${
             isInvite ? "bg-yellow-primary" : "bg-green-primary"
@@ -70,10 +67,10 @@ export default function TableRow({
           <AccountDropdown
             isInvite={isInvite}
             userType={userType}
-            onSendReminder={handleSendReminder}
-            onDeleteAccount={handleDeleteAccount}
-            onEditAccount={handleEditAccount}
-            onDeactivateAccount={handleDeactivateAccount}
+            onSendReminder={onSendReminder}
+            onDeleteAccount={onDeleteAccount}
+            onEditAccount={onEditAccount}
+            onDeactivateAccount={onDeactivateAccount}
           />
         </div>
       </td>

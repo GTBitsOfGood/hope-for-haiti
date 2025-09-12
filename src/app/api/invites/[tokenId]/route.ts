@@ -12,10 +12,7 @@ import {
 import { auth } from "@/auth";
 
 const paramSchema = z.object({
-  tokenId: z
-    .string()
-    .min(1, "Token is required")
-    .trim(),
+  tokenId: z.string().min(1, "Token is required").trim(),
 });
 
 export async function GET(
@@ -24,18 +21,21 @@ export async function GET(
 ) {
   try {
     const { tokenId } = await params;
-    
+
     const parsed = paramSchema.safeParse({ tokenId });
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
     const invite = await UserService.getUserInviteByToken(parsed.data.tokenId);
-    
-    return NextResponse.json({
-      email: invite.email,
-      name: invite.name,
-    }, { status: 200 });
+
+    return NextResponse.json(
+      {
+        email: invite.email,
+        name: invite.name,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     return errorResponse(error);
   }
