@@ -51,37 +51,39 @@ export default function AdminWishlistScreen() {
   return (
     <div className="pb-32">
       <h1 className="text-2xl font-bold text-red-primary">Wishlists</h1>
-      <div className="overflow-x-auto">
-        <table className="mt-4 rounded-t-lg min-w-full">
-          <thead>
-            <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-              <th className="px-4 py-2 text-left font-bold">Partner</th>
-              <th className="px-4 py-2 text-left font-bold">Total</th>
-              <th className="px-4 py-2 text-left font-bold">Low</th>
-              <th className="px-4 py-2 text-left font-bold">Medium</th>
-              <th className="px-4 py-2 text-left font-bold">High</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, idx) => (
-              <tr
-                key={r.partnerId}
-                data-odd={idx % 2 !== 0}
-                className="bg-white data-[odd=true]:bg-gray-50 border-b"
-              >
-                <td className="px-4 py-2">
-                  <Link className="text-blue-primary underline" href={`/wishlists/${r.partnerId}`}>
-                    {r.partnerName}
-                  </Link>
-                </td>
-                <td className="px-4 py-2">{r.totalCount}</td>
-                <td className="px-4 py-2">{r.lowCount}</td>
-                <td className="px-4 py-2">{r.medCount}</td>
-                <td className="px-4 py-2">{r.highCount}</td>
+      <div className="overflow-x-auto mt-4">
+  <div className="inline-block min-w-full rounded-t-xl border border-gray-200 overflow-hidden shadow-sm">
+          <table className="min-w-full">
+      <thead className="bg-[rgba(39,116,174,0.80)]">
+              <tr>
+        <th className="px-4 py-2 text-left font-semibold text-white first:rounded-tl-xl">Partner</th>
+        <th className="px-4 py-2 text-left font-semibold text-white">Total</th>
+        <th className="px-4 py-2 text-left font-semibold text-white">Low</th>
+        <th className="px-4 py-2 text-left font-semibold text-white">Medium</th>
+        <th className="px-4 py-2 text-left font-semibold text-white last:rounded-tr-xl">High</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr
+                  key={r.partnerId}
+                  data-odd={idx % 2 !== 0}
+                  className="bg-white data-[odd=true]:bg-gray-50 border-b border-gray-200"
+                >
+                  <td className="px-4 py-3">
+                    <Link className="text-blue-primary underline" href={`/wishlists/${r.partnerId}`}>
+                      {r.partnerName}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">{r.totalCount}</td>
+                  <td className="px-4 py-3">{r.lowCount}</td>
+                  <td className="px-4 py-3">{r.medCount}</td>
+                  <td className="px-4 py-3">{r.highCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

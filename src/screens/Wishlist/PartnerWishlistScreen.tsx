@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFetch } from "@/hooks/useFetch";
 import {
   UpdateWishlistItemBody,
@@ -10,7 +10,10 @@ import {
 import { mockWishlistItems, priorityOptions } from "@/mock/wishlists";
 import ModalTextField from "@/components/ModalTextField";
 import ModalDropDown from "@/components/ModalDropDown";
+import PriorityTag from "@/components/PriorityTag";
 import { Check, PencilSimple, X, ChatTeardropText, Trash } from "@phosphor-icons/react";
+import { Tooltip } from "react-tooltip";
+import CommentModal from "@/components/CommentModal";
 import toast from "react-hot-toast";
 
 export default function PartnerWishlistScreen({ partnerId, readOnly = false }: { partnerId?: number; readOnly?: boolean }) {
@@ -83,6 +86,9 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
   const [editingIds, setEditingIds] = useState<Set<number>>(new Set());
+  const [, setNewIds] = useState<Set<number>>(new Set());
+  const originalsRef = useRef<Map<number, WishlistItem>>(new Map());
+  const [activeCell, setActiveCell] = useState<{ id: number; field: "name" | "unitSize" | "quantity" | "priority" } | null>(null);
   useEffect(() => {
     if (data && Array.isArray(data)) setItems(data);
     else setItems(mockWishlistItems);
@@ -93,14 +99,44 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
   const isEditing = (id: number) => editingIds.has(id);
   const startEdit = (id: number) => {
     if (readOnly) return;
-    setEditingIds((prev) => new Set(prev).add(id));
+    setEditingIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    // Capture original snapshot once when editing begins
+    if (!originalsRef.current.has(id)) {
+      const it = items.find(i => i.id === id);
+      if (it) originalsRef.current.set(id, { ...it });
+    }
+  // Do not auto-focus any cell; cells will become editable on click
   };
-  const cancelEdit = (id: number) => {
+  const cancelEdit = (id: number, keepIfNew: boolean = false) => {
     setEditingIds((prev) => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
+  setActiveCell(null);
+    if (!keepIfNew) {
+      setNewIds((prev) => {
+        if (prev.has(id)) {
+          // New unsaved row: remove it entirely
+          setItems((itemsPrev) => itemsPrev.filter((i) => i.id !== id));
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        }
+        return prev;
+      });
+      // Existing row: revert to original snapshot if present
+      const original = originalsRef.current.get(id);
+      if (original) {
+        setItems(prev => prev.map(it => (it.id === id ? original : it)));
+      }
+    }
+    // Clear snapshot in all cases once we exit edit
+    originalsRef.current.delete(id);
   };
 
   const applyLocalChange = (id: number, patch: UpdateWishlistItemBody) => {
@@ -109,10 +145,23 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
     );
   };
 
+  const isItemComplete = (it: WishlistItem) => {
+    const nameOk = typeof it.name === "string" && it.name.trim().length > 0;
+    const unitOk = typeof it.unitSize === "string" && it.unitSize.trim().length > 0;
+    const qtyOk = Number.isFinite(it.quantity) && it.quantity > 0;
+    const prOk = it.priority === "LOW" || it.priority === "MEDIUM" || it.priority === "HIGH";
+    // comment is optional
+    return nameOk && unitOk && qtyOk && prOk;
+  };
+
   const save = async (id: number) => {
     if (readOnly) return;
     const item = items.find((i) => i.id === id);
     if (!item) return;
+    if (!isItemComplete(item)) {
+      toast.error("Please fill out required fields before saving");
+      return;
+    }
     try {
   // TODO(API): Replace local update with:
   // const updated = await apiPatch(id, {
@@ -123,8 +172,16 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
   //   comment: item.comment,
   // });
   // applyLocalChange(id, updated);
-      toast.success("Wishlist updated");
-      cancelEdit(id);
+  toast.success("Wishlist updated");
+      setNewIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      cancelEdit(id, true);
+  // Clear snapshot after successful save
+  originalsRef.current.delete(id);
+  setActiveCell(null);
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -143,6 +200,22 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
 
   return (
     <div className="pb-32">
+      <CommentModal
+        isOpen={activeCommentId !== null && isEditing(activeCommentId)}
+        title={(items.find(i => i.id === activeCommentId)?.name || "Item") + ": Comment"}
+        initialValue={activeCommentId ? (items.find(i => i.id === activeCommentId)?.comment ?? "") : ""}
+        onClose={() => {
+          // Just close the comment modal; keep the row in edit mode
+          setActiveCommentId(null);
+        }}
+        onSave={(val: string) => {
+          if (activeCommentId !== null) {
+            applyLocalChange(activeCommentId, { comment: val });
+            // keep in edit mode; user can still hit Save row or cancel
+          }
+          setActiveCommentId(null);
+        }}
+      />
       <div className="flex items-start justify-between">
         <h1 className="text-xl font-semibold text-gray-primary mb-2">Wish list</h1>
         {!readOnly && (
@@ -161,43 +234,46 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                 },
               ]);
               startEdit(nextId);
+              setNewIds(prev => {
+                const next = new Set(prev);
+                next.add(nextId);
+                return next;
+              });
             }}
-            className="text-sm px-4 py-1 border border-red-primary text-red-primary rounded-md hover:bg-red-primary hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-sm md:text-base px-4 py-2 bg-red-primary text-white rounded-md shadow-sm hover:brightness-95 active:translate-y-px transition"
           >
-            Add
+            <span aria-hidden className="text-lg leading-none">+</span>
+            Add item
           </button>
         )}
       </div>
       <div className="overflow-x-auto mt-2">
-        <table className="min-w-full rounded-t-lg">
-          <thead>
-            <tr className="bg-blue-primary text-white">
-              <th className="px-4 py-2 text-left font-medium">Title</th>
-              <th className="px-4 py-2 text-left font-medium">Unit Size</th>
-              <th className="px-4 py-2 text-left font-medium">Quantity requested</th>
-              <th className="px-4 py-2 text-left font-medium">Priority</th>
-              <th className="px-4 py-2 text-left font-medium">Last updated</th>
-              <th className="px-4 py-2 text-left font-medium">Comment</th>
-              <th className="px-4 py-2 text-left font-medium">Manage</th>
-            </tr>
-          </thead>
-          <tbody>
+  <div className="inline-block min-w-full rounded-t-xl border border-gray-200 shadow-sm">
+          <table className="min-w-full">
+      <thead className="bg-[rgba(39,116,174,0.80)]">
+              <tr>
+        <th className="px-4 text-left font-semibold text-white first:rounded-tl-xl">Title</th>
+        <th className="px-4 text-left font-semibold text-white">Unit Size</th>
+        <th className="px-4 text-left font-semibold text-white">Quantity requested</th>
+        <th className="px-4 text-left font-semibold text-white">Priority</th>
+        <th className="px-4 text-left font-semibold text-white">Last updated</th>
+        <th className="px-4 text-left font-semibold text-white">Comment</th>
+        <th className="px-4 text-left font-semibold text-white last:rounded-tr-xl">Manage</th>
+              </tr>
+            </thead>
+            <tbody>
             {items.map((it, idx) => {
               const lastUpdated = new Date().toLocaleDateString(); // placeholder
-              const priorityClass =
-                it.priority === "HIGH"
-                  ? "bg-red-200 text-red-800"
-                  : it.priority === "MEDIUM"
-                  ? "bg-orange-200 text-orange-800"
-                  : "bg-green-200 text-green-800";
               return (
                 <tr
                   key={it.id}
                   data-odd={idx % 2 !== 0}
-                  className="bg-white data-[odd=true]:bg-gray-50 border-b"
+                  className={`border-b border-gray-200 transition-colors ${
+                    isEditing(it.id) ? "bg-blue-50" : "bg-white data-[odd=true]:bg-gray-50"
+                  }`}
                 >
                   <td className="px-4 py-2 w-[18%]">
-                    {isEditing(it.id) ? (
+                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "name" ? (
                       <ModalTextField
                         name="name"
                         placeholder="Title"
@@ -208,11 +284,19 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                         }}
                       />
                     ) : (
-                      it.name || <span className="text-gray-400 italic">(untitled)</span>
+                      <button
+                        type="button"
+                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
+                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "name" })}
+                        disabled={!isEditing(it.id)}
+                        title={isEditing(it.id) ? "Click to edit title" : undefined}
+                      >
+                        {it.name || <span className="text-gray-400 italic">(untitled)</span>}
+                      </button>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[12%]">
-                    {isEditing(it.id) ? (
+                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "unitSize" ? (
                       <ModalTextField
                         name="unitSize"
                         placeholder="Unit Size"
@@ -223,11 +307,19 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                         }}
                       />
                     ) : (
-                      it.unitSize
+                      <button
+                        type="button"
+                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
+                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "unitSize" })}
+                        disabled={!isEditing(it.id)}
+                        title={isEditing(it.id) ? "Click to edit unit size" : undefined}
+                      >
+                        {it.unitSize || <span className="text-gray-400 italic">(unit size)</span>}
+                      </button>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[10%]">
-                    {isEditing(it.id) ? (
+                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "quantity" ? (
                       <ModalTextField
                         name="quantity"
                         type="number"
@@ -240,12 +332,21 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                         }}
                       />
                     ) : (
-                      it.quantity
+                      <button
+                        type="button"
+                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
+                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "quantity" })}
+                        disabled={!isEditing(it.id)}
+                        title={isEditing(it.id) ? "Click to edit quantity" : undefined}
+                      >
+                        {it.quantity}
+                      </button>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[12%]">
-                    {isEditing(it.id) ? (
+                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "priority" ? (
                       <ModalDropDown
+                        key={`priority-${it.id}-${it.priority}`}
                         name="priority"
                         placeholder="Priority"
                         options={priorityOptions}
@@ -254,45 +355,48 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                           label: it.priority.charAt(0) + it.priority.slice(1).toLowerCase(),
                           value: it.priority,
                         }}
+                        renderOption={(opt) => <PriorityTag priority={opt.value} />}
+                        renderValue={(opt) => <PriorityTag priority={opt.value} />}
                         onSelect={(value: string) =>
                           applyLocalChange(it.id, { priority: value as WishlistPriority })
                         }
                       />
                     ) : (
-                      <span className={`text-xs px-2 py-1 rounded-md font-medium ${priorityClass}`}>
-                        {it.priority === "MEDIUM" ? "Med" : it.priority.charAt(0) + it.priority.slice(1).toLowerCase()}
-                      </span>
+                      <button
+                        type="button"
+                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
+                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "priority" })}
+                        disabled={!isEditing(it.id)}
+                        title={isEditing(it.id) ? "Click to edit priority" : undefined}
+                      >
+                        <PriorityTag priority={it.priority} />
+                      </button>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[12%]">{lastUpdated}</td>
                   <td className="px-4 py-2 w-[16%]">
-                    {isEditing(it.id) ? (
-                      <ModalTextField
-                        name="comment"
-                        placeholder="Comment"
-                        inputProps={{
-                          defaultValue: it.comment ?? "",
-                          onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                            applyLocalChange(it.id, { comment: e.target.value }),
-                        }}
-                      />
+                    {/* View: tooltip. Edit: open modal */}
+                    {!isEditing(it.id) ? (
+                      <>
+                        <ChatTeardropText
+                          data-tooltip-id={`wishlist-comment-${it.id}`}
+                          data-tooltip-content={it.comment || ""}
+                          size={22}
+                          className={`${it.comment ? "text-black" : "text-gray-300"}`}
+                        />
+                        {it.comment && (
+                          <Tooltip key={`wishlist-comment-${it.id}-${it.comment}`} id={`wishlist-comment-${it.id}`} className="max-w-64 whitespace-pre-wrap" />
+                        )}
+                      </>
                     ) : (
                       <button
                         type="button"
-                        disabled={!it.comment}
-                        onClick={() => setActiveCommentId(it.id === activeCommentId ? null : it.id)}
-                        className={`rounded-full size-8 flex items-center justify-center border transition-colors ${
-                          it.comment
-                            ? "border-gray-300 hover:bg-gray-100"
-                            : "border-transparent text-gray-300 cursor-default"
-                        }`}
-                        title={it.comment ? "View comment" : "No comment"}
+                        onClick={() => setActiveCommentId(it.id)}
+                        className="rounded-full size-8 flex items-center justify-center border transition-colors hover:bg-gray-100"
+                        title="Edit comment"
                       >
-                        <ChatTeardropText size={22} />
+                        <ChatTeardropText size={22} className="text-blue-500" />
                       </button>
-                    )}
-                    {activeCommentId === it.id && it.comment && !isEditing(it.id) && (
-                      <div className="mt-2 p-2 border rounded bg-white shadow text-sm max-w-xs">{it.comment}</div>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[20%]">
@@ -306,9 +410,13 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                           <X className="text-red-primary" size={18} />
                         </button>
                         <button
-                          className="bg-blue-primary rounded-md size-7 flex items-center justify-center text-white"
-                          onClick={() => save(it.id)}
-                          title="Save"
+                          className={`bg-blue-primary rounded-md size-7 flex items-center justify-center text-white ${!isItemComplete(it) ? "opacity-50 cursor-not-allowed" : ""}`}
+                          onClick={() => {
+                            if (!isItemComplete(it)) return;
+                            save(it.id);
+                          }}
+                          disabled={!isItemComplete(it)}
+                          title={isItemComplete(it) ? "Save" : "Fill required fields to save"}
                         >
                           <Check size={18} />
                         </button>
@@ -343,8 +451,9 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                 </tr>
               );
             })}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
