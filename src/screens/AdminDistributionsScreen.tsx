@@ -147,14 +147,10 @@ export default function AdminDistributionsScreen() {
             ) : (
               <BaseTable
                 headers={[
-                  {
-                    label: "Partner Name",
-                  },
-                  { label: "Visible Allocations" },
-                  { label: "Hidden Allocations" },
-                  {
-                    label: "Pending Sign Offs",
-                  },
+                  "Partner Name",
+                  "Visible Allocations",
+                  "Hidden Allocations",
+                  "Pending Sign Offs",
                 ]}
                 rows={partnerAllocations.map((partner) => ({
                   cells: [
@@ -186,11 +182,11 @@ export default function AdminDistributionsScreen() {
             ) : (
               <BaseTable
                 headers={[
-                  { label: "Partner Name" },
-                  { label: "Staff Member" },
-                  { label: "Date" },
-                  { label: "Created At" },
-                  { label: "Distributions" },
+                  "Partner Name",
+                  "Staff Member",
+                  "Date",
+                  "Created At",
+                  "Distributions",
                 ]}
                 rows={signoffs.map((signoff) => ({
                   cells: [

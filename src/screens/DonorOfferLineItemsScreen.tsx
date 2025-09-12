@@ -8,9 +8,8 @@ import { ChatTeardropText, DotsThree } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
-import { formatTableValue } from "@/utils/format";
 import StatusTag from "@/components/StatusTag";
-import BaseTable from "@/components/BaseTable";
+import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 export default function DonorOfferLineItemsScreen() {
   const { donorOfferId, itemId } = useParams();
@@ -129,32 +128,32 @@ export default function DonorOfferLineItemsScreen() {
           <div className="overflow-x-auto">
             <BaseTable
               headers={[
-                { label: "Quantity", className: "min-w-32" },
-                { label: "Donor name", className: "min-w-32" },
-                { label: "Pallet", className: "min-w-32" },
-                { label: "Box number", className: "min-w-32" },
-                { label: "Lot number", className: "min-w-32" },
-                { label: "Unit price", className: "min-w-32" },
-                { label: "Donor Shipping #", className: "min-w-32" },
-                { label: "HfH Shipping #", className: "min-w-32" },
-                { label: "Max Limit", className: "min-w-32" },
-                { label: "Visibility", className: "min-w-32" },
-                { label: "Allocation", className: "min-w-32" },
-                { label: "GIK", className: "min-w-32" },
-                { label: "Comment" },
-                { label: "Manage", className: "w-12" },
+                extendTableHeader("Quantity", "min-w-32"),
+                extendTableHeader("Donor name", "min-w-32"),
+                extendTableHeader("Pallet", "min-w-32"),
+                extendTableHeader("Box number", "min-w-32"),
+                extendTableHeader("Lot number", "min-w-32"),
+                extendTableHeader("Unit price", "min-w-32"),
+                extendTableHeader("Donor Shipping #", "min-w-32"),
+                extendTableHeader("HfH Shipping #", "min-w-32"),
+                extendTableHeader("Max Limit", "min-w-32"),
+                extendTableHeader("Visibility", "min-w-32"),
+                extendTableHeader("Allocation", "min-w-32"),
+                extendTableHeader("GIK", "min-w-32"),
+                "Comment",
+                extendTableHeader("Manage", "w-12"),
               ]}
               rows={lineItems.map((item) => ({
                 cells: [
-                  formatTableValue(item.quantity),
-                  formatTableValue(item.donorName),
-                  formatTableValue(item.palletNumber),
-                  formatTableValue(item.boxNumber),
-                  formatTableValue(item.lotNumber),
-                  formatTableValue(item.unitPrice),
-                  formatTableValue(item.donorShippingNumber),
-                  formatTableValue(item.hfhShippingNumber),
-                  formatTableValue(item.maxRequestLimit),
+                  item.quantity,
+                  item.donorName,
+                  item.palletNumber,
+                  item.boxNumber,
+                  item.lotNumber,
+                  item.unitPrice.toString(),
+                  item.donorShippingNumber,
+                  item.hfhShippingNumber,
+                  item.maxRequestLimit,
                   <StatusTag
                     value={item.visible}
                     trueText="Visible"

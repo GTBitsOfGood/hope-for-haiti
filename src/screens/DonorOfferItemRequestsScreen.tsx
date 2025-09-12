@@ -15,7 +15,6 @@ import {
 } from "@prisma/client";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
-import { formatTableValue } from "@/utils/format";
 import BaseTable from "@/components/BaseTable";
 
 type RequestWithAllocations = DonorOfferItemRequest & {
@@ -169,34 +168,31 @@ export default function DonorOfferItemRequestsScreen() {
           </div>
           <BaseTable
             headers={[
-              { label: "Partner" },
-              { label: "Date requested" },
-              { label: "Requested quantity" },
-              { label: "Priority" },
-              { label: "Allocated quantity" },
-              { label: "Allocated summary (lot, pallet, box)" },
-              { label: "Comment" },
+              "Partner",
+              "Date requested",
+              "Requested quantity",
+              "Priority",
+              "Allocated quantity",
+              "Allocated summary (lot, pallet, box)",
+              "Comment",
             ]}
             rows={requests.map((item) => ({
               cells: [
-                formatTableValue(item.partner.name),
+                item.partner.name,
                 new Date(item.createdAt).toLocaleDateString(),
-                formatTableValue(item.quantity),
+                item.quantity,
                 <Priority priority={item.priority} key={1} />,
-                formatTableValue(
-                  item.allocations?.reduce(
-                    (sum: number, alloc: DonorOfferItemRequestAllocation) =>
-                      sum + alloc.quantity,
-                    0
-                  )
+
+                item.allocations?.reduce(
+                  (sum: number, alloc: DonorOfferItemRequestAllocation) =>
+                    sum + alloc.quantity,
+                  0
                 ),
                 item.allocations && item.allocations.length > 0 ? (
                   <div>
                     {item.allocations.map((alloc) => (
                       <div key={alloc.id}>
-                        <span className="font-bold">
-                          {formatTableValue(alloc.quantity)}
-                        </span>
+                        <span className="font-bold">{alloc.quantity}</span>
                         {` - ${alloc.item.lotNumber}, ${alloc.item.palletNumber}, ${alloc.item.boxNumber}`}
                       </div>
                     ))}

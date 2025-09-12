@@ -17,7 +17,10 @@ import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { useFetch } from "@/hooks/useFetch";
 import { AdminDonorOffer } from "@/types/api/donorOffer.types";
-import BaseTable from "@/components/BaseTable";
+import BaseTable, {
+  extendTableHeader,
+  tableConditional,
+} from "@/components/BaseTable";
 
 enum StatusFilterKey {
   UNFINALIZED = "Unfinalized",
@@ -130,32 +133,27 @@ export default function AdminDonorOffersScreen() {
       ) : (
         <BaseTable
           headers={[
-            { label: "Donor Offer" },
-            { label: "Donor Name" },
-            ...(activeTab === StatusFilterKey.UNFINALIZED
-              ? [
-                  { label: "Response Deadline" },
-                  { label: "Partners Responded" },
-                ]
-              : []),
-            { label: "Manage", className: "w-12" },
+            "Donor Offer",
+            "Donor Name",
+            ...tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
+              "Response Deadline",
+              "Partners Responded",
+            ]),
+            extendTableHeader("Manage", "w-12"),
           ]}
           rows={filteredOffers.map((offer) => ({
             cells: [
               offer.offerName,
               offer.donorName,
-              ...(activeTab === StatusFilterKey.UNFINALIZED
-                ? [
-                    offer.responseDeadline
-                      ? new Date(offer.responseDeadline).toLocaleDateString()
-                      : "N/A",
-                    `${
-                      offer.invitedPartners.filter(
-                        (partner) => partner.responded
-                      ).length
-                    }/${offer.invitedPartners.length}`,
-                  ]
-                : []),
+              ...tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
+                offer.responseDeadline
+                  ? new Date(offer.responseDeadline).toLocaleDateString()
+                  : "N/A",
+                `${
+                  offer.invitedPartners.filter((partner) => partner.responded)
+                    .length
+                }/${offer.invitedPartners.length}`,
+              ]),
               <div onClick={(e) => e.stopPropagation()} key={1}>
                 <Menu as="div" className="float-right relative">
                   <MenuButton>

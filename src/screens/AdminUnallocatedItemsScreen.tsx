@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import BaseTable from "@/components/BaseTable";
+import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 interface UnallocatedItemData {
   title: string;
@@ -212,13 +212,13 @@ export default function AdminUnallocatedItemsScreen() {
       ) : (
         <BaseTable
           headers={[
-            { label: "Title" },
-            { label: "Type" },
-            { label: "Quantity" },
-            { label: "Expiration" },
-            { label: "Unit type" },
-            { label: "Qty/Unit" },
-            { label: "Manage", className: "w-12" },
+            "Title",
+            "Type",
+            "Quantity",
+            "Expiration",
+            "Unit type",
+            "Qty/Unit",
+            extendTableHeader("Manage", "w-12"),
           ]}
           rows={items.map((item) => ({
             cells: [

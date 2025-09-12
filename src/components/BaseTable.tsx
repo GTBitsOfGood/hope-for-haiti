@@ -1,9 +1,5 @@
+import { formatTableValue } from "@/utils/format";
 import React from "react";
-
-interface TableHeader {
-  label: string;
-  className?: string;
-}
 
 interface TableRow {
   cells: React.ReactNode[];
@@ -11,10 +7,29 @@ interface TableRow {
 }
 
 interface BaseTableProps {
-  headers: TableHeader[];
+  headers: React.ReactNode[];
   rows: TableRow[];
   headerClassName?: string;
   pageSize: number;
+}
+
+export function extendTableHeader(header: string, className: string) {
+  return (
+    <th
+      className={`${className} px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg`}
+      key={header}
+    >
+      {header}
+    </th>
+  );
+}
+
+export function tableConditional(
+  cond: boolean,
+  trueVal: React.ReactNode[],
+  falseVal: React.ReactNode[] = []
+) {
+  return cond ? trueVal : falseVal;
 }
 
 export default function BaseTable({
@@ -31,16 +46,18 @@ export default function BaseTable({
           <tr
             className={`text-left font-bold ${headerClassName ? headerClassName : ""} border-b-2`}
           >
-            {headers.map((header, index) => (
-              <th
-                key={index}
-                className={`px-4 py-2 ${header.className ? header.className : ""} ${
-                  index === 0 ? "rounded-tl-lg" : ""
-                } ${index === headers.length - 1 ? "rounded-tr-lg" : ""}`}
-              >
-                {header.label}
-              </th>
-            ))}
+            {headers.map((header) =>
+              typeof header === "string" ? (
+                <th
+                  key={header}
+                  className="px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg"
+                >
+                  {header}
+                </th>
+              ) : (
+                header
+              )
+            )}
           </tr>
         </thead>
         <tbody>
@@ -53,7 +70,7 @@ export default function BaseTable({
             >
               {row.cells.map((cell, cellIndex) => (
                 <td key={cellIndex} className="px-4 py-2">
-                  {cell}
+                  {typeof cell == "string" ? formatTableValue(cell) : cell}
                 </td>
               ))}
             </tr>

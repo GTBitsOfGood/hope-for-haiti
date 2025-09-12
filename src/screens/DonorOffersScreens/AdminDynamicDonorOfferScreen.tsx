@@ -17,7 +17,7 @@ import { formatTableValue } from "@/utils/format";
 import { Menu, MenuButton, MenuItems } from "@headlessui/react";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import BaseTable from "@/components/BaseTable";
+import BaseTable, { tableConditional } from "@/components/BaseTable";
 
 type DonorOfferItemWithRequests = DonorOfferItem & {
   requests: (DonorOfferItemRequest & {
@@ -181,26 +181,28 @@ export default function AdminDynamicDonorOfferScreen() {
           </div>
           <BaseTable
             headers={[
-              { label: "Item Name" },
-              { label: "Type" },
-              { label: "Expiration" },
-              { label: "Unit Type" },
-              { label: "Qty/Unit" },
-              { label: "Quantity" },
-              ...(donorOffer?.state === DonorOfferState.UNFINALIZED
-                ? [{ label: "Request Summary" }, { label: "Request Quantity" }]
-                : [{ label: "Manage" }]),
+              "Item Name",
+              "Type",
+              "Expiration",
+              "Unit Type",
+              "Qty/Unit",
+              "Quantity",
+              ...tableConditional(
+                donorOffer?.state === DonorOfferState.UNFINALIZED,
+                ["Request Summary", "Request Quantity"],
+                ["Manage"]
+              ),
             ]}
             rows={items.map((item) => ({
               cells: [
-                formatTableValue(item.title),
-                formatTableValue(item.type),
+                item.title,
+                item.type,
                 item.expirationDate
                   ? new Date(item.expirationDate).toLocaleDateString()
                   : "None",
-                formatTableValue(item.unitType),
-                formatTableValue(item.quantityPerUnit),
-                formatTableValue(item.quantity),
+                item.unitType,
+                item.quantityPerUnit,
+                item.quantity,
                 ...(donorOffer?.state === DonorOfferState.UNFINALIZED
                   ? [
                       item.requests?.length > 0 ? (

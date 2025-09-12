@@ -10,12 +10,12 @@ export default function FinalSignOffTable({
   return (
     <BaseTable
       headers={[
-        { label: "Name" },
-        { label: "Quantity Allocated" },
-        { label: "Qty Avail/Total" },
-        { label: "Donor Name" },
-        { label: "Lot Number" },
-        { label: "Actual Quantity" },
+        "Name",
+        "Quantity Allocated",
+        "Qty Avail/Total",
+        "Donor Name",
+        "Lot Number",
+        "Actual Quantity",
       ]}
       rows={distributions.map((distribution) => ({
         cells: [

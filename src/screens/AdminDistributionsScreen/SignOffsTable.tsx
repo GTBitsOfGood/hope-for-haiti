@@ -26,11 +26,11 @@ export default function SignOffsTable() {
   return (
     <BaseTable
       headers={[
-        { label: "HfH Staff Member" },
-        { label: "Number of Items" },
-        { label: "Date Created" },
-        { label: "Sign Off Date" },
-        { label: "Status" },
+        "HfH Staff Member",
+        "Number of Items",
+        "Date Created",
+        "Sign Off Date",
+        "Status",
       ]}
       rows={
         signOffs?.map((signOff) => ({

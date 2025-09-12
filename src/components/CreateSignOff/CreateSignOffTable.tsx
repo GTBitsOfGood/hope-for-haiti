@@ -18,17 +18,17 @@ export default function CreateSignOffTable({
   return (
     <BaseTable
       headers={[
-        { label: "" },
-        { label: "Name" },
-        { label: "Quantity Allocated" },
-        { label: "Qty Avail/Total" },
-        { label: "Donor Name" },
-        { label: "Pallet" },
-        { label: "Box number" },
-        { label: "Lot number" },
-        { label: "Unit price" },
-        { label: "Donor Shipping #" },
-        { label: "HfH Shipping #" },
+        "",
+        "Name",
+        "Quantity Allocated",
+        "Qty Avail/Total",
+        "Donor Name",
+        "Pallet",
+        "Box number",
+        "Lot number",
+        "Unit price",
+        "Donor Shipping #",
+        "HfH Shipping #",
       ]}
       rows={distributions.map((distribution) => ({
         cells: [

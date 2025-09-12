@@ -3,6 +3,7 @@ import React from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
 import { ChatTeardropText } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
+import BaseTable from "./BaseTable";
 
 interface ShippingItemsModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
@@ -30,6 +31,48 @@ export default function ShippingItemsModal({
             className="cursor-pointer"
           />
         </div>
+        {/*remember to make fixed with*/}
+        <BaseTable
+          headers={[
+            "Name",
+            "Quantity Allocated",
+            "Qty Avail/Total",
+            "Donor Name",
+            "Pallet",
+            "Box Number",
+            "Lot Number",
+            "Unit Price",
+            "Donor Shipping #",
+            "HfH Shipping #",
+            "Comment",
+            "Manage",
+          ]}
+          rows={items.map((item) => ({
+            cells: [
+              item.title,
+              item.quantityAllocated,
+              `${item.quantityAvailable}/${item.quantityTotal}`,
+              item.donorName,
+              item.palletNumber,
+              item.boxNumber,
+              item.lotNumber,
+              item.unitPrice,
+              item.donorShippingNumber,
+              item.hfhShippingNumber,
+              <ChatTeardropText
+                data-tooltip-id={`comment-tooltip-${item.title}-${item.lotNumber}`}
+                data-tooltip-content={item.comment}
+                className={`cursor-pointer`}
+                size={30}
+                weight={item.comment ? "bold" : "regular"}
+                key={1}
+              />,
+              <DotsThree size={24} key={2} />,
+            ],
+          }))}
+          pageSize={5}
+          headerClassName="bg-blue-primary opacity-80 text-white"
+        />
         <div className="overflow-x-scroll overflow-y-scroll my-4">
           {/*TODO: COPY FROM HIDDEN/VISIBLE ITEMS TABLES TO POPULATE THIS */}
           <table className="rounded-t-lg overflow-hidden table-fixed w-full">
