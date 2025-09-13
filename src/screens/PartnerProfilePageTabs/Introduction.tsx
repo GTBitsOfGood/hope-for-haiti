@@ -23,7 +23,7 @@ export default function Introduction({
     supportRequested: partnerDetails.supportRequested,
     yearOrganizationEstablished: partnerDetails.yearOrganizationEstablished,
     registeredWithMssp: partnerDetails.registeredWithMssp,
-    proofOfRegistationWithMssp: partnerDetails.proofOfRegistationWithMssp,
+    proofOfRegistrationWithMssp: partnerDetails.proofOfRegistrationWithMssp,
     programUpdatesSinceLastReport: partnerDetails.programUpdatesSinceLastReport,
   });
 
@@ -37,7 +37,7 @@ export default function Introduction({
       supportRequested: partnerDetails.supportRequested,
       yearOrganizationEstablished: partnerDetails.yearOrganizationEstablished,
       registeredWithMssp: partnerDetails.registeredWithMssp,
-      proofOfRegistationWithMssp: partnerDetails.proofOfRegistationWithMssp,
+      proofOfRegistrationWithMssp: partnerDetails.proofOfRegistrationWithMssp,
       programUpdatesSinceLastReport:
         partnerDetails.programUpdatesSinceLastReport,
     });
@@ -180,11 +180,11 @@ export default function Introduction({
             {isEditingOrg ? (
               <input
                 type="text"
-                value={formData.proofOfRegistationWithMssp}
+                value={formData.proofOfRegistrationWithMssp}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    proofOfRegistationWithMssp: e.target.value,
+                    proofOfRegistrationWithMssp: e.target.value,
                   })
                 }
                 className="border p-1"
@@ -192,7 +192,7 @@ export default function Introduction({
               />
             ) : (
               <p className="text-[16px] text-[#22070B]">
-                {partnerDetails.proofOfRegistationWithMssp || "Not provided"}
+                {partnerDetails.proofOfRegistrationWithMssp || "Not provided"}
               </p>
             )}
           </>

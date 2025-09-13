@@ -37,7 +37,7 @@ export const partnerDetailsSchema = z
     ]),
     yearOrganizationEstablished: z.number(),
     registeredWithMssp: z.boolean(),
-    proofOfRegistationWithMssp: z.string(), // name of the blob containing the proof of registration
+    proofOfRegistrationWithMssp: z.string(), // name of the blob containing the proof of registration
     programUpdatesSinceLastReport: z.string(),
 
     // Facility
@@ -187,10 +187,10 @@ export const partnerDetailsSchema = z
     otherSpecialityItemsNeeded: z.string(),
   })
   .refine(
-    (data) => !(data.registeredWithMssp && !data.proofOfRegistationWithMssp),
+    (data) => !(data.registeredWithMssp && !data.proofOfRegistrationWithMssp),
     {
       message: "Proof of registration with MSSP is required",
-      path: ["proofOfRegistationWithMssp"],
+      path: ["proofOfRegistrationWithMssp"],
     }
   )
   .refine(
@@ -334,14 +334,14 @@ export const partnerDetails3 = z
     ]),
     yearOrganizationEstablished: z.number(),
     registeredWithMssp: z.boolean(),
-    proofOfRegistationWithMssp: z.string(), // name of the blob containing the proof of registration
+    proofOfRegistrationWithMssp: z.string(), // name of the blob containing the proof of registration
     programUpdatesSinceLastReport: z.string(),
   })
   .refine(
-    (data) => !(data.registeredWithMssp && !data.proofOfRegistationWithMssp),
+    (data) => !(data.registeredWithMssp && !data.proofOfRegistrationWithMssp),
     {
       message: "Proof of registration with MSSP is required",
-      path: ["proofOfRegistationWithMssp"],
+      path: ["proofOfRegistrationWithMssp"],
     }
   );
 

@@ -4,39 +4,13 @@ import { useState } from "react";
 import { User } from "@prisma/client";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import { PartnerDetails, Contact } from "@/schema/partnerDetails";
-import GeneralInfo from "./PartnerProfilePageTabs/GeneralInfo";
-import ContactInformation from "./PartnerProfilePageTabs/ContactInformation";
-import Introduction from "./PartnerProfilePageTabs/Introduction";
-import FacilityInformation from "./PartnerProfilePageTabs/FacilityInformation";
-import InfrastructureServices from "./PartnerProfilePageTabs/InfrastructureServices";
-import ProgramServices from "./PartnerProfilePageTabs/ProgramServices";
-import Finances from "./PartnerProfilePageTabs/Finances";
-import StaffInformation from "./PartnerProfilePageTabs/StaffInformation";
+import { PartnerDetails } from "@/schema/partnerDetails";
+import PartnerDetailsSection from "@/components/PartnerDetails/PartnerDetailsSection";
+import { tabOrder } from "@/components/PartnerDetails/fieldConfigs";
 
 interface PartnerProfileScreenProps {
   user: User;
 }
-
-const TABS: string[] = [
-  "General information",
-  "Contact information",
-  "Introduction",
-  "Facility Information",
-  "Infrastructure & Services",
-  "Programs & Services Provided",
-  "Finances",
-  "Staff Information",
-];
-
-const defaultContact: Contact = {
-  firstName: "",
-  lastName: "",
-  orgTitle: "",
-  primaryTelephone: "",
-  secondaryTelephone: "",
-  email: "",
-};
 
 const defaultPartnerDetails: PartnerDetails = {
   siteName: "",
@@ -46,10 +20,38 @@ const defaultPartnerDetails: PartnerDetails = {
   website: "",
   socialMedia: "",
 
-  regionalContact: defaultContact,
-  medicalContact: defaultContact,
-  adminDirectorContact: defaultContact,
-  pharmacyContact: defaultContact,
+  regionalContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
+  medicalContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
+  adminDirectorContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
+  pharmacyContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
   contactWhatsAppName: "",
   contactWhatsAppNumber: "",
 
@@ -57,7 +59,7 @@ const defaultPartnerDetails: PartnerDetails = {
   supportRequested: "ongoing_support",
   yearOrganizationEstablished: new Date().getFullYear(),
   registeredWithMssp: false,
-  proofOfRegistationWithMssp: "",
+  proofOfRegistrationWithMssp: "",
   programUpdatesSinceLastReport: "",
 
   facilityType: [],
@@ -266,7 +268,7 @@ export default function ProfileScreenPartner({
         <hr className="border-gray-300 mb-6 mt-1" />
 
         <div className="flex mt-1 border-b border-gray-300">
-          {TABS.map((tab: string) => {
+          {tabOrder.map((tab: string) => {
             const isActive = tab === activeTab;
             return (
               <button
@@ -284,78 +286,16 @@ export default function ProfileScreenPartner({
           })}
         </div>
 
-        {activeTab === "General information" && (
-          <GeneralInfo
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
-        {activeTab === "Contact information" && (
-          <ContactInformation
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
-        {activeTab === "Introduction" && (
-          <Introduction
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
-        {activeTab === "Facility Information" && (
-          <FacilityInformation
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
-        {activeTab === "Infrastructure & Services" && (
-          <InfrastructureServices
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
-        {activeTab === "Programs & Services Provided" && (
-          <ProgramServices
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
-        {activeTab === "Finances" && (
-          <Finances
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
-        {activeTab === "Staff Information" && (
-          <StaffInformation
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            partnerDetails={currentPartnerDetails}
-            onSave={handleSavePartnerDetails}
-            isSaving={isSaving}
-          />
-        )}
+        {/* Render the active tab using the unified PartnerDetailsSection */}
+        <PartnerDetailsSection
+          sectionName={activeTab}
+          partnerDetails={currentPartnerDetails}
+          onSave={handleSavePartnerDetails}
+          isEditing={isEditingOrg}
+          setIsEditing={setIsEditingOrg}
+          isSaving={isSaving}
+          mode="view"
+        />
       </div>
     </div>
   );
