@@ -35,7 +35,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
         "Unit Type",
         "Quantity Per Unit",
         "Expiration",
-        ...tableConditional(final, [
+        tableConditional(final, [
           "Unit Price",
           "Lot",
           "Pallet",
@@ -57,7 +57,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
           item.expirationDate
             ? new Date(item.expirationDate).toLocaleDateString()
             : "N/A",
-          ...tableConditional(final, [
+          tableConditional(final, [
             item.unitPrice,
             item.lotNumber,
             item.palletNumber,
@@ -71,7 +71,6 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
         ],
       }))}
       pageSize={10}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   </div>
 );

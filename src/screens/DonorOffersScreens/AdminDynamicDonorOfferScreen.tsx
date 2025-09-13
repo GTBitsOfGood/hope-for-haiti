@@ -187,7 +187,7 @@ export default function AdminDynamicDonorOfferScreen() {
               "Unit Type",
               "Qty/Unit",
               "Quantity",
-              ...tableConditional(
+              tableConditional(
                 donorOffer?.state === DonorOfferState.UNFINALIZED,
                 ["Request Summary", "Request Quantity"],
                 ["Manage"]
@@ -260,7 +260,6 @@ export default function AdminDynamicDonorOfferScreen() {
                     }
                   : undefined,
             }))}
-            headerClassName="bg-blue-primary text-white opacity-80"
             pageSize={10}
           />
         </>

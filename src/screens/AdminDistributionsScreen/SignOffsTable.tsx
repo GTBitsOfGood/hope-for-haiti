@@ -44,7 +44,6 @@ export default function SignOffsTable() {
         })) || []
       }
       pageSize={10}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   );
 }

@@ -12,6 +12,7 @@ import { CgSpinner } from "react-icons/cg";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import OptionsTag from "@/components/OptionsTag";
 
 export const priorityOptions = [
   {
@@ -75,6 +76,15 @@ interface RequestData {
   priority: RequestPriority | null;
   quantity: number;
   comments: string;
+}
+
+function RequestedTag({ requested }: { requested: boolean }) {
+  const requestedString = requested.toString();
+  const styleMap = new Map([
+    ["true", { className: "bg-amber-primary/20", text: "Requested" }],
+    ["false", { className: "bg-gray-primary/5", text: "None" }],
+  ]);
+  return <OptionsTag styleMap={styleMap} value={requestedString} />;
 }
 
 function RequestItemsModal({
@@ -348,18 +358,9 @@ export default function UnallocatedItems() {
                 : "N/A",
               item.unitType,
               item.quantityPerUnit,
-              item.requested ? (
-                <div className="px-2 py-0.5 inline-block rounded bg-amber-primary bg-opacity-20 text-gray-primary">
-                  Requested
-                </div>
-              ) : (
-                <div className="px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary">
-                  None
-                </div>
-              ),
+              <RequestedTag requested={item.requested} key="requested" />,
             ],
           }))}
-          headerClassName="bg-blue-primary opacity-80 text-white"
           pageSize={10}
         />
       )}

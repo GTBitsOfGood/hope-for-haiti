@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import BaseTable from "@/components/BaseTable";
+import PriorityTag from "@/components/PriorityTag";
 
 type RequestWithAllocations = DonorOfferItemRequest & {
   donorOfferItem: DonorOfferItem;
@@ -26,29 +27,6 @@ type RequestWithAllocations = DonorOfferItemRequest & {
   partner: {
     name: string;
   };
-};
-
-const Priority = ({ priority }: { priority: string | null }) => {
-  let color = "bg-gray-200";
-  if (priority === "HIGH") {
-    color = "bg-red-primary";
-  } else if (priority === "MEDIUM") {
-    color = "bg-orange-primary";
-  } else if (priority === "LOW") {
-    color = "bg-green-dark";
-  } else {
-    color = "bg-gray-400";
-  }
-
-  return (
-    <span
-      className={`inline-block px-2 py-1 rounded-md bg-opacity-20 ${color}`}
-    >
-      {priority
-        ? priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase()
-        : "N/A"}
-    </span>
-  );
 };
 
 export default function DonorOfferItemRequestsScreen() {
@@ -181,8 +159,7 @@ export default function DonorOfferItemRequestsScreen() {
                 item.partner.name,
                 new Date(item.createdAt).toLocaleDateString(),
                 item.quantity,
-                <Priority priority={item.priority} key={1} />,
-
+                <PriorityTag priority={item.priority || ""} key={1} />,
                 item.allocations?.reduce(
                   (sum: number, alloc: DonorOfferItemRequestAllocation) =>
                     sum + alloc.quantity,
@@ -263,7 +240,6 @@ export default function DonorOfferItemRequestsScreen() {
                 </div>,
               ],
             }))}
-            headerClassName="bg-blue-primary opacity-80 text-white"
             pageSize={10}
           />
         </>

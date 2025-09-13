@@ -168,7 +168,6 @@ export default function AdminDistributionsScreen() {
                     partner.pendingSignOffCount,
                   ],
                 }))}
-                headerClassName="bg-blue-primary opacity-80 text-white font-bold"
                 pageSize={10}
               />
             )}
@@ -197,7 +196,6 @@ export default function AdminDistributionsScreen() {
                     signoff._count?.distributions,
                   ],
                 }))}
-                headerClassName="bg-blue-primary text-white opacity-80"
                 pageSize={10}
               />
             )}

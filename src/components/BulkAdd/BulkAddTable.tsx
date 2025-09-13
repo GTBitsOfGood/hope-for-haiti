@@ -114,7 +114,6 @@ export default function DataTable({ data }: DataTableProps) {
           )),
         }))}
         pageSize={10}
-        headerClassName="bg-blue-primary opacity-80 text-white"
       />
     </div>
   );

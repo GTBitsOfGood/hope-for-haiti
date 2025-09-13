@@ -227,7 +227,6 @@ export default function UnallocatedItemRequestsPage() {
               </div>,
             ],
           }))}
-          headerClassName="bg-blue-primary opacity-80 text-white font-bold"
           pageSize={10}
         />
       )}

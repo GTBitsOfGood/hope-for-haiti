@@ -1,6 +1,6 @@
 "use client";
 
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable from "@/components/BaseTable";
 import { DistributionItem } from "@/types/api/distribution.types";
 import { format } from "date-fns";
 import React from "react";
@@ -13,12 +13,12 @@ export default function TableOfItemsOfDistributions({ entries }: Props) {
   return (
     <BaseTable
       headers={[
-        extendTableHeader("Title", "min-w-fit"),
-        extendTableHeader("Type", "min-w-fit"),
-        extendTableHeader("Expiration", "min-w-fit"),
-        extendTableHeader("Unit type", "min-w-fit"),
-        extendTableHeader("Qty/Unit", "min-w-fit"),
-        extendTableHeader("Quantity allotted", "min-w-fit"),
+        "Title",
+        "Type",
+        "Expiration",
+        "Unit type",
+        "Qty/Unit",
+        "Quantity allotted",
       ]}
       rows={entries.map((entry) => ({
         cells: [
@@ -32,8 +32,8 @@ export default function TableOfItemsOfDistributions({ entries }: Props) {
           entry.quantityAllocated,
         ],
       }))}
+      headerCellStyles="min-w-fit"
       pageSize={10}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable from "@/components/BaseTable";
 import { SignedDistribution } from "@/types/api/distribution.types";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -13,18 +13,15 @@ export default function CompleteTable({ entries }: InProgressTableProps) {
   const router = useRouter();
   return (
     <BaseTable
-      headers={[
-        extendTableHeader("Distribution date", "min-w-fit w-1/2"),
-        extendTableHeader("Number of items in distribution", "min-w-fit w-1/2"),
-      ]}
+      headers={["Distribution date", "Number of items in distribution"]}
       rows={entries.map((entry) => ({
         cells: [entry.distributionDate, entry.numberOfItems],
         onClick: () => {
           router.push(`/distributions/view/${entry.signOffId}`);
         },
       }))}
+      headerCellStyles="min-w-fit w-1/2"
       pageSize={10}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   );
 }

@@ -4,7 +4,7 @@ import React from "react";
 import ShipmentStatusLabel from "./ShipmentStatusLabel";
 import { format } from "date-fns";
 import { AllocatedItem } from "@/types/api/distribution.types";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable from "@/components/BaseTable";
 
 interface InProgressTableProps {
   items: AllocatedItem[];
@@ -14,13 +14,13 @@ export default function InProgressTable({ items }: InProgressTableProps) {
   return (
     <BaseTable
       headers={[
-        extendTableHeader("Title", "min-w-fit"),
-        extendTableHeader("Type", "min-w-fit"),
-        extendTableHeader("Expiration", "min-w-fit"),
-        extendTableHeader("Unit type", "min-w-fit"),
-        extendTableHeader("Qty/Unit", "min-w-fit"),
-        extendTableHeader("Quantity allocated", "min-w-fit"),
-        extendTableHeader("Shipment Status", "min-w-fit"),
+        "Title",
+        "Type",
+        "Expiration",
+        "Unit type",
+        "Qty/Unit",
+        "Quantity allocated",
+        "Shipment Status",
       ]}
       rows={items.map((item) => ({
         cells: [
@@ -38,8 +38,8 @@ export default function InProgressTable({ items }: InProgressTableProps) {
           ></ShipmentStatusLabel>,
         ],
       }))}
+      headerCellStyles="min-w-fit"
       pageSize={10}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   );
 }

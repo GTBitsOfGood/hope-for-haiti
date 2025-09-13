@@ -5,12 +5,15 @@ import { CgChevronLeft, CgChevronRight } from "react-icons/cg";
 interface TableRow {
   cells: React.ReactNode[];
   onClick?: () => void;
+  className?: string;
 }
 
 interface BaseTableProps {
   headers: React.ReactNode[];
   rows: TableRow[];
   headerClassName?: string;
+  headerCellStyles?: string;
+  rowCellStyles?: string;
   pageSize: number;
 }
 
@@ -33,12 +36,15 @@ export function tableConditional(
   return cond ? trueVal : falseVal;
 }
 
-export function renderHeaders(headers: React.ReactNode[]) {
-  return headers.map((header) =>
+export function renderHeaders(
+  headers: React.ReactNode[],
+  headerCellStyles?: string
+) {
+  return headers.flat().map((header) =>
     typeof header === "string" ? (
       <th
         key={header}
-        className="px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg"
+        className={`px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg ${headerCellStyles || ""}`}
       >
         {header}
       </th>
@@ -51,8 +57,10 @@ export function renderHeaders(headers: React.ReactNode[]) {
 export default function BaseTable({
   headers,
   rows,
-  headerClassName,
+  headerClassName = "bg-gray-100",
   pageSize,
+  headerCellStyles,
+  rowCellStyles,
 }: BaseTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const paginationStart = (currentPage - 1) * pageSize;
@@ -75,7 +83,7 @@ export default function BaseTable({
             <tr
               className={`text-left font-bold ${headerClassName ? headerClassName : ""} border-b-2`}
             >
-              {renderHeaders(headers)}
+              {renderHeaders(headers, headerCellStyles)}
             </tr>
           </thead>
           <tbody>
@@ -83,11 +91,11 @@ export default function BaseTable({
               <tr
                 key={rowIndex}
                 data-odd={rowIndex % 2 !== 0}
-                className={`bg-white data-[odd=true]:bg-gray-50 border-b ${row.onClick ? "cursor-pointer" : ""} data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100 transition-colors`}
+                className={`bg-white data-[odd=true]:bg-gray-50 border-b ${row.onClick ? "cursor-pointer" : ""} data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100 transition-colors ${row.className || ""}`}
                 onClick={row.onClick}
               >
-                {row.cells.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2">
+                {row.cells.flat().map((cell, cellIndex) => (
+                  <td key={cellIndex} className={`px-4 py-2 ${rowCellStyles}`}>
                     {typeof cell == "string" ? formatTableValue(cell) : cell}
                   </td>
                 ))}

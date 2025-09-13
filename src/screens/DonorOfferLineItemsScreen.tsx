@@ -128,18 +128,18 @@ export default function DonorOfferLineItemsScreen() {
           <div className="overflow-x-auto">
             <BaseTable
               headers={[
-                extendTableHeader("Quantity", "min-w-32"),
-                extendTableHeader("Donor name", "min-w-32"),
-                extendTableHeader("Pallet", "min-w-32"),
-                extendTableHeader("Box number", "min-w-32"),
-                extendTableHeader("Lot number", "min-w-32"),
-                extendTableHeader("Unit price", "min-w-32"),
-                extendTableHeader("Donor Shipping #", "min-w-32"),
-                extendTableHeader("HfH Shipping #", "min-w-32"),
-                extendTableHeader("Max Limit", "min-w-32"),
-                extendTableHeader("Visibility", "min-w-32"),
-                extendTableHeader("Allocation", "min-w-32"),
-                extendTableHeader("GIK", "min-w-32"),
+                "Quantity",
+                "Donor name",
+                "Pallet",
+                "Box number",
+                "Lot number",
+                "Unit price",
+                "Donor Shipping #",
+                "HfH Shipping #",
+                "Max Limit",
+                "Visibility",
+                "Allocation",
+                "GIK",
                 "Comment",
                 extendTableHeader("Manage", "w-12"),
               ]}
@@ -195,7 +195,7 @@ export default function DonorOfferLineItemsScreen() {
                   </div>,
                 ],
               }))}
-              headerClassName="bg-blue-primary opacity-80 text-white"
+              headerCellStyles="min-w-32"
               pageSize={10}
             />
           </div>

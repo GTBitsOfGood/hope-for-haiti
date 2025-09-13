@@ -325,7 +325,6 @@ export default function EditDonorOfferPage() {
               ],
         }))}
         pageSize={10}
-        headerClassName="bg-blue-primary text-white opacity-80"
       />
       <button
         onClick={handleAddItem}

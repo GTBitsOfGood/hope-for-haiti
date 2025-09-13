@@ -120,20 +120,20 @@ export default function UnallocatedItemsLineItemsPage() {
       ) : (
         <BaseTable
           headers={[
-            extendTableHeader("Quantity", "min-w-32"),
-            extendTableHeader("Qty Avail/Total", "min-w-32"),
-            extendTableHeader("Donor name", "min-w-32"),
-            extendTableHeader("Pallet", "min-w-32"),
-            extendTableHeader("Box number", "min-w-32"),
-            extendTableHeader("Lot number", "min-w-32"),
-            extendTableHeader("Unit price", "min-w-32"),
+            "Quantity",
+            "Qty Avail/Total",
+            "Donor name",
+            "Pallet",
+            "Box number",
+            "Lot number",
+            "Unit price",
             "Comment",
-            extendTableHeader("Donor Shipping #", "min-w-32"),
-            extendTableHeader("HfH Shipping #", "min-w-32"),
-            extendTableHeader("Max Limit", "min-w-32"),
-            extendTableHeader("Visibility", "min-w-32"),
-            extendTableHeader("Allocation", "min-w-32"),
-            extendTableHeader("GIK", "min-w-32"),
+            "Donor Shipping #",
+            "HfH Shipping #",
+            "Max Limit",
+            "Visibility",
+            "Allocation",
+            "GIK",
             extendTableHeader("Manage", "w-12"),
           ]}
           rows={items.map((item) => ({
@@ -210,8 +210,8 @@ export default function UnallocatedItemsLineItemsPage() {
               </div>,
             ],
           }))}
+          headerCellStyles="min-w-32"
           pageSize={10}
-          headerClassName="bg-blue-primary text-white opacity-80"
         />
       )}
     </>

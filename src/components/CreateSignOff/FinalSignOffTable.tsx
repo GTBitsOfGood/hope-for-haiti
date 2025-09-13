@@ -28,7 +28,6 @@ export default function FinalSignOffTable({
         ],
       }))}
       pageSize={5}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   );
 }

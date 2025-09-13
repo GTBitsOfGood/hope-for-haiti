@@ -122,7 +122,6 @@ export default function AccountManagementPage() {
               </div>,
             ],
           }))}
-          headerClassName="bg-gray-100"
           pageSize={10}
         />
       )}

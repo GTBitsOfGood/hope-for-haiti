@@ -64,7 +64,6 @@ export default function DistributionTable({
         ],
       }))}
       pageSize={10}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   );
 }

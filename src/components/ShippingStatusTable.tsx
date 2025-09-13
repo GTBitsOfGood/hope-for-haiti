@@ -183,7 +183,6 @@ export default function ShippingStatusTable({
         ],
       }))}
       pageSize={5}
-      headerClassName="bg-blue-primary opacity-80 text-white"
     />
   );
 }

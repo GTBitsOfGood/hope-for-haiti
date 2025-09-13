@@ -135,7 +135,7 @@ export default function AdminDonorOffersScreen() {
           headers={[
             "Donor Offer",
             "Donor Name",
-            ...tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
+            tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
               "Response Deadline",
               "Partners Responded",
             ]),
@@ -145,7 +145,7 @@ export default function AdminDonorOffersScreen() {
             cells: [
               offer.offerName,
               offer.donorName,
-              ...tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
+              tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
                 offer.responseDeadline
                   ? new Date(offer.responseDeadline).toLocaleDateString()
                   : "N/A",
@@ -196,7 +196,6 @@ export default function AdminDonorOffersScreen() {
             ],
             onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
           }))}
-          headerClassName="bg-blue-primary text-white opacity-80"
           pageSize={10}
         />
       )}

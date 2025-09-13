@@ -268,7 +268,7 @@ export default function PartnerDynamicDonorOfferScreen() {
               item.quantity,
               "Bottle",
               "1", // Hardcoded -- replace when possible
-              ...tableConditional(
+              tableConditional(
                 isEditing,
                 [
                   <input
@@ -338,7 +338,6 @@ export default function PartnerDynamicDonorOfferScreen() {
             ],
           }))}
           pageSize={10}
-          headerClassName="bg-blue-primary text-white opacity-80"
         />
       )}
 

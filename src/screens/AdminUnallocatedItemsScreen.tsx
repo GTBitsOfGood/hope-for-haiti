@@ -274,7 +274,6 @@ export default function AdminUnallocatedItemsScreen() {
             },
           }))}
           pageSize={10}
-          headerClassName="bg-blue-primary text-white opacity-80"
         />
       )}
     </>

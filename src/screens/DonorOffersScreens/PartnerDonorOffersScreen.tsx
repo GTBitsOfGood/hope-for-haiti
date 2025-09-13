@@ -5,7 +5,18 @@ import { CgSpinner } from "react-icons/cg";
 import { useRouter } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
 import { DonorOfferDto } from "@/types/ui/donorOffer.types";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable from "@/components/BaseTable";
+import OptionsTag from "@/components/OptionsTag";
+
+function ResponseStatusTag({ status }: { status: string | null }) {
+  const styleMap = new Map([
+    ["pending", { text: "Awaiting response", className: "bg-orange-200/70" }],
+    ["submitted", { text: "Response submitted", className: "bg-green-200/70" }],
+    ["closed", { text: "Offer closed", className: "bg-red-200/70" }],
+  ]);
+
+  return <OptionsTag styleMap={styleMap} value={status || ""} />;
+}
 
 export default function PartnerDonorOffersScreen() {
   const router = useRouter();
@@ -50,12 +61,7 @@ export default function PartnerDonorOffersScreen() {
         </div>
       ) : (
         <BaseTable
-          headers={[
-            extendTableHeader("Donor Offer", "min-w-[150px]"),
-            extendTableHeader("Donor Name", "min-w-[150px]"),
-            extendTableHeader("Response Deadline", "min-w-[150px]"),
-            extendTableHeader("Status", "min-w-[150px]"),
-          ]}
+          headers={["Donor Offer", "Donor Name", "Response Deadline", "Status"]}
           rows={donorOffers.map((offer) => ({
             cells: [
               offer.offerName,
@@ -65,26 +71,12 @@ export default function PartnerDonorOffersScreen() {
                 className="whitespace-nowrap min-w-[150px]"
                 key={offer.donorOfferId}
               >
-                {offer.state === "pending" && (
-                  <div className="inline-block bg-orange-200/70 py-1 px-2 rounded-md">
-                    Awaiting response
-                  </div>
-                )}
-                {offer.state === "submitted" && (
-                  <div className="inline-block bg-green-200/70 py-1 px-2 rounded-md">
-                    Response submitted
-                  </div>
-                )}
-                {offer.state === "closed" && (
-                  <div className="inline-block bg-red-200/70 py-1 px-2 rounded-md">
-                    Offer closed
-                  </div>
-                )}
+                <ResponseStatusTag status={offer.state} />
               </div>,
             ],
             onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
           }))}
-          headerClassName="bg-blue-primary bg-opacity-80 text-white text-opacity-100"
+          headerCellStyles="min-w-[150px]"
           pageSize={10}
         />
       )}

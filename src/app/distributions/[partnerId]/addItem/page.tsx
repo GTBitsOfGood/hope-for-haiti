@@ -134,15 +134,15 @@ export default function AddItemToDistributionPage() {
           {lineItems && (
             <BaseTable
               headers={[
-                extendTableHeader("Name", "min-w-32"),
-                extendTableHeader("Quantity", "min-w-32"),
-                extendTableHeader("Donor name", "min-w-32"),
-                extendTableHeader("Pallet", "min-w-32"),
-                extendTableHeader("Box number", "min-w-32"),
-                extendTableHeader("Lot number", "min-w-32"),
-                extendTableHeader("Unit price", "min-w-32"),
-                extendTableHeader("Donor Shipping #", "min-w-32"),
-                extendTableHeader("HfH Shipping #", "min-w-32"),
+                "Name",
+                "Quantity",
+                "Donor name",
+                "Pallet",
+                "Box number",
+                "Lot number",
+                "Unit price",
+                "Donor Shipping #",
+                "HfH Shipping #",
                 "Comment",
                 extendTableHeader("Add", "w-12"),
               ]}
@@ -186,7 +186,7 @@ export default function AddItemToDistributionPage() {
                   </button>,
                 ],
               }))}
-              headerClassName="bg-blue-primary opacity-80 text-white"
+              headerCellStyles="min-w-32"
               pageSize={10}
             />
           )}

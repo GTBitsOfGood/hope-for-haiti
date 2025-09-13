@@ -78,7 +78,6 @@ export default function ShippingItemsModal({
             ],
           }))}
           pageSize={5}
-          headerClassName="bg-blue-primary opacity-80 text-white"
         />
         <div className="flex justify-end">
           <button
