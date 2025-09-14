@@ -36,22 +36,16 @@ export async function GET(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be ADMIN, STAFF, or SUPER_ADMIN");
-    }
-
     const { userId } = await params;
     const parsed = paramSchema.safeParse({ userId });
-
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    if (
-      !UserService.isStaff(session.user.type) &&
-      parsed.data?.userId.toString() !== session.user.id
-    ) {
-      throw new AuthorizationError("You are not allowed to view this");
+    if (!UserService.isAdmin(session.user.type) && session.user.id !== userId) {
+      throw new AuthorizationError(
+        "Must be ADMIN, STAFF, SUPER_ADMIN or own profile"
+      );
     }
 
     const user = await UserService.getUserById(parsed.data.userId);

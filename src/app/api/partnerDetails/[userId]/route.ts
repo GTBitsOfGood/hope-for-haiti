@@ -2,7 +2,11 @@ import { auth } from "@/auth";
 import { errorResponse } from "@/util/errors";
 import { PartnerDetailsService } from "@/services/partnerDetailsService";
 import { PartnerService } from "@/services/partnerService";
-import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ArgumentError,
+} from "@/util/errors";
 import { NextResponse, NextRequest } from "next/server";
 import { zfd } from "zod-form-data";
 import { partnerDetailsSchema } from "@/schema/partnerDetails";
@@ -34,17 +38,25 @@ export async function GET(
 
     const resolvedParams = await params;
     const parsed = paramSchema.safeParse(resolvedParams);
-    
+
     if (!parsed.success) {
       console.log(parsed.error);
       throw new ArgumentError(parsed.error.message);
     }
 
-    if (!PartnerService.canAccessPartnerDetails(session.user.type, session.user.id, parsed.data.userId.toString())) {
+    if (
+      !PartnerService.canAccessPartnerDetails(
+        session.user.type,
+        session.user.id,
+        parsed.data.userId.toString()
+      )
+    ) {
       throw new AuthorizationError("You are not allowed to view this");
     }
 
-    const partnerDetails = await PartnerDetailsService.getPartnerDetails(parsed.data.userId);
+    const partnerDetails = await PartnerDetailsService.getPartnerDetails(
+      parsed.data.userId
+    );
 
     return NextResponse.json(partnerDetails, { status: 200 });
   } catch (error) {
@@ -64,26 +76,33 @@ export async function POST(
 
     const resolvedParams = await params;
     const parsed = paramSchema.safeParse(resolvedParams);
-    
+
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    if (!PartnerService.canAccessPartnerDetails(session.user.type, session.user.id, parsed.data.userId.toString())) {
+    if (
+      !PartnerService.canAccessPartnerDetails(
+        session.user.type,
+        session.user.id,
+        parsed.data.userId.toString()
+      )
+    ) {
       throw new AuthorizationError("You are not allowed to modify this record");
     }
 
     const formData = await req.formData();
     const parsedData = partnerDetailsFormSchema.safeParse(formData);
-    
+
     if (!parsedData.success) {
       throw new ArgumentError(parsedData.error.message);
     }
 
-    const updatedPartnerDetails = await PartnerDetailsService.updatePartnerDetails({
-      userId: parsed.data.userId,
-      partnerDetails: parsedData.data.partnerDetails,
-    });
+    const updatedPartnerDetails =
+      await PartnerDetailsService.updatePartnerDetails({
+        userId: parsed.data.userId,
+        partnerDetails: parsedData.data.partnerDetails,
+      });
 
     return NextResponse.json(updatedPartnerDetails, { status: 200 });
   } catch (error) {

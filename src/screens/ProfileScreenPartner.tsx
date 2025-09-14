@@ -1,30 +1,129 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { User } from "@prisma/client";
-import GeneralInfo from "./PartnerProfilePageTabs/GeneralInfo";
-import ContactInformation from "./PartnerProfilePageTabs/ContactInformation";
-import Introduction from "./PartnerProfilePageTabs/Introduction";
-import FacilityInformation from "./PartnerProfilePageTabs/FacilityInformation";
-import InfrastructureServices from "./PartnerProfilePageTabs/InfrastructureServices";
-import ProgramServices from "./PartnerProfilePageTabs/ProgramServices";
-import Finances from "./PartnerProfilePageTabs/Finances";
-import StaffInformation from "./PartnerProfilePageTabs/StaffInformation";
+import { useFetch } from "@/hooks/useFetch";
+import { useApiClient } from "@/hooks/useApiClient";
+import { PartnerDetails } from "@/schema/partnerDetails";
+import PartnerDetailsSection from "@/components/PartnerDetails/PartnerDetailsSection";
+import { tabOrder } from "@/components/PartnerDetails/fieldConfigs";
 
 interface PartnerProfileScreenProps {
   user: User;
 }
 
-const TABS: string[] = [
-  "General information",
-  "Contact information",
-  "Introduction",
-  "Facility Information",
-  "Infrastructure & Services",
-  "Programs & Services Provided",
-  "Finances",
-  "Staff Information",
-];
+const defaultPartnerDetails: PartnerDetails = {
+  siteName: "",
+  address: "",
+  department: "",
+  gpsCoordinates: "",
+  website: "",
+  socialMedia: "",
+
+  regionalContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
+  medicalContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
+  adminDirectorContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
+  pharmacyContact: {
+    firstName: "",
+    lastName: "",
+    orgTitle: "",
+    primaryTelephone: "",
+    secondaryTelephone: "",
+    email: "",
+  },
+  contactWhatsAppName: "",
+  contactWhatsAppNumber: "",
+
+  organizationHistory: "",
+  supportRequested: "ongoing_support",
+  yearOrganizationEstablished: new Date().getFullYear(),
+  registeredWithMssp: false,
+  proofOfRegistrationWithMssp: "",
+  programUpdatesSinceLastReport: "",
+
+  facilityType: [],
+  organizationType: [],
+  governmentRun: false,
+  emergencyMedicalRecordsSystemPresent: false,
+  emergencyMedicalRecordsSystemName: "",
+  numberOfInpatientBeds: 0,
+  numberOfPatientsServedAnnually: 0,
+  communityMobileOutreachOffered: false,
+  communityMobileOutreachDescription: "",
+
+  facilityDescription: "",
+  cleanWaterAccessible: false,
+  cleanWaterDescription: "",
+  closestSourceOfCleanWater: "",
+  sanitationFacilitiesPresent: false,
+  sanitationFacilitiesLockableFromInside: false,
+  electricityAvailable: false,
+  accessibleByDisablePatients: false,
+  medicationDisposalProcessDefined: false,
+  medicationDisposalProcessDescription: "",
+  pickupVehiclePresent: false,
+  pickupVehicleType: "",
+  pickupLocations: [],
+
+  medicalServicesProvided: [],
+  otherMedicalServicesProvided: "",
+
+  patientsWhoCannotPay: "",
+  percentageOfPatientsNeedingFinancialAid: 0,
+  percentageOfPatientsReceivingFreeTreatment: 0,
+  annualSpendingOnMedicationsAndMedicalSupplies: "1_to_5000",
+  numberOfPrescriptionsPrescribedAnnuallyTracked: false,
+  numberOfTreatmentsPrescribedAnnually: 0,
+  anyMenServedLastYear: false,
+  menServedLastYear: 0,
+  anyWomenServedLastYear: false,
+  womenServedLastYear: 0,
+  anyBoysServedLastYear: false,
+  boysServedLastYear: 0,
+  anyGirlsServedLastYear: false,
+  girlsServedLastYear: 0,
+  anyBabyBoysServedLastYear: false,
+  babyBoysServedLastYear: 0,
+  anyBabyGirlsServedLastYear: false,
+  babyGirlsServedLastYear: 0,
+  totalPatientsServedLastYear: 0,
+
+  numberOfDoctors: 0,
+  numberOfNurses: 0,
+  numberOfMidwives: 0,
+  numberOfAuxilaries: 0,
+  numberOfStatisticians: 0,
+  numberOfPharmacists: 0,
+  numberOfCHW: 0,
+  numberOfAdministrative: 0,
+  numberOfHealthOfficers: 0,
+  totalNumberOfStaff: 0,
+  other: "",
+
+  mostNeededMedicalSupplies: [],
+  otherSpecialityItemsNeeded: "",
+};
 
 export default function ProfileScreenPartner({
   user,
@@ -32,92 +131,118 @@ export default function ProfileScreenPartner({
   const [activeTab, setActiveTab] = useState("General information");
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingOrg, setIsEditingOrg] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
+  const [resetKey, setResetKey] = useState(0);
+
+  const {
+    data: partnerDetails,
+    isLoading,
+    error,
+    refetch,
+  } = useFetch<PartnerDetails>(`/api/partnerDetails/${user.id}`, {
+    onError: (error) => {
+      console.error("Failed to load partner details:", error);
+    },
+  });
+
+  const { apiClient } = useApiClient();
+
+  const currentPartnerDetails = partnerDetails || defaultPartnerDetails;
 
   const [userData, setUserData] = useState({
-    email: "example@gmail.com",
+    email: user.email,
     password: "********",
   });
 
-  useEffect(() => {
-    setUserData({
-      email: user.email,
-      password: "********",
+  const handleFileChange = (name: string, file: File | null) => {
+    setFileUploads((prev) => {
+      const updated = { ...prev };
+      if (file) {
+        updated[name] = file;
+      } else {
+        delete updated[name];
+      }
+      return updated;
     });
-  }, [user]);
+  };
 
-  const [orgData, setOrgData] = useState({
-    siteName: "partner org name",
-    address: "123-456-7890",
-    department: "123 address somewhere street",
-    gpsCoordinates: "123 address somewhere street",
-    website: "60",
-    socialMedia: "Nonprofit",
-  });
+  const handleSavePartnerDetails = async (
+    updatedDetails: Partial<PartnerDetails>
+  ) => {
+    if (isSaving) return;
 
-  const [contactData, setContactData] = useState({
-    regionalContact: "name",
-    medicalContact: "name",
-    adminDirector: "name",
-    pharmacy: "name",
-    whatsAppContact: "60",
-    whatsAppNumber: "60",
-  });
+    try {
+      setIsSaving(true);
 
-  const [introductionData, setIntroductionData] = useState({
-    organizationHistory: "partner org name",
-    typeOfSupportRequested: "123-456-7890",
-    dateEstablished: "123 address somewhere street",
-    isRegisteredWithMSSP: "123 address somewhere street",
-    programUpdatesSinceLastReport: "60",
-  });
+      const updatedPartnerDetails = {
+        ...currentPartnerDetails,
+        ...updatedDetails,
+      };
 
-  const [facilityData, setFacilityData] = useState({
-    typeOfFacility: "partner org name",
-    governmentRunOrganization: "123 address somewhere street",
-    hasEMRSystem: "123 address somewhere street",
-    numberOfInpatientBeds: "60",
-    numberOfPatientsServedAnnually: "Nonprofit",
-    communityMobileOutreach: "Nonprofit",
-  });
+      Object.keys(fileUploads).forEach((fieldName) => {
+        const file = fileUploads[fieldName];
+        if (file) {
+          (updatedPartnerDetails as Record<string, unknown>)[fieldName] =
+            file.name;
+        }
+      });
 
-  const [infrastructureData, setInfrastructureData] = useState({
-    facilityDescription: "partner org name",
-    accessToCleanWater: "123-456-7890",
-    sanitationFacilities: "123 address somewhere street",
-    electricityAtFacility: "123 address somewhere street",
-    disabledAccess: "60",
-    medicationDisposalProcess: "Nonprofit",
-    vehicleForSupplies: "Nonprofit",
-  });
+      if (!updatedPartnerDetails.registeredWithMssp) {
+        updatedPartnerDetails.proofOfRegistrationWithMssp = "";
+      }
 
-  const [programServicesData, setProgramServicesData] = useState({
-    medicalServicesProvided: "partner org name",
-    otherServicesProvided: "123-456-7890",
-  });
+      const formData = new FormData();
+      formData.append("partnerDetails", JSON.stringify(updatedPartnerDetails));
 
-  const [financesData, setFinancesData] = useState({
-    whatHappensPatientsCannotPay: "partner org name",
-    percentageNeedingFinancialAid: "123-456-7890",
-    percentageReceivingFreeTreatment: "123 address somewhere street",
-    annualSpendingMedications: "123 address somewhere street",
-    trackPrescriptionsEachYear: "60",
-    totalNumberOfTreatmentsAnnually: "Nonprofit",
-    numberOfPatientsServedLastYear: "Nonprofit",
-  });
+      Object.keys(fileUploads).forEach((fieldName) => {
+        const file = fileUploads[fieldName];
+        if (file) {
+          formData.append(fieldName, file);
+        }
+      });
 
-  const [staffData, setStaffData] = useState({
-    numberOfDoctors: "partner org name",
-    numberOfNurses: "123-456-7890",
-    numberOfMidwives: "123 address somewhere street",
-    numberOfHealthOfficers: "Nonprofit",
-    numberOfStatisticians: "60",
-    numberOfPharmacists: "Nonprofit",
-    numberOfCHW: "Nonprofit",
-    numberOfAdministrative: "Nonprofit",
-    numberOfAuxiliaries: "123 address somewhere street",
-    otherStaffNotListed: "Nonprofit",
-    totalNumberOfStaff: "Nonprofit",
-  });
+      await apiClient.post(`/api/partnerDetails/${user.id}`, {
+        body: formData,
+      });
+
+      refetch();
+      setIsEditingOrg(false);
+      setFileUploads({});
+    } catch (error) {
+      console.error("Failed to save partner details:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto py-8 px-6 font-[Open_Sans]">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-lg">Loading partner details...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto py-8 px-6 font-[Open_Sans]">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-red-600">
+            Error loading partner details: {error}
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-6 font-[Open_Sans]">
@@ -177,12 +302,19 @@ export default function ProfileScreenPartner({
         <hr className="border-gray-300 mb-6 mt-1" />
 
         <div className="flex mt-1 border-b border-gray-300">
-          {TABS.map((tab: string) => {
+          {tabOrder.map((tab: string) => {
             const isActive = tab === activeTab;
             return (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => {
+                  if (isEditingOrg) {
+                    setIsEditingOrg(false);
+                    setFileUploads({});
+                    setResetKey((prev) => prev + 1); // Force component reset
+                  }
+                  setActiveTab(tab);
+                }}
                 className={`px-4 py-1 text-[16px] font-semibold transition-colors ${
                   isActive
                     ? "text-[#2774AE] border-b-2 border-[#2774AE]"
@@ -195,70 +327,17 @@ export default function ProfileScreenPartner({
           })}
         </div>
 
-        {activeTab === "General information" && (
-          <GeneralInfo
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            orgData={orgData}
-            setOrgData={setOrgData}
-          />
-        )}
-        {activeTab === "Contact information" && (
-          <ContactInformation
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            contactData={contactData}
-            setContactData={setContactData}
-          />
-        )}
-        {activeTab === "Introduction" && (
-          <Introduction
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            introductionData={introductionData}
-            setIntroductionData={setIntroductionData}
-          />
-        )}
-        {activeTab === "Facility Information" && (
-          <FacilityInformation
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            facilityData={facilityData}
-            setFacilityData={setFacilityData}
-          />
-        )}
-        {activeTab === "Infrastructure & Services" && (
-          <InfrastructureServices
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            infrastructureData={infrastructureData}
-            setInfrastructureData={setInfrastructureData}
-          />
-        )}
-        {activeTab === "Programs & Services Provided" && (
-          <ProgramServices
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            programServicesData={programServicesData}
-            setProgramServicesData={setProgramServicesData}
-          />
-        )}
-        {activeTab === "Finances" && (
-          <Finances
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            financesData={financesData}
-            setFinancesData={setFinancesData}
-          />
-        )}
-        {activeTab === "Staff Information" && (
-          <StaffInformation
-            isEditingOrg={isEditingOrg}
-            setIsEditingOrg={setIsEditingOrg}
-            staffData={staffData}
-            setStaffData={setStaffData}
-          />
-        )}
+        <PartnerDetailsSection
+          key={`${activeTab}-${resetKey}`}
+          sectionName={activeTab}
+          partnerDetails={currentPartnerDetails}
+          onSave={handleSavePartnerDetails}
+          isEditing={isEditingOrg}
+          setIsEditing={setIsEditingOrg}
+          isSaving={isSaving}
+          mode="view"
+          onFileChange={handleFileChange}
+        />
       </div>
     </div>
   );

@@ -1,20 +1,10 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import StepRenderer from "@/components/CreatePartnerAccount/StepRenderer";
-import StepOne from "@/screens/CreatePartnerAccount/StepOne";
-import StepTwo from "@/screens/CreatePartnerAccount/StepTwo";
-import StepThree from "@/screens/CreatePartnerAccount/StepThree";
-import StepFour from "@/screens/CreatePartnerAccount/StepFour";
-import StepFive from "@/screens/CreatePartnerAccount/StepFive";
-import StepSix from "@/screens/CreatePartnerAccount/StepSix";
-import StepSeven from "@/screens/CreatePartnerAccount/StepSeven";
-import StepEight from "@/screens/CreatePartnerAccount/StepEight";
-import StepNine from "@/screens/CreatePartnerAccount/StepNine";
-import StepTen from "@/screens/CreatePartnerAccount/StepTen";
+import CreatePartnerStep from "@/components/PartnerDetails/CreatePartnerStep";
+import { validatePartnerStep } from "@/components/PartnerDetails/validation";
 import {
   partnerDetails1,
   partnerDetails2,
@@ -26,7 +16,7 @@ import {
   partnerDetails8,
   partnerDetails9,
   partnerDetails10,
-  Contact,
+  PartnerDetails,
 } from "@/schema/partnerDetails";
 
 export default function CreatePartnerAccountPage() {
@@ -42,144 +32,98 @@ export default function CreatePartnerAccountPage() {
     partnerDetails9,
     partnerDetails10,
   ];
-  
+
   const [step, setStep] = useState(1);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [partnerDetails, setPartnerDetails] = useState<
-    Record<string, string | Contact | string[] | undefined>
-  >({});
-  const [msspRegistration, setMsspRegistration] = useState<File | null>(null);
-  
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [partnerDetails, setPartnerDetails] = useState<Partial<PartnerDetails>>(
+    {}
+  );
+  // const [msspRegistration, setMsspRegistration] = useState<File | null>(null);
+
   const router = useRouter();
 
-  console.log(msspRegistration);
-  function setNestedValue<T>(obj: T, path: string[], value: any): T {
-    if (path.length === 0) return obj;
-    const [key, ...rest] = path;
-    return {
-      ...obj,
-      [key]: rest.length
-        ? setNestedValue((obj as any)[key] || {}, rest, value)
-        : value,
-    } as T;
-  }
+  const handleFileChange = (name: string, file: File | null) => {
+    if (name === "proofOfRegistrationWithMssp") {
+      // setMsspRegistration(file);
+      setPartnerDetails((prev) => ({
+        ...prev,
+        [name]: file?.name || undefined,
+      }));
+    }
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const group = e.target.name as string;
-    const value = e.target.value as string;
-    setPartnerDetails((prev) => {
-      const current = (prev[group] as string[]) || [];
-
-      const newValues = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
-
-      return { ...prev, [group]: newValues };
-    });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] || null;
-    setMsspRegistration(selectedFile);
-    partnerDetails.proofOfRegistrationWithMssp =
-      selectedFile?.name || undefined;
-    console.log("selectedFile", selectedFile);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const name = e.target.name as string;
-    const value = e.target.value as string;
-    console.log("name", name);
-    console.log("value", value);
-    const attributes = name.split("-").reverse(); // Reverse the order of attributes
-
-    setPartnerDetails((prev) => setNestedValue(prev, attributes, value));
-    console.log("partnerDetails", partnerDetails);
+  const handleDataChange = (data: Partial<PartnerDetails>) => {
+    setPartnerDetails(data);
+    setFieldErrors({});
+    setErrorMessage("");
   };
 
   const nextStep = async () => {
     if (step === 10) {
-      setErrorMessage("");
-    } else {
       const currentSchema = schemas[step - 1];
       const parsed = currentSchema.safeParse(partnerDetails);
       if (parsed.error) {
-        console.log(parsed.error);
         setErrorMessage(parsed.error.message);
+        return;
       }
       if (parsed.success) {
         setErrorMessage("");
       }
-  
-      // TODO move back when fixed
+    } else {
+      const validationErrors = validatePartnerStep(step, partnerDetails);
+
+      if (Object.keys(validationErrors).length > 0) {
+        setFieldErrors(validationErrors);
+        setErrorMessage(
+          "Please fill out all required fields before proceeding."
+        );
+        return;
+      }
+
+      const currentSchema = schemas[step - 1];
+      const parsed = currentSchema.safeParse(partnerDetails);
+      if (parsed.error) {
+        setErrorMessage(parsed.error.message);
+        return;
+      }
+
+      setFieldErrors({});
+      setErrorMessage("");
       setStep((prev) => Math.min(prev + 1, 10));
     }
   };
 
-  const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+  const prevStep = () => {
+    setFieldErrors({});
+    setErrorMessage("");
+    setStep((prev) => Math.max(prev - 1, 1));
+  };
+
   const handleCancelClick = () => setShowConfirmCancel(true);
   const confirmCancel = () => {
     setShowConfirmCancel(false);
     router.push("/accountManagement");
   };
 
-  const stepConfigs = [
-    { 
-      component: StepOne,
-      props: {}
-    },
-    { 
-      component: StepTwo,
-      props: { prevStep } 
-    },
-    { 
-      component: StepThree,
-      props: { prevStep, handleFileUpload } 
-    },
-    { 
-      component: StepFour,
-      props: { prevStep, handleCheckboxChange } 
-    },
-    { 
-      component: StepFive,
-      props: { prevStep } 
-    },
-    { 
-      component: StepSix,
-      props: { prevStep, handleCheckboxChange } 
-    },
-    { 
-      component: StepSeven,
-      props: { prevStep } 
-    },
-    { 
-      component: StepEight,
-      props: { prevStep } 
-    },
-    { 
-      component: StepNine,
-      props: { prevStep, handleCheckboxChange } 
-    },
-    { 
-      component: StepTen,
-      props: { prevStep } 
-    },
-  ];
-
-  // Common props that every step receives
-  const commonStepProps = {
-    nextStep,
-    handleCancelClick,
-    handleInputChange,
-    partnerDetails,
-  };
-
   return (
     <div className="min-h-screen w-full bg-white">
       <div className="max-w-3xl mx-auto py-8 px-6">
+        {step === 1 && (
+          <h2 className="text-[24px] font-bold text-[#22070B] mb-6">
+            Create partner account
+          </h2>
+        )}
+
         <div className="flex items-center justify-between mb-10 w-[140%] -ml-[15%]">
           {[...Array(10)].map((_, i) => {
             const index = i + 1;
@@ -224,16 +168,23 @@ export default function CreatePartnerAccountPage() {
           })}
         </div>
 
-        {/* Dynamic Step Rendering */}
-        <StepRenderer 
-          currentStep={step}
-          steps={stepConfigs}
-          commonProps={commonStepProps}
+        <CreatePartnerStep
+          step={step}
+          partnerDetails={partnerDetails}
+          onDataChange={handleDataChange}
+          onFileChange={handleFileChange}
+          errors={fieldErrors}
+          onNext={nextStep}
+          onPrev={prevStep}
+          onCancel={handleCancelClick}
+          isFirstStep={step === 1}
+          isLastStep={step === 10}
         />
 
-
         {errorMessage && (
-          <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-600 text-sm">{errorMessage}</p>
+          </div>
         )}
 
         {showConfirmCancel && (

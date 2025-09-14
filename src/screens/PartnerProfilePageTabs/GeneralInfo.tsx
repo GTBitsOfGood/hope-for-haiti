@@ -1,41 +1,72 @@
 "use client";
 
-import React from "react";
-
-interface OrgData {
-  siteName: string;
-  address: string;
-  department: string;
-  gpsCoordinates: string;
-  website: string;
-  socialMedia: string;
-}
+import React, { useState } from "react";
+import { PartnerDetails } from "@/schema/partnerDetails";
 
 interface GeneralInfoProps {
   isEditingOrg: boolean;
   setIsEditingOrg: React.Dispatch<React.SetStateAction<boolean>>;
-  orgData: OrgData;
-  setOrgData: React.Dispatch<React.SetStateAction<OrgData>>;
+  partnerDetails: PartnerDetails;
+  onSave: (updatedDetails: Partial<PartnerDetails>) => Promise<void>;
+  isSaving: boolean;
 }
 
 export default function GeneralInfo({
   isEditingOrg,
   setIsEditingOrg,
-  orgData,
-  setOrgData,
+  partnerDetails,
+  onSave,
+  isSaving,
 }: GeneralInfoProps) {
+  const [formData, setFormData] = useState({
+    siteName: partnerDetails.siteName,
+    address: partnerDetails.address,
+    department: partnerDetails.department,
+    gpsCoordinates: partnerDetails.gpsCoordinates,
+    website: partnerDetails.website,
+    socialMedia: partnerDetails.socialMedia,
+  });
+
+  const handleSave = async () => {
+    await onSave(formData);
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      siteName: partnerDetails.siteName,
+      address: partnerDetails.address,
+      department: partnerDetails.department,
+      gpsCoordinates: partnerDetails.gpsCoordinates,
+      website: partnerDetails.website,
+      socialMedia: partnerDetails.socialMedia,
+    });
+    setIsEditingOrg(false);
+  };
+
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center">
         <h3 className="text-[20px] font-bold text-[#2774AE]">
           General information
         </h3>
-        <button
-          onClick={() => setIsEditingOrg(!isEditingOrg)}
-          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-        >
-          {isEditingOrg ? "Save" : "Edit"}
-        </button>
+        <div className="flex gap-2">
+          {isEditingOrg && (
+            <button
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="border border-gray-400 text-gray-600 px-4 py-2 rounded-[4px] font-semibold hover:bg-gray-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={isEditingOrg ? handleSave : () => setIsEditingOrg(true)}
+            disabled={isSaving}
+            className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10 disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : isEditingOrg ? "Save" : "Edit"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-4 max-w-xl">
@@ -43,42 +74,46 @@ export default function GeneralInfo({
         {isEditingOrg ? (
           <input
             type="text"
-            value={orgData.siteName}
+            value={formData.siteName}
             onChange={(e) =>
-              setOrgData({ ...orgData, siteName: e.target.value })
+              setFormData({ ...formData, siteName: e.target.value })
             }
             className="border p-1"
           />
         ) : (
-          <p className="text-[16px] text-[#22070B]">{orgData.siteName}</p>
+          <p className="text-[16px] text-[#22070B]">
+            {partnerDetails.siteName}
+          </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">Address</p>
         {isEditingOrg ? (
           <input
             type="text"
-            value={orgData.address}
+            value={formData.address}
             onChange={(e) =>
-              setOrgData({ ...orgData, address: e.target.value })
+              setFormData({ ...formData, address: e.target.value })
             }
             className="border p-1"
           />
         ) : (
-          <p className="text-[16px] text-[#22070B]">{orgData.address}</p>
+          <p className="text-[16px] text-[#22070B]">{partnerDetails.address}</p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">Department</p>
         {isEditingOrg ? (
           <input
             type="text"
-            value={orgData.department}
+            value={formData.department}
             onChange={(e) =>
-              setOrgData({ ...orgData, department: e.target.value })
+              setFormData({ ...formData, department: e.target.value })
             }
             className="border p-1"
           />
         ) : (
-          <p className="text-[16px] text-[#22070B]">{orgData.department}</p>
+          <p className="text-[16px] text-[#22070B]">
+            {partnerDetails.department}
+          </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
@@ -87,28 +122,30 @@ export default function GeneralInfo({
         {isEditingOrg ? (
           <input
             type="text"
-            value={orgData.gpsCoordinates}
+            value={formData.gpsCoordinates}
             onChange={(e) =>
-              setOrgData({ ...orgData, gpsCoordinates: e.target.value })
+              setFormData({ ...formData, gpsCoordinates: e.target.value })
             }
             className="border p-1"
           />
         ) : (
-          <p className="text-[16px] text-[#22070B]">{orgData.gpsCoordinates}</p>
+          <p className="text-[16px] text-[#22070B]">
+            {partnerDetails.gpsCoordinates}
+          </p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">Website</p>
         {isEditingOrg ? (
           <input
             type="text"
-            value={orgData.website}
+            value={formData.website}
             onChange={(e) =>
-              setOrgData({ ...orgData, website: e.target.value })
+              setFormData({ ...formData, website: e.target.value })
             }
             className="border p-1"
           />
         ) : (
-          <p className="text-[16px] text-[#22070B]">{orgData.website}</p>
+          <p className="text-[16px] text-[#22070B]">{partnerDetails.website}</p>
         )}
 
         <p className="text-[18px] font-semibold text-[#22070B]">
@@ -117,14 +154,16 @@ export default function GeneralInfo({
         {isEditingOrg ? (
           <input
             type="text"
-            value={orgData.socialMedia}
+            value={formData.socialMedia}
             onChange={(e) =>
-              setOrgData({ ...orgData, socialMedia: e.target.value })
+              setFormData({ ...formData, socialMedia: e.target.value })
             }
             className="border p-1"
           />
         ) : (
-          <p className="text-[16px] text-[#22070B]">{orgData.socialMedia}</p>
+          <p className="text-[16px] text-[#22070B]">
+            {partnerDetails.socialMedia}
+          </p>
         )}
       </div>
     </div>
