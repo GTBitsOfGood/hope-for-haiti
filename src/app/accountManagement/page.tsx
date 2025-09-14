@@ -108,7 +108,7 @@ export default function AccountManagementPage() {
     }
 
     setFilteredItems(filtered);
-  }, [usersData]);
+  }, [usersData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     applyFilters(activeTab as UserFilterKey, searchQuery);
