@@ -55,6 +55,25 @@ export const validatePartnerStep = (
     }
   });
 
+  if (step === 3) {
+    const registeredWithMssp = getNestedValue(data, "registeredWithMssp");
+    const proofOfRegistration = getNestedValue(
+      data,
+      "proofOfRegistrationWithMssp"
+    );
+
+    if (registeredWithMssp === true) {
+      if (
+        !proofOfRegistration ||
+        (typeof proofOfRegistration === "string" &&
+          proofOfRegistration.trim() === "")
+      ) {
+        errors["proofOfRegistrationWithMssp"] =
+          "Proof of registration with MSSP is required when registered with MSSP";
+      }
+    }
+  }
+
   return errors;
 };
 

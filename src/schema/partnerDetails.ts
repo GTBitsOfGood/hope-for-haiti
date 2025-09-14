@@ -37,7 +37,7 @@ export const partnerDetailsSchema = z
     ]),
     yearOrganizationEstablished: z.number(),
     registeredWithMssp: z.boolean(),
-    proofOfRegistrationWithMssp: z.string(), // name of the blob containing the proof of registration
+    proofOfRegistrationWithMssp: z.string().optional(),
     programUpdatesSinceLastReport: z.string(),
 
     // Facility
@@ -334,7 +334,7 @@ export const partnerDetails3 = z
     ]),
     yearOrganizationEstablished: z.number(),
     registeredWithMssp: z.boolean(),
-    proofOfRegistrationWithMssp: z.string(), // name of the blob containing the proof of registration
+    proofOfRegistrationWithMssp: z.string().optional(),
     programUpdatesSinceLastReport: z.string(),
   })
   .refine(

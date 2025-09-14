@@ -132,6 +132,7 @@ export default function ProfileScreenPartner({
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingOrg, setIsEditingOrg] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
 
   const {
     data: partnerDetails,
@@ -153,6 +154,18 @@ export default function ProfileScreenPartner({
     password: "********",
   });
 
+  const handleFileChange = (name: string, file: File | null) => {
+    setFileUploads((prev) => {
+      const updated = { ...prev };
+      if (file) {
+        updated[name] = file;
+      } else {
+        delete updated[name];
+      }
+      return updated;
+    });
+  };
+
   const handleSavePartnerDetails = async (
     updatedDetails: Partial<PartnerDetails>
   ) => {
@@ -166,8 +179,27 @@ export default function ProfileScreenPartner({
         ...updatedDetails,
       };
 
+      Object.keys(fileUploads).forEach((fieldName) => {
+        const file = fileUploads[fieldName];
+        if (file) {
+          (updatedPartnerDetails as Record<string, unknown>)[fieldName] =
+            file.name;
+        }
+      });
+
+      if (!updatedPartnerDetails.registeredWithMssp) {
+        updatedPartnerDetails.proofOfRegistrationWithMssp = "";
+      }
+
       const formData = new FormData();
       formData.append("partnerDetails", JSON.stringify(updatedPartnerDetails));
+
+      Object.keys(fileUploads).forEach((fieldName) => {
+        const file = fileUploads[fieldName];
+        if (file) {
+          formData.append(fieldName, file);
+        }
+      });
 
       await apiClient.post(`/api/partnerDetails/${user.id}`, {
         body: formData,
@@ -175,6 +207,7 @@ export default function ProfileScreenPartner({
 
       refetch();
       setIsEditingOrg(false);
+      setFileUploads({});
     } catch (error) {
       console.error("Failed to save partner details:", error);
     } finally {
@@ -295,6 +328,7 @@ export default function ProfileScreenPartner({
           setIsEditing={setIsEditingOrg}
           isSaving={isSaving}
           mode="view"
+          onFileChange={handleFileChange}
         />
       </div>
     </div>

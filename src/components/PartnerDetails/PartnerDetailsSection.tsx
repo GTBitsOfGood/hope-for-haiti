@@ -41,7 +41,16 @@ export default function PartnerDetailsSection({
   }, [partnerDetails]);
 
   const handleFieldChange = (name: string, value: FieldValue) => {
-    const updatedData = setNestedValue({ ...formData }, name, value);
+    let updatedData = setNestedValue({ ...formData }, name, value);
+
+    if (name === "registeredWithMssp" && value === false) {
+      updatedData = setNestedValue(
+        updatedData,
+        "proofOfRegistrationWithMssp",
+        ""
+      );
+    }
+
     setFormData(updatedData);
 
     if (validationErrors[name]) {
@@ -52,13 +61,43 @@ export default function PartnerDetailsSection({
       });
     }
 
+    if (name === "registeredWithMssp" && value === false) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors["proofOfRegistrationWithMssp"];
+        return newErrors;
+      });
+    }
+
     if (mode === "create" && onDataChange) {
       onDataChange(updatedData);
     }
   };
 
+  const handleFileChangeInternal = (name: string, file: File | null) => {
+    if (file) {
+      const updatedData = setNestedValue({ ...formData }, name, file.name);
+      setFormData(updatedData);
+
+      if (validationErrors[name]) {
+        setValidationErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
+    } else {
+      const updatedData = setNestedValue({ ...formData }, name, "");
+      setFormData(updatedData);
+    }
+
+    if (onFileChange) {
+      onFileChange(name, file);
+    }
+  };
+
   const handleSave = async () => {
-    if (mode === "edit") {
+    if (mode === "edit" || (mode === "view" && isEditing)) {
       const sectionValidationErrors: Record<string, string> = {};
 
       sectionFields.forEach((field) => {
@@ -81,6 +120,28 @@ export default function PartnerDetailsSection({
           }
         }
       });
+
+      if (sectionName === "Introduction") {
+        const registeredWithMssp = getNestedValue(
+          formData,
+          "registeredWithMssp"
+        );
+        const proofOfRegistration = getNestedValue(
+          formData,
+          "proofOfRegistrationWithMssp"
+        );
+
+        if (registeredWithMssp === true) {
+          if (
+            !proofOfRegistration ||
+            (typeof proofOfRegistration === "string" &&
+              proofOfRegistration.trim() === "")
+          ) {
+            sectionValidationErrors["proofOfRegistrationWithMssp"] =
+              "Proof of registration with MSSP is required when registered with MSSP";
+          }
+        }
+      }
 
       if (Object.keys(sectionValidationErrors).length > 0) {
         setValidationErrors(sectionValidationErrors);
@@ -161,9 +222,10 @@ export default function PartnerDetailsSection({
               <div>
                 <p className="text-[18px] font-semibold text-[#22070B]">
                   {fieldConfig.label}
-                  {fieldConfig.required && (
-                    <span className="text-red-500 ml-1">*</span>
-                  )}
+                  {(fieldConfig.required ||
+                    (fieldConfig.name === "proofOfRegistrationWithMssp" &&
+                      getNestedValue(formData, "registeredWithMssp") ===
+                        true)) && <span className="text-red-500 ml-1">*</span>}
                 </p>
                 {fieldConfig.description && (
                   <p className="text-[14px] text-[#22070B]/70 mt-1">
@@ -178,7 +240,7 @@ export default function PartnerDetailsSection({
                     getNestedValue(formData, fieldConfig.name) as FieldValue
                   }
                   onChange={handleFieldChange}
-                  onFileChange={onFileChange}
+                  onFileChange={handleFileChangeInternal}
                   isEditing={canEdit}
                   errors={allErrors}
                   allValues={formData as Record<string, FieldValue>}

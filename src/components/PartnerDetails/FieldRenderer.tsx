@@ -298,13 +298,20 @@ export default function FieldRenderer({
     return fieldContent;
   }
 
+  // Check if field is dynamically required based on conditional logic
+  const isDynamicallyRequired =
+    name === "proofOfRegistrationWithMssp" &&
+    allValues["registeredWithMssp"] === true;
+
   return (
     <div className="mb-4">
       <div className="space-y-2">
         <div>
           <p className="text-[18px] font-semibold text-[#22070B]">
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {(required || isDynamicallyRequired) && (
+              <span className="text-red-500 ml-1">*</span>
+            )}
           </p>
           {description && (
             <p className="text-[14px] text-[#22070B]/70 mt-1">{description}</p>

@@ -51,7 +51,16 @@ export default function CreatePartnerStep({
   }, [partnerDetails]);
 
   const handleFieldChange = (name: string, value: FieldValue) => {
-    const updatedData = setNestedValue({ ...formData }, name, value);
+    let updatedData = setNestedValue({ ...formData }, name, value);
+
+    if (name === "registeredWithMssp" && value === false) {
+      updatedData = setNestedValue(
+        updatedData,
+        "proofOfRegistrationWithMssp",
+        ""
+      );
+    }
+
     setFormData(updatedData);
     onDataChange(updatedData);
   };
