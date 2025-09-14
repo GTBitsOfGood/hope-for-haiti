@@ -26,23 +26,6 @@ export default class UserService {
     return users;
   }
 
-  static async getPendingInvites() {
-    const invites = await db.userInvite.findMany({
-      select: {
-        id: true,
-        token: true,
-        email: true,
-        name: true,
-        userType: true,
-        expiration: true,
-      },
-      orderBy: {
-        expiration: "desc",
-      },
-    });
-    return invites;
-  }
-
   static async getUserById(userId: number) {
     const user = await db.user.findUnique({
       where: { id: userId },
