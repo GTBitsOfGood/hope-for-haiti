@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { User, UserType } from "@prisma/client";
@@ -88,7 +88,7 @@ export default function AccountManagementPage() {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserOrInvite | null>(null);
 
-  const applyFilters = (tabFilter: UserFilterKey, search: string) => {
+  const applyFilters = useCallback((tabFilter: UserFilterKey, search: string) => {
     const allItems: UserOrInvite[] = [
       ...(invites || []).map((invite) => ({
         ...invite,
@@ -108,11 +108,11 @@ export default function AccountManagementPage() {
     }
 
     setFilteredItems(filtered);
-  };
+  }, [usersData]);
 
   useEffect(() => {
     applyFilters(activeTab as UserFilterKey, searchQuery);
-  }, [usersData, activeTab, searchQuery]);
+  }, [applyFilters, activeTab, searchQuery]);
 
   const filterUsers = (type: UserFilterKey) => {
     setActiveTab(type);
