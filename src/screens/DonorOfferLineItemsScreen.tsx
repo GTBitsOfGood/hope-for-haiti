@@ -8,8 +8,8 @@ import { ChatTeardropText, DotsThree } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
-import { formatTableValue } from "@/utils/format";
 import StatusTag from "@/components/StatusTag";
+import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 export default function DonorOfferLineItemsScreen() {
   const { donorOfferId, itemId } = useParams();
@@ -125,116 +125,79 @@ export default function DonorOfferLineItemsScreen() {
           <h2 className="text-xl font-light text-gray-500 pt-4 pb-4">
             A list of all the unique items for this item.
           </h2>
-          <div className="overflow-x-scroll pb-2">
-            <table className="mt-4 min-w-full">
-              <thead>
-                <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                  <th className="px-4 py-2 min-w-32 rounded-tl-lg text-left">
-                    Quantity
-                  </th>
-                  <th className="px-4 py-2 min-w-32 text-left">Donor name</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Pallet</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Box number</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Lot number</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Unit price</th>
-                  <th className="px-4 py-2 min-w-32 text-left">
-                    Donor Shipping #
-                  </th>
-                  <th className="px-4 py-2 min-w-32 text-left">
-                    HfH Shipping #
-                  </th>
-                  <th className="px-4 py-2 min-w-32 text-left">Max Limit</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Visibility</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Allocation</th>
-                  <th className="px-4 py-2 min-w-32 text-left">GIK</th>
-                  <th className="px-4 py-2 text-left">Comment</th>
-                  <th className="px-4 py-2 rounded-tr-lg text-left w-12">
-                    Manage
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map((item, index) => (
-                  <React.Fragment key={index}>
-                    <tr
-                      data-odd={index % 2 !== 0}
-                      className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
-                    >
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.quantity)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.donorName)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.palletNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.boxNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.lotNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.unitPrice)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.donorShippingNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.hfhShippingNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.maxRequestLimit)}
-                      </td>
-                      <td className="px-4 py-2">
-                        <StatusTag
-                          value={item.visible}
-                          trueText="Visible"
-                          falseText="Disabled"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <StatusTag
-                          value={item.allowAllocations}
-                          trueText="Allowed"
-                          falseText="Disabled"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <StatusTag
-                          value={item.gik}
-                          trueText="GIK"
-                          falseText="Not GIK"
-                          grayWhenFalse
-                        />
-                      </td>
-                      <td className="px-4 py-2 flex justify-center">
-                        <ChatTeardropText
-                          data-tooltip-id={`comment-tooltip-${item.id}`}
-                          data-tooltip-content={item.notes}
-                          size={30}
-                          color={item.notes ? "black" : "lightgray"}
-                        />
-                        {item.notes && (
-                          <Tooltip
-                            id={`comment-tooltip-${item.id}`}
-                            className="max-w-40"
-                          >
-                            {item.notes}
-                          </Tooltip>
-                        )}
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="flex justify-end">
-                          <DotsThree weight="bold" />
-                        </div>
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-x-auto">
+            <BaseTable
+              headers={[
+                "Quantity",
+                "Donor name",
+                "Pallet",
+                "Box number",
+                "Lot number",
+                "Unit price",
+                "Donor Shipping #",
+                "HfH Shipping #",
+                "Max Limit",
+                "Visibility",
+                "Allocation",
+                "GIK",
+                "Comment",
+                extendTableHeader("Manage", "w-12"),
+              ]}
+              rows={lineItems.map((item) => ({
+                cells: [
+                  item.quantity,
+                  item.donorName,
+                  item.palletNumber,
+                  item.boxNumber,
+                  item.lotNumber,
+                  item.unitPrice.toString(),
+                  item.donorShippingNumber,
+                  item.hfhShippingNumber,
+                  item.maxRequestLimit,
+                  <StatusTag
+                    value={item.visible}
+                    trueText="Visible"
+                    falseText="Disabled"
+                    key={1}
+                  />,
+                  <StatusTag
+                    value={item.allowAllocations}
+                    trueText="Allowed"
+                    falseText="Disabled"
+                    key={2}
+                  />,
+                  <StatusTag
+                    value={item.gik}
+                    trueText="GIK"
+                    falseText="Not GIK"
+                    grayWhenFalse
+                    key={3}
+                  />,
+                  <div className="flex justify-center" key={4}>
+                    <ChatTeardropText
+                      data-tooltip-id={`comment-tooltip-${item.id}`}
+                      data-tooltip-content={item.notes}
+                      size={30}
+                      color={item.notes ? "black" : "lightgray"}
+                    />
+                    {item.notes && (
+                      <Tooltip
+                        id={`comment-tooltip-${item.id}`}
+                        className="max-w-40"
+                      >
+                        {item.notes}
+                      </Tooltip>
+                    )}
+                  </div>,
+                  <div className="flex justify-end" key={5}>
+                    <DotsThree weight="bold" />
+                    {/* TODO: ADD MENU OPTIONS */}
+                  </div>,
+                ],
+              }))}
+              headerCellStyles="min-w-32"
+              
+            />
           </div>
         </>
       )}

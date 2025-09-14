@@ -13,11 +13,11 @@ import {
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
-import { formatTableValue } from "@/utils/format";
 import StatusTag from "@/components/StatusTag";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import EditUniqueLineItemModal from "@/components/UnallocatedItems/EditUniqueLineItem";
 import { useFetch } from "@/hooks/useFetch";
+import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 export default function UnallocatedItemsLineItemsPage() {
   const searchParams = useSearchParams();
@@ -33,7 +33,9 @@ export default function UnallocatedItemsLineItemsPage() {
   };
 
   const itemParamsForUrl = Object.fromEntries(
-    Object.entries(itemParams).filter(([, value]) => value !== null && value !== undefined)
+    Object.entries(itemParams).filter(
+      ([, value]) => value !== null && value !== undefined
+    )
   ) as Record<string, string>;
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -53,9 +55,7 @@ export default function UnallocatedItemsLineItemsPage() {
   const items = data?.items || [];
 
   const handleDeleteItem = async (item: Item) => {
-    const confirmed = confirm(
-      `Are you sure you want to delete this item?`
-    );
+    const confirmed = confirm(`Are you sure you want to delete this item?`);
     if (!confirmed) return;
 
     try {
@@ -107,7 +107,9 @@ export default function UnallocatedItemsLineItemsPage() {
           </button>
         </Link>
       </div>
-      <h1 className="text-2xl font-semibold">{itemParams.title}: Unique Line Items</h1>
+      <h1 className="text-2xl font-semibold">
+        {itemParams.title}: Unique Line Items
+      </h1>
       <h2 className="text-xl font-light text-gray-500 pt-4 pb-4">
         A list of all the unique items for this item.
       </h2>
@@ -116,146 +118,101 @@ export default function UnallocatedItemsLineItemsPage() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-scroll pb-2">
-          <table className="mt-4 min-w-full">
-            <thead>
-              <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                <th className="px-4 py-2 min-w-32 rounded-tl-lg text-left">
-                  Quantity
-                </th>
-                <th className="px-4 py-2 min-w-32 text-left">
-                  Qty Avail/Total
-                </th>
-                <th className="px-4 py-2 min-w-32 text-left">Donor name</th>
-                <th className="px-4 py-2 min-w-32 text-left">Pallet</th>
-                <th className="px-4 py-2 min-w-32 text-left">Box number</th>
-                <th className="px-4 py-2 min-w-32 text-left">Lot number</th>
-                <th className="px-4 py-2 min-w-32 text-left">Unit price</th>
-                <th className="px-4 py-2 text-left">Comment</th>
-                <th className="px-4 py-2 min-w-32 text-left">
-                  Donor Shipping #
-                </th>
-                <th className="px-4 py-2 min-w-32 text-left">HfH Shipping #</th>
-                <th className="px-4 py-2 min-w-32 text-left">Max Limit</th>
-                <th className="px-4 py-2 min-w-32 text-left">Visibility</th>
-                <th className="px-4 py-2 min-w-32 text-left">Allocation</th>
-                <th className="px-4 py-2 min-w-32 text-left">GIK</th>
-                <th className="px-4 py-2 rounded-tr-lg text-left w-12">
-                  Manage
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <React.Fragment key={index}>
-                  <tr
-                    data-odd={index % 2 !== 0}
-                    className="bg-white data-[odd=true]:bg-gray-50 border-b transition-colors"
+        <BaseTable
+          headers={[
+            "Quantity",
+            "Qty Avail/Total",
+            "Donor name",
+            "Pallet",
+            "Box number",
+            "Lot number",
+            "Unit price",
+            "Comment",
+            "Donor Shipping #",
+            "HfH Shipping #",
+            "Max Limit",
+            "Visibility",
+            "Allocation",
+            "GIK",
+            extendTableHeader("Manage", "w-12"),
+          ]}
+          rows={items.map((item) => ({
+            cells: [
+              item.quantity,
+              /* TODO */ "-",
+              item.donorName,
+              item.palletNumber,
+              item.boxNumber,
+              item.lotNumber,
+              item.unitPrice.toString(),
+              <div key="itemNotes">
+                <ChatTeardropText
+                  data-tooltip-id={`comment-tooltip-${item.id}`}
+                  data-tooltip-content={item.notes}
+                  size={30}
+                  color={item.notes ? "black" : "lightgray"}
+                />
+                {item.notes && (
+                  <Tooltip
+                    id={`comment-tooltip-${item.id}`}
+                    className="max-w-40"
                   >
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.quantity)}
-                    </td>
-                    <td className="px-4 py-2">{/* TODO */}-</td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.donorName)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.palletNumber)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.boxNumber)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.lotNumber)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.unitPrice)}
-                    </td>
-                    <td className="px-4 py-2">
-                      <ChatTeardropText
-                        data-tooltip-id={`comment-tooltip-${item.id}`}
-                        data-tooltip-content={item.notes}
-                        size={30}
-                        color={item.notes ? "black" : "lightgray"}
-                      />
-                      {item.notes && (
-                        <Tooltip
-                          id={`comment-tooltip-${item.id}`}
-                          className="max-w-40"
-                        >
-                          {item.notes}
-                        </Tooltip>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.donorShippingNumber)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.hfhShippingNumber)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.maxRequestLimit)}
-                    </td>
-                    <td className="px-4 py-2">
-                      <StatusTag
-                        value={item.visible}
-                        trueText="Visible"
-                        falseText="Disabled"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <StatusTag
-                        value={item.allowAllocations}
-                        trueText="Allowed"
-                        falseText="Disabled"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <StatusTag
-                        value={item.gik}
-                        trueText="GIK"
-                        falseText="Not GIK"
-                        grayWhenFalse
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <Menu as="div" className="relative float-right">
-                        <MenuButton>
-                          <DotsThree weight="bold" />
-                        </MenuButton>
-                        <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                          <MenuItem
-                            as="button"
-                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => handleEditItem()}
-                          >
-                            <PencilSimple
-                              className="inline-block mr-2"
-                              size={22}
-                            />
-                            Edit item details
-                          </MenuItem>
-
-                          <MenuItem
-                            as="button"
-                            className="flex w-full px-3 py-2 text-sm text-red-700 hover:bg-red-100"
-                            onClick={() => handleDeleteItem(item)}
-                          >
-                            <TrashSimple
-                              className="inline-block mr-2"
-                              size={22}
-                            />
-                            Delete item
-                          </MenuItem>
-                        </MenuItems>
-                      </Menu>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    {item.notes}
+                  </Tooltip>
+                )}
+              </div>,
+              item.donorShippingNumber,
+              item.hfhShippingNumber,
+              item.maxRequestLimit,
+              <StatusTag
+                value={item.visible}
+                trueText="Visible"
+                falseText="Disabled"
+                key="visible"
+              />,
+              <StatusTag
+                value={item.allowAllocations}
+                trueText="Allowed"
+                falseText="Disabled"
+                key="allowAllocations"
+              />,
+              <StatusTag
+                value={item.gik}
+                trueText="GIK"
+                falseText="Not GIK"
+                grayWhenFalse
+                key="gik"
+              />,
+              <div onClick={(e) => e.stopPropagation()} key={1}>
+                <Menu as="div" className="relative float-right">
+                  <MenuButton>
+                    <DotsThree weight="bold" />
+                  </MenuButton>
+                  <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => handleEditItem()}
+                    >
+                      <PencilSimple className="inline-block mr-2" size={22} />
+                      Edit item details
+                    </MenuItem>
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-red-700 hover:bg-red-100"
+                      onClick={() => handleDeleteItem(item)}
+                    >
+                      <TrashSimple className="inline-block mr-2" size={22} />
+                      Delete item
+                    </MenuItem>
+                  </MenuItems>
+                </Menu>
+              </div>,
+            ],
+          }))}
+          headerCellStyles="min-w-32"
+          
+        />
       )}
     </>
   );

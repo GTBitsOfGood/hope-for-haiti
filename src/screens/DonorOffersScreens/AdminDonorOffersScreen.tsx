@@ -17,6 +17,10 @@ import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { useFetch } from "@/hooks/useFetch";
 import { AdminDonorOffer } from "@/types/api/donorOffer.types";
+import BaseTable, {
+  extendTableHeader,
+  tableConditional,
+} from "@/components/BaseTable";
 
 enum StatusFilterKey {
   UNFINALIZED = "Unfinalized",
@@ -35,7 +39,7 @@ export default function AdminDonorOffersScreen() {
     StatusFilterKey.UNFINALIZED
   );
   const router = useRouter();
-  
+
   const {
     data: offers,
     isLoading,
@@ -127,109 +131,73 @@ export default function AdminDonorOffersScreen() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div>
-          <table className="mt-4 min-w-full">
-            <thead>
-              <tr className="opacity-80 text-white border-b-2 bg-blue-primary font-bold">
-                <th className="px-4 py-2 rounded-tl-lg text-left">
-                  Donor Offer
-                </th>
-                <th className="px-4 py-2 text-left">Donor Name</th>
-                {activeTab === StatusFilterKey.UNFINALIZED && (
-                  <th className="px-4 py-2 text-left">Response Deadline</th>
-                )}
-                {activeTab === StatusFilterKey.UNFINALIZED && (
-                  <th className="px-4 py-2 text-left">Partners Responded</th>
-                )}
-                <th className="px-4 py-2 rounded-tr-lg w-12 text-left">
-                  Manage
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOffers.map((offer, index) => (
-                <React.Fragment key={index}>
-                  <tr
-                    data-odd={index % 2 !== 0}
-                    onClick={() =>
-                      router.push(`/donorOffers/${offer.donorOfferId}`)
-                    }
-                    className={`bg-white data-[odd=true]:bg-gray-50 border-b cursor-pointer data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100 transition-colors`}
-                  >
-                    <td className="px-4 py-2">{offer.offerName}</td>
-                    <td className="px-4 py-2">{offer.donorName}</td>
-                    {activeTab === StatusFilterKey.UNFINALIZED && (
-                      <td className="px-4 py-2">
-                        {offer.responseDeadline
-                          ? new Date(
-                              offer.responseDeadline
-                            ).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-                    )}
-                    {activeTab === StatusFilterKey.UNFINALIZED && (
-                      <td className="px-4 py-2">
-                        {
-                          offer.invitedPartners.filter(
-                            (partner) => partner.responded
-                          ).length
-                        }
-                        /{offer.invitedPartners.length}
-                      </td>
-                    )}
-                    <td
-                      className="px-4 py-2"
-                      onClick={(e) => e.stopPropagation()}
+        <BaseTable
+          headers={[
+            "Donor Offer",
+            "Donor Name",
+            tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
+              "Response Deadline",
+              "Partners Responded",
+            ]),
+            extendTableHeader("Manage", "w-12"),
+          ]}
+          rows={filteredOffers.map((offer) => ({
+            cells: [
+              offer.offerName,
+              offer.donorName,
+              tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
+                offer.responseDeadline
+                  ? new Date(offer.responseDeadline).toLocaleDateString()
+                  : "N/A",
+                `${
+                  offer.invitedPartners.filter((partner) => partner.responded)
+                    .length
+                }/${offer.invitedPartners.length}`,
+              ]),
+              <div onClick={(e) => e.stopPropagation()} key={1}>
+                <Menu as="div" className="float-right relative">
+                  <MenuButton>
+                    <DotsThree weight="bold" />
+                  </MenuButton>
+                  <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() =>
+                        router.push(`/donorOffers/${offer.donorOfferId}/edit`)
+                      }
                     >
-                      <Menu as="div" className="float-right relative">
-                        <MenuButton>
-                          <DotsThree weight="bold" />
-                        </MenuButton>
-                        <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                          <MenuItem
-                            as="button"
-                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() =>
-                              router.push(
-                                `/donorOffers/${offer.donorOfferId}/edit`
-                              )
-                            }
-                          >
-                            <PencilSimple
-                              className="inline-block mr-2"
-                              size={22}
-                            />
-                            Edit Offer Details
-                          </MenuItem>
-                          <MenuItem
-                            as="button"
-                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() =>
-                              router.push(
-                                `/donorOffers/${offer.donorOfferId}/finalize`
-                              )
-                            }
-                          >
-                            <Upload className="inline-block mr-2" size={22} />
-                            Upload Final Offer
-                          </MenuItem>
-                          <MenuItem
-                            as="button"
-                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => handleArchive(offer.donorOfferId)}
-                          >
-                            <Archive className="inline-block mr-2" size={22} />
-                            Archive Offer
-                          </MenuItem>
-                        </MenuItems>
-                      </Menu>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <PencilSimple className="inline-block mr-2" size={22} />
+                      Edit Offer Details
+                    </MenuItem>
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() =>
+                        router.push(
+                          `/donorOffers/${offer.donorOfferId}/finalize`
+                        )
+                      }
+                    >
+                      <Upload className="inline-block mr-2" size={22} />
+                      Upload Final Offer
+                    </MenuItem>
+                    <MenuItem
+                      as="button"
+                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => handleArchive(offer.donorOfferId)}
+                    >
+                      <Archive className="inline-block mr-2" size={22} />
+                      Archive Offer
+                    </MenuItem>
+                  </MenuItems>
+                </Menu>
+              </div>,
+            ],
+            onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
+          }))}
+          
+        />
       )}
     </>
   );

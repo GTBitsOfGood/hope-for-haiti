@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { Item, ShippingStatus } from "@prisma/client";
 import {
   ShippingStatusWithItems,
-  UpdateShippingStatusData
+  UpdateShippingStatusData,
 } from "@/types/api/shippingStatus.types";
 
 export class ShippingStatusService {
@@ -18,18 +18,18 @@ export class ShippingStatusService {
     const itemMap: Item[][] = [];
     const statuses: ShippingStatus[] = [];
     let i = 0;
-    
+
     for (const pair of shippingNumberPairs) {
       const donorShippingNumber = pair.donorShippingNumber as string;
       const hfhShippingNumber = pair.hfhShippingNumber as string;
-      
+
       const status = await db.shippingStatus.findFirst({
         where: {
           donorShippingNumber: donorShippingNumber,
           hfhShippingNumber: hfhShippingNumber,
         },
       });
-      
+
       if (status) {
         statuses.push({ ...status, id: i });
       } else {
@@ -57,7 +57,9 @@ export class ShippingStatusService {
     };
   }
 
-  static async getPartnerShippingStatuses(partnerId: number): Promise<ShippingStatusWithItems> {
+  static async getPartnerShippingStatuses(
+    partnerId: number
+  ): Promise<ShippingStatusWithItems> {
     const shippingNumberPairs = await db.item.findMany({
       where: {
         AND: [
@@ -102,18 +104,18 @@ export class ShippingStatusService {
     const itemMap: Item[][] = [];
     const statuses: ShippingStatus[] = [];
     let i = 0;
-    
+
     for (const pair of shippingNumberPairs) {
       const donorShippingNumber = pair.donorShippingNumber as string;
       const hfhShippingNumber = pair.hfhShippingNumber as string;
-      
+
       const status = await db.shippingStatus.findFirst({
         where: {
           donorShippingNumber: donorShippingNumber,
           hfhShippingNumber: hfhShippingNumber,
         },
       });
-      
+
       if (status) {
         statuses.push({ ...status, id: i });
       } else {

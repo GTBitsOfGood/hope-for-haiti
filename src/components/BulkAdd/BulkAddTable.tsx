@@ -1,4 +1,5 @@
 import { useUser } from "@/components/context/UserContext";
+import BaseTable from "../BaseTable";
 
 type DataItem = {
   title: string;
@@ -51,202 +52,69 @@ export default function DataTable({ data }: DataTableProps) {
 
   return (
     <div className="p-4 mt-6 bg-zinc-100 border border-zinc-300 rounded">
-      <div className="overflow-x-auto rounded-lg border border-zinc-300">
-        <table className="min-w-full bg-white">
-          <thead>
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80">
-                Title
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Type
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Expiration
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Unit type
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Qty/Unit
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Donor Name
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Category
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Quantity
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Date Posted
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Lot Number
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Pallet
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Box Number
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Donor Shipping #
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                HfH Shipping #
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Unit Price
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Max Limit
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                NDC
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Visibility
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                Allocations
-              </th>
-              <th
-                className={
-                  "px-4 py-3 text-left font-semibold bg-[#2774ae] text-white opacity-80"
-                }
-              >
-                GIK
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item, index) => (
-              <tr
-                key={index}
-                className="odd:bg-zinc-100 border-b border-zinc-300"
-              >
-                {visibleHeaders.map((header) => (
-                  <td
-                    key={header}
-                    className="px-4 py-4 min-w-32 border-gray-300 font-light text-zinc-800"
-                  >
-                    <span
-                      className={`${
-                        header === "visible"
-                          ? item.visible
-                            ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                            : "bg-red-50 px-2 py-1 rounded text-red-700"
-                          : header === "gik"
-                            ? item.gik
-                              ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                              : "px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary"
-                            : header === "allowAllocations"
-                              ? item.allowAllocations
-                                ? "bg-green-50 px-2 py-1 rounded text-green-700"
-                                : "bg-red-50 px-2 py-1 rounded text-red-700"
-                              : ""
-                      }`}
-                    >
-                      {header === "visible"
-                        ? item.visible
-                          ? "Visible"
-                          : "Disabled"
-                        : header === "allowAllocations"
-                          ? item[header as keyof DataItem] === true
-                            ? "Allowed" // If `true`, show blank
-                            : "Disabled" // Otherwise, show the value
-                          : header === "gik"
-                            ? item[header as keyof DataItem] === true
-                              ? "GIK"
-                              : "Not GIK"
-                            : header === "expirationDate" ||
-                                header === "datePosted"
-                              ? formatDate(
-                                  item[header as keyof DataItem] as string
-                                ) // Format date fields
-                              : (item[header as keyof DataItem] as string)}
-                    </span>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <BaseTable
+        headers={[
+          "Title",
+          "Type",
+          "Expiration",
+          "Unit type",
+          "Qty/Unit",
+          "Donor Name",
+          "Category",
+          "Quantity",
+          "Date Posted",
+          "Lot Number",
+          "Pallet",
+          "Box Number",
+          "Donor Shipping #",
+          "HfH Shipping #",
+          "Unit Price",
+          "Max Limit",
+          "NDC",
+          "Visibility",
+          "Allocations",
+          "GIK",
+        ]}
+        rows={data.map((item) => ({
+          cells: visibleHeaders.map((header) => (
+            <span
+              className={`${
+                header === "visible"
+                  ? item.visible
+                    ? "bg-green-50 px-2 py-1 rounded text-green-700"
+                    : "bg-red-50 px-2 py-1 rounded text-red-700"
+                  : header === "gik"
+                    ? item.gik
+                      ? "bg-green-50 px-2 py-1 rounded text-green-700"
+                      : "px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary"
+                    : header === "allowAllocations"
+                      ? item.allowAllocations
+                        ? "bg-green-50 px-2 py-1 rounded text-green-700"
+                        : "bg-red-50 px-2 py-1 rounded text-red-700"
+                      : ""
+              }`}
+              key={header}
+            >
+              {header === "visible"
+                ? item.visible
+                  ? "Visible"
+                  : "Disabled"
+                : header === "allowAllocations"
+                  ? item[header as keyof DataItem] === true
+                    ? "Allowed" // If `true`, show blank
+                    : "Disabled" // Otherwise, show the value
+                  : header === "gik"
+                    ? item[header as keyof DataItem] === true
+                      ? "GIK"
+                      : "Not GIK"
+                    : header === "expirationDate" || header === "datePosted"
+                      ? formatDate(item[header as keyof DataItem] as string) // Format date fields
+                      : (item[header as keyof DataItem] as string)}
+            </span>
+          )),
+        }))}
+        
+      />
     </div>
   );
 }

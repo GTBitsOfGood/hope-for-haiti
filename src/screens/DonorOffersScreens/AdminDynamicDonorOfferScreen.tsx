@@ -17,6 +17,7 @@ import { formatTableValue } from "@/utils/format";
 import { Menu, MenuButton, MenuItems } from "@headlessui/react";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
+import BaseTable, { tableConditional } from "@/components/BaseTable";
 
 type DonorOfferItemWithRequests = DonorOfferItem & {
   requests: (DonorOfferItemRequest & {
@@ -35,9 +36,10 @@ export default function AdminDynamicDonorOfferScreen() {
   const [editing, setEditing] = useState(false);
   const [firstTime, setFirstTime] = useState(false);
 
-  const {
-    isLoading
-  } = useFetch<{ donorOffer: DonorOffer; itemsWithRequests: DonorOfferItemWithRequests[] }>(`/api/donorOffers/${donorOfferId}`, {
+  const { isLoading } = useFetch<{
+    donorOffer: DonorOffer;
+    itemsWithRequests: DonorOfferItemWithRequests[];
+  }>(`/api/donorOffers/${donorOfferId}`, {
     cache: "no-store",
     onSuccess: (data) => {
       const { donorOffer, itemsWithRequests } = data;
@@ -177,128 +179,89 @@ export default function AdminDynamicDonorOfferScreen() {
               )}
             </div>
           </div>
-          <div className="overflow-x-scroll">
-            <table className="mt-4 min-w-full">
-              <thead>
-                <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-                  <th className="px-4 py-2 rounded-tl-lg text-left">
-                    Item Name
-                  </th>
-                  <th className="px-4 py-2 text-left">Type</th>
-                  <th className="px-4 py-2 text-left">Expiration</th>
-                  <th className="px-4 py-2 text-left">Unit Type</th>
-                  <th className="px-4 py-2 text-left">Qty/Unit</th>
-                  <th className="px-4 py-2 text-left">Quantity</th>
-                  {donorOffer?.state === DonorOfferState.UNFINALIZED ? (
-                    <>
-                      <th className="px-4 py-2 text-left">Request Summary</th>
-                      <th className="px-4 py-2 rounded-tr-lg text-left">
-                        Request Quantity
-                      </th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="px-4 py-2 rounded-tr-lg w-12 text-left">
-                        Manage
-                      </th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <React.Fragment key={index}>
-                    <tr
-                      data-odd={index % 2 !== 0}
-                      className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors ${donorOffer?.state === DonorOfferState.FINALIZED ? "cursor-pointer data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100" : ""}`}
-                      onClick={() =>
-                        donorOffer?.state === DonorOfferState.FINALIZED &&
-                        router.push(
-                          `/donorOffers/${donorOfferId}/itemRequests/${item.id}`
-                        )
-                      }
-                    >
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.title)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.type)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {item.expirationDate
-                          ? new Date(item.expirationDate).toLocaleDateString()
-                          : "None"}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.unitType)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.quantityPerUnit)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.quantity)}
-                      </td>
-                      {donorOffer?.state === DonorOfferState.UNFINALIZED && (
-                        <>
-                          <td className="px-4 py-2">
-                            {item.requests?.length > 0 ? (
-                              <div>
-                                Total -{" "}
-                                {item.requests?.reduce(
-                                  (sum, request) => sum + request.quantity,
-                                  0
-                                )}
-                                {item.requests?.map((request) => (
-                                  <div key={request.id}>
-                                    {request.partner.name} - {request.quantity}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="inline-block border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-20 text-sm font-semibold select-none">
-                                No Requests
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-2">
-                            {editing ? (
-                              <input
-                                type="number"
-                                className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                min={0}
-                                value={item.requestQuantity || 0}
-                                onChange={(e) =>
-                                  setRequestQuantity(
-                                    index,
-                                    parseInt(e.currentTarget.value)
-                                  )
-                                }
-                              />
-                            ) : (
-                              <p>{item.requestQuantity}</p>
-                            )}
-                          </td>
-                        </>
-                      )}
-                      {donorOffer?.state === DonorOfferState.FINALIZED && (
-                        <td
-                          className="px-4 py-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Menu as="div" className="float-right relative">
-                            <MenuButton>
-                              <DotsThree weight="bold" />
-                            </MenuButton>
-                            <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max"></MenuItems>
-                          </Menu>
-                        </td>
-                      )}
-                    </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <BaseTable
+            headers={[
+              "Item Name",
+              "Type",
+              "Expiration",
+              "Unit Type",
+              "Qty/Unit",
+              "Quantity",
+              tableConditional(
+                donorOffer?.state === DonorOfferState.UNFINALIZED,
+                ["Request Summary", "Request Quantity"],
+                ["Manage"]
+              ),
+            ]}
+            rows={items.map((item) => ({
+              cells: [
+                item.title,
+                item.type,
+                item.expirationDate
+                  ? new Date(item.expirationDate).toLocaleDateString()
+                  : "None",
+                item.unitType,
+                item.quantityPerUnit,
+                item.quantity,
+                ...(donorOffer?.state === DonorOfferState.UNFINALIZED
+                  ? [
+                      item.requests?.length > 0 ? (
+                        <div>
+                          Total -{" "}
+                          {item.requests?.reduce(
+                            (sum, request) => sum + request.quantity,
+                            0
+                          )}
+                          {item.requests?.map((request) => (
+                            <div key={request.id}>
+                              {request.partner.name} - {request.quantity}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="inline-block border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-20 text-sm font-semibold select-none">
+                          No Requests
+                        </div>
+                      ),
+                      editing ? (
+                        <input
+                          type="number"
+                          className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          min={0}
+                          value={item.requestQuantity || 0}
+                          onChange={(e) =>
+                            setRequestQuantity(
+                              items.indexOf(item),
+                              parseInt(e.currentTarget.value)
+                            )
+                          }
+                        />
+                      ) : (
+                        <p>{item.requestQuantity}</p>
+                      ),
+                    ]
+                  : [
+                      <div onClick={(e) => e.stopPropagation()} key={1}>
+                        <Menu as="div" className="float-right relative">
+                          <MenuButton>
+                            <DotsThree weight="bold" />
+                          </MenuButton>
+                          <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max"></MenuItems>
+                        </Menu>
+                      </div>,
+                    ]),
+              ],
+              onClick:
+                donorOffer?.state === DonorOfferState.FINALIZED
+                  ? () => {
+                      router.push(
+                        `/donorOffers/${donorOfferId}/itemRequests/${item.id}`
+                      );
+                    }
+                  : undefined,
+            }))}
+            
+          />
         </>
       )}
     </>

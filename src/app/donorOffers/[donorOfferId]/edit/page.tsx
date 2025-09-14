@@ -15,6 +15,7 @@ import { Check, Pencil, Plus, Trash } from "@phosphor-icons/react";
 import toast from "react-hot-toast";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
+import BaseTable from "@/components/BaseTable";
 
 interface DonorOfferItem {
   id?: number;
@@ -134,11 +135,15 @@ export default function EditDonorOfferPage() {
     });
 
     try {
-      await apiClient.put(`/api/donorOffers/${donorOfferId}/edit`, { body: formData });
+      await apiClient.put(`/api/donorOffers/${donorOfferId}/edit`, {
+        body: formData,
+      });
       setIsSuccess(true);
     } catch (error) {
       console.error("Error updating donor offer:", error);
-      setErrors(["An error occurred while updating the donor offer. Please try again."]);
+      setErrors([
+        "An error occurred while updating the donor offer. Please try again.",
+      ]);
     }
   };
 
@@ -212,158 +217,115 @@ export default function EditDonorOfferPage() {
           />
         </div>
       </div>
-
-      <div className="overflow-x-scroll">
-        <table className="mt-4 min-w-full">
-          <thead>
-            <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-              <th className="px-4 py-2 rounded-tl-lg text-left">Item Name</th>
-              <th className="px-4 py-2 text-left">Type</th>
-              <th className="px-4 py-2 text-left">Quantity</th>
-              <th className="px-4 py-2 text-left">Expiration</th>
-              <th className="px-4 py-2 text-left">Unit Type</th>
-              <th className="px-4 py-2 text-left">Qty/Unit</th>
-              <th className="px-4 py-2 text-left rounded-tr-lg"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => (
-              <React.Fragment key={index}>
-                <tr
-                  data-odd={index % 2 !== 0}
-                  className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
-                >
-                  <td className="px-4 py-2">
-                    {item.editing ? (
-                      <input
-                        type="text"
-                        value={item.title}
-                        onChange={(e) =>
-                          handleItemChange(index, "title", e.target.value)
-                        }
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    ) : (
-                      item.title
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {item.editing ? (
-                      <input
-                        type="text"
-                        value={item.type}
-                        onChange={(e) =>
-                          handleItemChange(index, "type", e.target.value)
-                        }
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    ) : (
-                      item.type
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {item.editing ? (
-                      <input
-                        type="number"
-                        min={0}
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            "quantity",
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    ) : (
-                      item.quantity
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {item.editing ? (
-                      <input
-                        type="date"
-                        value={item.expirationDate}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            "expirationDate",
-                            e.target.value
-                          )
-                        }
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    ) : item.expirationDate ? (
-                      new Date(item.expirationDate).toLocaleDateString()
-                    ) : (
-                      "None"
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {item.editing ? (
-                      <input
-                        type="text"
-                        value={item.unitType}
-                        onChange={(e) =>
-                          handleItemChange(index, "unitType", e.target.value)
-                        }
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    ) : (
-                      item.unitType
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {item.editing ? (
-                      <input
-                        type="number"
-                        min={0}
-                        value={item.quantityPerUnit}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            "quantityPerUnit",
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    ) : (
-                      item.quantityPerUnit
-                    )}
-                  </td>
-                  {!item.editing ? (
-                    <td className="px-4 py-2">
-                      <button onClick={() => handleToggleEdit(index)}>
-                        <Pencil size={20} />
-                      </button>
-                    </td>
-                  ) : (
-                    <td className="px-4 py-2 flex gap-2">
-                      <button onClick={() => handleSaveItem(index)}>
-                        <Check size={20} />
-                      </button>
-                      {!item.id && (
-                        <button
-                          onClick={() => {
-                            const newItems = items.filter(
-                              (_, i) => i !== index
-                            );
-                            setData(newItems);
-                          }}
-                        >
-                          <Trash size={20} />
-                        </button>
-                      )}
-                    </td>
+      <BaseTable
+        headers={[
+          "Item Name",
+          "Type",
+          "Quantity",
+          "Expiration",
+          "Unit Type",
+          "Qty/Unit",
+          "",
+        ]}
+        rows={items.map((item, index) => ({
+          cells: item.editing
+            ? [
+                <input
+                  type="text"
+                  value={item.title}
+                  key="title"
+                  onChange={(e) =>
+                    handleItemChange(index, "title", e.target.value)
+                  }
+                  className="w-full px-2 py-1 border rounded"
+                />,
+                <input
+                  type="text"
+                  value={item.type}
+                  key="type"
+                  onChange={(e) =>
+                    handleItemChange(index, "type", e.target.value)
+                  }
+                  className="w-full px-2 py-1 border rounded"
+                />,
+                <input
+                  type="number"
+                  min={0}
+                  value={item.quantity}
+                  key="quantity"
+                  onChange={(e) =>
+                    handleItemChange(
+                      index,
+                      "quantity",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  className="w-full px-2 py-1 border rounded"
+                />,
+                <input
+                  type="date"
+                  value={item.expirationDate}
+                  key="expirationDate"
+                  onChange={(e) =>
+                    handleItemChange(index, "expirationDate", e.target.value)
+                  }
+                  className="w-full px-2 py-1 border rounded"
+                />,
+                <input
+                  type="text"
+                  value={item.unitType}
+                  key="unitType"
+                  onChange={(e) =>
+                    handleItemChange(index, "unitType", e.target.value)
+                  }
+                  className="w-full px-2 py-1 border rounded"
+                />,
+                <input
+                  type="number"
+                  min={0}
+                  value={item.quantityPerUnit}
+                  key="quantityPerUnit"
+                  onChange={(e) =>
+                    handleItemChange(
+                      index,
+                      "quantityPerUnit",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  className="w-full px-2 py-1 border rounded"
+                />,
+                <div className="flex gap-2" key="saveItem">
+                  <button onClick={() => handleSaveItem(index)}>
+                    <Check size={20} />
+                  </button>
+                  {!item.id && (
+                    <button
+                      onClick={() => {
+                        const newItems = items.filter((_, i) => i !== index);
+                        setData(newItems);
+                      }}
+                    >
+                      <Trash size={20} />
+                    </button>
                   )}
-                </tr>
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>,
+              ]
+            : [
+                item.title,
+                item.type,
+                item.quantity,
+                item.expirationDate
+                  ? new Date(item.expirationDate).toLocaleDateString()
+                  : "None",
+                item.unitType,
+                item.quantityPerUnit,
+                <button onClick={() => handleToggleEdit(index)} key="editItem">
+                  <Pencil size={20} />
+                </button>,
+              ],
+        }))}
+        
+      />
       <button
         onClick={handleAddItem}
         className="mt-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"

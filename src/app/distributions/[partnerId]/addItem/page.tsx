@@ -7,11 +7,11 @@ import { ChatTeardropText, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
-import { formatTableValue } from "@/utils/format";
 import AddToDistributionModal from "@/components/AddToDistributionModal";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
+import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 interface Partner {
   name: string;
@@ -50,7 +50,10 @@ export default function AddItemToDistributionPage() {
 
   const isLoading = partnerLoading || itemsLoading;
 
-  const handleAddToDistribution = async (quantity: number, visible: boolean): Promise<boolean> => {
+  const handleAddToDistribution = async (
+    quantity: number,
+    visible: boolean
+  ): Promise<boolean> => {
     if (!selectedItem) return false;
 
     const body = new FormData();
@@ -128,99 +131,65 @@ export default function AddItemToDistributionPage() {
               className="pl-10 pr-4 py-2 w-full border border-gray-primary border-opacity-10 rounded-lg bg-gray-100 text-gray-primary focus:outline-none focus:border-gray-400"
             />
           </div>
-
-          <div className="overflow-x-scroll pb-2">
-            <table className="mt-4 min-w-full">
-              <thead>
-                <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                  <th className="px-4 py-2 min-w-32 rounded-tl-lg text-left">
-                    Name
-                  </th>
-                  <th className="px-4 py-2 min-w-32 text-left">Quantity</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Donor name</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Pallet</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Box number</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Lot number</th>
-                  <th className="px-4 py-2 min-w-32 text-left">Unit price</th>
-                  <th className="px-4 py-2 min-w-32 text-left">
-                    Donor Shipping #
-                  </th>
-                  <th className="px-4 py-2 min-w-32 text-left">
-                    HfH Shipping #
-                  </th>
-                  <th className="px-4 py-2 min-w-32 text-left">Comment</th>
-                  <th className="px-4 py-2 rounded-tr-lg text-left w-12">
-                    Add
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems?.map((item, index) => (
-                  <React.Fragment key={index}>
-                    <tr
-                      data-odd={index % 2 !== 0}
-                      className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
-                    >
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.title)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.quantity)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.donorName)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.palletNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.boxNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.lotNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.unitPrice)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.donorShippingNumber)}
-                      </td>
-                      <td className="px-4 py-2">
-                        {formatTableValue(item.hfhShippingNumber)}
-                      </td>
-                      <td className="px-4 py-2 flex justify-center">
-                        <ChatTeardropText
-                          data-tooltip-id={`comment-tooltip-${item.id}`}
-                          data-tooltip-content={item.notes}
-                          size={30}
-                          color={item.notes ? "black" : "lightgray"}
-                        />
-                        {item.notes && (
-                          <Tooltip
-                            id={`comment-tooltip-${item.id}`}
-                            className="max-w-40"
-                          >
-                            {item.notes}
-                          </Tooltip>
-                        )}
-                      </td>
-                      <td className="px-4 py-2">
-                        <button
-                          className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
-                          onClick={() => {
-                            setSelectedItem(item);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          <Plus className="text-blue-primary" weight="bold" />
-                        </button>
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {lineItems && (
+            <BaseTable
+              headers={[
+                "Name",
+                "Quantity",
+                "Donor name",
+                "Pallet",
+                "Box number",
+                "Lot number",
+                "Unit price",
+                "Donor Shipping #",
+                "HfH Shipping #",
+                "Comment",
+                extendTableHeader("Add", "w-12"),
+              ]}
+              rows={lineItems.map((item) => ({
+                cells: [
+                  item.title,
+                  item.quantity,
+                  item.donorName,
+                  item.palletNumber,
+                  item.boxNumber,
+                  item.lotNumber,
+                  item.unitPrice.toString(),
+                  item.donorShippingNumber,
+                  item.hfhShippingNumber,
+                  <div className="flex justify-center" key="itemNotes">
+                    <ChatTeardropText
+                      data-tooltip-id={`comment-tooltip-${item.id}`}
+                      data-tooltip-content={item.notes}
+                      size={30}
+                      color={item.notes ? "black" : "lightgray"}
+                      key="itemNotes"
+                    />
+                    {item.notes && (
+                      <Tooltip
+                        id={`comment-tooltip-${item.id}`}
+                        className="max-w-40"
+                      >
+                        {item.notes}
+                      </Tooltip>
+                    )}
+                  </div>,
+                  <button
+                    className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setIsModalOpen(true);
+                    }}
+                    key="addButton"
+                  >
+                    <Plus className="text-blue-primary" weight="bold" />
+                  </button>,
+                ],
+              }))}
+              headerCellStyles="min-w-32"
+              
+            />
+          )}
         </>
       )}
       {isModalOpen && selectedItem && partner?.name && (

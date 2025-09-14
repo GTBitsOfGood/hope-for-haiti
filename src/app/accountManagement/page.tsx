@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
 import { useFetch } from "@/hooks/useFetch";
 import { isStaff, isPartner, formatUserType } from "@/lib/userUtils";
+import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 enum UserFilterKey {
   ALL = "All",
@@ -93,52 +94,36 @@ export default function AccountManagementPage() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-scroll">
-          <table className="mt-4">
-            <thead>
-              <tr className="bg-gray-100 border-b-2 font-bold">
-                <th className="px-4 py-2 text-left w-1/5 rounded-tl-lg">
-                  Name
-                </th>
-                <th className="px-4 py-2 text-left w-1/5">Email</th>
-                <th className="px-4 py-2 text-left w-1/5">Role</th>
-                <th className="px-4 py-2 text-left w-1/5">Status</th>
-                <th className="px-4 py-2 text-left rounded-tr-lg w-1/12">
-                  Manage
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user, index) => (
-                <tr
-                  key={index}
-                  data-odd={index % 2 !== 0}
-                  className="bg-white data-[odd=true]:bg-gray-50"
-                >
-                  <td className="border-b px-4 py-2">{user.name}</td>
-                  <td className="border-b px-4 py-2">{user.email}</td>
-                  <td className="border-b px-4 py-2">
-                    {formatUserType(user.type)}
-                  </td>
-                  <td className="border-b px-4 py-2">
-                    <span className="px-2 py-1 rounded bg-green-primary whitespace-nowrap">
-                      Account created
-                    </span>
-                  </td>
-                  <td className="border-b px-4 py-2">
-                    <div className="float-right">
-                      <DotsThree
-                        weight="bold"
-                        className="cursor-pointer"
-                        onClick={() => {}}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <BaseTable
+          headers={[
+            "Name",
+            "Email",
+            "Role",
+            "Status",
+            extendTableHeader("Manage", "w-1/12"),
+          ]}
+          rows={filteredUsers.map((user) => ({
+            cells: [
+              user.name,
+              user.email,
+              formatUserType(user.type),
+              <span
+                className="px-2 py-1 rounded bg-green-primary whitespace-nowrap"
+                key="status"
+              >
+                Account created
+              </span>,
+              <div className="float-right" key="options">
+                <DotsThree
+                  weight="bold"
+                  className="cursor-pointer"
+                  onClick={() => {}}
+                />
+              </div>,
+            ],
+          }))}
+          
+        />
       )}
 
       {isInviteModalOpen && (

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { useRouter } from "next/navigation";
+import BaseTable from "@/components/BaseTable";
 
 // Define the tab options
 enum DistributionTab {
@@ -144,53 +145,31 @@ export default function AdminDistributionsScreen() {
                 No in-progress distributions to display.
               </p>
             ) : (
-              <div className="overflow-x-scroll">
-                <table className="mt-4 min-w-full">
-                  <thead>
-                    <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                      <th className="px-4 py-2 rounded-tl-lg text-left">
-                        Partner Name
-                      </th>
-                      <th className="px-4 py-2 text-left">
-                        Visible Allocations
-                      </th>
-                      <th className="px-4 py-2 text-left">
-                        Hidden Allocations
-                      </th>
-                      <th className="px-4 py-2 rounded-tr-lg text-left">
-                        Pending Sign Offs
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partnerAllocations.map((partner, index) => (
-                      <tr
-                        key={index}
-                        data-odd={index % 2 !== 0}
-                        className="bg-white data-[odd=true]:bg-gray-50 border-b transition-colors"
-                      >
-                        <td
-                          className="px-4 py-2 hover:underline cursor-pointer"
-                          onClick={() =>
-                            router.push(`/distributions/${partner.partnerId}`)
-                          }
-                        >
-                          {partner.partnerName}
-                        </td>
-                        <td className="px-4 py-2">
-                          {partner.visibleAllocationsCount}
-                        </td>
-                        <td className="px-4 py-2">
-                          {partner.hiddenAllocationsCount}
-                        </td>
-                        <td className="px-4 py-2">
-                          {partner.pendingSignOffCount}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <BaseTable
+                headers={[
+                  "Partner Name",
+                  "Visible Allocations",
+                  "Hidden Allocations",
+                  "Pending Sign Offs",
+                ]}
+                rows={partnerAllocations.map((partner) => ({
+                  cells: [
+                    <span
+                      className="hover:underline cursor-pointer"
+                      key={1}
+                      onClick={() =>
+                        router.push(`/distributions/${partner.partnerId}`)
+                      }
+                    >
+                      {partner.partnerName}
+                    </span>,
+                    partner.visibleAllocationsCount,
+                    partner.hiddenAllocationsCount,
+                    partner.pendingSignOffCount,
+                  ],
+                }))}
+                
+              />
             )}
           </>
         ) : (
@@ -200,44 +179,25 @@ export default function AdminDistributionsScreen() {
                 No completed distributions to display.
               </p>
             ) : (
-              <div className="overflow-x-scroll">
-                <table className="mt-4 min-w-full">
-                  <thead>
-                    <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                      <th className="px-4 py-2 rounded-tl-lg text-left">
-                        Partner Name
-                      </th>
-                      <th className="px-4 py-2 text-left">Staff Member</th>
-                      <th className="px-4 py-2 text-left">Date</th>
-                      <th className="px-4 py-2 text-left">Created At</th>
-                      <th className="px-4 py-2 rounded-tr-lg text-left">
-                        Distributions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {signoffs.map((signoff, index) => (
-                      <tr
-                        key={index}
-                        data-odd={index % 2 !== 0}
-                        className="bg-white data-[odd=true]:bg-gray-50 border-b transition-colors"
-                      >
-                        <td className="px-4 py-2">{signoff.partnerName}</td>
-                        <td className="px-4 py-2">{signoff.staffMemberName}</td>
-                        <td className="px-4 py-2">
-                          {formatDate(signoff.date)}
-                        </td>
-                        <td className="px-4 py-2">
-                          {formatDate(signoff.createdAt)}
-                        </td>
-                        <td className="px-4 py-2">
-                          {signoff._count.distributions}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <BaseTable
+                headers={[
+                  "Partner Name",
+                  "Staff Member",
+                  "Date",
+                  "Created At",
+                  "Distributions",
+                ]}
+                rows={signoffs.map((signoff) => ({
+                  cells: [
+                    signoff.partnerName,
+                    signoff.staffMemberName,
+                    formatDate(signoff.date),
+                    formatDate(signoff.createdAt),
+                    signoff._count?.distributions,
+                  ],
+                }))}
+                
+              />
             )}
           </>
         )}

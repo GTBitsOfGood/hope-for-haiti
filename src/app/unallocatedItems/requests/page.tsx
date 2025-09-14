@@ -13,11 +13,11 @@ import {
 } from "@prisma/client";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
-import { formatTableValue } from "@/utils/format";
 import EditAllocationModal from "@/components/EditAllocationModal";
 import { UnallocatedItem } from "@/types/api/unallocatedItem.types";
 import PriorityTag from "@/components/PriorityTag";
 import { useFetch } from "@/hooks/useFetch";
+import BaseTable from "@/components/BaseTable";
 
 type RequestWithAllocations = UnallocatedItemRequest & {
   allocations: (UnallocatedItemRequestAllocation & {
@@ -37,13 +37,15 @@ export default function UnallocatedItemRequestsPage() {
     type: searchParams.get("type") || "",
     unitType: searchParams.get("unitType") || "",
     quantityPerUnit: searchParams.get("quantityPerUnit") || "",
-    ...(searchParams.get("expirationDate") && { 
-      expirationDate: searchParams.get("expirationDate") 
+    ...(searchParams.get("expirationDate") && {
+      expirationDate: searchParams.get("expirationDate"),
     }),
   };
 
   const generalItemForUrl = Object.fromEntries(
-    Object.entries(generalItem).filter(([, value]) => value !== null && value !== undefined)
+    Object.entries(generalItem).filter(
+      ([, value]) => value !== null && value !== undefined
+    )
   ) as Record<string, string>;
 
   const [isEditAllocationModalIsOpen, setIsEditAllocationModalIsOpen] =
@@ -90,7 +92,9 @@ export default function UnallocatedItemRequestsPage() {
     );
   };
 
-  const handleEditAllocation = (allocation: UnallocatedItemRequestAllocation & { unallocatedItem: Item }) => {
+  const handleEditAllocation = (
+    allocation: UnallocatedItemRequestAllocation & { unallocatedItem: Item }
+  ) => {
     setIsSuccess(false);
     setSelectedAllocation(allocation);
     setIsEditAllocationModalIsOpen(true);
@@ -153,102 +157,78 @@ export default function UnallocatedItemRequestsPage() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-scroll">
-          <table className="mt-4 min-w-full">
-            <thead>
-              <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                <th className="px-4 py-2 rounded-tl-lg text-left">Partner</th>
-                <th className="px-4 py-2 text-left">Date requested</th>
-                <th className="px-4 py-2 text-left">Requested quantity</th>
-                <th className="px-4 py-2 text-left">Priority</th>
-                <th className="px-4 py-2 text-left">Allocated quantity</th>
-                <th className="px-4 py-2 text-left">
-                  Allocated summary (lot, pallet, box)
-                </th>
-                <th className="px-4 py-2 rounded-tr-lg text-left">Comment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((request, index) => (
-                <React.Fragment key={index}>
-                  <tr
-                    data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors hover:bg-gray-100`}
+        <BaseTable
+          headers={[
+            "Partner",
+            "Date requested",
+            "Requested quantity",
+            "Priority",
+            "Allocated quantity",
+            "Allocated summary (lot, pallet, box)",
+            "Comment",
+          ]}
+          rows={requests.map((request) => ({
+            cells: [
+              request.partner.name,
+              new Date(request.createdAt).toLocaleDateString(),
+              request.quantity,
+              <PriorityTag priority={request.priority} key="priority" />,
+              request.allocations.reduce(
+                (sum, alloc) => sum + alloc.quantity,
+                0
+              ),
+              <div key="allocations">
+                {request.allocations.map((alloc) => (
+                  <div
+                    key={alloc.id}
+                    className="hover:text-red-500 cursor-pointer"
+                    onClick={() => handleEditAllocation(alloc)}
                   >
-                    <td className="px-4 py-2">
-                      {formatTableValue(request.partner.name)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {new Date(request.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(request.quantity)}
-                    </td>
-                    <td className="px-4 py-2">
-                      <PriorityTag priority={request.priority} />
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(
-                        request.allocations?.reduce(
-                          (sum, alloc) => sum + alloc.quantity,
-                          0
-                        )
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {request.allocations.map((alloc) => (
-                        <div
-                          key={alloc.id}
-                          className="hover:text-red-500 cursor-pointer"
-                          onClick={() => handleEditAllocation(alloc)}
-                        >
-                          {`${alloc.quantity} - ${alloc.unallocatedItem.lotNumber}, ${alloc.unallocatedItem.palletNumber}, ${alloc.unallocatedItem.boxNumber}`}
-                        </div>
-                      ))}
-                      {request.allocations && request.allocations.length > 0 ? (
-                        <>
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleAddAllocation(request.id);
-                            }}
-                            className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70"
-                          >
-                            + Add
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleAddAllocation(request.id);
-                          }}
-                          className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100"
-                        >
-                          + Add Allocation
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 flex justify-center">
-                      <ChatTeardropText
-                        data-tooltip-id={`comment-tooltip-${request.id}`}
-                        data-tooltip-content={request.comments}
-                        size={30}
-                        color={request.comments ? "black" : "lightgray"}
-                      />
-                      {request.comments && (
-                        <Tooltip
-                          id={`comment-tooltip-${request.id}`}
-                          className="max-w-40"
-                        />
-                      )}
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    {`${alloc.quantity} - ${alloc.unallocatedItem.lotNumber}, ${alloc.unallocatedItem.palletNumber}, ${alloc.unallocatedItem.boxNumber}`}
+                  </div>
+                ))}
+                {request.allocations && request.allocations.length > 0 ? (
+                  <>
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleAddAllocation(request.id);
+                      }}
+                      className="mt-1 rounded-md px-2 py-1 text-gray-primary bg-gray-primary bg-opacity-5 text-opacity-50 text-sm transition hover:bg-opacity-10 hover:text-opacity-70"
+                    >
+                      + Add
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleAddAllocation(request.id);
+                    }}
+                    className="border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-50 text-sm transition hover:opacity-100"
+                  >
+                    + Add Allocation
+                  </button>
+                )}
+              </div>,
+              <div key="comment">
+                <ChatTeardropText
+                  data-tooltip-id={`comment-tooltip-${request.id}`}
+                  data-tooltip-content={request.comments}
+                  size={30}
+                  color={request.comments ? "black" : "lightgray"}
+                />
+                {request.comments && (
+                  <Tooltip
+                    id={`comment-tooltip-${request.id}`}
+                    className="max-w-40"
+                  />
+                )}
+              </div>,
+            ],
+          }))}
+          
+        />
       )}
     </>
   );

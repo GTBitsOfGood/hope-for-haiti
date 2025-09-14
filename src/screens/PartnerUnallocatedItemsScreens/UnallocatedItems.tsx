@@ -3,7 +3,6 @@
 import ModalDropDown from "@/components/ModalDropDown";
 import ModalTextField from "@/components/ModalTextField";
 import PriorityTag from "@/components/PriorityTag";
-import { formatTableValue } from "@/utils/format";
 import { MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { RequestPriority } from "@prisma/client";
 import { format } from "date-fns";
@@ -12,6 +11,8 @@ import toast from "react-hot-toast";
 import { CgSpinner } from "react-icons/cg";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
+import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import OptionsTag from "@/components/OptionsTag";
 
 export const priorityOptions = [
   {
@@ -77,6 +78,15 @@ interface RequestData {
   comments: string;
 }
 
+function RequestedTag({ requested }: { requested: boolean }) {
+  const requestedString = requested.toString();
+  const styleMap = new Map([
+    ["true", { className: "bg-amber-primary/20", text: "Requested" }],
+    ["false", { className: "bg-gray-primary/5", text: "None" }],
+  ]);
+  return <OptionsTag styleMap={styleMap} value={requestedString} />;
+}
+
 function RequestItemsModal({
   onClose,
   items,
@@ -113,7 +123,10 @@ function RequestItemsModal({
     }
 
     try {
-      const requestData = items.map((item, i) => ({ generalItem: item, ...formData[i] }));
+      const requestData = items.map((item, i) => ({
+        generalItem: item,
+        ...formData[i],
+      }));
       await apiClient.post("/api/unallocatedItemRequest", {
         body: JSON.stringify(requestData),
       });
@@ -234,20 +247,19 @@ export default function UnallocatedItems() {
 
   const [requestModalOpen, setRequestModalOpen] = useState(false);
 
-  const { isLoading, refetch: refetchItems } = useFetch<{ items: GeneralItem[] }>(
-    "/api/unallocatedItems",
-    {
-      cache: "no-store",
-      onSuccess: (data) => {
-        setItems(data.items);
-        setFilteredItems(data.items);
-      },
-      onError: (error) => {
-        console.error("Error fetching unallocated items:", error);
-        toast.error("Failed to fetch unallocated items");
-      },
-    }
-  );
+  const { isLoading, refetch: refetchItems } = useFetch<{
+    items: GeneralItem[];
+  }>("/api/unallocatedItems", {
+    cache: "no-store",
+    onSuccess: (data) => {
+      setItems(data.items);
+      setFilteredItems(data.items);
+    },
+    onError: (error) => {
+      console.error("Error fetching unallocated items:", error);
+      toast.error("Failed to fetch unallocated items");
+    },
+  });
 
   useEffect(() => {
     setSelectedItems((prev) =>
@@ -308,79 +320,49 @@ export default function UnallocatedItems() {
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
       ) : (
-        <div className="overflow-x-scroll">
-          <table className="mt-4 rounded-t-lg overflow-hidden table-fixed w-full">
-            <thead>
-              <tr className="bg-blue-primary opacity-80 text-white font-bold border-b-2">
-                <th className="px-4 py-2 w-[48px]"></th>
-                <th className="px-4 py-2 text-left font-bold">Title</th>
-                <th className="px-4 py-2 text-left font-bold">Type</th>
-                <th className="px-4 py-2 text-left font-bold">Quantity</th>
-                <th className="px-4 py-2 text-left font-bold">Expiration</th>
-                <th className="px-4 py-2 text-left font-bold">Unit type</th>
-                <th className="px-4 py-2 text-left font-bold">Qty/Unit</th>
-                <th className="pl-4 py-2 text-left font-bold">Request</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredItems.map((item, index) => (
-                <React.Fragment key={JSON.stringify(item)}>
-                  <tr
-                    data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 break-words`}
-                  >
-                    <td className="px-4 py-2">
-                      {!item.requested && (
-                        <input
-                          className="rounded bg-gray-primary bg-opacity-[0.025] border-gray-primary border-opacity-10"
-                          type="checkbox"
-                          name={`item-${index}`}
-                          checked={selectedItems.includes(item)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              addToSelectedItems(item);
-                            } else {
-                              removeFromSelectedItems(item);
-                            }
-                          }}
-                        />
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.title)}
-                    </td>
-                    <td className="px-4 py-2">{formatTableValue(item.type)}</td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.quantity)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {item.expirationDate
-                        ? new Date(item.expirationDate).toLocaleDateString()
-                        : "N/A"}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.unitType)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatTableValue(item.quantityPerUnit)}
-                    </td>
-                    <td className="px-4 py-2">
-                      {item.requested ? (
-                        <div className="px-2 py-0.5 inline-block rounded bg-amber-primary bg-opacity-20 text-gray-primary">
-                          Requested
-                        </div>
-                      ) : (
-                        <div className="px-2 py-0.5 inline-block rounded bg-gray-primary bg-opacity-5 text-gray-primary">
-                          None
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <BaseTable
+          headers={[
+            extendTableHeader("", "w-[48px]"),
+            "Title",
+            "Type",
+            "Quantity",
+            "Expiration",
+            "Unit type",
+            "Qty/Unit",
+            "Request",
+          ]}
+          rows={filteredItems.map((item) => ({
+            cells: [
+              <div key="checkbox">
+                {!item.requested ? (
+                  <input
+                    className="rounded bg-gray-primary bg-opacity-[0.025] border-gray-primary border-opacity-10"
+                    type="checkbox"
+                    name={`item-${item.title}-${item.expirationDate}`}
+                    checked={selectedItems.includes(item)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        addToSelectedItems(item);
+                      } else {
+                        removeFromSelectedItems(item);
+                      }
+                    }}
+                  />
+                ) : undefined}
+              </div>,
+              item.title,
+              item.type,
+              item.quantity,
+              item.expirationDate
+                ? new Date(item.expirationDate).toLocaleDateString()
+                : "N/A",
+              item.unitType,
+              item.quantityPerUnit,
+              <RequestedTag requested={item.requested} key="requested" />,
+            ],
+          }))}
+          
+        />
       )}
 
       {requestModalOpen && (

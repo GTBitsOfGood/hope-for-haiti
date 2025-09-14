@@ -3,6 +3,7 @@ import React from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
 import { ChatTeardropText } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
+import BaseTable from "./BaseTable";
 
 interface ShippingItemsModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen
@@ -30,76 +31,54 @@ export default function ShippingItemsModal({
             className="cursor-pointer"
           />
         </div>
-        <div className="overflow-x-scroll overflow-y-scroll my-4">
-          {/*TODO: COPY FROM HIDDEN/VISIBLE ITEMS TABLES TO POPULATE THIS */}
-          <table className="rounded-t-lg overflow-hidden table-fixed w-full">
-            <thead>
-              <tr className="bg-[#2774AE] bg-opacity-80 text-white border-b-2 break-words">
-                <th className="px-4 py-4 text-left font-bold">Name</th>
-                <th className="px-4 py-4 text-left font-bold">
-                  Quantity Allocated
-                </th>
-                <th className="px-4 py-4 text-left font-bold">
-                  Qty Avail/Total
-                </th>
-                <th className="px-4 py-4 text-left font-bold">Donor Name</th>
-                <th className="px-4 py-4 text-left font-bold">Pallet</th>
-                <th className="px-4 py-4 text-left font-bold">Box Number</th>
-                <th className="px-4 py-4 text-left font-bold">Lot Number</th>
-                <th className="px-4 py-4 text-left font-bold">Unit Price</th>
-                <th className="px-4 py-4 text-left font-bold">
-                  Donor Shipping #
-                </th>
-                <th className="px-4 py-4 text-left font-bold">
-                  HfH Shipping #
-                </th>
-                <th className="px-4 py-4 text-left font-bold">Comment</th>
-                <th className="px-4 py-4 text-left font-bold">Manage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <React.Fragment key={index}>
-                  <tr
-                    data-odd={index % 2 !== 0}
-                    className={`bg-white data-[odd=true]:bg-gray-50 break-words`}
-                  >
-                    <td className="px-4 py-2">{item.title}</td>
-                    <td className="px-4 py-2">{item.quantityAllocated}</td>
-                    <td className="px-4 py-2">
-                      {item.quantityAvailable}/{item.quantityTotal}
-                    </td>
-                    <td className="px-4 py-2">{item.donorName}</td>
-                    <td className="px-4 py-2">{item.palletNumber}</td>
-                    <td className="px-4 py-2">{item.boxNumber}</td>
-                    <td className="px-4 py-2">{item.lotNumber}</td>
-                    <td className="px-4 py-2">{item.unitPrice}</td>
-                    <td className="px-4 py-2">{item.donorShippingNumber}</td>
-                    <td className="px-4 py-2">{item.hfhShippingNumber}</td>
-                    <td className="px-4 py-2">
-                      <ChatTeardropText
-                        data-tooltip-id={`comment-tooltip-${index}`}
-                        data-tooltip-content={item.comment}
-                        className={`cursor-pointer`}
-                        size={30}
-                        weight={item.comment ? "bold" : "regular"}
-                      />
-                      {item.comment && (
-                        <Tooltip
-                          id={`comment-tooltip-${index}`}
-                          className="max-w-40"
-                        />
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <DotsThree size={24} />
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/*remember to make fixed with*/}
+        <BaseTable
+          headers={[
+            "Name",
+            "Quantity Allocated",
+            "Qty Avail/Total",
+            "Donor Name",
+            "Pallet",
+            "Box Number",
+            "Lot Number",
+            "Unit Price",
+            "Donor Shipping #",
+            "HfH Shipping #",
+            "Comment",
+            "Manage",
+          ]}
+          rows={items.map((item, index) => ({
+            cells: [
+              item.title,
+              item.quantityAllocated,
+              `${item.quantityAvailable}/${item.quantityTotal}`,
+              item.donorName,
+              item.palletNumber,
+              item.boxNumber,
+              item.lotNumber,
+              item.unitPrice,
+              item.donorShippingNumber,
+              item.hfhShippingNumber,
+              <div key="itemNotes">
+                <ChatTeardropText
+                  data-tooltip-id={`comment-tooltip-${item.title}-${item.lotNumber}`}
+                  data-tooltip-content={item.comment}
+                  className={`cursor-pointer`}
+                  size={30}
+                  weight={item.comment ? "bold" : "regular"}
+                />
+                {item.comment && (
+                  <Tooltip
+                    id={`comment-tooltip-${index}`}
+                    className="max-w-40"
+                  />
+                )}
+              </div>,
+              <DotsThree size={24} key="options" />,
+            ],
+          }))}
+          pageSize={5}
+        />
         <div className="flex justify-end">
           <button
             type="button"

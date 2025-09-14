@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import { toast } from "react-hot-toast";
+import BaseTable from "./BaseTable";
 
 interface ShippingStatusTableProps {
   openModal: (
@@ -79,11 +80,13 @@ export default function ShippingStatusTable({
         await apiClient.put(
           `/api/shippingStatus?donorShippingNumber=${donorShippingNumber}&hfhShippingNumber=${hfhShippingNumber}&value=${status}`
         );
-        
+
         toast.success("Shipping status updated successfully");
         refetch();
       } catch (error) {
-        toast.error(`Failed to update shipping status: ${(error as Error).message}`);
+        toast.error(
+          `Failed to update shipping status: ${(error as Error).message}`
+        );
       }
     },
     [apiClient, refetch]
@@ -134,79 +137,52 @@ export default function ShippingStatusTable({
   );
 
   return (
-    <div className="overflow-x-scroll">
-      <table className="mt-4 rounded-t-lg overflow-hidden table-fixed w-full">
-        <thead>
-          <tr className="bg-[#2774AE] bg-opacity-80 text-white border-b-2 break-words">
-            <th className="px-4 py-4 text-left font-bold">
-              Donor Shipping Number
-            </th>
-            <th className="px-4 py-4 text-left font-bold">
-              HfH Shipping Number
-            </th>
-            <th className="px-4 py-4 text-left font-bold">Shipping Status</th>
-            <th className="px-4 py-4 text-left font-bold w-[160px]">
-              View Items
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {shippingStatuses.map((status, index) => (
-            <React.Fragment key={index}>
-              <tr
-                data-odd={index % 2 !== 0}
-                className={`bg-white data-[odd=true]:bg-gray-50 break-words`}
-              >
-                <td className="px-4 py-2">{status.donorShippingNumber}</td>
-                <td className="px-4 py-2">{status.hfhShippingNumber}</td>
-                <td className="px-4 py-2">
-                  <select
-                    className={`w-full rounded text-gray-primary border-none bg-opacity-20 p-2 text-[16px] focus:outline-none bg-[${statusOptions.find((opt) => opt.value === status.value)?.color}]`}
-                    value={status.value}
-                    onChange={(e) =>
-                      handleSelectStatus(
-                        status.donorShippingNumber,
-                        status.hfhShippingNumber,
-                        e.target.value as ShipmentStatus
-                      )
-                    }
-                  >
-                    {statusOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-2">
-                  <span className="rounded flex justify-center items-center">
-                    <CgChevronRight
-                      color="#2774AE"
-                      size={28}
-                      onClick={() => {
-                        openModal(
-                          status.hfhShippingNumber,
-                          status.donorShippingNumber,
-                          items[status.id] || []
-                        );
-                      }}
-                      className="cursor-pointer"
-                    />
-                  </span>
-                </td>
-              </tr>
-            </React.Fragment>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Load in shipping status colors here */}
-      <br className="bg-[#CD1EC7] hidden" />
-      <br className="bg-[#EC610B] hidden" />
-      <br className="bg-[#ECB70B] hidden" />
-      <br className="bg-[#829D20] hidden" />
-      <br className="bg-[#C7EAD8] hidden" />
-      <br className="bg-[#0A7B40] hidden" />
-    </div>
+    <BaseTable
+      headers={[
+        "Donor Shipping Number",
+        "HfH Shipping Number",
+        "Shipping Status",
+        "View Items",
+      ]}
+      rows={shippingStatuses.map((status, index) => ({
+        cells: [
+          status.donorShippingNumber,
+          status.hfhShippingNumber,
+          <select
+            className={`w-full rounded text-gray-primary border-none bg-opacity-20 p-2 text-[16px] focus:outline-none bg-[${statusOptions.find((opt) => opt.value === status.value)?.color}]`}
+            value={status.value}
+            onChange={(e) =>
+              handleSelectStatus(
+                status.donorShippingNumber,
+                status.hfhShippingNumber,
+                e.target.value as ShipmentStatus
+              )
+            }
+            key={1}
+          >
+            {statusOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>,
+          <span className="rounded flex justify-center items-center" key={2}>
+            <CgChevronRight
+              color="#2774AE"
+              size={28}
+              onClick={() => {
+                openModal(
+                  status.hfhShippingNumber,
+                  status.donorShippingNumber,
+                  items[index] || []
+                );
+              }}
+              className="cursor-pointer"
+            />
+          </span>,
+        ],
+      }))}
+      pageSize={5}
+    />
   );
 }

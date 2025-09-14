@@ -1,5 +1,6 @@
 import { DistributionRecord } from "@/types";
 import React from "react";
+import BaseTable from "../BaseTable";
 
 export default function CreateSignOffTable({
   // refetch,
@@ -15,71 +16,52 @@ export default function CreateSignOffTable({
   removeFromSelectedDistributions: (dist: DistributionRecord) => void;
 }) {
   return (
-    <div className="overflow-x-scroll pb-32">
-      <table className="mt-4 rounded-t-lg min-w-full">
-        <thead>
-          <tr className="bg-blue-primary opacity-80 text-white border-b-2">
-            <th />
-            <th className="px-4 py-2 text-left font-bold">Name</th>
-            <th className="px-4 py-2 text-left font-bold">
-              Quantity Allocated
-            </th>
-            <th className="px-4 py-2 text-left font-bold">Qty Avail/Total</th>
-            <th className="px-4 py-2 text-left font-bold">Donor Name</th>
-            <th className="px-4 py-2 text-left font-bold">Pallet</th>
-            <th className="px-4 py-2 text-left font-bold">Box number</th>
-            <th className="px-4 py-2 text-left font-bold">Lot number</th>
-            <th className="px-4 py-2 text-left font-bold">Unit price</th>
-            <th className="px-4 py-2 text-left font-bold">Donor Shipping #</th>
-            <th className="px-4 py-2 text-left font-bold">HfH Shipping #</th>
-          </tr>
-        </thead>
-        <tbody>
-          {distributions.map((distribution, index) => (
-            <React.Fragment key={index}>
-              <tr
-                data-odd={index % 2 !== 0}
-                className={`bg-white data-[odd=true]:bg-gray-50 border-b transition-colors`}
-              >
-                <td className="p-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedDistributions.some(
-                      (otherDistribution) =>
-                        JSON.stringify(otherDistribution) ===
-                        JSON.stringify(distribution)
-                    )}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        addToSelectedDistributions(distribution);
-                      } else {
-                        removeFromSelectedDistributions(distribution);
-                      }
-                    }}
-                    className="bg-zinc-50 border-gray-200 rounded focus:ring-0"
-                  />
-                </td>
-                <td className="px-4 py-2">{distribution.title}</td>
-                <td className="px-4 py-2">{distribution.quantityAllocated}</td>
-                <td className="px-4 py-2">
-                  {distribution.quantityAvailable}/{distribution.quantityTotal}
-                </td>
-                <td className="px-4 py-2">{distribution.donorName}</td>
-                <td className="px-4 py-2">{distribution.palletNumber}</td>
-                <td className="px-4 py-2">{distribution.boxNumber}</td>
-                <td className="px-4 py-2">{distribution.lotNumber}</td>
-                <td className="px-4 py-2">
-                  {distribution.unitPrice.toString()}
-                </td>
-                <td className="px-4 py-2">
-                  {distribution.donorShippingNumber}
-                </td>
-                <td className="px-4 py-2">{distribution.hfhShippingNumber}</td>
-              </tr>
-            </React.Fragment>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <BaseTable
+      headers={[
+        "",
+        "Name",
+        "Quantity Allocated",
+        "Qty Avail/Total",
+        "Donor Name",
+        "Pallet",
+        "Box number",
+        "Lot number",
+        "Unit price",
+        "Donor Shipping #",
+        "HfH Shipping #",
+      ]}
+      rows={distributions.map((distribution) => ({
+        cells: [
+          <input
+            type="checkbox"
+            checked={selectedDistributions.some(
+              (otherDistribution) =>
+                JSON.stringify(otherDistribution) ===
+                JSON.stringify(distribution)
+            )}
+            onChange={(e) => {
+              if (e.target.checked) {
+                addToSelectedDistributions(distribution);
+              } else {
+                removeFromSelectedDistributions(distribution);
+              }
+            }}
+            className="bg-zinc-50 border-gray-200 rounded focus:ring-0"
+            key={1}
+          />,
+          distribution.title,
+          distribution.quantityAllocated,
+          `${distribution.quantityAvailable}/${distribution.quantityTotal}`,
+          distribution.donorName,
+          distribution.palletNumber,
+          distribution.boxNumber,
+          distribution.lotNumber,
+          distribution.unitPrice.toString(),
+          distribution.donorShippingNumber,
+          distribution.hfhShippingNumber,
+        ],
+      }))}
+      
+    />
   );
 }
