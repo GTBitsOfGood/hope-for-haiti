@@ -49,7 +49,7 @@ export default function TableRow({
       if (regularUser.enabled === false) {
         return { text: "Deactivated", className: "bg-red-primary/70" };
       }
-      return { text: "Account created", className: "bg-green-primary" };
+      return { text: "Activated", className: "bg-green-primary" };
     }
   };
 
