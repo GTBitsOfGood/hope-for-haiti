@@ -2,7 +2,7 @@
 
 import ModalDropDown from "@/components/ModalDropDown";
 import ModalTextField from "@/components/ModalTextField";
-import PriorityTag from "@/components/PriorityTag";
+import PriorityTag from "@/components/tags/PriorityTag";
 import { MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { RequestPriority } from "@prisma/client";
 import { format } from "date-fns";
@@ -12,7 +12,7 @@ import { CgSpinner } from "react-icons/cg";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import BaseTable, { extendTableHeader } from "@/components/BaseTable";
-import OptionsTag from "@/components/OptionsTag";
+import OptionsTag from "@/components/tags/OptionsTag";
 
 export const priorityOptions = [
   {

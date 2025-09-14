@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (!parseResult.success) {
       throw new ArgumentError(parseResult.error.message);
     }
-    
+
     const { email, name, userType, partnerDetails } = parseResult.data;
 
     const existingUser = await UserService.getUserByEmail(email);

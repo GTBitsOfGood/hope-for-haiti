@@ -20,7 +20,7 @@ interface BaseTableProps {
 export function extendTableHeader(header: string, className: string) {
   return (
     <th
-      className={`${className} px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg`}
+      className={`${className} px-4 py-4 first:rounded-tl-lg last:rounded-tr-lg`}
       key={header}
     >
       {header}
@@ -44,7 +44,7 @@ export function renderHeaders(
     typeof header === "string" ? (
       <th
         key={header}
-        className={`px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg ${headerCellStyles || ""}`}
+        className={`px-4 py-4 first:rounded-tl-lg last:rounded-tr-lg ${headerCellStyles || ""}`}
       >
         {header}
       </th>
@@ -57,7 +57,7 @@ export function renderHeaders(
 export default function BaseTable({
   headers,
   rows,
-  headerClassName = "bg-gray-100",
+  headerClassName = "bg-gray-primary/5 text-gray-primary/70 border-b-2 border-gray-primary/10",
   pageSize = 20,
   headerCellStyles,
   rowCellStyles,
@@ -81,7 +81,7 @@ export default function BaseTable({
         <table className="mt-4 min-w-full">
           <thead>
             <tr
-              className={`text-left font-bold ${headerClassName ? headerClassName : ""} border-b-2`}
+              className={`text-left font-bold ${headerClassName ? headerClassName : ""}`}
             >
               {renderHeaders(headers, headerCellStyles)}
             </tr>
@@ -91,11 +91,11 @@ export default function BaseTable({
               <tr
                 key={rowIndex}
                 data-odd={rowIndex % 2 !== 0}
-                className={`bg-white data-[odd=true]:bg-gray-50 border-b ${row.onClick ? "cursor-pointer" : ""} data-[odd=true]:hover:bg-gray-100 hover:bg-gray-100 transition-colors ${row.className || ""}`}
+                className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${row.onClick ? "cursor-pointer" : ""} ${row.className || ""}`}
                 onClick={row.onClick}
               >
                 {row.cells.flat().map((cell, cellIndex) => (
-                  <td key={cellIndex} className={`px-4 py-2 ${rowCellStyles}`}>
+                  <td key={cellIndex} className={`px-4 py-4 ${rowCellStyles}`}>
                     {typeof cell == "string" ? formatTableValue(cell) : cell}
                   </td>
                 ))}

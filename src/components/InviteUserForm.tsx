@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { UserType } from "@prisma/client";
 import { Open_Sans } from "next/font/google";
+import { useUser } from "@/components/context/UserContext";
+import { isAdmin } from "@/lib/userUtils";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -21,12 +23,17 @@ export default function InviteUserForm({
   onSubmit,
 }: InviteUserFormProps) {
   const router = useRouter();
+  const { user: currentUser } = useUser();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserType | "">("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [success, setSuccess] = useState(false);
+
+  const roleOptions = (["SUPER_ADMIN", "ADMIN", "STAFF", "PARTNER"] as const).filter(
+    (option) => !(currentUser && isAdmin(currentUser.type) && option === "SUPER_ADMIN")
+  );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -165,20 +172,18 @@ export default function InviteUserForm({
                 </button>
                 {dropdownOpen && (
                   <div className="w-full bg-white border rounded-[4px] mt-1">
-                    {["SUPER_ADMIN", "ADMIN", "STAFF", "PARTNER"].map(
-                      (option) => (
-                        <div
-                          key={option}
-                          className="p-3 text-[16px] text-[#22070B] bg-[#F9F9F9] hover:bg-[#22070B]/10 cursor-pointer"
-                          onClick={() => {
-                            setRole(option as UserType);
-                            setDropdownOpen(false);
-                          }}
-                        >
-                          {option}
-                        </div>
-                      )
-                    )}
+                    {roleOptions.map((option) => (
+                      <div
+                        key={option}
+                        className="p-3 text-[16px] text-[#22070B] bg-[#F9F9F9] hover:bg-[#22070B]/10 cursor-pointer"
+                        onClick={() => {
+                          setRole(option as UserType);
+                          setDropdownOpen(false);
+                        }}
+                      >
+                        {option}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

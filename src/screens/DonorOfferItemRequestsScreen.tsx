@@ -16,7 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import BaseTable from "@/components/BaseTable";
-import PriorityTag from "@/components/PriorityTag";
+import PriorityTag from "@/components/tags/PriorityTag";
 
 type RequestWithAllocations = DonorOfferItemRequest & {
   donorOfferItem: DonorOfferItem;

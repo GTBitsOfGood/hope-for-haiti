@@ -8,7 +8,7 @@ import { ChatTeardropText, DotsThree } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
-import StatusTag from "@/components/StatusTag";
+import StatusTag from "@/components/tags/StatusTag";
 import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 export default function DonorOfferLineItemsScreen() {

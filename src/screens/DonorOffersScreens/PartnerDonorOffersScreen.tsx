@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
 import { DonorOfferDto } from "@/types/ui/donorOffer.types";
 import BaseTable from "@/components/BaseTable";
-import OptionsTag from "@/components/OptionsTag";
+import OptionsTag from "@/components/tags/OptionsTag";
 
 function ResponseStatusTag({ status }: { status: string | null }) {
   const styleMap = new Map([

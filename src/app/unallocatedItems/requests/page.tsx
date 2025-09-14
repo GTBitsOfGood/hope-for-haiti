@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import EditAllocationModal from "@/components/EditAllocationModal";
 import { UnallocatedItem } from "@/types/api/unallocatedItem.types";
-import PriorityTag from "@/components/PriorityTag";
+import PriorityTag from "@/components/tags/PriorityTag";
 import { useFetch } from "@/hooks/useFetch";
 import BaseTable from "@/components/BaseTable";
 

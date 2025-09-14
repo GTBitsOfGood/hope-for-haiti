@@ -13,7 +13,7 @@ export default function OptionsTag({ value, styleMap }: OptionsTagProps) {
 
   return (
     <span
-      className={`inline-block px-2 py-1 rounded-md bg-opacity-20 ${style?.className || "bg-gray-400"}`}
+      className={`inline-block px-3 py-1 rounded-md ${style?.className || "bg-gray-400"}`}
     >
       {style?.text || "N/A"}
     </span>

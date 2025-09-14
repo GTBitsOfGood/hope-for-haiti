@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
-import StatusTag from "@/components/StatusTag";
+import StatusTag from "@/components/tags/StatusTag";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import EditUniqueLineItemModal from "@/components/UnallocatedItems/EditUniqueLineItem";
 import { useFetch } from "@/hooks/useFetch";
