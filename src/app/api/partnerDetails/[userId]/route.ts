@@ -36,6 +36,7 @@ export async function GET(
     const parsed = paramSchema.safeParse(resolvedParams);
     
     if (!parsed.success) {
+      console.log(parsed.error);
       throw new ArgumentError(parsed.error.message);
     }
 

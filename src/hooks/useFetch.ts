@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiRequest, HTTPRequestType } from "./useApiClient";
 
 
@@ -26,36 +26,45 @@ export function useFetch<T = unknown>(
   const [isLoading, setIsLoading] = useState(conditionalFetch);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async (overrideOptions?: Partial<RequestInit>) => {
+  const onSuccessRef = useRef<typeof onSuccess>(onSuccess);
+  const onErrorRef = useRef<typeof onError>(onError);
+  const fetchOptionsRef = useRef<RequestInit>(fetchOptions);
+
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+  useEffect(() => { fetchOptionsRef.current = fetchOptions; }, [fetchOptions]);
+
+  const fetchData = useCallback(async (overrideOptions?: Partial<RequestInit>) => {
+    if (!conditionalFetch) return;
+
     try {
       setIsLoading(true);
       setError(null);
-      
-      const finalOptions = overrideOptions ? { ...fetchOptions, ...overrideOptions } : fetchOptions;
-      const result = await apiRequest<T>(endpoint, (finalOptions['method'] ?? 'GET') as HTTPRequestType, finalOptions);
-      console.log('result', result);
+
+      const baseOptions = fetchOptionsRef.current;
+      const finalOptions = overrideOptions ? { ...baseOptions, ...overrideOptions } : baseOptions;
+      const method = (finalOptions['method'] ?? 'GET') as HTTPRequestType;
+      const result = await apiRequest<T>(endpoint, method, finalOptions);
 
       setData(result);
-      onSuccess?.(result);
+      onSuccessRef.current?.(result);
     } catch (err) {
       const errorMessage = (err as Error).message;
       console.error(`Failed to fetch ${endpoint}:`, err);
       setError(errorMessage);
-      onError?.(errorMessage);
+      onErrorRef.current?.(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [conditionalFetch, endpoint]);
 
   useEffect(() => {
-    if (conditionalFetch) {
-      fetchData();
-    }
-  }, [endpoint, conditionalFetch]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchData();
+  }, [fetchData]);
 
-  const refetch = (overrideOptions?: Partial<RequestInit>) => {
+  const refetch = useCallback((overrideOptions?: Partial<RequestInit>) => {
     fetchData(overrideOptions);
-  };
+  }, [fetchData]);
 
   return { data, isLoading, error, refetch };
 }

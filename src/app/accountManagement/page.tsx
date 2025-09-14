@@ -34,6 +34,10 @@ type UsersWithInvitesResponse = {
   invites: UserInvite[];
 };
 
+// Stable empty arrays to avoid new identity each render
+const EMPTY_USERS: User[] = [];
+const EMPTY_INVITES: UserInvite[] = [];
+
 enum UserFilterKey {
   ALL = "All",
   INVITES = "Invites",
@@ -71,8 +75,8 @@ export default function AccountManagementPage() {
     cache: "no-store",
   });
 
-  const users = usersData?.users || [];
-  const invites = usersData?.invites || [];
+  const users = usersData?.users ?? EMPTY_USERS;
+  const invites = usersData?.invites ?? EMPTY_INVITES;
 
   const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
   const [activeTab, setActiveTab] = useState<string>("All");
@@ -108,7 +112,7 @@ export default function AccountManagementPage() {
 
   useEffect(() => {
     applyFilters(activeTab as UserFilterKey, searchQuery);
-  }, [users, invites, activeTab, searchQuery]);
+  }, [usersData, activeTab, searchQuery]);
 
   const filterUsers = (type: UserFilterKey) => {
     setActiveTab(type);
