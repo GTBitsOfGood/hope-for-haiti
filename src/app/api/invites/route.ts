@@ -29,25 +29,6 @@ const schema = zfd
     }
   );
 
-export async function GET() {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      throw new AuthenticationError("Session required");
-    }
-
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to view invites");
-    }
-
-    const invites = await UserService.getPendingInvites();
-
-    return Response.json(invites);
-  } catch (error) {
-    return errorResponse(error);
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
