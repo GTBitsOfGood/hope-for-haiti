@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { MagnifyingGlass, Plus, EyeSlash, Trash, Eye } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
-import { User, UserType } from "@prisma/client";
+import { User, UserType, UserInvite } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
 import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
@@ -16,19 +16,9 @@ import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 import AccountDropdown from "@/components/AccountManagement/AccountDropdown";
 import AccountStatusTag from "@/components/tags/AccountStatusTag";
 
-type UserInvite = {
-  id: number;
-  token: string;
-  email: string;
-  name: string;
-  userType: UserType;
-  expiration: Date;
-  tag?: string;
-};
-
 type UserOrInvite =
   | (User & { isInvite?: false })
-  | (UserInvite & { isInvite: true });
+  | (UserInvite & { isInvite: true, tag?: string });
 
 type UsersWithInvitesResponse = {
   users: User[];
