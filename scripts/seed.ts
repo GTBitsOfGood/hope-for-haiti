@@ -102,8 +102,7 @@ const partnerDetailsTemplate = {
     "Established to provide quality healthcare services to underserved communities in Haiti. Our mission is to improve health outcomes through accessible medical care and community outreach programs.",
   supportRequested: "ongoing_support",
   yearOrganizationEstablished: 2015,
-  registeredWithMssp: true,
-  proofOfRegistrationWithMssp: "mssp_registration_certificate.pdf",
+  registeredWithMssp: false,
   programUpdatesSinceLastReport:
     "Expanded maternal health services and added mobile clinic outreach program",
 
