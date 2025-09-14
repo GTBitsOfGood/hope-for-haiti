@@ -133,6 +133,7 @@ export default function ProfileScreenPartner({
   const [isEditingOrg, setIsEditingOrg] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
+  const [resetKey, setResetKey] = useState(0);
 
   const {
     data: partnerDetails,
@@ -306,7 +307,14 @@ export default function ProfileScreenPartner({
             return (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => {
+                  if (isEditingOrg) {
+                    setIsEditingOrg(false);
+                    setFileUploads({});
+                    setResetKey((prev) => prev + 1); // Force component reset
+                  }
+                  setActiveTab(tab);
+                }}
                 className={`px-4 py-1 text-[16px] font-semibold transition-colors ${
                   isActive
                     ? "text-[#2774AE] border-b-2 border-[#2774AE]"
@@ -319,8 +327,8 @@ export default function ProfileScreenPartner({
           })}
         </div>
 
-        {/* Render the active tab using the unified PartnerDetailsSection */}
         <PartnerDetailsSection
+          key={`${activeTab}-${resetKey}`}
           sectionName={activeTab}
           partnerDetails={currentPartnerDetails}
           onSave={handleSavePartnerDetails}
