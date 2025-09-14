@@ -361,7 +361,7 @@ export default function UnallocatedItems() {
               <RequestedTag requested={item.requested} key="requested" />,
             ],
           }))}
-          pageSize={10}
+          
         />
       )}
 

@@ -324,7 +324,7 @@ export default function EditDonorOfferPage() {
                 </button>,
               ],
         }))}
-        pageSize={10}
+        
       />
       <button
         onClick={handleAddItem}

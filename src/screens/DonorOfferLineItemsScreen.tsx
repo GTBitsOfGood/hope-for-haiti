@@ -196,7 +196,7 @@ export default function DonorOfferLineItemsScreen() {
                 ],
               }))}
               headerCellStyles="min-w-32"
-              pageSize={10}
+              
             />
           </div>
         </>

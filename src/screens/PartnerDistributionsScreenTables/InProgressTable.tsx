@@ -39,7 +39,7 @@ export default function InProgressTable({ items }: InProgressTableProps) {
         ],
       }))}
       headerCellStyles="min-w-fit"
-      pageSize={10}
+      
     />
   );
 }

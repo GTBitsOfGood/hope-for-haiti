@@ -70,7 +70,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
           ]),
         ],
       }))}
-      pageSize={10}
+      
     />
   </div>
 );

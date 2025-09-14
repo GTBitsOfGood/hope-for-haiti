@@ -337,7 +337,7 @@ export default function PartnerDynamicDonorOfferScreen() {
               </button>,
             ],
           }))}
-          pageSize={10}
+          
         />
       )}
 

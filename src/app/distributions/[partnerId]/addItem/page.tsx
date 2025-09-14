@@ -187,7 +187,7 @@ export default function AddItemToDistributionPage() {
                 ],
               }))}
               headerCellStyles="min-w-32"
-              pageSize={10}
+              
             />
           )}
         </>

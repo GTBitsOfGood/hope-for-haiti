@@ -33,7 +33,7 @@ export default function TableOfItemsOfDistributions({ entries }: Props) {
         ],
       }))}
       headerCellStyles="min-w-fit"
-      pageSize={10}
+      
     />
   );
 }

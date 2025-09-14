@@ -77,7 +77,7 @@ export default function PartnerDonorOffersScreen() {
             onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
           }))}
           headerCellStyles="min-w-[150px]"
-          pageSize={10}
+          
         />
       )}
     </>

@@ -63,7 +63,7 @@ export default function DistributionTable({
           />,
         ],
       }))}
-      pageSize={10}
+      
     />
   );
 }

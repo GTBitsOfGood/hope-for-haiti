@@ -113,7 +113,7 @@ export default function DataTable({ data }: DataTableProps) {
             </span>
           )),
         }))}
-        pageSize={10}
+        
       />
     </div>
   );

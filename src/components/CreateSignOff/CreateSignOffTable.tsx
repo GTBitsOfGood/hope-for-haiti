@@ -61,7 +61,7 @@ export default function CreateSignOffTable({
           distribution.hfhShippingNumber,
         ],
       }))}
-      pageSize={10}
+      
     />
   );
 }

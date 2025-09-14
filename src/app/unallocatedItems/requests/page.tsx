@@ -227,7 +227,7 @@ export default function UnallocatedItemRequestsPage() {
               </div>,
             ],
           }))}
-          pageSize={10}
+          
         />
       )}
     </>

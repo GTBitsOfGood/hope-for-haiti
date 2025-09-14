@@ -122,7 +122,7 @@ export default function AccountManagementPage() {
               </div>,
             ],
           }))}
-          pageSize={10}
+          
         />
       )}
 

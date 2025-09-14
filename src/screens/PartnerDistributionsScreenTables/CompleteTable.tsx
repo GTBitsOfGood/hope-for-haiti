@@ -21,7 +21,7 @@ export default function CompleteTable({ entries }: InProgressTableProps) {
         },
       }))}
       headerCellStyles="min-w-fit w-1/2"
-      pageSize={10}
+      
     />
   );
 }

@@ -260,7 +260,7 @@ export default function AdminDynamicDonorOfferScreen() {
                     }
                   : undefined,
             }))}
-            pageSize={10}
+            
           />
         </>
       )}

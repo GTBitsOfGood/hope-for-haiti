@@ -240,7 +240,7 @@ export default function DonorOfferItemRequestsScreen() {
                 </div>,
               ],
             }))}
-            pageSize={10}
+            
           />
         </>
       )}

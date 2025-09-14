@@ -43,7 +43,7 @@ export default function SignOffsTable() {
           ],
         })) || []
       }
-      pageSize={10}
+      
     />
   );
 }

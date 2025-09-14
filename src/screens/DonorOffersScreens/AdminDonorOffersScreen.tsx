@@ -196,7 +196,7 @@ export default function AdminDonorOffersScreen() {
             ],
             onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
           }))}
-          pageSize={10}
+          
         />
       )}
     </>

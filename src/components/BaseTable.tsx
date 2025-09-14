@@ -14,7 +14,7 @@ interface BaseTableProps {
   headerClassName?: string;
   headerCellStyles?: string;
   rowCellStyles?: string;
-  pageSize: number;
+  pageSize?: number;
 }
 
 export function extendTableHeader(header: string, className: string) {
@@ -58,7 +58,7 @@ export default function BaseTable({
   headers,
   rows,
   headerClassName = "bg-gray-100",
-  pageSize,
+  pageSize = 20,
   headerCellStyles,
   rowCellStyles,
 }: BaseTableProps) {

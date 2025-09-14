@@ -168,7 +168,7 @@ export default function AdminDistributionsScreen() {
                     partner.pendingSignOffCount,
                   ],
                 }))}
-                pageSize={10}
+                
               />
             )}
           </>
@@ -196,7 +196,7 @@ export default function AdminDistributionsScreen() {
                     signoff._count?.distributions,
                   ],
                 }))}
-                pageSize={10}
+                
               />
             )}
           </>

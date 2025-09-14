@@ -211,7 +211,7 @@ export default function UnallocatedItemsLineItemsPage() {
             ],
           }))}
           headerCellStyles="min-w-32"
-          pageSize={10}
+          
         />
       )}
     </>

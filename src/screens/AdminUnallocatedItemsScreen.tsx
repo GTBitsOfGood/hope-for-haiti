@@ -273,7 +273,7 @@ export default function AdminUnallocatedItemsScreen() {
               );
             },
           }))}
-          pageSize={10}
+          
         />
       )}
     </>
