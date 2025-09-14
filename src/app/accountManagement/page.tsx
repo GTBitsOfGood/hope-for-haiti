@@ -11,7 +11,8 @@ import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal"
 import EditModal from "@/components/AccountManagement/EditModal";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import { isStaff, isPartner } from "@/lib/userUtils";
+import { isStaff, isPartner, isAdmin } from "@/lib/userUtils";
+import { useUser } from "@/components/context/UserContext";
 import { EyeSlash, Trash, Eye } from "@phosphor-icons/react";
 
 type UserInvite = {
@@ -60,6 +61,7 @@ const filterMap: Record<UserFilterKey, (item: UserOrInvite) => boolean> = {
 
 export default function AccountManagementPage() {
   const { apiClient } = useApiClient();
+  const { user: currentUser } = useUser();
 
   const {
     data: usersData,
@@ -234,12 +236,14 @@ export default function AccountManagementPage() {
             className="pl-10 pr-4 py-2 text-gray-primary/50 w-full border border-gray-primary/10 rounded-lg bg-[#F9F9F9] focus:outline-none focus:border-gray-400"
           />
         </div>
-        <button
-          className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-          onClick={() => setInviteModalOpen(true)}
-        >
-          <Plus size={18} /> Add account
-        </button>
+        {currentUser && isAdmin(currentUser.type) && (
+          <button
+            className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+            onClick={() => setInviteModalOpen(true)}
+          >
+            <Plus size={18} /> Add account
+          </button>
+        )}
       </div>
 
       <div className="flex space-x-4 my-3 border-b-2">
@@ -388,6 +392,9 @@ This will restore the user's access to the system.`
           selectedUser && !selectedUser.isInvite
             ? isStaff(selectedUser.type)
             : true
+        }
+        selectedUserId={
+          selectedUser && !selectedUser.isInvite ? selectedUser.id : undefined
         }
       />
     </>

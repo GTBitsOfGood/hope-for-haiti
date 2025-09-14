@@ -32,8 +32,6 @@ export default function TableRow({
   onEditAccount,
   onDeactivateAccount,
 }: TableRowProps) {
-  const userType = user.type || user.userType;
-
   const getStatus = () => {
     if (isInvite) {
       const inviteUser = user as TableRowItem & { expiration?: Date };
@@ -86,7 +84,7 @@ export default function TableRow({
         <div className="inline-block" onClick={(e) => e.stopPropagation()}>
           <AccountDropdown
             isInvite={isInvite}
-            userType={userType}
+            userType={user.type}
             user={user}
             onDeleteAccount={onDeleteAccount}
             onEditAccount={onEditAccount}

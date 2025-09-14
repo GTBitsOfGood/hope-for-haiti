@@ -8,6 +8,8 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import { UserType } from "@prisma/client";
+import { useUser } from "@/components/context/UserContext";
+import { isAdmin } from "@/lib/userUtils";
 
 interface DropdownItem {
   icon: React.ReactNode;
@@ -19,7 +21,7 @@ interface DropdownItem {
 interface AccountDropdownProps {
   isInvite: boolean;
   userType?: UserType;
-  user?: { enabled?: boolean; expiration?: Date };
+  user?: { enabled?: boolean; expiration?: Date; id?: number };
   onDeleteAccount?: () => void;
   onEditAccount?: () => void;
   onDeactivateAccount?: () => void;
@@ -32,10 +34,12 @@ export default function AccountDropdown({
   onEditAccount,
   onDeactivateAccount,
 }: AccountDropdownProps) {
+  const { user: currentUser } = useUser();
+
+  const canEdit = currentUser && isAdmin(currentUser.type);
+
   const getDropdownItems = (): DropdownItem[] => {
     if (isInvite) {
-      // const isExpired =
-      //   user?.expiration && new Date() >= new Date(user.expiration);
       return [
         {
           icon: <EnvelopeSimple size={18} />,
@@ -47,22 +51,39 @@ export default function AccountDropdown({
           icon: <Trash size={18} />,
           label: "Delete account",
           onClick: () => onDeleteAccount?.(),
+          disabled: !canEdit,
         },
       ];
     } else {
       const isEnabled = user?.enabled !== false;
-      return [
-        {
+      const items: DropdownItem[] = [];
+
+      if (canEdit) {
+        items.push({
           icon: <PencilSimple size={18} />,
           label: "Edit account",
           onClick: () => onEditAccount?.(),
-        },
-        {
+        });
+      }
+
+      if (canEdit) {
+        items.push({
           icon: isEnabled ? <EyeSlash size={18} /> : <Eye size={18} />,
           label: isEnabled ? "Deactivate account" : "Activate account",
           onClick: () => onDeactivateAccount?.(),
-        },
-      ];
+        });
+      }
+
+      if (!canEdit) {
+        items.push({
+          icon: <PencilSimple size={18} />,
+          label: "View only",
+          onClick: () => {},
+          disabled: true,
+        });
+      }
+
+      return items;
     }
   };
 

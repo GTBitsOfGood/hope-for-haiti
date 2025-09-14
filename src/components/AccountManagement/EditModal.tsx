@@ -3,6 +3,8 @@ import { UserType } from "@prisma/client";
 import Select from "react-select/creatable";
 import GeneralModal from "./GeneralModal";
 import { useFetch } from "@/hooks/useFetch";
+import { useUser } from "@/components/context/UserContext";
+import { isAdmin } from "@/lib/userUtils";
 
 interface EditModalProps {
   title: string;
@@ -24,6 +26,7 @@ interface EditModalProps {
   confirmText?: string;
   cancelText?: string;
   isStaffAccount?: boolean;
+  selectedUserId?: number;
 }
 
 export default function EditModal({
@@ -36,7 +39,9 @@ export default function EditModal({
   confirmText = "Save changes",
   cancelText = "Cancel",
   isStaffAccount = true,
+  selectedUserId,
 }: EditModalProps) {
+  const { user: currentUser } = useUser();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -45,7 +50,7 @@ export default function EditModal({
   });
 
   const { data: existingTags } = useFetch<string[]>("/api/users/tags", {
-    conditionalFetch: isOpen
+    conditionalFetch: isOpen,
   });
 
   useEffect(() => {
@@ -81,6 +86,49 @@ export default function EditModal({
     }
     onCancel();
   };
+
+  // Determine if the current user can edit roles
+  const canEditRoles = currentUser && isAdmin(currentUser.type);
+
+  // Check if editing own account
+  const isEditingOwnAccount =
+    currentUser &&
+    selectedUserId &&
+    parseInt(currentUser.id) === selectedUserId;
+
+  // Determine available role options based on current user's permissions
+  const getAvailableRoleOptions = () => {
+    if (!currentUser || !canEditRoles) return [];
+
+    // If editing own account, don't allow role changes
+    if (isEditingOwnAccount) return [];
+
+    // SUPER_ADMIN can assign any role except PARTNER (handled elsewhere)
+    if (currentUser.type === "SUPER_ADMIN") {
+      return [
+        { value: "STAFF", label: "Staff" },
+        { value: "ADMIN", label: "Admin" },
+        { value: "SUPER_ADMIN", label: "Super Admin" },
+      ];
+    }
+
+    // ADMIN can only assign STAFF and ADMIN roles, not SUPER_ADMIN
+    if (currentUser.type === "ADMIN") {
+      return [
+        { value: "STAFF", label: "Staff" },
+        { value: "ADMIN", label: "Admin" },
+      ];
+    }
+
+    return [];
+  };
+
+  const availableRoleOptions = getAvailableRoleOptions();
+  const shouldShowRoleField =
+    isStaffAccount &&
+    canEditRoles &&
+    !isEditingOwnAccount &&
+    availableRoleOptions.length > 0;
 
   return (
     <GeneralModal
@@ -120,7 +168,7 @@ export default function EditModal({
           />
         </div>
 
-        {isStaffAccount && (
+        {shouldShowRoleField && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Role
@@ -132,10 +180,19 @@ export default function EditModal({
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
             >
-              <option value="STAFF">Staff</option>
-              <option value="ADMIN">Admin</option>
-              <option value="SUPER_ADMIN">Super Admin</option>
+              {availableRoleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
+          </div>
+        )}
+
+        {isEditingOwnAccount && isStaffAccount && (
+          <div className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+            <strong>Note:</strong> You cannot change your own role for security
+            reasons.
           </div>
         )}
 
