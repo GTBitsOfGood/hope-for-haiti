@@ -28,6 +28,11 @@ type UserOrInvite =
   | (User & { isInvite?: false })
   | (UserInvite & { isInvite: true });
 
+type UsersWithInvitesResponse = {
+  users: User[];
+  invites: UserInvite[];
+};
+
 enum UserFilterKey {
   ALL = "All",
   INVITES = "Invites",
@@ -57,19 +62,15 @@ export default function AccountManagementPage() {
   const { apiClient } = useApiClient();
 
   const {
-    data: users,
-    isLoading: isLoadingUsers,
-    refetch: refetchUsers,
-  } = useFetch<User[]>("/api/users", {
+    data: usersData,
+    isLoading,
+    refetch: refetchData,
+  } = useFetch<UsersWithInvitesResponse>("/api/users?includeInvites=true", {
     cache: "no-store",
   });
-  const {
-    data: invites,
-    isLoading: isLoadingInvites,
-    refetch: refetchInvites,
-  } = useFetch<UserInvite[]>("/api/invites", {
-    cache: "no-store",
-  });
+
+  const users = usersData?.users || [];
+  const invites = usersData?.invites || [];
 
   const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
   const [activeTab, setActiveTab] = useState<string>("All");
@@ -80,8 +81,6 @@ export default function AccountManagementPage() {
   const [isDeactivateModalOpen, setDeactivateModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserOrInvite | null>(null);
-
-  const isLoading = isLoadingUsers || isLoadingInvites;
 
   const applyFilters = (tabFilter: UserFilterKey, search: string) => {
     const allItems: UserOrInvite[] = [
@@ -153,7 +152,7 @@ export default function AccountManagementPage() {
       if (selectedUser.isInvite) {
         const invite = selectedUser as UserInvite;
         await apiClient.delete(`/api/invites/${invite.token}`);
-        refetchInvites();
+        refetchData();
       } else {
         console.log("Delete user account for:", selectedUser);
       }
@@ -182,7 +181,7 @@ export default function AccountManagementPage() {
           tag: data.tag,
         }),
       });
-      refetchUsers();
+      refetchData();
     } catch (error) {
       console.error("Error updating user:", error);
     }
@@ -199,7 +198,7 @@ export default function AccountManagementPage() {
       await apiClient.patch(`/api/users/${selectedUser.id}`, {
         body: JSON.stringify({ enabled: !isCurrentlyEnabled }),
       });
-      refetchUsers();
+      refetchData();
     } catch (error) {
       console.error("Error updating user status:", error);
     }
