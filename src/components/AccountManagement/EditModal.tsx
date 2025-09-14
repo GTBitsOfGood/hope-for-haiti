@@ -44,7 +44,9 @@ export default function EditModal({
     tag: "",
   });
 
-  const { data: existingTags } = useFetch<string[]>("/api/users/tags");
+  const { data: existingTags } = useFetch<string[]>("/api/users/tags", {
+    conditionalFetch: isOpen
+  });
 
   useEffect(() => {
     if (initialData) {
