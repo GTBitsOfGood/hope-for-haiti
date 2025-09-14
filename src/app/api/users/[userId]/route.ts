@@ -47,6 +47,10 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
+     if (!UserService.isStaff(session.user.type) && parsed.data?.userId.toString() !== session.user.id) {
+       throw new AuthorizationError("You are not allowed to view this");
+     }
+
     const user = await UserService.getUserById(parsed.data.userId);
 
     return NextResponse.json({ user }, { status: 200 });
