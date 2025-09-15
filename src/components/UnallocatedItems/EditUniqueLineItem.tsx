@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, Transition, Switch } from "@headlessui/react";
 import { Fragment, useState } from "react";
 import toast from "react-hot-toast";
 import { X } from "@phosphor-icons/react";
@@ -61,7 +61,6 @@ export default function EditUniqueLineItemModal({
       allowAllocations,
       gik,
     });
-
     toast.success("Item updated successfully!");
     onClose();
   }
@@ -73,7 +72,7 @@ export default function EditUniqueLineItemModal({
         onClose={onClose}
         className="relative z-50 font-sans"
         style={{
-          fontFamily: "Open Sans, sans-serif", // Explicitly using Open Sans
+          letterSpacing: "0.2px",
         }}
       >
         <Transition.Child
@@ -89,7 +88,7 @@ export default function EditUniqueLineItemModal({
           <div className="fixed inset-0 bg-black bg-opacity-30" />
         </Transition.Child>
 
-        {/* Centered container with custom scrollbar */}
+        {/* TODO: fix scrollbar */}
         <div className="fixed inset-0 custom-scroll overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
             <Transition.Child
@@ -105,9 +104,9 @@ export default function EditUniqueLineItemModal({
               <Dialog.Panel
                 className="w-full max-w-xl transform overflow-y-auto rounded-md bg-white p-8 text-left align-middle shadow-xl transition-all relative"
                 style={{
-                  fontFamily: "Open Sans, sans-serif",
                   color: "#22070B",
-                  maxHeight: "50vh",
+                  maxHeight: "40vh",
+                  letterSpacing: "0.2px",
                 }}
               >
                 {/* Top-right "X" close button */}
@@ -116,41 +115,39 @@ export default function EditUniqueLineItemModal({
                   className="absolute top-4 right-4 p-1"
                   onClick={onClose}
                   aria-label="Close"
-                  style={{ color: "#22070B" }}
+                  style={{ color: "#22070B", letterSpacing: "0.5px" }}
                 >
                   <X size={24} />
                 </button>
-
                 <Dialog.Title
                   as="h2"
                   className="text-2xl font-semibold mb-2"
                   style={{
                     fontSize: "24px",
-                    fontFamily: "Open Sans, sans-serif",
+                    letterSpacing: "0.2px",
                   }}
                 >
                   Edit Unique Line Item
                 </Dialog.Title>
                 <p
-                  className="text-sm mb-6"
+                  className="text-sm mb-6 pt-4"
                   style={{
                     fontSize: "14px",
                     color: "#22070B",
-                    fontFamily: "Open Sans, sans-serif",
+                    letterSpacing: "0.2px",
                   }}
                 >
                   Fields marked with <span style={{ color: "#EF3533" }}>*</span>{" "}
                   are required
                 </p>
-
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Item title <span style={{ color: "#EF3533" }}>*</span>
@@ -168,17 +165,17 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Donor name
@@ -195,20 +192,19 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Item category
@@ -225,17 +221,17 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Item type
@@ -252,19 +248,18 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                   </div>
-
                   <div>
                     <label
-                      className="block text-base font-medium"
+                      className="block text-base font-normal"
                       style={{
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                       }}
                     >
                       Lot Number
@@ -281,18 +276,17 @@ export default function EditUniqueLineItemModal({
                         borderRadius: "4px",
                         color: "#22070B",
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                         padding: "8px",
                       }}
                     />
                   </div>
-
                   <div>
                     <label
-                      className="block text-base font-medium"
+                      className="block text-base font-normal"
                       style={{
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                       }}
                     >
                       Expiration Date
@@ -309,18 +303,17 @@ export default function EditUniqueLineItemModal({
                         borderRadius: "4px",
                         color: "#22070B",
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                         padding: "8px",
                       }}
                     />
                   </div>
-
                   <div>
                     <label
-                      className="block text-base font-medium"
+                      className="block text-base font-normal"
                       style={{
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                       }}
                     >
                       NDC
@@ -337,19 +330,18 @@ export default function EditUniqueLineItemModal({
                         borderRadius: "4px",
                         color: "#22070B",
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                         padding: "8px",
                       }}
                     />
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Quantity <span style={{ color: "#EF3533" }}>*</span>
@@ -367,17 +359,17 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Unit Type
@@ -394,20 +386,19 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Unit Price
@@ -424,17 +415,17 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Quantity Per Unit
@@ -451,20 +442,19 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Pallet #
@@ -481,17 +471,17 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Box #
@@ -508,20 +498,19 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         Donor shipping number
@@ -538,17 +527,17 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
                     </div>
                     <div>
                       <label
-                        className="block text-base font-medium"
+                        className="block text-base font-normal"
                         style={{
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                         }}
                       >
                         HfH shipping number
@@ -565,7 +554,7 @@ export default function EditUniqueLineItemModal({
                           borderRadius: "4px",
                           color: "#22070B",
                           fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
+                          letterSpacing: "0.2px",
                           padding: "8px",
                         }}
                       />
@@ -573,10 +562,10 @@ export default function EditUniqueLineItemModal({
                   </div>
                   <div>
                     <label
-                      className="block text-base font-medium"
+                      className="block text-base font-normal"
                       style={{
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                       }}
                     >
                       Maximum limit requested{" "}
@@ -598,17 +587,17 @@ export default function EditUniqueLineItemModal({
                         borderRadius: "4px",
                         color: "#22070B",
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                         padding: "8px",
                       }}
                     />
                   </div>
                   <div>
                     <label
-                      className="block text-base font-medium"
+                      className="block text-base font-normal"
                       style={{
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                       }}
                     >
                       Notes
@@ -624,86 +613,138 @@ export default function EditUniqueLineItemModal({
                         borderRadius: "4px",
                         color: "#22070B",
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+                        letterSpacing: "0.2px",
                         padding: "8px",
                         resize: "none",
                         height: "80px",
                       }}
                     />
                   </div>
-
-                  {/* TODO: Fix Toggle */}
                   <div className="space-y-3">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={visible}
-                        onChange={(e) => setVisible(e.target.checked)}
-                        className="mr-2 h-4 w-4 border rounded focus:outline-none"
-                        style={{
-                          borderColor: "#EF3533",
-                          accentColor: "#EF3533",
-                        }}
-                      />
-                      <label
-                        style={{
-                          fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
-                        }}
-                      >
-                        Make item Visible to Partners?
-                      </label>
+                    <div className="border border-[#E0E0E0] rounded-md p-4">
+                      <div className="flex items-start">
+                        <Switch
+                          checked={visible}
+                          onChange={setVisible}
+                          className={`${visible ? "bg-gray-700" : "bg-gray-200"} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
+                        >
+                          <span className="sr-only">
+                            Make Item Visible to Partners?
+                          </span>
+                          <span
+                            className={`${visible ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform bg-white rounded-full transition-transform`}
+                          />
+                        </Switch>
+                        <div className="ml-3 flex-1">
+                          <label
+                            className="text-base font-normal block"
+                            style={{
+                              color: "#22070B",
+                              fontFamily: "Open Sans, sans-serif",
+                            }}
+                          >
+                            Make Item Visible to Partners?
+                          </label>
+                          <p
+                            className="mt-1"
+                            style={{
+                              color: "#71839B",
+                              fontSize: "12px",
+                              fontFamily: "Open Sans, sans-serif",
+                              textAlign: "left",
+                            }}
+                          >
+                            Once visible, partners can view and request this
+                            item for distribution.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={allowAllocations}
-                        onChange={(e) => setAllowAllocations(e.target.checked)}
-                        className="mr-2 h-4 w-4 border rounded focus:outline-none"
-                        style={{
-                          borderColor: "#EF3533",
-                          accentColor: "#EF3533",
-                        }}
-                      />
-                      <label
-                        style={{
-                          fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
-                        }}
-                      >
-                        Allow Allocations?
-                      </label>
+                    <div className="border border-[#E0E0E0] rounded-md p-4">
+                      <div className="flex items-start">
+                        <Switch
+                          checked={allowAllocations}
+                          onChange={setAllowAllocations}
+                          className={`${allowAllocations ? "bg-gray-700" : "bg-gray-200"} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
+                        >
+                          <span className="sr-only">Allow Allocations?</span>
+                          <span
+                            className={`${allowAllocations ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform bg-white rounded-full transition-transform`}
+                          />
+                        </Switch>
+                        <div className="ml-3 flex-1">
+                          <label
+                            className="text-base font-normal block"
+                            style={{
+                              color: "#22070B",
+                              fontFamily: "Open Sans, sans-serif",
+                            }}
+                          >
+                            Allow Allocations?
+                          </label>
+                          <p
+                            className="mt-1"
+                            style={{
+                              color: "#71839B",
+                              fontSize: "12px",
+                              fontFamily: "Open Sans, sans-serif",
+                              textAlign: "left",
+                            }}
+                          >
+                            Once allowed, the item can be added to a partner’s
+                            pending distribution.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={gik}
-                        onChange={(e) => setGik(e.target.checked)}
-                        className="mr-2 h-4 w-4 border rounded focus:outline-none"
-                        style={{
-                          borderColor: "#EF3533",
-                          accentColor: "#EF3533",
-                        }}
-                      />
-                      <label
-                        style={{
-                          fontSize: "16px",
-                          fontFamily: "Open Sans, sans-serif",
-                        }}
-                      >
-                        Marked item as GIK?
-                      </label>
+                    <div className="border border-[#E0E0E0] rounded-md p-4">
+                      <div className="flex items-start">
+                        <Switch
+                          checked={gik}
+                          onChange={setGik}
+                          className={`${gik ? "bg-gray-700" : "bg-gray-200"} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
+                        >
+                          <span className="sr-only">Marked item as GIK?</span>
+                          <span
+                            className={`${gik ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform bg-white rounded-full transition-transform`}
+                          />
+                        </Switch>
+                        <div className="ml-3 flex-1">
+                          <label
+                            className="text-base font-normal block"
+                            style={{
+                              color: "#22070B",
+                              fontFamily: "Open Sans, sans-serif",
+                            }}
+                          >
+                            Marked Item as GIK?
+                          </label>
+                          <p
+                            className="mt-1"
+                            style={{
+                              color: "#71839B",
+                              fontSize: "12px",
+                              fontFamily: "Open Sans, sans-serif",
+                              textAlign: "left",
+                            }}
+                          >
+                            Once allowed, the item will be marked as GIK and
+                            added to the general unallocated items table.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-6 flex justify-end">
+                  <div className="mt-6 flex w-full space-x-4">
                     <button
                       type="button"
                       onClick={onClose}
-                      className="mr-4 rounded"
+                      className="rounded flex-1"
                       style={{
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+
+                        letterSpacing: "0.2px",
                         border: "1px solid #EF3533",
                         color: "#EF3533",
                         backgroundColor: "transparent",
@@ -714,11 +755,12 @@ export default function EditUniqueLineItemModal({
                     </button>
                     <button
                       type="submit"
-                      className="text-white rounded"
+                      className="text-white rounded flex-1"
                       style={{
                         backgroundColor: "#EF3533",
                         fontSize: "16px",
-                        fontFamily: "Open Sans, sans-serif",
+
+                        letterSpacing: "0.2px",
                         padding: "8px 16px",
                       }}
                     >
@@ -730,10 +772,9 @@ export default function EditUniqueLineItemModal({
             </Transition.Child>
           </div>
         </div>
-
         <style jsx>{`
           .custom-scroll::-webkit-scrollbar {
-            width: 3px;
+            width: 1px;
           }
           .custom-scroll::-webkit-scrollbar-track {
             background: #f1f1f1;
@@ -742,6 +783,7 @@ export default function EditUniqueLineItemModal({
             background-color: #888;
             border-radius: 4px;
             border: 1px solid #f1f1f1;
+            height: 2px;
           }
         `}</style>
       </Dialog>
