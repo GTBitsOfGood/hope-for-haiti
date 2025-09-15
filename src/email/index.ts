@@ -3,11 +3,11 @@ import { render } from "@react-email/render";
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { exec } from "child_process";
-import UserInviteTemplate from "@/email/templates/UserInvite";
-import ParterInviteReminderTemplate from "@/email/templates/PartnerInviteReminder";
-import ItemsExpiringTemplate from "@/email/templates/ItemsExpiring";
-import ItemsVisibleTemplate from "@/email/templates/ItemsVisible";
-import DonorOfferCreatedTemplate from "@/email/templates/DonorOfferCreated";
+import CreateAccountInvite, { CreateAccountInviteProps } from "./templates/CreateAccountInvite";
+import ItemsVisibleNotification, { ItemsVisibleNotificationProps } from "./templates/ItemsVisibleNotification";
+import DonorOfferCreated, { DonorOfferCreatedProps } from "./templates/DonorOfferCreated";
+import CreateAccountReminder, { CreateAccountReminderProps } from "./templates/CreateAccountReminder";
+import ExpiringItems, { ExpiringItemsProps } from "./templates/ExpiringItems";
 
 const apiKey = process.env.SENDGRID_API_KEY as string;
 const fromEmail = process.env.SENDGRID_SENDER as string;
@@ -90,44 +90,37 @@ export async function sendEmail(
 }
 
 export class EmailClient {
-  static async sendUserInvite(to: string, props: { inviteUrl: string }) {
-    const html = await render(UserInviteTemplate(props));
+  static async sendUserInvite(to: string, props: CreateAccountInviteProps) {
+    const html = await render(CreateAccountInvite(props));
     return sendEmail(to, "Your Invite Link", html);
   }
 
-  static async sendPartnerInviteReminder(to: string, props: { inviteUrl: string }) {
-    const html = await render(ParterInviteReminderTemplate(props));
+  static async sendUserInviteReminder(to: string, props: CreateAccountReminderProps) {
+    const html = await render(CreateAccountReminder(props));
     return sendEmail(to, "Reminder: Complete Your Account", html);
   }
 
   static async sendItemsExpiring(
     to: string,
-    props: {
-      month: string;
-      items: Array<{
-        name: string;
-        quantity?: number;
-        expirationDate?: string;
-      }>;
-    }
+    props: ExpiringItemsProps
   ) {
-    const html = await render(ItemsExpiringTemplate(props));
+    const html = await render(ExpiringItems(props));
     return sendEmail(to, `Items Expiring in ${props.month}`, html);
   }
 
   static async sendItemsVisible(
     to: string,
-    props: { items: Array<{ name: string; quantity?: number }> }
+    props: ItemsVisibleNotificationProps
   ) {
-    const html = await render(ItemsVisibleTemplate(props));
+    const html = await render(ItemsVisibleNotification(props));
     return sendEmail(to, "New Items Visible", html);
   }
 
   static async sendDonorOfferCreated(
     to: string | string[],
-    props: { offerTitle: string; description?: string; donorName?: string }
+    props: DonorOfferCreatedProps
   ) {
-    const html = await render(DonorOfferCreatedTemplate(props));
+    const html = await render(DonorOfferCreated(props));
     return sendEmail(to, "Donor Offer Created", html);
   }
 }

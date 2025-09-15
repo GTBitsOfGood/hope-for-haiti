@@ -1,1 +1,34 @@
-npm run lint
+
+# Run lint using local Next CLI via Node to avoid npm PATH issues on Windows/MSYS
+if command -v node >/dev/null 2>&1; then
+	# Enforce Next.js Node engine range: ^18.18.0 || ^19.8.0 || >= 20.0.0
+	VER=$(node -p "process.versions.node" 2>/dev/null)
+	MAJOR=${VER%%.*}
+	REST=${VER#*.}
+	MINOR=${REST%%.*}
+	ALLOWED=0
+	if [ "$MAJOR" -ge 20 ]; then
+		ALLOWED=1
+	elif [ "$MAJOR" -eq 19 ] && [ "$MINOR" -ge 8 ]; then
+		ALLOWED=1
+	elif [ "$MAJOR" -eq 18 ] && [ "$MINOR" -ge 18 ]; then
+		ALLOWED=1
+	fi
+
+	if [ "$ALLOWED" -ne 1 ]; then
+		echo "[husky] Detected Node $VER which is below Next.js requirement (^18.18 || ^19.8 || >=20). Skipping lint."
+		exit 0
+	fi
+
+	if [ -f "node_modules/next/dist/bin/next" ]; then
+		echo "[husky] Running next lint"
+		node node_modules/next/dist/bin/next lint
+		exit $?
+	else
+		echo "[husky] next is not installed locally. Skipping lint."
+		exit 0
+	fi
+else
+	echo "[husky] Node.js not found in PATH. Skipping lint."
+	exit 0
+fi
