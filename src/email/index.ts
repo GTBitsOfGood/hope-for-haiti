@@ -1,6 +1,8 @@
 import SendGrid from "@sendgrid/mail";
-import open from "open-html";
 import { render } from "@react-email/render";
+import { writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
+import { exec } from "child_process";
 import UserInviteTemplate from "@/email/templates/UserInvite";
 import ParterInviteReminderTemplate from "@/email/templates/PartnerInviteReminder";
 import ItemsExpiringTemplate from "@/email/templates/ItemsExpiring";
@@ -41,7 +43,41 @@ export async function sendEmail(
   html: string
 ): Promise<[SendGrid.ClientResponse, object] | void> {
   if (openLocally) {
-    open(html);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `email-preview-${timestamp}.html`;
+    const previewsDir = join(process.cwd(), 'email-previews');
+    const filepath = join(previewsDir, filename);
+    
+    try {
+      writeFileSync(filepath, html);
+    } catch {
+      mkdirSync(previewsDir, { recursive: true });
+      writeFileSync(filepath, html);
+    }
+    
+      const relativePath = `email-previews/${filename}`;
+      console.log(`📧 Email preview saved: ${relativePath}`);
+      
+      const fileUrl = `file://${filepath}`;
+      const platform = process.platform;
+    
+    let command: string;
+    if (platform === 'darwin') {
+      command = `open -n "${fileUrl}"`;
+    } else if (platform === 'win32') {
+      command = `start "" "${fileUrl}"`;
+    } else {
+      command = `xdg-open "${fileUrl}"`;
+    }
+    
+    exec(command, (error) => {
+      if (error) {
+        console.log(`📧 Could not auto-open browser. Please open manually: ${fileUrl}`);
+      } else {
+        console.log(`📧 Email preview opened in browser`);
+      }
+    });
+    
     return;
   }
 

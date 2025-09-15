@@ -42,3 +42,6 @@ next-env.d.ts
 
 # vscode
 .vscode/
+
+# email previews (development only)
+/email-previews/
