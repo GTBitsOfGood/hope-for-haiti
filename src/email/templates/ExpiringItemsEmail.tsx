@@ -14,10 +14,11 @@ export const ExpiringItemsEmail = ({ items, month }: ExpiringItemsEmailProps) =>
     <Html>
       <Head />
   <Tailwind config={{ theme: (tailwindConfig as any).theme }}>
-        <Body className="bg-blue-light py-2">
+        <Body className="bg-blue-light py-2 font-sans">
           <Preview>Expiring Items Report for {month}</Preview>
-          <Container className="bg-white border-2 border-blue-primary rounded-lg p-8">
+          <Container className="w-[600px] mx-auto text-left">
             <Section>
+              <div className="bg-white border-2 border-blue-primary rounded-lg p-8">
               <Text className="text-2xl font-bold text-mainRed mb-3">Expiring Items This Month</Text>
               <Text className="text-base font-light text-gray-primary leading-[26px]">
                 The following items are set to expire in {month}. Please review and take necessary action.
@@ -42,7 +43,8 @@ export const ExpiringItemsEmail = ({ items, month }: ExpiringItemsEmailProps) =>
                   ))}
                 </tbody>
               </table>
-              <Text className="text-base font-light text-gray-primary leading-[26px]">If you have questions about any item, please contact the admin team.</Text>
+              <Text className="text-base font-light text-gray-primary leading-[26px]">If you have questions about any item, please contact yvette@hopeforhaiti.com.</Text>
+              </div>
             </Section>
           </Container>
         </Body>

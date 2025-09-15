@@ -4,16 +4,16 @@ import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
 
 
-interface CreatePartnerAccountInviteProps {
+interface CreateAccountReminderProps {
     userRole: string;
     token: string;
 }
 
 
-export const CreatePartnerAccountReminder = ({
+export const CreateAccountReminder = ({
   userRole,
   token,
-}: CreatePartnerAccountInviteProps) => {
+}: CreateAccountReminderProps) => {
   const inviteLink = `/register?token=${token}`;
   return (
     <Html>
@@ -33,7 +33,7 @@ export const CreatePartnerAccountReminder = ({
                 Complete Registration
               </Button>
               <Text className="text-base font-light text-gray-primary leading-[26px] mt-4">
-                If you have any questions or need assistance, feel free to reply to this email.
+                If you have any questions or need assistance, contact yvette@hopeforhaiti.com.
               </Text>
               <Text className="text-base font-light text-gray-primary leading-[26px]">Thank you!</Text>
               </div>
@@ -47,12 +47,12 @@ export const CreatePartnerAccountReminder = ({
 
 
 
-CreatePartnerAccountReminder.PreviewProps = {
+CreateAccountReminder.PreviewProps = {
   userRole: 'Partner',
   token: 'abcdef12345',
-} as CreatePartnerAccountInviteProps;
+} as CreateAccountReminderProps;
 
-export default CreatePartnerAccountReminder;
+export default CreateAccountReminder;
 
 
 // Tailwind via <Tailwind config={tailwindConfig}>

@@ -4,15 +4,15 @@ import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
 
 
-interface CreatePartnerAccountInviteProps {
+interface CreateAccountInviteProps {
     userRole: string;
     token: string;
 }
 
-export const CreatePartnerAccountInvite = ({
+export const CreateAccountInvite = ({
   userRole,
   token,
-}: CreatePartnerAccountInviteProps) => {
+}: CreateAccountInviteProps) => {
     const inviteLink = `/register?token=${token}`;
   return (
     <Html>
@@ -44,12 +44,12 @@ export const CreatePartnerAccountInvite = ({
 };
 
 
-CreatePartnerAccountInvite.PreviewProps = {
+CreateAccountInvite.PreviewProps = {
   userRole: 'Partner',
   token: 'abcdef12345',
-} as CreatePartnerAccountInviteProps;
+} as CreateAccountInviteProps;
 
-export default CreatePartnerAccountInvite;
+export default CreateAccountInvite;
 
 
 // Tailwind via <Tailwind config={tailwindConfig}>

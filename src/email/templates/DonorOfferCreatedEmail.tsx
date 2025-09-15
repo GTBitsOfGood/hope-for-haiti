@@ -39,10 +39,11 @@ export const DonorOfferCreatedEmail = ({
     <Html>
       <Head />
   <Tailwind config={{ theme: (tailwindConfig as any).theme }}>
-        <Body className="bg-blue-light py-2">
+        <Body className="bg-blue-light py-2 font-sans">
           <Preview>{previewText}</Preview>
-          <Container className="bg-white border-2 border-blue-primary rounded-lg p-8">
+          <Container className="w-[600px] mx-auto text-left">
             <Section>
+              <div className="bg-white border-2 border-blue-primary rounded-lg p-8">
               <Text className="text-2xl font-bold text-mainRed mb-3">New Donor Offer Available</Text>
               <Text className="text-base font-light text-gray-primary leading-[26px]">
                 {partnerName ? `${partnerName}, ` : ''}a new donor offer has been created and you have access to view it.
@@ -104,8 +105,9 @@ export const DonorOfferCreatedEmail = ({
             )}
             <Button href={offerUrl} className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3">View Donor Offer</Button>
             <Text className="text-[13px] text-[#555] mt-3">
-              Please submit your requests before the deadline. If you have questions, reply to this email.
+              Please submit your requests before the deadline. If you have questions, contact yvette@hopeforhaiti.com.
             </Text>
+              </div>
           </Section>
         </Container>
         </Body>
