@@ -38,7 +38,7 @@ export const DonorOfferCreatedEmail = ({
   return (
     <Html>
       <Head />
-  <Tailwind config={{ theme: (tailwindConfig as any).theme }}>
+  <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
           <Preview>{previewText}</Preview>
           <Container className="w-[600px] mx-auto text-left">

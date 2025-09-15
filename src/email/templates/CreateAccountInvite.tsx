@@ -17,7 +17,7 @@ export const CreateAccountInvite = ({
   return (
     <Html>
       <Head />
-  <Tailwind config={{ theme: (tailwindConfig as any).theme }}>
+  <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
           <Preview>You&apos;re invited to create a {userRole} account</Preview>
           <Container className="w-[600px] mx-auto text-left">

@@ -13,7 +13,7 @@ export const ExpiringItemsEmail = ({ items, month }: ExpiringItemsEmailProps) =>
   return (
     <Html>
       <Head />
-  <Tailwind config={{ theme: (tailwindConfig as any).theme }}>
+  <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
           <Preview>Expiring Items Report for {month}</Preview>
           <Container className="w-[600px] mx-auto text-left">
