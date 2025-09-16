@@ -86,9 +86,9 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
   const [editingIds, setEditingIds] = useState<Set<number>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [, setNewIds] = useState<Set<number>>(new Set());
   const originalsRef = useRef<Map<number, WishlistItem>>(new Map());
-  const [activeCell, setActiveCell] = useState<{ id: number; field: "name" | "unitSize" | "quantity" | "priority" } | null>(null);
   useEffect(() => {
     if (data && Array.isArray(data)) setItems(data);
     else setItems(mockWishlistItems);
@@ -97,8 +97,17 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
   // To enable real API persistence later, introduce useApiClient and call PATCH/DELETE where TODO notes are placed below.
 
   const isEditing = (id: number) => editingIds.has(id);
+  const isDeleting = (id: number) => deletingIds.has(id);
+  
   const startEdit = (id: number) => {
     if (readOnly) return;
+    // Cancel any pending delete confirmation first
+    setDeletingIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    
     setEditingIds((prev) => {
       const next = new Set(prev);
       next.add(id);
@@ -109,7 +118,26 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
       const it = items.find(i => i.id === id);
       if (it) originalsRef.current.set(id, { ...it });
     }
-  // Do not auto-focus any cell; cells will become editable on click
+  };
+  
+  const startDelete = (id: number) => {
+    if (readOnly) return;
+    // Cancel any pending edit first
+    cancelEdit(id);
+    
+    setDeletingIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
+  
+  const cancelDelete = (id: number) => {
+    setDeletingIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
   const cancelEdit = (id: number, keepIfNew: boolean = false) => {
     setEditingIds((prev) => {
@@ -117,7 +145,6 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
       next.delete(id);
       return next;
     });
-  setActiveCell(null);
     if (!keepIfNew) {
       setNewIds((prev) => {
         if (prev.has(id)) {
@@ -181,7 +208,6 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
       cancelEdit(id, true);
   // Clear snapshot after successful save
   originalsRef.current.delete(id);
-  setActiveCell(null);
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -192,6 +218,11 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
     try {
   // TODO(API): await apiDelete(id);
       setItems((prev) => prev.filter((i) => i.id !== id));
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       toast.success("Wishlist item removed");
     } catch (e) {
       toast.error((e as Error).message);
@@ -269,11 +300,15 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                   key={it.id}
                   data-odd={idx % 2 !== 0}
                   className={`border-b border-gray-200 transition-colors ${
-                    isEditing(it.id) ? "bg-blue-50" : "bg-white data-[odd=true]:bg-gray-50"
+                    isEditing(it.id) 
+                      ? "bg-blue-50" 
+                      : isDeleting(it.id)
+                      ? "bg-red-50"
+                      : "bg-white data-[odd=true]:bg-gray-50"
                   }`}
                 >
                   <td className="px-4 py-2 w-[18%]">
-                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "name" ? (
+                    {isEditing(it.id) && !isDeleting(it.id) ? (
                       <ModalTextField
                         name="name"
                         placeholder="Title"
@@ -284,19 +319,13 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                         }}
                       />
                     ) : (
-                      <button
-                        type="button"
-                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
-                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "name" })}
-                        disabled={!isEditing(it.id)}
-                        title={isEditing(it.id) ? "Click to edit title" : undefined}
-                      >
+                      <span>
                         {it.name || <span className="text-gray-400 italic">(untitled)</span>}
-                      </button>
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[12%]">
-                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "unitSize" ? (
+                    {isEditing(it.id) && !isDeleting(it.id) ? (
                       <ModalTextField
                         name="unitSize"
                         placeholder="Unit Size"
@@ -307,19 +336,13 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                         }}
                       />
                     ) : (
-                      <button
-                        type="button"
-                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
-                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "unitSize" })}
-                        disabled={!isEditing(it.id)}
-                        title={isEditing(it.id) ? "Click to edit unit size" : undefined}
-                      >
+                      <span>
                         {it.unitSize || <span className="text-gray-400 italic">(unit size)</span>}
-                      </button>
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[10%]">
-                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "quantity" ? (
+                    {isEditing(it.id) && !isDeleting(it.id) ? (
                       <ModalTextField
                         name="quantity"
                         type="number"
@@ -332,19 +355,13 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                         }}
                       />
                     ) : (
-                      <button
-                        type="button"
-                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
-                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "quantity" })}
-                        disabled={!isEditing(it.id)}
-                        title={isEditing(it.id) ? "Click to edit quantity" : undefined}
-                      >
+                      <span>
                         {it.quantity}
-                      </button>
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[12%]">
-                    {isEditing(it.id) && activeCell?.id === it.id && activeCell.field === "priority" ? (
+                    {isEditing(it.id) && !isDeleting(it.id) ? (
                       <ModalDropDown
                         key={`priority-${it.id}-${it.priority}`}
                         name="priority"
@@ -362,21 +379,15 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                         }
                       />
                     ) : (
-                      <button
-                        type="button"
-                        className={`text-left w-full ${isEditing(it.id) ? "cursor-pointer" : "cursor-default"}`}
-                        onClick={() => isEditing(it.id) && setActiveCell({ id: it.id, field: "priority" })}
-                        disabled={!isEditing(it.id)}
-                        title={isEditing(it.id) ? "Click to edit priority" : undefined}
-                      >
+                      <span>
                         <PriorityTag priority={it.priority} />
-                      </button>
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2 w-[12%]">{lastUpdated}</td>
                   <td className="px-4 py-2 w-[16%]">
                     {/* View: tooltip. Edit: open modal */}
-                    {!isEditing(it.id) ? (
+                    {!isEditing(it.id) || isDeleting(it.id) ? (
                       <>
                         <ChatTeardropText
                           data-tooltip-id={`wishlist-comment-${it.id}`}
@@ -421,6 +432,23 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                           <Check size={18} />
                         </button>
                       </div>
+                    ) : isDeleting(it.id) && !readOnly ? (
+                      <div className="flex gap-2">
+                        <button
+                          className="border border-gray-400 rounded-md size-7 flex items-center justify-center"
+                          onClick={() => cancelDelete(it.id)}
+                          title="Cancel Delete"
+                        >
+                          <X className="text-gray-600" size={18} />
+                        </button>
+                        <button
+                          className="bg-red-primary rounded-md size-7 flex items-center justify-center text-white"
+                          onClick={() => remove(it.id)}
+                          title="Confirm Delete"
+                        >
+                          <Check size={18} />
+                        </button>
+                      </div>
                     ) : (
                       <div className="flex gap-2">
                         <button
@@ -438,7 +466,7 @@ export default function PartnerWishlistScreen({ partnerId, readOnly = false }: {
                           className={`border rounded-md size-7 flex items-center justify-center ${readOnly ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
                           onClick={() => {
                             if (readOnly) return; // inert in read-only mode
-                            remove(it.id);
+                            startDelete(it.id);
                           }}
                           disabled={readOnly}
                           title={readOnly ? "View only" : "Delete"}
