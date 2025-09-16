@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
       status: 200,
     });
   } catch (error) {
+    console.error(error);
     return errorResponse(error);
   }
 }

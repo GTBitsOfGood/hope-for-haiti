@@ -80,6 +80,7 @@ export class WishlistService {
         LEFT JOIN "Wishlist" w ON u.id = w."partnerId"
         WHERE u.type = 'PARTNER'
         GROUP BY u.id, u.name
+        ORDER BY u.id
     `;
 
     return stats.map(stat => ({
