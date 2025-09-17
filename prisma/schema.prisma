@@ -37,15 +37,15 @@ model User {
   enabled      Boolean  @default(true)
 
   // Partner-only fields
-  partnerDetails          Json?
-  donorOfferVisibilities  DonorOfferPartnerVisibility[]
-  donorOfferItemRequests  GeneralItemRequest[]
-  allocations             Allocation[]
+  partnerDetails         Json?
+  donorOfferVisibilities DonorOfferPartnerVisibility[]
+  generalItemRequests    GeneralItemRequest[]
+  allocations            Allocation[]
 
   // There should only ever be one distribution
-  distributions                     Distribution[]
-  signOffs                          SignOff[]
-  wishlists                         Wishlist[]
+  distributions Distribution[]
+  signOffs      SignOff[]
+  wishlists     Wishlist[]
 }
 
 model UserInvite {
@@ -88,10 +88,10 @@ model LineItem {
   visible          Boolean
   gik              Boolean
 
-  generalItemId                 Int?
-  generalItem                   GeneralItem?                   @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
+  generalItemId Int?
+  generalItem   GeneralItem? @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
-  allocationId Int? @unique
+  allocationId Int?        @unique
   allocation   Allocation? @relation
 }
 
@@ -101,10 +101,10 @@ model Allocation {
   partnerId Int?
   partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
-  lineItemId Int @unique
-  lineItem LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
+  lineItemId Int      @unique
+  lineItem   LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
 
-  distributionId Int? @unique
+  distributionId Int?          @unique
   distribution   Distribution? @relation(fields: [distributionId], references: [id], onDelete: Cascade)
 
   signOffId Int?
@@ -154,15 +154,15 @@ model GeneralItem {
 model GeneralItemRequest {
   id Int @id @default(autoincrement())
 
-  generalItemId Int @map("donorOfferItemId")
+  generalItemId Int         @map("donorOfferItemId")
   generalItem   GeneralItem @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
-  quantity                        Int
-  comments                        String?
-  priority                        RequestPriority?
+  quantity Int
+  comments String?
+  priority RequestPriority?
 
   createdAt DateTime @default(now())
 
@@ -237,7 +237,7 @@ model Wishlist {
 
   lastUpdated DateTime @updatedAt
 
-  comments   String
+  comments  String
   partnerId Int
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
