@@ -40,7 +40,7 @@ model User {
   partnerDetails          Json?
   unallocatedItemRequests UnallocatedItemRequest[]
   donorOfferVisibilities  DonorOfferPartnerVisibility[]
-  donorOfferItemRequests  DonorOfferItemRequest[]
+  donorOfferItemRequests  GeneralItemRequest[]
 
   // There should only ever be one distribution
   distributions                     Distribution[]
@@ -59,7 +59,8 @@ model UserInvite {
   expiration     DateTime
 }
 
-model Item {
+// A specific item inside a general item. Ex: a specific box inside a donation of many boxes
+model LineItem {
   id Int @id @default(autoincrement())
 
   // Columns that define a general item
@@ -90,8 +91,8 @@ model Item {
 
   unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
 
-  donorOfferItemId                 Int?
-  donorOfferItem                   DonorOfferItem?                   @relation(fields: [donorOfferItemId], references: [id], onDelete: Cascade)
+  generalItemId                 Int?
+  generalItem                   GeneralItem?                   @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
   donorOfferItemRequestAllocations DonorOfferItemRequestAllocation[]
 }
 
@@ -129,7 +130,7 @@ model UnallocatedItemRequestAllocation {
   unallocatedItemRequest   UnallocatedItemRequest? @relation(fields: [unallocatedItemRequestId], references: [id], onDelete: Cascade)
 
   itemId          Int
-  unallocatedItem Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  unallocatedItem LineItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   // There should only ever be one distribution
   distributions Distribution[]
@@ -152,11 +153,11 @@ model DonorOffer {
   partnerResponseDeadline DateTime
   donorResponseDeadline   DateTime
 
-  items               DonorOfferItem[]
+  items               GeneralItem[]
   partnerVisibilities DonorOfferPartnerVisibility[]
 }
 
-model DonorOfferItem {
+model GeneralItem {
   id Int @id @default(autoincrement())
 
   donorOfferId Int
@@ -171,17 +172,17 @@ model DonorOfferItem {
   quantity        Int
   requestQuantity Int?
 
-  requests DonorOfferItemRequest[]
-  items    Item[]
+  requests GeneralItemRequest[]
+  items    LineItem[]
 
   @@unique([donorOfferId, title, type, expirationDate, unitType, quantityPerUnit])
 }
 
-model DonorOfferItemRequest {
+model GeneralItemRequest {
   id Int @id @default(autoincrement())
 
-  donorOfferItemId Int
-  donorOfferItem   DonorOfferItem @relation(fields: [donorOfferItemId], references: [id], onDelete: Cascade)
+  generalItemId Int @map("donorOfferItemId")
+  generalItem   GeneralItem @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
@@ -193,7 +194,7 @@ model DonorOfferItemRequest {
 
   createdAt DateTime @default(now())
 
-  @@unique([donorOfferItemId, partnerId])
+  @@unique([generalItemId, partnerId])
 }
 
 model DonorOfferPartnerVisibility {
@@ -212,10 +213,10 @@ model DonorOfferItemRequestAllocation {
   quantity Int
 
   donorOfferItemRequestId Int
-  donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id], onDelete: Cascade)
+  donorOfferItemRequest   GeneralItemRequest @relation(fields: [donorOfferItemRequestId], references: [id], onDelete: Cascade)
 
   itemId        Int
-  item          Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item          LineItem           @relation(fields: [itemId], references: [id], onDelete: Cascade)
   distributions Distribution[]
 
   visible Boolean @default(false)
