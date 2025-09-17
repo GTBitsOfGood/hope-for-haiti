@@ -41,6 +41,7 @@ model User {
   unallocatedItemRequests UnallocatedItemRequest[]
   donorOfferVisibilities  DonorOfferPartnerVisibility[]
   donorOfferItemRequests  GeneralItemRequest[]
+  allocations             Allocation[]
 
   // There should only ever be one distribution
   distributions                     Distribution[]
@@ -94,6 +95,9 @@ model LineItem {
   generalItemId                 Int?
   generalItem                   GeneralItem?                   @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
   donorOfferItemRequestAllocations DonorOfferItemRequestAllocation[]
+
+  allocationId Int? @unique
+  allocation   Allocation? @relation
 }
 
 model UnallocatedItemRequest {
@@ -116,6 +120,22 @@ model UnallocatedItemRequest {
   createdAt DateTime @default(now())
 
   allocations UnallocatedItemRequestAllocation[]
+}
+
+model Allocation {
+  id Int @id @default(autoincrement())
+
+  partnerId Int?
+  partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  lineItemId Int @unique
+  lineItem LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
+
+  distributionId Int? @unique
+  distribution   Distribution? @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+
+  signOffId Int?
+  signOff   SignOff? @relation(fields: [signOffId], references: [id], onDelete: Cascade)
 }
 
 model UnallocatedItemRequestAllocation {
@@ -234,9 +254,9 @@ model Distribution {
   donorOfferItemRequestAllocationId Int?                             @unique
   donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id], onDelete: Cascade)
 
+  allocations Allocation[]
+
   actualQuantity Int
-  signOffId      Int
-  signOff        SignOff @relation(fields: [signOffId], references: [id], onDelete: Cascade)
 }
 
 enum ShipmentStatus {
@@ -273,7 +293,7 @@ model SignOff {
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
-  distributions Distribution[]
+  allocations Allocation[]
 }
 
 model Wishlist {
