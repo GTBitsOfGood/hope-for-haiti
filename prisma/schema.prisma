@@ -38,14 +38,12 @@ model User {
 
   // Partner-only fields
   partnerDetails          Json?
-  unallocatedItemRequests UnallocatedItemRequest[]
   donorOfferVisibilities  DonorOfferPartnerVisibility[]
   donorOfferItemRequests  GeneralItemRequest[]
   allocations             Allocation[]
 
   // There should only ever be one distribution
   distributions                     Distribution[]
-  unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
   signOffs                          SignOff[]
   wishlists                         Wishlist[]
 }
@@ -90,36 +88,11 @@ model LineItem {
   visible          Boolean
   gik              Boolean
 
-  unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
-
   generalItemId                 Int?
   generalItem                   GeneralItem?                   @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
-  donorOfferItemRequestAllocations DonorOfferItemRequestAllocation[]
 
   allocationId Int? @unique
   allocation   Allocation? @relation
-}
-
-model UnallocatedItemRequest {
-  id Int @id @default(autoincrement())
-
-  // Points to User, but only valid for `PARTNER` users
-  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  partnerId Int
-
-  title           String
-  type            String
-  expirationDate  DateTime? @db.Date
-  unitType        String
-  quantityPerUnit Int
-
-  priority RequestPriority
-  quantity Int
-  comments String
-
-  createdAt DateTime @default(now())
-
-  allocations UnallocatedItemRequestAllocation[]
 }
 
 model Allocation {
@@ -136,26 +109,6 @@ model Allocation {
 
   signOffId Int?
   signOff   SignOff? @relation(fields: [signOffId], references: [id], onDelete: Cascade)
-}
-
-model UnallocatedItemRequestAllocation {
-  id Int @id @default(autoincrement())
-
-  quantity Int
-
-  partnerId Int?
-  partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  unallocatedItemRequestId Int?
-  unallocatedItemRequest   UnallocatedItemRequest? @relation(fields: [unallocatedItemRequestId], references: [id], onDelete: Cascade)
-
-  itemId          Int
-  unallocatedItem LineItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  // There should only ever be one distribution
-  distributions Distribution[]
-
-  visible Boolean @default(false)
 }
 
 enum DonorOfferState {
@@ -210,7 +163,6 @@ model GeneralItemRequest {
   quantity                        Int
   comments                        String?
   priority                        RequestPriority?
-  DonorOfferItemRequestAllocation DonorOfferItemRequestAllocation[]
 
   createdAt DateTime @default(now())
 
@@ -227,32 +179,11 @@ model DonorOfferPartnerVisibility {
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
 
-model DonorOfferItemRequestAllocation {
-  id Int @id @default(autoincrement())
-
-  quantity Int
-
-  donorOfferItemRequestId Int
-  donorOfferItemRequest   GeneralItemRequest @relation(fields: [donorOfferItemRequestId], references: [id], onDelete: Cascade)
-
-  itemId        Int
-  item          LineItem           @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  distributions Distribution[]
-
-  visible Boolean @default(false)
-}
-
 model Distribution {
   id Int @id @default(autoincrement())
 
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id])
-
-  unallocatedItemRequestAllocationId Int?                              @unique
-  unallocatedItemAllocation          UnallocatedItemRequestAllocation? @relation(fields: [unallocatedItemRequestAllocationId], references: [id], onDelete: Cascade)
-
-  donorOfferItemRequestAllocationId Int?                             @unique
-  donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id], onDelete: Cascade)
 
   allocations Allocation[]
 
