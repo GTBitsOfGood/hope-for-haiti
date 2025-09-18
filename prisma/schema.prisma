@@ -203,9 +203,6 @@ model SignOff {
 
   createdAt DateTime @default(now())
 
-  partnerId Int
-  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
   allocations Allocation[]
 }
 
