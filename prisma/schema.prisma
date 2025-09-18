@@ -167,6 +167,8 @@ model Distribution {
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id])
 
+  pending Boolean @default(false)
+
   allocations Allocation[]
 }
 
