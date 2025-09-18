@@ -38,13 +38,11 @@ model User {
 
   // Partner-only fields
   partnerDetails         Json?
-  donorOfferVisibilities DonorOfferPartnerVisibility[]
-  generalItemRequests    GeneralItemRequest[]
+  generalItemRequests    GeneralItemRequest[] 
   allocations            Allocation[]
 
   // There should only ever be one distribution
   distributions Distribution[]
-  signOffs      SignOff[]
   wishlists     Wishlist[]
 }
 
@@ -102,7 +100,7 @@ model Allocation {
   lineItemId Int      @unique
   lineItem   LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
 
-  distributionId Int?          @unique
+  distributionId Int?
   distribution   Distribution? @relation(fields: [distributionId], references: [id], onDelete: Cascade)
 
   signOffId Int?
@@ -125,7 +123,6 @@ model DonorOffer {
   donorResponseDeadline   DateTime
 
   items               GeneralItem[]
-  partnerVisibilities DonorOfferPartnerVisibility[]
 }
 
 model GeneralItem {
@@ -164,16 +161,6 @@ model GeneralItemRequest {
   @@unique([generalItemId, partnerId])
 }
 
-model DonorOfferPartnerVisibility {
-  id Int @id @default(autoincrement())
-
-  donorOfferId Int
-  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
-
-  partnerId Int
-  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-}
-
 model Distribution {
   id Int @id @default(autoincrement())
 
@@ -181,8 +168,6 @@ model Distribution {
   partner   User @relation(fields: [partnerId], references: [id])
 
   allocations Allocation[]
-
-  actualQuantity Int
 }
 
 enum ShipmentStatus {
