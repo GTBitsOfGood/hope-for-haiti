@@ -60,11 +60,6 @@ model UserInvite {
 model LineItem {
   id Int @id @default(autoincrement())
 
-  // Columns that define a general item
-  expirationDate  DateTime? @db.Date
-  unitType        String
-  quantityPerUnit Int
-
   // Columns that define a unique line item
   category            ItemCategory
   donorName           String
@@ -133,6 +128,9 @@ model GeneralItem {
 
   title           String
   type            String
+  expirationDate  DateTime? @db.Date
+  unitType        String
+  quantityPerUnit Int
 
   quantity        Int
   requestQuantity Int?
@@ -140,7 +138,7 @@ model GeneralItem {
   requests GeneralItemRequest[]
   items    LineItem[]
 
-  @@unique([donorOfferId, title, type])
+  @@unique([donorOfferId, title, type, expirationDate, unitType, quantityPerUnit])
 }
 
 model GeneralItemRequest {
