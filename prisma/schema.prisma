@@ -37,9 +37,9 @@ model User {
   enabled      Boolean  @default(true)
 
   // Partner-only fields
-  partnerDetails         Json?
-  generalItemRequests    GeneralItemRequest[] 
-  allocations            Allocation[]
+  partnerDetails      Json?
+  generalItemRequests GeneralItemRequest[]
+  allocations         Allocation[]
 
   // There should only ever be one distribution
   distributions Distribution[]
@@ -117,7 +117,7 @@ model DonorOffer {
   partnerResponseDeadline DateTime
   donorResponseDeadline   DateTime
 
-  items               GeneralItem[]
+  items GeneralItem[]
 }
 
 model GeneralItem {
