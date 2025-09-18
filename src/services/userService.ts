@@ -106,8 +106,7 @@ export default class UserService {
         },
       });
 
-      const inviteUrl = `${data.origin}/register?token=${token}`;
-      await EmailClient.sendUserInvite(data.email, { inviteUrl });
+      await EmailClient.sendUserInvite(data.email, { token, userRole: data.userType });
     });
   }
 
