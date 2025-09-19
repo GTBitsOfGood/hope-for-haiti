@@ -37,6 +37,7 @@ model User {
   enabled      Boolean  @default(true)
 
   // Partner-only fields
+  donorOfferVisibilities DonorOffer[]
   partnerDetails      Json?
   generalItemRequests GeneralItemRequest[]
   allocations         Allocation[]
