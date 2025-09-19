@@ -118,6 +118,7 @@ model DonorOffer {
   partnerResponseDeadline DateTime
   donorResponseDeadline   DateTime
 
+  partnerVisibilities User[]
   items GeneralItem[]
 }
 
