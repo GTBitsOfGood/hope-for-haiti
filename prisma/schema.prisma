@@ -95,8 +95,8 @@ model Allocation {
   lineItemId Int      @unique
   lineItem   LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
 
-  distributionId Int?
-  distribution   Distribution? @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  distributionId Int
+  distribution   Distribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
 
   signOffId Int?
   signOff   SignOff? @relation(fields: [signOffId], references: [id], onDelete: Cascade)
