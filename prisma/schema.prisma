@@ -132,7 +132,7 @@ model GeneralItem {
   unitType        String
   quantityPerUnit Int
 
-  quantity        Int
+  initialQuantity        Int
   requestQuantity Int?
 
   requests GeneralItemRequest[]
