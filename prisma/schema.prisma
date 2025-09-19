@@ -37,6 +37,7 @@ model User {
   enabled      Boolean  @default(true)
 
   // Partner-only fields
+  donorOfferVisibilities DonorOffer[]
   partnerDetails      Json?
   generalItemRequests GeneralItemRequest[]
   allocations         Allocation[]
@@ -95,8 +96,8 @@ model Allocation {
   lineItemId Int      @unique
   lineItem   LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
 
-  distributionId Int?
-  distribution   Distribution? @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  distributionId Int
+  distribution   Distribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
 
   signOffId Int?
   signOff   SignOff? @relation(fields: [signOffId], references: [id], onDelete: Cascade)
@@ -117,6 +118,7 @@ model DonorOffer {
   partnerResponseDeadline DateTime
   donorResponseDeadline   DateTime
 
+  partnerVisibilities User[]
   items GeneralItem[]
 }
 
@@ -144,7 +146,7 @@ model GeneralItem {
 model GeneralItemRequest {
   id Int @id @default(autoincrement())
 
-  generalItemId Int         @map("donorOfferItemId")
+  generalItemId Int
   generalItem   GeneralItem @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
   partnerId Int
