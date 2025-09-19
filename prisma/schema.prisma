@@ -38,9 +38,9 @@ model User {
 
   // Partner-only fields
   donorOfferVisibilities DonorOffer[]
-  partnerDetails      Json?
-  generalItemRequests GeneralItemRequest[]
-  allocations         Allocation[]
+  partnerDetails         Json?
+  generalItemRequests    GeneralItemRequest[]
+  allocations            Allocation[]
 
   // There should only ever be one distribution
   distributions Distribution[]
@@ -119,7 +119,7 @@ model DonorOffer {
   donorResponseDeadline   DateTime
 
   partnerVisibilities User[]
-  items GeneralItem[]
+  items               GeneralItem[]
 }
 
 model GeneralItem {
@@ -134,7 +134,7 @@ model GeneralItem {
   unitType        String
   quantityPerUnit Int
 
-  initialQuantity        Int
+  initialQuantity Int
   requestQuantity Int?
 
   requests GeneralItemRequest[]
