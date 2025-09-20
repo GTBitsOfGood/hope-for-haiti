@@ -1,84 +1,63 @@
 import { db } from "@/db";
 import { ArgumentError, NotFoundError, ConflictError } from "@/util/errors";
-import { 
-  CreateAllocationData, 
-  UpdateAllocationData, 
-  ItemSearchParams, 
-  ItemSearchResult 
+import {
+  CreateAllocationData,
+  UpdateAllocationData,
+  ItemSearchParams,
+  ItemSearchResult,
 } from "@/types/api/allocation.types";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
-    if (data.unallocatedItemRequestId && data.partnerId) {
-      throw new ArgumentError("Cannot specify both unallocatedItemRequestId and partnerId");
-    }
-
-    if (!data.unallocatedItemRequestId && !data.partnerId && !data.donorOfferItemRequestId) {
-      throw new ArgumentError("Must specify either unallocatedItemRequestId, partnerId, or donorOfferItemRequestId");
-    }
-
-    let item;
+    let itemId: number | undefined;
     if (data.itemId) {
-      item = await db.item.findUnique({
-        where: { id: data.itemId },
-      });
+      itemId = data.itemId;
     } else {
-      if (!data.title || !data.type || !data.expirationDate || !data.unitType || 
-          !data.quantityPerUnit || !data.donorName || !data.lotNumber || 
-          !data.palletNumber || !data.boxNumber) {
+      if (
+        !data.title ||
+        !data.type ||
+        !data.expirationDate ||
+        !data.unitType ||
+        !data.quantityPerUnit ||
+        !data.donorName ||
+        !data.lotNumber ||
+        !data.palletNumber ||
+        !data.boxNumber
+      ) {
         throw new ArgumentError("Missing required item fields for item search");
       }
 
-      item = await db.item.findFirst({
+      const item = await db.lineItem.findFirst({
         where: {
-          title: data.title,
-          type: data.type,
-          expirationDate: data.expirationDate,
-          unitType: data.unitType,
-          quantityPerUnit: data.quantityPerUnit,
+          generalItem: {
+            title: data.title,
+            type: data.type,
+            expirationDate: data.expirationDate,
+            unitType: data.unitType,
+            quantityPerUnit: data.quantityPerUnit,
+          },
           donorName: data.donorName,
           lotNumber: data.lotNumber,
           palletNumber: data.palletNumber,
           boxNumber: data.boxNumber,
         },
       });
+
+      if (!item) {
+        throw new NotFoundError("Item not found with the specified attributes");
+      }
+
+      itemId = item.id;
     }
 
-    if (!item) {
-      throw new NotFoundError("Item not found with the specified attributes");
-    }
-
-    if (data.unallocatedItemRequestId) {
-      const allocation = await db.unallocatedItemRequestAllocation.create({
-        data: {
-          unallocatedItemRequestId: data.unallocatedItemRequestId,
-          itemId: item.id,
-          quantity: data.quantity,
-          visible: data.visible,
-        },
-      });
-      return { type: "unallocated", allocation };
-    } else if (data.donorOfferItemRequestId) {
-      const allocation = await db.donorOfferItemRequestAllocation.create({
-        data: {
-          donorOfferItemRequestId: data.donorOfferItemRequestId,
-          itemId: item.id,
-          quantity: data.quantity,
-          visible: data.visible,
-        },
-      });
-      return { type: "donorOffer", allocation };
-    } else {
-      const allocation = await db.unallocatedItemRequestAllocation.create({
-        data: {
-          partnerId: data.partnerId!,
-          itemId: item.id,
-          quantity: data.quantity,
-          visible: data.visible,
-        },
-      });
-      return { type: "unallocated", allocation };
-    }
+    db.allocation.create({
+      data: {
+        lineItemId: itemId,
+        partnerId: data.partnerId || null,
+        distributionId: data.distributionId,
+        signOffId: data.signOffId || null,
+      },
+    });
   }
 
   static async updateAllocation(data: UpdateAllocationData) {
@@ -117,9 +96,12 @@ export default class AllocationService {
       },
     });
 
-    const availableQuantity = item.quantity - (totalAllocated._sum.quantity || 0);
+    const availableQuantity =
+      item.quantity - (totalAllocated._sum.quantity || 0);
     if (availableQuantity < data.quantity) {
-      throw new ConflictError("Not enough items in inventory to fulfill the allocation request");
+      throw new ConflictError(
+        "Not enough items in inventory to fulfill the allocation request"
+      );
     }
 
     const updatedAllocation = await db.unallocatedItemRequestAllocation.update({
@@ -133,7 +115,9 @@ export default class AllocationService {
     return updatedAllocation;
   }
 
-  static async searchItems(params: ItemSearchParams): Promise<ItemSearchResult> {
+  static async searchItems(
+    params: ItemSearchParams
+  ): Promise<ItemSearchResult> {
     const whereClause: Record<string, unknown> = {
       title: params.title,
       type: params.type,

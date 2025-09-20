@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { ArgumentError, AuthenticationError, AuthorizationError } from "@/util/errors";
+import {
+  ArgumentError,
+  AuthenticationError,
+  AuthorizationError,
+} from "@/util/errors";
 import { errorResponse } from "@/util/errors";
 import UserService from "@/services/userService";
 import AllocationService from "@/services/allocationService";
-import { createAllocationFormSchema, editAllocationFormSchema } from "@/schema/unAllocatedItemRequestForm";
+import {
+  createAllocationFormSchema,
+  editAllocationFormSchema,
+} from "@/schema/allocationForm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,19 +26,16 @@ export async function POST(request: NextRequest) {
 
     const form = await request.formData();
     const parsed = createAllocationFormSchema.safeParse(form);
-    
+
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await AllocationService.createAllocation({
-      ...parsed.data,
-      visible: parsed.data.visible || false,
-    });
+    const result = await AllocationService.createAllocation(parsed.data);
 
-    return NextResponse.json({ 
-      message: "Allocation created", 
-      allocation: result.allocation 
+    return NextResponse.json({
+      message: "Allocation created",
+      allocation: result.allocation,
     });
   } catch (error) {
     return errorResponse(error);
@@ -51,12 +55,14 @@ export async function PUT(request: NextRequest) {
 
     const form = await request.formData();
     const parsed = editAllocationFormSchema.safeParse(form);
-    
+
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const updatedAllocation = await AllocationService.updateAllocation(parsed.data);
+    const updatedAllocation = await AllocationService.updateAllocation(
+      parsed.data
+    );
 
     return NextResponse.json({
       message: "Allocation request modified",
