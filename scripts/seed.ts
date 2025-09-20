@@ -3,6 +3,7 @@ import { exit } from "process";
 import { db } from "@/db";
 import { hash } from "argon2";
 import {
+  $Enums,
   DonorOffer,
   DonorOfferState,
   GeneralItem,
@@ -518,6 +519,56 @@ async function run() {
         };
       }),
     });
+
+    await Promise.all(
+      Array.from({ length: 10 }, (_, index) => ({
+        partnerId: partners[index % partners.length].id,
+        allocations: {
+          create: [
+            {
+              partner: {
+                connect: { id: partners[index % partners.length].id },
+              },
+              lineItem: {
+                create: {
+                  generalItem: {
+                    connect: { id: pick(actualGeneralItems).id },
+                  },
+                  category: $Enums.ItemCategory.MEDICAL_SUPPLY,
+                  donorName: pick(donorNames),
+                  quantity: randInt(1, 4) * 5,
+                  lotNumber: pick(lots),
+                  palletNumber: pick(pallets),
+                  boxNumber: pick(boxes),
+                  unitPrice: randInt(1, 4) * 5,
+                  allowAllocations: false,
+                  visible: false,
+                  gik: false,
+                },
+              },
+              signOff: {
+                create: {
+                  staffMemberName: "Staff Member",
+                  partnerName: partners[index % partners.length].name,
+                  signatureUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                  date: new Date(),
+                },
+              },
+            },
+          ],
+        },
+      })).map((data) => tx.distribution.create({ data }))
+    );
+  });
+
+  await db.shippingStatus.createMany({
+    data: Array.from({ length: 10 }, (_, index) => ({
+      donorShippingNumber: `SH${index}`,
+      hfhShippingNumber: `HFH${index}`,
+      value: Object.values($Enums.ShipmentStatus)[
+        index % Object.values($Enums.ShipmentStatus).length
+      ],
+    })),
   });
 }
 
