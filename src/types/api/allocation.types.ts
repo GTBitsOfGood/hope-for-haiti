@@ -1,20 +1,8 @@
-export interface CreateAllocationData {
-  unallocatedItemRequestId?: number;
-  donorOfferItemRequestId?: number;
+export interface CreateAllocationData extends Partial<ItemSearchParams> {
   partnerId?: number;
-  quantity: number;
-  itemId?: number;
-  visible: boolean;
-  // Item search fields
-  title?: string;
-  type?: string;
-  expirationDate?: Date;
-  unitType?: string;
-  quantityPerUnit?: number;
-  donorName?: string;
-  lotNumber?: string;
-  palletNumber?: string;
-  boxNumber?: string;
+  distributionId: number;
+  itemId: number;
+  signOffId?: number;
 }
 
 export interface UpdateAllocationData {
