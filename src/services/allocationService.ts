@@ -6,6 +6,7 @@ import {
   ItemSearchParams,
   ItemSearchResult,
 } from "@/types/api/allocation.types";
+import { Prisma } from "@prisma/client";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
@@ -44,20 +45,32 @@ export default class AllocationService {
       });
 
       if (!item) {
-        throw new NotFoundError("Item not found with the specified attributes");
+        throw new NotFoundError(
+          "Line item not found with the specified attributes"
+        );
       }
 
       itemId = item.id;
     }
 
-    db.allocation.create({
-      data: {
-        lineItemId: itemId,
-        partnerId: data.partnerId || null,
-        distributionId: data.distributionId,
-        signOffId: data.signOffId || null,
-      },
-    });
+    console.log("Creating allocation with itemId:", itemId, "and data:", data);
+    try {
+      return await db.allocation.create({
+        data: {
+          lineItemId: itemId,
+          partnerId: data.partnerId || null,
+          distributionId: data.distributionId,
+          signOffId: data.signOffId || null,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          throw new ArgumentError("Item is already allocated.");
+        }
+      }
+      throw error;
+    }
   }
 
   static async updateAllocation(data: UpdateAllocationData) {
@@ -104,10 +117,10 @@ export default class AllocationService {
       );
     }
 
-    const updatedAllocation = await db.unallocatedItemRequestAllocation.update({
+    const updatedAllocation = await db.allocation.update({
       where: { id: data.allocationId },
       data: {
-        itemId: item.id,
+        lineItemId: item.id,
         quantity: data.quantity,
       },
     });

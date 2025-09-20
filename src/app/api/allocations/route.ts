@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: "Allocation created",
-      allocation: result.allocation,
+      allocation: result,
     });
   } catch (error) {
     return errorResponse(error);
