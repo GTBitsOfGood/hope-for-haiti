@@ -1,12 +1,12 @@
 import { db } from "@/db";
 import { NotFoundError } from "@/util/errors";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { UpdateUnallocatedItemRequestData } from "@/types/api/unallocatedItemRequest.types";
+import { UpdateGeneralItemRequestData } from "@/types/api/generalItemRequest.types";
 
-export class UnallocatedItemRequestService {
-  static async updateRequest(data: UpdateUnallocatedItemRequestData) {
+export class GeneralItemRequestService {
+  static async updateRequest(data: UpdateGeneralItemRequestData) {
     try {
-      const updatedRequest = await db.unallocatedItemRequest.update({
+      const updatedRequest = await db.generalItemRequest.update({
         where: { id: data.id },
         data: {
           priority: data.priority,
