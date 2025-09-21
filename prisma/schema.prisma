@@ -197,6 +197,7 @@ model SignOff {
   id Int @id @default(autoincrement())
 
   staffMemberName String
+  partnerId       Int
   partnerName     String
   date            DateTime
   signatureUrl    String?

@@ -549,6 +549,7 @@ async function run() {
               signOff: {
                 create: {
                   staffMemberName: "Staff Member",
+                  partnerId: partners[index % partners.length].id,
                   partnerName: partners[index % partners.length].name,
                   signatureUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
                   date: new Date(),
