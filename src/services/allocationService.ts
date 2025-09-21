@@ -118,12 +118,14 @@ export default class AllocationService {
   static async searchItems(
     params: ItemSearchParams
   ): Promise<ItemSearchResult> {
-    const whereClause: Record<string, unknown> = {
-      title: params.title,
-      type: params.type,
-      expirationDate: params.expirationDate,
-      unitType: params.unitType,
-      quantityPerUnit: params.quantityPerUnit,
+    const whereClause: Partial<Prisma.LineItemFindUniqueArgs["where"]> = {
+      generalItem: {
+        title: params.title,
+        type: params.type,
+        expirationDate: params.expirationDate,
+        unitType: params.unitType,
+        quantityPerUnit: params.quantityPerUnit,
+      },
     };
 
     if (params.donorName) whereClause.donorName = params.donorName;

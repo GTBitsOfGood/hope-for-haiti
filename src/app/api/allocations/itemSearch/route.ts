@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/auth";
-import { ArgumentError, AuthenticationError, AuthorizationError } from "@/util/errors";
+import {
+  ArgumentError,
+  AuthenticationError,
+  AuthorizationError,
+} from "@/util/errors";
 import { errorResponse } from "@/util/errors";
 import UserService from "@/services/userService";
 import AllocationService from "@/services/allocationService";
@@ -18,7 +22,9 @@ const paramSchema = z.object({
   quantityPerUnit: z
     .string()
     .transform((val) => parseInt(val))
-    .pipe(z.number().int().positive("Quantity per unit must be a positive integer")),
+    .pipe(
+      z.number().int().positive("Quantity per unit must be a positive integer")
+    ),
   donorName: z.string().optional(),
   lotNumber: z.string().optional(),
   palletNumber: z.string().optional(),
@@ -43,20 +49,20 @@ export async function GET(request: NextRequest) {
       expirationDate: url.searchParams.get("expirationDate"),
       unitType: url.searchParams.get("unitType"),
       quantityPerUnit: url.searchParams.get("quantityPerUnit"),
-      donorName: url.searchParams.get("donorName"),
-      lotNumber: url.searchParams.get("lotNumber"),
-      palletNumber: url.searchParams.get("palletNumber"),
-      boxNumber: url.searchParams.get("boxNumber"),
+      donorName: url.searchParams.get("donorName") ?? undefined, // Convert null to undefined
+      lotNumber: url.searchParams.get("lotNumber") ?? undefined,
+      palletNumber: url.searchParams.get("palletNumber") ?? undefined,
+      boxNumber: url.searchParams.get("boxNumber") ?? undefined,
     };
 
     const parsed = paramSchema.safeParse(params);
-    
+
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
     const result = await AllocationService.searchItems(parsed.data);
-    
+
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);
