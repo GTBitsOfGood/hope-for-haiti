@@ -1,13 +1,4 @@
-import { DonorOfferState, DonorOfferItem, Item } from "@prisma/client";
-
-export interface DonorOfferItemDTO {
-  id: number;
-  title: string;
-  type: string;
-  expiration?: string | null;
-  quantity: number;
-  unitSize: number;
-}
+import { DonorOfferState, GeneralItem } from "@prisma/client";
 
 export interface PartnerDonorOffer {
   donorOfferId: number;
@@ -29,34 +20,13 @@ export interface AdminDonorOffer {
   }[];
 }
 
-export interface ItemRequestWithAllocations {
-  id: number;
-  donorOfferItemId: number;
-  partnerId: number;
-  quantity: number;
-  comments?: string | null;
-  priority?: string | null;
-  createdAt: Date;
-  donorOfferItem: DonorOfferItem;
-  partner: {
-    name: string;
-  };
-  allocations: {
-    id: number;
-    donorOfferItemRequestId: number;
-    itemId: number;
-    quantity: number;
-    item: Item;
-  }[];
-}
-
 export interface CreateDonorOfferResult {
   success: boolean;
   errors?: string[];
   donorOfferItems?: {
     title: string;
     type: string;
-    quantity: number;
+    initialQuantity: number;
     unitType: string;
     quantityPerUnit: number;
     expirationDate?: Date | string;
@@ -68,7 +38,7 @@ export interface DonorOfferItemsRequestsDTO {
   title: string;
   type: string;
   expiration: string | null;
-  quantity: number;
+  initialQuantity: number;
   unitSize: number;
   requestId: number | null;
   quantityRequested: number;
@@ -110,6 +80,6 @@ export interface DonorOfferEditDetails {
   donorName: string;
   partnerResponseDeadline: Date;
   donorResponseDeadline: Date;
-  items: DonorOfferItem[];
+  items: GeneralItem[];
   partners: { id: number; name: string }[];
 }

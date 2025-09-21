@@ -34,13 +34,15 @@ export async function GET(
 
     const { itemId } = await params;
     const parsed = paramSchema.safeParse({ itemId });
-    
+
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await DonorOfferService.getItemLineItems(parsed.data.itemId);
-    
+    const result = await DonorOfferService.getGeneralItemLineItems(
+      parsed.data.itemId
+    );
+
     return Response.json(result);
   } catch (error) {
     return errorResponse(error);
