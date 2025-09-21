@@ -1,9 +1,8 @@
 import { db } from "@/db";
-import { UserType, ShipmentStatus } from "@prisma/client";
+import { UserType } from "@prisma/client";
 import { format } from "date-fns";
 import { ArgumentError, NotFoundError } from "@/util/errors";
 import {
-  AllocatedItem,
   DistributionItem,
   SignedDistribution,
   PartnerDistributionsResult,
