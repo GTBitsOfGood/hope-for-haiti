@@ -10,43 +10,48 @@ import {
   DistributionRecord,
   AdminDistributionsResult,
   CompletedSignOff,
-  PartnerAllocationSummary
+  PartnerAllocationSummary,
 } from "@/types/api/distribution.types";
 
 export default class DistributionService {
-  static async getSignedDistributions(partnerId: number): Promise<SignedDistribution[]> {
+  static async getSignedDistributions(
+    partnerId: number
+  ): Promise<SignedDistribution[]> {
     const signOffs = await db.signOff.findMany({
       where: { partnerId },
-      include: { distributions: true },
+      include: { allocations: true },
     });
 
     return signOffs.map((signOff) => ({
       signOffId: signOff.id,
       distributionDate: format(signOff.createdAt, "yyyy-MM-dd"),
-      numberOfItems: signOff.distributions.length,
+      numberOfItems: signOff.allocations.length,
     }));
   }
 
-  static async getPartnerDistributionItems(partnerId: number): Promise<DistributionItem[]> {
+  static async getPartnerDistributionItems(
+    partnerId: number
+  ): Promise<DistributionItem[]> {
     const distributions = await db.distribution.findMany({
-      where: { partnerId },
+      where: { partner: { id: partnerId } },
       include: {
-        unallocatedItemAllocation: true,
-        donorOfferItemAllocation: true,
+        allocations: true,
       },
     });
 
     const items: DistributionItem[] = [];
 
     for (const distribution of distributions) {
-      const allocation =
-        distribution.unallocatedItemAllocation ??
-        distribution.donorOfferItemAllocation;
-
-      if (allocation) {
-        const item = await db.item.findUnique({
-          where: { id: allocation.itemId },
+      for (const allocation of distribution.allocations) {
+        // const item = await db.item.findUnique({
+        //   where: { id: allocation.itemId },
+        // });
+        const item = await db.lineItem.findUnique({
+          where: { id: allocation.lineItemId },
         });
+
+        if (!item)
+          throw new NotFoundError(`Item ${allocation.lineItemId} not found`);
 
         if (item?.donorShippingNumber && item.hfhShippingNumber) {
           const shippingStatus = await db.shippingStatus.findFirst({
@@ -60,7 +65,7 @@ export default class DistributionService {
             items.push({
               ...item,
               shipmentStatus: shippingStatus.value,
-              quantityAllocated: allocation.quantity,
+              quantityAllocated: item.quantity,
             });
           }
         }
@@ -80,69 +85,15 @@ export default class DistributionService {
     return Array.from(map.values());
   }
 
-  static async getPartnerDistributions(partnerId: number): Promise<PartnerDistributionsResult> {
-    const distributionItems = await this.getPartnerDistributionItems(partnerId);
-    const signed = await this.getSignedDistributions(partnerId);
-
-    const items: AllocatedItem[] = [];
-    
-    const unallocatedAllocations = await db.unallocatedItemRequestAllocation.findMany({
-      where: {
-        OR: [
-          {
-            visible: true,
-            unallocatedItemRequest: { partnerId },
-            distributions: { none: {} },
-          },
-          { visible: true, partnerId, distributions: { none: {} } },
-        ],
-      },
-      include: {
-        unallocatedItem: true,
-      },
-    });
-
-    unallocatedAllocations.forEach((alloc) => {
-      items.push({
-        title: alloc.unallocatedItem.title,
-        type: alloc.unallocatedItem.type,
-        expirationDate: alloc.unallocatedItem.expirationDate,
-        unitType: alloc.unallocatedItem.unitType,
-        quantityPerUnit: alloc.unallocatedItem.quantityPerUnit,
-        quantityAllocated: alloc.quantity,
-        shipmentStatus: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
-      });
-    });
-
-    const donorOfferAllocations = await db.donorOfferItemRequestAllocation.findMany({
-      where: {
-        visible: true,
-        donorOfferItemRequest: {
-          partnerId,
-        },
-        distributions: { none: {} },
-      },
-      include: {
-        item: true,
-      },
-    });
-
-    donorOfferAllocations.forEach((alloc) => {
-      items.push({
-        title: alloc.item.title,
-        type: alloc.item.type,
-        expirationDate: alloc.item.expirationDate,
-        unitType: alloc.item.unitType,
-        quantityPerUnit: alloc.item.quantityPerUnit,
-        quantityAllocated: alloc.quantity,
-        shipmentStatus: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
-      });
-    });
+  static async getPartnerDistributions(
+    partnerId: number
+  ): Promise<PartnerDistributionsResult> {
+    const distributionItemPromise = this.getPartnerDistributionItems(partnerId);
+    const signedDistributionPromise = this.getSignedDistributions(partnerId);
 
     return {
-      items,
-      distributionItems,
-      signedDistributions: signed.sort(
+      distributionItems: await distributionItemPromise,
+      signedDistributions: (await signedDistributionPromise).sort(
         (a, b) =>
           new Date(b.distributionDate).getTime() -
           new Date(a.distributionDate).getTime()
@@ -150,7 +101,10 @@ export default class DistributionService {
     };
   }
 
-  static async getAdminDistributions(partnerId: number, visible: boolean | null): Promise<AdminDistributionsResult> {
+  static async getAdminDistributions(
+    partnerId: number,
+    visible: boolean | null
+  ): Promise<AdminDistributionsResult> {
     const partner = await db.user.findUnique({ where: { id: partnerId } });
     if (!partner || partner.type !== UserType.PARTNER) {
       throw new ArgumentError("Partner not found");
@@ -159,17 +113,18 @@ export default class DistributionService {
     const records: DistributionRecord[] = [];
     const baseWhere = visible !== null ? { visible } : {};
 
-    const unallocatedAllocations = await db.unallocatedItemRequestAllocation.findMany({
-      where: {
-        OR: [
-          { ...baseWhere, unallocatedItemRequest: { partnerId } },
-          { ...baseWhere, partnerId },
-        ],
-      },
-      include: {
-        unallocatedItem: true,
-      },
-    });
+    const unallocatedAllocations =
+      await db.unallocatedItemRequestAllocation.findMany({
+        where: {
+          OR: [
+            { ...baseWhere, unallocatedItemRequest: { partnerId } },
+            { ...baseWhere, partnerId },
+          ],
+        },
+        include: {
+          unallocatedItem: true,
+        },
+      });
 
     unallocatedAllocations.forEach((alloc) => {
       records.push({
@@ -190,17 +145,18 @@ export default class DistributionService {
       });
     });
 
-    const donorOfferAllocations = await db.donorOfferItemRequestAllocation.findMany({
-      where: {
-        ...baseWhere,
-        donorOfferItemRequest: {
-          partnerId,
+    const donorOfferAllocations =
+      await db.donorOfferItemRequestAllocation.findMany({
+        where: {
+          ...baseWhere,
+          donorOfferItemRequest: {
+            partnerId,
+          },
         },
-      },
-      include: {
-        item: true,
-      },
-    });
+        include: {
+          item: true,
+        },
+      });
 
     donorOfferAllocations.forEach((alloc) => {
       records.push({
@@ -233,7 +189,7 @@ export default class DistributionService {
         createdAt: true,
         _count: {
           select: {
-            distributions: true,
+            allocations: true,
           },
         },
       },
@@ -244,34 +200,29 @@ export default class DistributionService {
       staffMemberName: signoff.staffMemberName,
       date: signoff.date,
       createdAt: signoff.createdAt,
-      distributionCount: signoff._count.distributions,
+      allocationCount: signoff._count.allocations,
     }));
   }
 
-  static async getPartnerAllocationSummaries(): Promise<PartnerAllocationSummary[]> {
+  static async getPartnerAllocationSummaries(): Promise<
+    PartnerAllocationSummary[]
+  > {
     const usersWithAllocations = await db.user.findMany({
       where: {
         type: "PARTNER",
       },
       include: {
-        unallocatedItemRequests: {
-          include: {
-            allocations: true,
-          },
-        },
-        donorOfferItemRequests: {
-          include: {
-            DonorOfferItemRequestAllocation: true,
-          },
-        },
-        unallocatedItemRequestAllocations: true,
         distributions: true,
         _count: {
           select: {
             distributions: {
               where: {
-                signOff: {
-                  signatureUrl: null,
+                allocations: {
+                  none: {
+                    signOff: {
+                      signatureUrl: null,
+                    },
+                  },
                 },
               },
             },
@@ -281,9 +232,10 @@ export default class DistributionService {
     });
 
     return usersWithAllocations.map((user) => {
-      const unallocatedRequestAllocations = user.unallocatedItemRequests.flatMap(
-        (request) => request.allocations || []
-      );
+      const unallocatedRequestAllocations =
+        user.unallocatedItemRequests.flatMap(
+          (request) => request.allocations || []
+        );
 
       const donorOfferRequestAllocations = user.donorOfferItemRequests.flatMap(
         (request) => request.DonorOfferItemRequestAllocation || []
@@ -312,7 +264,11 @@ export default class DistributionService {
     });
   }
 
-  static async toggleAllocationVisibility(allocType: "unallocated" | "donorOffer", id: number, visible: boolean): Promise<void> {
+  static async toggleAllocationVisibility(
+    allocType: "unallocated" | "donorOffer",
+    id: number,
+    visible: boolean
+  ): Promise<void> {
     if (allocType === "unallocated") {
       await db.unallocatedItemRequestAllocation.update({
         where: { id },
@@ -326,18 +282,18 @@ export default class DistributionService {
     }
   }
 
-  static async togglePartnerVisibility(partnerId: number, visible: boolean): Promise<void> {
+  static async togglePartnerVisibility(
+    partnerId: number,
+    visible: boolean
+  ): Promise<void> {
     await db.$transaction(async (tx) => {
       await tx.unallocatedItemRequestAllocation.updateMany({
-        where: { 
-          OR: [
-            { partnerId }, 
-            { unallocatedItemRequest: { partnerId } }
-          ] 
+        where: {
+          OR: [{ partnerId }, { unallocatedItemRequest: { partnerId } }],
         },
         data: { visible },
       });
-      
+
       await tx.donorOfferItemRequestAllocation.updateMany({
         where: { donorOfferItemRequest: { partnerId } },
         data: { visible },
