@@ -28,3 +28,7 @@ export function parseDateIfDefined(
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function validatePassword(pw: string) {
+  return pw.length >= 8;
+}

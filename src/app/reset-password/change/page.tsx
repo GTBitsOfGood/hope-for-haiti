@@ -7,6 +7,7 @@ import { useApiClient } from "@/hooks/useApiClient";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CgSpinner } from "react-icons/cg";
+import { validatePassword } from "@/util/util";
 
 export default function SignInPage() {
   const { apiClient } = useApiClient();
@@ -35,10 +36,15 @@ export default function SignInPage() {
 
   const handleSubmit = submitHandler(async (formData: FormData) => {
     try {
-      const password = formData.get("password");
-      const confirmPassword = formData.get("confirmPassword");
+      const password = formData.get("password") || "";
+      const confirmPassword = formData.get("confirmPassword") || "";
       if (!password || !confirmPassword || password != confirmPassword) {
         toast.error("Passwords do not match");
+        return;
+      }
+
+      if (!validatePassword(password as string)) {
+        toast.error("Password must be at least 8 characters");
         return;
       }
 

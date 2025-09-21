@@ -10,6 +10,7 @@ import {
   CreateUserInviteData,
   UpdateUserData,
 } from "@/types/api/user.types";
+import { validatePassword } from "@/util/util";
 
 export default class UserService {
   static async getUsers() {
@@ -106,7 +107,10 @@ export default class UserService {
         },
       });
 
-      await EmailClient.sendUserInvite(data.email, { token, userRole: data.userType });
+      await EmailClient.sendUserInvite(data.email, {
+        token,
+        userRole: data.userType,
+      });
     });
   }
 
@@ -130,6 +134,10 @@ export default class UserService {
 
     if (!data.password || data.password.trim().length === 0) {
       throw new ArgumentError("Password is required");
+    }
+
+    if (!validatePassword(data.password)) {
+      throw new ArgumentError("Password does not match required format");
     }
 
     const userInvite = await db.userInvite.findUnique({
