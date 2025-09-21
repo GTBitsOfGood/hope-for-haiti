@@ -168,43 +168,6 @@ export default class DistributionService {
     });
   }
 
-  static async toggleAllocationVisibility(
-    allocType: "unallocated" | "donorOffer",
-    id: number,
-    visible: boolean
-  ): Promise<void> {
-    if (allocType === "unallocated") {
-      await db.unallocatedItemRequestAllocation.update({
-        where: { id },
-        data: { visible },
-      });
-    } else {
-      await db.donorOfferItemRequestAllocation.update({
-        where: { id },
-        data: { visible },
-      });
-    }
-  }
-
-  static async togglePartnerVisibility(
-    partnerId: number,
-    visible: boolean
-  ): Promise<void> {
-    await db.$transaction(async (tx) => {
-      await tx.unallocatedItemRequestAllocation.updateMany({
-        where: {
-          OR: [{ partnerId }, { unallocatedItemRequest: { partnerId } }],
-        },
-        data: { visible },
-      });
-
-      await tx.donorOfferItemRequestAllocation.updateMany({
-        where: { donorOfferItemRequest: { partnerId } },
-        data: { visible },
-      });
-    });
-  }
-
   static async deleteDistribution(distributionId: number): Promise<void> {
     const distribution = await db.distribution.findUnique({
       where: { id: distributionId },
