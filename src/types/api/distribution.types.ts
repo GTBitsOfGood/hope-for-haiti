@@ -39,27 +39,6 @@ export interface PartnerDistributionsResult {
   signedDistributions: SignedDistribution[];
 }
 
-export interface DistributionRecord {
-  allocationType: string;
-  allocationId: number;
-  title: string;
-  unitType: string;
-  donorName: string;
-  lotNumber: string;
-  palletNumber: string;
-  boxNumber: string;
-  unitPrice: number;
-  quantityAllocated: number;
-  quantityAvailable: number;
-  quantityTotal: number;
-  donorShippingNumber: string | null;
-  hfhShippingNumber: string | null;
-}
-
-export interface AdminDistributionsResult {
-  records: DistributionRecord[];
-}
-
 export interface CompletedSignOff {
   partnerName: string;
   staffMemberName: string;
@@ -71,8 +50,7 @@ export interface CompletedSignOff {
 export interface PartnerAllocationSummary {
   partnerId: number;
   partnerName: string;
-  visibleAllocationsCount: number;
-  hiddenAllocationsCount: number;
+  allocationsCount: number;
   pendingSignOffCount: number;
 }
 

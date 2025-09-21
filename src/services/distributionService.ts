@@ -1,23 +1,20 @@
 import { db } from "@/db";
-import { UserType } from "@prisma/client";
 import { format } from "date-fns";
-import { ArgumentError, NotFoundError } from "@/util/errors";
+import { NotFoundError } from "@/util/errors";
 import {
   DistributionItem,
   SignedDistribution,
   PartnerDistributionsResult,
-  DistributionRecord,
-  AdminDistributionsResult,
   CompletedSignOff,
   PartnerAllocationSummary,
 } from "@/types/api/distribution.types";
 
 export default class DistributionService {
   static async getSignedDistributions(
-    partnerId: number
+    partnerId?: number
   ): Promise<SignedDistribution[]> {
     const signOffs = await db.signOff.findMany({
-      where: { partnerId },
+      where: partnerId ? { partnerId } : {},
       include: { allocations: true },
     });
 
@@ -29,10 +26,10 @@ export default class DistributionService {
   }
 
   static async getPartnerDistributionItems(
-    partnerId: number
+    partnerId?: number
   ): Promise<DistributionItem[]> {
     const distributions = await db.distribution.findMany({
-      where: { partner: { id: partnerId } },
+      where: partnerId ? { partner: { id: partnerId } } : {},
       include: {
         allocations: true,
       },
@@ -100,85 +97,6 @@ export default class DistributionService {
     };
   }
 
-  static async getAdminDistributions(
-    partnerId: number,
-    visible: boolean | null
-  ): Promise<AdminDistributionsResult> {
-    const partner = await db.user.findUnique({ where: { id: partnerId } });
-    if (!partner || partner.type !== UserType.PARTNER) {
-      throw new ArgumentError("Partner not found");
-    }
-
-    const records: DistributionRecord[] = [];
-    const baseWhere = visible !== null ? { visible } : {};
-
-    const unallocatedAllocations =
-      await db.unallocatedItemRequestAllocation.findMany({
-        where: {
-          OR: [
-            { ...baseWhere, unallocatedItemRequest: { partnerId } },
-            { ...baseWhere, partnerId },
-          ],
-        },
-        include: {
-          unallocatedItem: true,
-        },
-      });
-
-    unallocatedAllocations.forEach((alloc) => {
-      records.push({
-        allocationType: "unallocated",
-        allocationId: alloc.id,
-        title: alloc.unallocatedItem.title,
-        unitType: alloc.unallocatedItem.unitType,
-        donorName: alloc.unallocatedItem.donorName,
-        lotNumber: alloc.unallocatedItem.lotNumber,
-        palletNumber: alloc.unallocatedItem.palletNumber,
-        boxNumber: alloc.unallocatedItem.boxNumber,
-        unitPrice: alloc.unallocatedItem.unitPrice.toNumber(),
-        quantityAllocated: alloc.quantity,
-        quantityAvailable: 999,
-        quantityTotal: 999,
-        donorShippingNumber: alloc.unallocatedItem.donorShippingNumber,
-        hfhShippingNumber: alloc.unallocatedItem.hfhShippingNumber,
-      });
-    });
-
-    const donorOfferAllocations =
-      await db.donorOfferItemRequestAllocation.findMany({
-        where: {
-          ...baseWhere,
-          donorOfferItemRequest: {
-            partnerId,
-          },
-        },
-        include: {
-          item: true,
-        },
-      });
-
-    donorOfferAllocations.forEach((alloc) => {
-      records.push({
-        allocationType: "donorOffer",
-        allocationId: alloc.id,
-        title: alloc.item.title,
-        unitType: alloc.item.unitType,
-        donorName: alloc.item.donorName,
-        lotNumber: alloc.item.lotNumber,
-        palletNumber: alloc.item.palletNumber,
-        boxNumber: alloc.item.boxNumber,
-        unitPrice: alloc.item.unitPrice.toNumber(),
-        quantityAllocated: alloc.quantity,
-        quantityAvailable: 999,
-        quantityTotal: 999,
-        donorShippingNumber: alloc.item.donorShippingNumber,
-        hfhShippingNumber: alloc.item.hfhShippingNumber,
-      });
-    });
-
-    return { records };
-  }
-
   static async getCompletedSignOffs(): Promise<CompletedSignOff[]> {
     const signoffs = await db.signOff.findMany({
       select: {
@@ -206,59 +124,46 @@ export default class DistributionService {
   static async getPartnerAllocationSummaries(): Promise<
     PartnerAllocationSummary[]
   > {
-    const usersWithAllocations = await db.user.findMany({
+    const signOffsByPartnerIdPromise = db.signOff
+      .groupBy({
+        by: ["partnerId"],
+        _count: true,
+      })
+      .then((results) =>
+        results.reduce(
+          (acc, r) => {
+            acc[r.partnerId] = r._count;
+            return acc;
+          },
+          {} as Record<number, number>
+        )
+      );
+
+    const usersWithAllocationsPromise = db.user.findMany({
       where: {
         type: "PARTNER",
       },
       include: {
-        distributions: true,
+        allocations: true,
         _count: {
           select: {
-            distributions: {
-              where: {
-                allocations: {
-                  none: {
-                    signOff: {
-                      signatureUrl: null,
-                    },
-                  },
-                },
-              },
-            },
+            allocations: true,
           },
         },
       },
     });
 
+    const [signOffsByPartnerId, usersWithAllocations] = await Promise.all([
+      signOffsByPartnerIdPromise,
+      usersWithAllocationsPromise,
+    ]);
+
     return usersWithAllocations.map((user) => {
-      const unallocatedRequestAllocations =
-        user.unallocatedItemRequests.flatMap(
-          (request) => request.allocations || []
-        );
-
-      const donorOfferRequestAllocations = user.donorOfferItemRequests.flatMap(
-        (request) => request.DonorOfferItemRequestAllocation || []
-      );
-
-      const allAllocations = [
-        ...user.unallocatedItemRequestAllocations,
-        ...unallocatedRequestAllocations,
-        ...donorOfferRequestAllocations,
-      ];
-
-      const visibleAllocations = allAllocations.filter(
-        (allocation) => allocation.visible
-      );
-      const hiddenAllocations = allAllocations.filter(
-        (allocation) => !allocation.visible
-      );
-
       return {
         partnerId: user.id,
         partnerName: user.name,
-        visibleAllocationsCount: visibleAllocations.length,
-        hiddenAllocationsCount: hiddenAllocations.length,
-        pendingSignOffCount: user._count.distributions,
+        allocationsCount: user._count.allocations,
+        pendingSignOffCount: signOffsByPartnerId[user.id] || 0,
       };
     });
   }

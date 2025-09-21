@@ -12,13 +12,6 @@ import {
 } from "@/util/errors";
 
 const searchParamsSchema = z.object({
-  visible: z
-    .string()
-    .optional()
-    .transform((val) => {
-      if (!val) return null;
-      return val === "true" ? true : val === "false" ? false : null;
-    }),
   partnerId: z
     .string()
     .optional()
@@ -37,7 +30,8 @@ export async function GET(request: NextRequest) {
 
     if (user.type === "PARTNER") {
       const partnerId = parseInt(user.id);
-      const result = await DistributionService.getPartnerDistributions(partnerId);
+      const result =
+        await DistributionService.getPartnerDistributions(partnerId);
       return NextResponse.json(result);
     }
 
@@ -55,9 +49,9 @@ export async function GET(request: NextRequest) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const { visible, partnerId } = parsed.data;
+    const { partnerId } = parsed.data;
 
-    const result = await DistributionService.getAdminDistributions(partnerId, visible);
+    const result = await DistributionService.getPartnerDistributions(partnerId);
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);
