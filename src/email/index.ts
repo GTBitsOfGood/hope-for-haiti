@@ -3,11 +3,20 @@ import { render } from "@react-email/render";
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { exec } from "child_process";
-import CreateAccountInvite, { CreateAccountInviteProps } from "./templates/CreateAccountInvite";
-import ItemsVisibleNotification, { ItemsVisibleNotificationProps } from "./templates/ItemsVisibleNotification";
-import DonorOfferCreated, { DonorOfferCreatedProps } from "./templates/DonorOfferCreated";
-import CreateAccountReminder, { CreateAccountReminderProps } from "./templates/CreateAccountReminder";
+import CreateAccountInvite, {
+  CreateAccountInviteProps,
+} from "./templates/CreateAccountInvite";
+import ItemsVisibleNotification, {
+  ItemsVisibleNotificationProps,
+} from "./templates/ItemsVisibleNotification";
+import DonorOfferCreated, {
+  DonorOfferCreatedProps,
+} from "./templates/DonorOfferCreated";
+import CreateAccountReminder, {
+  CreateAccountReminderProps,
+} from "./templates/CreateAccountReminder";
 import ExpiringItems, { ExpiringItemsProps } from "./templates/ExpiringItems";
+import ResetPassword, { ResetPasswordProps } from "./templates/ResetPassword";
 
 const apiKey = process.env.SENDGRID_API_KEY as string;
 const fromEmail = process.env.SENDGRID_SENDER as string;
@@ -43,50 +52,50 @@ export async function sendEmail(
   html: string
 ): Promise<[SendGrid.ClientResponse, object] | void> {
   if (openLocally) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = `email-preview-${timestamp}.html`;
-    const previewsDir = join(process.cwd(), 'email-previews');
+    const previewsDir = join(process.cwd(), "email-previews");
     const filepath = join(previewsDir, filename);
-    
+
     try {
       writeFileSync(filepath, html);
     } catch {
       mkdirSync(previewsDir, { recursive: true });
       writeFileSync(filepath, html);
     }
-    
-      const relativePath = `email-previews/${filename}`;
-      console.log(`📧 Email preview saved: ${relativePath}`);
-      
-      const fileUrl = `file://${filepath}`;
-      const platform = process.platform;
-    
+
+    const relativePath = `email-previews/${filename}`;
+    console.log(`📧 Email preview saved: ${relativePath}`);
+
+    const fileUrl = `file://${filepath}`;
+    const platform = process.platform;
+
     let command: string;
-    if (platform === 'darwin') {
+    if (platform === "darwin") {
       command = `open -n "${fileUrl}"`;
-    } else if (platform === 'win32') {
+    } else if (platform === "win32") {
       command = `start "" "${fileUrl}"`;
     } else {
       command = `xdg-open "${fileUrl}"`;
     }
-    
+
     exec(command, (error) => {
       if (error) {
-        console.log(`📧 Could not auto-open browser. Please open manually: ${fileUrl}`);
+        console.log(
+          `📧 Could not auto-open browser. Please open manually: ${fileUrl}`
+        );
       } else {
         console.log(`📧 Email preview opened in browser`);
       }
     });
-    
+
     return;
   }
 
-  return SendGrid.send({
-    to,
-    from: fromEmail,
-    subject,
-    html,
-  }, Array.isArray(to));
+  return SendGrid.send(
+    { to, from: fromEmail, subject, html },
+    Array.isArray(to)
+  );
 }
 
 export class EmailClient {
@@ -95,15 +104,15 @@ export class EmailClient {
     return sendEmail(to, "Your Invite Link", html);
   }
 
-  static async sendUserInviteReminder(to: string, props: CreateAccountReminderProps) {
+  static async sendUserInviteReminder(
+    to: string,
+    props: CreateAccountReminderProps
+  ) {
     const html = await render(CreateAccountReminder(props));
     return sendEmail(to, "Reminder: Complete Your Account", html);
   }
 
-  static async sendItemsExpiring(
-    to: string,
-    props: ExpiringItemsProps
-  ) {
+  static async sendItemsExpiring(to: string, props: ExpiringItemsProps) {
     const html = await render(ExpiringItems(props));
     return sendEmail(to, `Items Expiring in ${props.month}`, html);
   }
@@ -122,5 +131,10 @@ export class EmailClient {
   ) {
     const html = await render(DonorOfferCreated(props));
     return sendEmail(to, "Donor Offer Created", html);
+  }
+
+  static async sendPasswordReset(to: string, props: ResetPasswordProps) {
+    const html = await render(ResetPassword(props));
+    return sendEmail(to, "Reset Your Password", html);
   }
 }
