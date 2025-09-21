@@ -1,7 +1,11 @@
 import { auth } from "@/auth";
 import { errorResponse } from "@/util/errors";
-import { ItemService } from "@/services/itemService";
-import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
+import { LineItemService } from "@/services/lineItemService";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ArgumentError,
+} from "@/util/errors";
 import { NextResponse, NextRequest } from "next/server";
 import { ItemFormSchema } from "@/schema/itemForm";
 import UserService from "@/services/userService";
@@ -23,7 +27,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new ArgumentError(validatedForm.error.message);
     }
 
-    const createdItem = await ItemService.createItem(validatedForm.data);
+    const createdItem = await LineItemService.createItem(validatedForm.data);
 
     return NextResponse.json(createdItem, { status: 200 });
   } catch (error) {
@@ -42,7 +46,7 @@ export async function GET(): Promise<NextResponse> {
       throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
     }
 
-    const items = await ItemService.getAllItems();
+    const items = await LineItemService.getAllItems();
     return NextResponse.json(items, { status: 200 });
   } catch (error) {
     return errorResponse(error);

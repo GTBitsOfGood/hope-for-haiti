@@ -7,7 +7,6 @@ import {
   CreateItemData,
   BulkItemData,
   BulkUploadResult,
-  UnallocatedItemRequestSummary
 } from "@/types/api/item.types";
 
 const requiredKeys = [
@@ -92,9 +91,9 @@ const SingleItemSchema = z.object({
     .transform((val) => val === "true"),
 });
 
-export class ItemService {
+export class LineItemService {
   static async createItem(data: CreateItemData) {
-    const createdItem = await db.item.create({
+    const createdItem = await db.lineItem.create({
       data: {
         ...data,
       },
@@ -104,34 +103,19 @@ export class ItemService {
   }
 
   static async getAllItems() {
-    const items = await db.item.findMany();
+    const items = await db.lineItem.findMany();
     return items;
   }
 
-  static async getUnallocatedItemRequestsForItem(itemId: number): Promise<UnallocatedItemRequestSummary[]> {
-    const allocations = await db.unallocatedItemRequestAllocation.findMany({
-      where: { itemId },
-      include: {
-        unallocatedItemRequest: {
-          select: {
-            id: true,
-            partnerId: true,
-            quantity: true,
-            comments: true,
-          },
-        },
-      },
-    });
-
-    return allocations
-      .map(allocation => allocation.unallocatedItemRequest)
-      .filter((request): request is NonNullable<typeof request> => request !== null);
-  }
-
-  static async processBulkUpload(file: File, preview: boolean = false): Promise<BulkUploadResult> {
+  static async processBulkUpload(
+    file: File,
+    preview: boolean = false
+  ): Promise<BulkUploadResult> {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
     if (!["csv", "xlsx"].includes(fileExt || "")) {
-      throw new Error(`Error opening ${file.name}: must be a valid CSV or XLSX file`);
+      throw new Error(
+        `Error opening ${file.name}: must be a valid CSV or XLSX file`
+      );
     }
 
     let jsonData: unknown[] = [];
@@ -197,7 +181,7 @@ export class ItemService {
       };
     }
 
-    await db.item.createMany({ data: validItems });
+    await db.lineItem.createMany({ data: validItems });
 
     return {
       success: true,
