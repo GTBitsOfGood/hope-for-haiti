@@ -16,7 +16,6 @@ export interface UpdateAllocationData {
   lotNumber: string;
   palletNumber: string;
   boxNumber: string;
-  quantity: number;
 }
 
 export interface ItemSearchParams {

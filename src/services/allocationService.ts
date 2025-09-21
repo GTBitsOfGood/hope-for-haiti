@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { ArgumentError, NotFoundError, ConflictError } from "@/util/errors";
+import { ArgumentError, NotFoundError } from "@/util/errors";
 import {
   CreateAllocationData,
   UpdateAllocationData,
@@ -73,23 +73,27 @@ export default class AllocationService {
     }
   }
 
+  /**
+   * Connects an allocation to a line item
+   */
   static async updateAllocation(data: UpdateAllocationData) {
-    const allocation = await db.unallocatedItemRequestAllocation.findUnique({
+    const allocation = await db.allocation.findUnique({
       where: { id: data.allocationId },
-      include: { unallocatedItemRequest: true },
     });
 
     if (!allocation) {
       throw new NotFoundError("Allocation not found");
     }
 
-    const item = await db.item.findFirst({
+    const item = await db.lineItem.findFirst({
       where: {
-        title: data.title,
-        type: data.type,
-        expirationDate: data.expirationDate,
-        unitType: data.unitType,
-        quantityPerUnit: data.quantityPerUnit,
+        generalItem: {
+          title: data.title,
+          type: data.type,
+          expirationDate: data.expirationDate,
+          unitType: data.unitType,
+          quantityPerUnit: data.quantityPerUnit,
+        },
         donorName: data.donorName,
         lotNumber: data.lotNumber,
         palletNumber: data.palletNumber,
@@ -101,27 +105,10 @@ export default class AllocationService {
       throw new NotFoundError("Item not found with the specified attributes");
     }
 
-    const totalAllocated = await db.unallocatedItemRequestAllocation.aggregate({
-      _sum: { quantity: true },
-      where: {
-        itemId: item.id,
-        NOT: { id: data.allocationId },
-      },
-    });
-
-    const availableQuantity =
-      item.quantity - (totalAllocated._sum.quantity || 0);
-    if (availableQuantity < data.quantity) {
-      throw new ConflictError(
-        "Not enough items in inventory to fulfill the allocation request"
-      );
-    }
-
     const updatedAllocation = await db.allocation.update({
       where: { id: data.allocationId },
       data: {
         lineItemId: item.id,
-        quantity: data.quantity,
       },
     });
 
@@ -144,7 +131,7 @@ export default class AllocationService {
     if (params.palletNumber) whereClause.palletNumber = params.palletNumber;
     if (params.boxNumber) whereClause.boxNumber = params.boxNumber;
 
-    const items = await db.item.findMany({
+    const items = await db.lineItem.findMany({
       where: whereClause,
     });
 
