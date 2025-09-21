@@ -14,8 +14,13 @@ function VerifyAuthentication({
   const pathName = usePathname();
   const { loading, user } = useUser();
   const router = useRouter();
-
-  const onAuthPages = pathName === "/signIn" || pathName === "/register";
+  const authPages = [
+    "/signIn",
+    "/register",
+    "/reset-password",
+    "/reset-password/change",
+  ];
+  const onAuthPages = authPages.includes(pathName);
 
   useEffect(() => {
     if (loading) return;

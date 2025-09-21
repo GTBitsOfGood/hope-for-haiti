@@ -87,7 +87,7 @@ export default function SignInPage() {
               </label>
             </div>
             <div>
-              <Link href={"/signIn"} className="text-red-500 text-xs">
+              <Link href={"/reset-password"} className="text-red-500 text-xs">
                 Forgot Password
               </Link>
             </div>
