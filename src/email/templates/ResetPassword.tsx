@@ -39,6 +39,9 @@ export const ResetPassword = ({ token }: ResetPasswordProps) => {
                 >
                   Reset Password
                 </Button>
+                <Text className="text-base font-light text-gray-primary leading-[26px] mt-4">
+                  This link will expire in 20 minutes for security reasons.
+                </Text>
                 <Text className="text-base font-light text-gray-primary leading-[26px]">
                   If you did not request a password reset, you can safely ignore
                   this email.
