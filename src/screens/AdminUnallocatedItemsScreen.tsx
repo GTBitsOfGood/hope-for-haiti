@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { formatTableValue } from "@/utils/format";
 import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
-import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 
 interface UnallocatedItemData {
   title: string;
@@ -216,10 +215,7 @@ export default function AdminUnallocatedItemsScreen() {
                 <th className="px-4 py-2 text-left">Quantity</th>
                 <th className="px-4 py-2 text-left">Expiration</th>
                 <th className="px-4 py-2 text-left">Unit type</th>
-                <th className="px-4 py-2 text-left">Qty/Unit</th>
-                <th className="px-4 py-2 text-left rounded-tr-lg w-12">
-                  Manage
-                </th>
+                <th className="px-4 py-2 text-left rounded-tr-lg">Qty/Unit</th>
               </tr>
             </thead>
             <tbody>
@@ -259,41 +255,6 @@ export default function AdminUnallocatedItemsScreen() {
                     </td>
                     <td className="px-4 py-2">
                       {formatTableValue(item.quantityPerUnit)}
-                    </td>
-                    <td
-                      className="px-4 py-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Menu as="div" className="float-right relative">
-                        <MenuButton>
-                          <DotsThree weight="bold" />
-                        </MenuButton>
-                        <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                          <MenuItem
-                            as="button"
-                            className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => {
-                              router.push(
-                                `/unallocatedItems/lineItems?${new URLSearchParams(
-                                  {
-                                    title: item.title,
-                                    type: item.type,
-                                    unitType: item.unitType,
-                                    quantityPerUnit:
-                                      item.quantityPerUnit.toString(),
-                                    ...(item.expirationDate
-                                      ? { expirationDate: item.expirationDate }
-                                      : {}),
-                                  }
-                                ).toString()}`
-                              );
-                            }}
-                          >
-                            <Eye className="inline-block mr-2" size={22} />
-                            View unique items
-                          </MenuItem>
-                        </MenuItems>
-                      </Menu>
                     </td>
                   </tr>
                 </React.Fragment>

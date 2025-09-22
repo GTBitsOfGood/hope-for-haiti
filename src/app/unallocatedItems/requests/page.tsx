@@ -137,6 +137,21 @@ export default function UnallocatedItemRequestsPage() {
           Partner Requests
         </span>
       </h1>
+      
+      <div className="flex space-x-4 mt-4 border-b-2">
+        <button
+          className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none border-b-2 border-black bottom-[-1px]"
+        >
+          <div className="hover:bg-gray-100 px-2 py-1 rounded">Partner Requests</div>
+        </button>
+        <Link
+          href={`/unallocatedItems/lineItems?${new URLSearchParams(generalItemForUrl).toString()}`}
+          className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none text-gray-500 hover:text-black"
+        >
+          <div className="hover:bg-gray-100 px-2 py-1 rounded">Unique Line Items</div>
+        </Link>
+      </div>
+      
       <div className="relative w-1/3 py-4">
         <MagnifyingGlass
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
