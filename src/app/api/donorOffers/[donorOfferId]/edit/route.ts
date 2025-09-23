@@ -38,7 +38,9 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await DonorOfferService.getDonorOfferForEdit(parsed.data.donorOfferId);
+    const result = await DonorOfferService.getDonorOfferForEdit(
+      parsed.data.donorOfferId
+    );
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);
@@ -66,7 +68,10 @@ export async function PUT(
     }
 
     const formData = await req.formData();
-    const result = await DonorOfferService.updateDonorOfferFromForm(parsed.data.donorOfferId, formData);
+    const result = await DonorOfferService.updateDonorOffer(
+      parsed.data.donorOfferId,
+      formData
+    );
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);

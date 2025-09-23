@@ -1,4 +1,4 @@
-import { DonorOfferState, GeneralItem } from "@prisma/client";
+import { $Enums, DonorOfferState } from "@prisma/client";
 
 export interface PartnerDonorOffer {
   donorOfferId: number;
@@ -74,12 +74,12 @@ export interface FinalizeDonorOfferResult {
   createdCount?: number;
 }
 
-export interface DonorOfferEditDetails {
+export interface DonorOfferUpdateParams {
   id: number;
   offerName: string;
   donorName: string;
   partnerResponseDeadline: Date;
   donorResponseDeadline: Date;
-  items: GeneralItem[];
-  partners: { id: number; name: string }[];
+  partners: number[];
+  state: $Enums.DonorOfferState;
 }

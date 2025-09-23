@@ -23,7 +23,7 @@ import {
   UpdateRequestItem,
   FinalizeDetailsResult,
   FinalizeDonorOfferResult,
-  DonorOfferEditDetails,
+  DonorOfferUpdateParams,
 } from "@/types/api/donorOffer.types";
 
 const DonorOfferItemSchema = z.object({
@@ -683,7 +683,7 @@ export default class DonorOfferService {
 
   static async getDonorOfferForEdit(
     donorOfferId: number
-  ): Promise<DonorOfferEditDetails | null> {
+  ): Promise<DonorOfferUpdateParams | null> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
       include: {
@@ -700,78 +700,33 @@ export default class DonorOfferService {
       donorName: donorOffer.donorName,
       partnerResponseDeadline: donorOffer.partnerResponseDeadline,
       donorResponseDeadline: donorOffer.donorResponseDeadline,
-      items: donorOffer.items,
-      partners: donorOffer.partnerVisibilities.map((pv) => ({
-        id: pv.id,
-        name: pv.name,
-      })),
+      partners: donorOffer.partnerVisibilities.map((pv) => pv.id),
+      state: donorOffer.state,
     };
   }
 
-  static async updateDonorOfferFromForm(
+  static async updateDonorOffer(
     donorOfferId: number,
-    formData: FormData
+    updateData: Partial<Omit<DonorOfferUpdateParams, "id">>
   ) {
-    console.log(formData);
-    const offerName = formData.get("offerName") as string;
-    const donorName = formData.get("donorName") as string;
-    const partnerRequestDeadline = formData.get(
-      "partnerRequestDeadline"
-    ) as string;
-    const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-    const partnerIds = formData.getAll("partnerIds") as string[];
-    const items = (formData.getAll("items") as string[]).map((item) =>
-      JSON.parse(item)
-    );
-
-    return await db.$transaction(async (tx) => {
-      const updatedDonorOffer = await tx.donorOffer.update({
-        where: { id: donorOfferId },
-        data: {
-          offerName,
-          donorName,
-          partnerResponseDeadline: new Date(partnerRequestDeadline),
-          donorResponseDeadline: new Date(donorRequestDeadline),
-          state: DonorOfferState.UNFINALIZED,
-          partnerVisibilities: {
-            connect: partnerIds.map((id) => ({ id: parseInt(id) })),
-          },
-        },
-      });
-
-      for (const item of items) {
-        if (item.id) {
-          await tx.generalItem.update({
-            where: { id: item.id },
-            data: {
-              title: item.title,
-              type: item.type,
-              initialQuantity: item.quantity,
-              expirationDate: item.expirationDate
-                ? new Date(item.expirationDate)
-                : null,
-              unitType: item.unitType,
-              quantityPerUnit: item.quantityPerUnit,
+    const update: Prisma.DonorOfferUpdateInput = {
+      offerName: updateData.offerName,
+      donorName: updateData.donorName,
+      partnerResponseDeadline: updateData.partnerResponseDeadline,
+      donorResponseDeadline: updateData.donorResponseDeadline,
+      ...(updateData.partners
+        ? {
+            partnerVisibilities: {
+              set: updateData.partners.map((p) => ({ id: p })),
             },
-          });
-        } else {
-          await tx.generalItem.create({
-            data: {
-              donorOfferId,
-              title: item.title,
-              type: item.type,
-              initialQuantity: item.quantity,
-              expirationDate: item.expirationDate
-                ? new Date(item.expirationDate)
-                : null,
-              unitType: item.unitType,
-              quantityPerUnit: item.quantityPerUnit,
-            },
-          });
-        }
-      }
+          }
+        : {}),
+      state: updateData.state,
+    };
 
-      return updatedDonorOffer;
+    return await db.donorOffer.update({
+      where: { id: donorOfferId },
+      data: update,
     });
   }
 
