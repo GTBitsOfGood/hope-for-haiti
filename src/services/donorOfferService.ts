@@ -781,4 +781,19 @@ export default class DonorOfferService {
       data: { state: DonorOfferState.ARCHIVED },
     });
   }
+
+  static async deleteDonorOffer(donorOfferId: number): Promise<void> {
+    try {
+      await db.donorOffer.delete({ where: { id: donorOfferId } });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2025"
+      ) {
+        return;
+      }
+
+      throw error;
+    }
+  }
 }

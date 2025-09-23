@@ -9,6 +9,7 @@ import {
   AuthenticationError,
   AuthorizationError,
   errorResponse,
+  ok,
 } from "@/util/errors";
 
 const paramSchema = z.object({
@@ -53,6 +54,34 @@ export async function GET(
     }
 
     return NextResponse.json(result);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function DELETE(
+  _: NextRequest,
+  { params }: { params: Promise<{ donorOfferId: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    const { donorOfferId } = await params;
+    const parsed = paramSchema.safeParse({ donorOfferId });
+
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    await DonorOfferService.deleteDonorOffer(parsed.data.donorOfferId);
+    return ok();
   } catch (error) {
     return errorResponse(error);
   }
