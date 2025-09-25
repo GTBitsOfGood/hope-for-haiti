@@ -8,32 +8,47 @@ export type DescribeItemInput = {
 };
 
 export class DescriptionService {
-  static makeId(item: DescribeItemInput) {
+  static makeBaseId(item: DescribeItemInput) {
     return `${item.title} | ${item.type} | ${item.unitType}`;
   }
 
-  static async getOrGenerateDescriptions(items: DescribeItemInput[]): Promise<string[]> {
+  static makeCacheId(item: DescribeItemInput, language?: string) {
+    const base = DescriptionService.makeBaseId(item);
+    return language && language.length > 0 ? `${base} | lang:${language}` : base;
+  }
+
+  static async getOrGenerateDescriptions(items: DescribeItemInput[], language?: string): Promise<string[]> {
     // De-duplicate identical requests within the batch
-    const ids = items.map(DescriptionService.makeId);
-    const uniqueIds = Array.from(new Set(ids));
+    const baseIds = items.map(DescriptionService.makeBaseId);
+  const targetIds = items.map((it) => DescriptionService.makeCacheId(it, language));
+    const idsToFetch = new Set<string>();
+    // Always fetch the target ids; if language provided, also fetch base ids to allow fallback
+    targetIds.forEach((id) => idsToFetch.add(id));
+    if (language && language.length > 0) baseIds.forEach((id) => idsToFetch.add(id));
+    const uniqueIdsToFetch = Array.from(idsToFetch);
 
     // Fetch existing descriptions
     const existing = await db.descriptionLookup.findMany({
-      where: { id: { in: uniqueIds } },
+      where: { id: { in: uniqueIdsToFetch } },
     });
     const existingMap = new Map(existing.map((e) => [e.id, e.description] as const));
 
     // Determine which need generation
     const toGenerate: { id: string; item: DescribeItemInput }[] = [];
-    uniqueIds.forEach((id) => {
-      if (!existingMap.has(id)) {
-        toGenerate.push({ id, item: items[ids.indexOf(id)] });
+    targetIds.forEach((tid, index) => {
+      if (!existingMap.has(tid)) {
+        // If language provided and base exists, we can use base without generating
+        const baseId = baseIds[index];
+        const hasBase = existingMap.has(baseId);
+        if (!hasBase) {
+          toGenerate.push({ id: tid, item: items[index] });
+        }
       }
     });
 
     // If no LLM needed, return in original order
     if (toGenerate.length === 0) {
-      return ids.map((id) => existingMap.get(id) || "");
+      return targetIds.map((tid, idx) => existingMap.get(tid) || existingMap.get(baseIds[idx]) || "");
     }
 
     const { client } = getOpenAIClient();
@@ -41,8 +56,11 @@ export class DescriptionService {
     // If Azure is not configured, fall back to a simple deterministic template
     const generatedMap = new Map<string, string>();
     if (!client) {
+      // No hardcoded language mapping; if base exists, prefer it. Otherwise, use a neutral template in English.
       for (const { id, item } of toGenerate) {
-        const desc = `"${item.title}" is a ${item.type.toLowerCase()} provided in ${item.unitType.toLowerCase()} units. It is intended for general use and distribution.`;
+        const baseId = DescriptionService.makeBaseId(item);
+        const base = existingMap.get(baseId);
+        const desc = base ?? `"${item.title}" is a ${item.type.toLowerCase()} provided in ${item.unitType.toLowerCase()} units. It is intended for general use and distribution.`;
         generatedMap.set(id, desc);
       }
     } else {
@@ -55,9 +73,10 @@ export class DescriptionService {
 - Do not include the name of the medication in the description`;
 
       const userLines = toGenerate
-        .map(({ item }, i) => `${i + 1}. title="${item.title}", type="${item.type}", unitType="${item.unitType}"`)
+        .map(({ item }, idx) => `${idx + 1}. title="${item.title}", type="${item.type}", unitType="${item.unitType}"`)
         .join("\n");
-      const user = `Write basic descriptions for these items, one per line and in order. Return JSON only that matches the provided schema.\n${userLines}`;
+      const languageLine = language && language.length > 0 ? `Respond in language: ${language}.` : "";
+      const user = `Write basic descriptions for these items, one per line and in order. ${languageLine} Return JSON only that matches the provided schema.\n${userLines}`;
 
       const response = await client.chat.completions.create({
         // For Azure OpenAI with OpenAI SDK: pass the deployment name to `model`
@@ -121,6 +140,6 @@ export class DescriptionService {
 
     // Merge existing + newly generated, return in original order
     const finalMap = new Map<string, string>([...existingMap, ...generatedMap]);
-    return ids.map((id) => finalMap.get(id) || "");
+    return targetIds.map((tid, idx) => finalMap.get(tid) || finalMap.get(baseIds[idx]) || "");
   }
 }

@@ -12,7 +12,11 @@ const bodySchema = z.object({
       type: z.string().min(1),
       unitType: z.string().min(1),
     })
-  ).min(1)
+  ).min(1),
+  language: z
+    .string()
+    .regex(/^[A-Za-z-]{2,10}$/)
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const descriptions = await DescriptionService.getOrGenerateDescriptions(parsed.data.items);
+  const descriptions = await DescriptionService.getOrGenerateDescriptions(parsed.data.items, parsed.data.language);
 
     return NextResponse.json({ items: descriptions }, { status: 200 });
   } catch (error) {
