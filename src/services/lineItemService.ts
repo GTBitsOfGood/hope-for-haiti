@@ -36,7 +36,7 @@ const requiredKeys = [
 const containsRequiredKeys = (fields?: string[]) =>
   fields ? requiredKeys.every((key) => fields.includes(key)) : false;
 
-const SingleItemSchema = z.object({
+export const singleLineItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: z.string(),
   expirationDate: z
@@ -151,7 +151,7 @@ export class LineItemService {
     const validItems: BulkItemData[] = [];
 
     jsonData.forEach((row, index) => {
-      const parsed = SingleItemSchema.safeParse(row);
+      const parsed = singleLineItemSchema.safeParse(row);
       if (!parsed.success) {
         const errorMessages = parsed.error.issues
           .map((issue) => {
