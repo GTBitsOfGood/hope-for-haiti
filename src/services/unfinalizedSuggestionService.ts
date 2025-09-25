@@ -16,9 +16,14 @@ export type GeneralItemInput = {
   requests: PartnerRequest[];
 };
 
-export type AllocationSuggestion = {
+export type AllocationSuggestionBasic = {
+  items: { requests: { partnerId: number; quantity: number }[] }[];
+};
+
+export type AllocationSuggestionDetailed = {
   items: {
-    requests: { partnerId: number; quantity: number }[];
+    before: { requests: { partnerId: number; quantity: number }[] };
+    after: { requests: { partnerId: number; quantity: number }[] };
   }[];
 };
 
@@ -96,7 +101,10 @@ function normalizeRequestsToAvailable(totalQuantity: number, requests: PartnerRe
 }
 
 export class UnfinalizedSuggestionService {
-  static async suggestAllocations(generalItems: GeneralItemInput[]): Promise<AllocationSuggestion> {
+  static async suggestAllocations(
+    generalItems: GeneralItemInput[],
+    options?: { includeDetails?: boolean }
+  ): Promise<AllocationSuggestionBasic | AllocationSuggestionDetailed> {
     // Precompute normalized allocations and partner context across all items
     const normalizedPerItem = generalItems.map((item) => {
       const shares = normalizeRequestsToAvailable(item.totalQuantity, item.requests);
@@ -118,11 +126,20 @@ export class UnfinalizedSuggestionService {
 
     // Fallback: if no LLM, return normalized allocations respecting totals
     if (!client) {
+      if (options?.includeDetails) {
+        return {
+          items: generalItems.map((item, idx) => {
+            const before = item.requests.map((r, j) => ({ partnerId: r.partnerId, quantity: normalizedPerItem[idx][j] || 0 }));
+            return { before: { requests: before }, after: { requests: before } };
+          }),
+        } satisfies AllocationSuggestionDetailed;
+      }
+      // Basic shape
       return {
         items: generalItems.map((item, idx) => ({
           requests: item.requests.map((r, j) => ({ partnerId: r.partnerId, quantity: normalizedPerItem[idx][j] || 0 })),
         })),
-      };
+      } satisfies AllocationSuggestionBasic;
     }
 
     // Build prompt with heuristics
@@ -158,7 +175,7 @@ If a specific heuristic lacks data, ignore it. Maintain transparency and fairnes
       })),
     };
 
-    const user = `Adjust the normalizedSuggested quantities only when needed to better follow the heuristics.
+    const user = `Adjust the normalizedSuggested quantities when needed to better follow the heuristics.
 For each item, return allocations as integers whose sum equals totalQuantity exactly.
 Use partnerContext across all items when making tradeoffs. Keep partner order and IDs unchanged.`;
 
@@ -207,21 +224,56 @@ Use partnerContext across all items when making tradeoffs. Keep partner order an
     });
 
     // Parse and post-process
-    let parsed: AllocationSuggestion | null = null;
+    // The model returns a simpler shape: { items: [{ requests: [...] }, ...] }
+  type ModelResponse = { items: { requests: { partnerId: number; quantity: number }[] }[] } | null;
+    let parsedModel: ModelResponse = null;
     try {
       const content = response.choices?.[0]?.message?.content || "";
       const obj = JSON.parse(content);
-      if (obj && Array.isArray(obj.items)) parsed = obj as AllocationSuggestion;
+      if (obj && Array.isArray(obj.items)) parsedModel = obj as ModelResponse;
     } catch {
-      parsed = null;
+      parsedModel = null;
     }
 
     // Build final from model or fallback normalized
-    const final: AllocationSuggestion = { items: [] };
+    if (options?.includeDetails) {
+      const detailed: AllocationSuggestionDetailed = { items: [] };
+      for (let i = 0; i < generalItems.length; i++) {
+        const item = generalItems[i];
+        const requested = item.requests;
+        const beforeRequests = requested.map((r, j) => ({ partnerId: r.partnerId, quantity: normalizedPerItem[i][j] || 0 }));
+        const modelReqs = parsedModel?.items?.[i]?.requests || [];
+        const byId = new Map<number, number>();
+        for (const r of modelReqs) {
+          if (typeof r?.partnerId === "number" && typeof r?.quantity === "number") {
+            byId.set(r.partnerId, r.quantity);
+          }
+        }
+
+        const raw = requested.map((r, j) => {
+          const val = byId.has(r.partnerId) ? (byId.get(r.partnerId) as number) : normalizedPerItem[i][j] || 0;
+          return Number.isFinite(val) ? val : 0;
+        });
+        let ints = raw.map((v) => Math.max(0, Math.round(v)));
+        const sum = ints.reduce((a, b) => a + b, 0);
+        if (sum !== item.totalQuantity) {
+          const weights = raw.map((v) => Math.max(0, v));
+          ints = largestRemainderIntegerAllocation(item.totalQuantity, weights);
+        }
+        detailed.items.push({
+          before: { requests: beforeRequests },
+          after: { requests: requested.map((r, j) => ({ partnerId: r.partnerId, quantity: ints[j] || 0 })) },
+        });
+      }
+      return detailed;
+    }
+
+    // Basic shape only
+    const basic: AllocationSuggestionBasic = { items: [] };
     for (let i = 0; i < generalItems.length; i++) {
       const item = generalItems[i];
       const requested = item.requests;
-      const modelReqs = parsed?.items?.[i]?.requests || [];
+      const modelReqs = parsedModel?.items?.[i]?.requests || [];
       const byId = new Map<number, number>();
       for (const r of modelReqs) {
         if (typeof r?.partnerId === "number" && typeof r?.quantity === "number") {
@@ -236,7 +288,7 @@ Use partnerContext across all items when making tradeoffs. Keep partner order an
       });
 
       // Enforce integers and non-negatives
-      let ints = raw.map((v) => Math.max(0, Math.round(v)));
+  let ints = raw.map((v) => Math.max(0, Math.round(v)));
 
       // Ensure sum equals totalQuantity exactly via adjustment
       const sum = ints.reduce((a, b) => a + b, 0);
@@ -246,11 +298,10 @@ Use partnerContext across all items when making tradeoffs. Keep partner order an
         ints = largestRemainderIntegerAllocation(item.totalQuantity, weights);
       }
 
-      final.items.push({
+      basic.items.push({
         requests: requested.map((r, j) => ({ partnerId: r.partnerId, quantity: ints[j] || 0 })),
       });
     }
-
-    return final;
+    return basic;
   }
 }

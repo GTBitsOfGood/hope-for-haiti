@@ -23,6 +23,7 @@ const bodySchema = z.object({
       ).min(1),
     })
   ).min(1),
+  includeDetails: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await UnfinalizedSuggestionService.suggestAllocations(parsed.data.generalItems);
+  const result = await UnfinalizedSuggestionService.suggestAllocations(parsed.data.generalItems, { includeDetails: parsed.data.includeDetails });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     return errorResponse(error);
