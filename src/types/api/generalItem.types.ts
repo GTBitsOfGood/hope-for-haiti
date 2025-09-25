@@ -8,3 +8,7 @@ export interface CreateGeneralItemParams {
   initialQuantity: number;
   requestQuantity?: number;
 }
+
+export type UpdateGeneralItemParams = Partial<
+  Omit<CreateGeneralItemParams, "donorOfferId">
+>;
