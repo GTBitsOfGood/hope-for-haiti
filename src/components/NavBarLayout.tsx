@@ -174,12 +174,11 @@ function MobileNavbar() {
 
 export default function NavbarLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   const { user } = useUser();
   const pathname = usePathname();
-  const hideNav = pathname.startsWith("/createPartnerAccount");
+  const hideNavPaths = ["/reset-password", "/createPartnerAccount"];
+  const hideNav = hideNavPaths.some((path) => pathname.startsWith(path));
 
   return (
     <div className="flex">

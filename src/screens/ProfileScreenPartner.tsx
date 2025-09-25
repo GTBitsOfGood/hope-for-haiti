@@ -7,6 +7,7 @@ import { useApiClient } from "@/hooks/useApiClient";
 import { PartnerDetails } from "@/schema/partnerDetails";
 import PartnerDetailsSection from "@/components/PartnerDetails/PartnerDetailsSection";
 import { tabOrder } from "@/components/PartnerDetails/fieldConfigs";
+import Link from "next/link";
 
 interface PartnerProfileScreenProps {
   user: User;
@@ -280,20 +281,29 @@ export default function ProfileScreenPartner({
           )}
 
           <p className="text-[18px] font-semibold text-[#22070B]">Password</p>
-          {isEditingUser ? (
-            <input
-              type="text"
-              value={userData.password}
-              onChange={(e) =>
-                setUserData({ ...userData, password: e.target.value })
-              }
-              className="border p-1"
-            />
-          ) : (
-            <p className="text-[16px] text-[#22070B]">{userData.password}</p>
-          )}
+          <div className="flex">
+            {isEditingUser ? (
+              <input
+                type="text"
+                value={userData.password}
+                onChange={(e) =>
+                  setUserData({ ...userData, password: e.target.value })
+                }
+                className="border p-1"
+              />
+            ) : (
+              <p className="text-[16px] text-[#22070B]">{userData.password}</p>
+            )}
+          </div>
         </div>
       </div>
+      <p className="mt-4">
+        <Link href="/reset-password">
+          <button className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10">
+            Reset Password
+          </button>
+        </Link>
+      </p>
 
       <div>
         <h2 className="text-[20px] font-bold leading-[28px] text-[#22070B] mt-10">

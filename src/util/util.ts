@@ -30,5 +30,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function validatePassword(pw: string) {
-  return pw.length >= 8;
+  const regex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+  return regex.test(pw);
 }

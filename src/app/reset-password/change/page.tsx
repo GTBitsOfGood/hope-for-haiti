@@ -44,7 +44,9 @@ export default function SignInPage() {
       }
 
       if (!validatePassword(password as string)) {
-        toast.error("Password must be at least 8 characters");
+        toast.error(
+          "Password must be at least 8 characters and contain one upper and lower case letter, one number, and one special character (!@#$%^&*)."
+        );
         return;
       }
 
