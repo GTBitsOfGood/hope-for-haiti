@@ -13,10 +13,7 @@ import { z } from "zod";
 const patchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   type: z.string().min(1).max(255).optional(),
-  expirationDate: z
-    .string()
-    .transform((date) => new Date(date))
-    .optional(),
+  expirationDate: z.coerce.date().optional(),
   unitType: z.string().min(1).max(255).optional(),
   quantityPerUnit: z.number().int().positive().optional(),
   initialQuantity: z.number().int().min(0).optional(),

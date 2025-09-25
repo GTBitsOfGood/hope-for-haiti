@@ -7,7 +7,7 @@ import {
   ArgumentError,
 } from "@/util/errors";
 import { NextResponse, NextRequest } from "next/server";
-import { ItemFormSchema } from "@/schema/itemForm";
+import { lineItemFormSchema } from "@/schema/itemForm";
 import UserService from "@/services/userService";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -21,7 +21,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
     }
 
-    const validatedForm = ItemFormSchema.safeParse(await request.formData());
+    const validatedForm = lineItemFormSchema.safeParse(
+      await request.formData()
+    );
 
     if (!validatedForm.success) {
       throw new ArgumentError(validatedForm.error.message);

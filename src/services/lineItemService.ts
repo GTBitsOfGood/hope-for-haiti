@@ -92,10 +92,13 @@ export const singleLineItemSchema = z.object({
 });
 
 export class LineItemService {
-  static async createItem(data: CreateItemData) {
+  static async createItem(data: CreateItemData, generalItemId?: number) {
     const createdItem = await db.lineItem.create({
       data: {
         ...data,
+        ...(generalItemId !== undefined
+          ? { generalItem: { connect: { id: generalItemId } } }
+          : {}),
       },
     });
 
@@ -105,6 +108,12 @@ export class LineItemService {
   static async getAllItems() {
     const items = await db.lineItem.findMany();
     return items;
+  }
+
+  static async getLineItemsForGeneralItem(generalItemId: number) {
+    return await db.lineItem.findMany({
+      where: { generalItemId },
+    });
   }
 
   static async processBulkUpload(
