@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { UserType } from "@prisma/client";
+import { Prisma, UserType } from "@prisma/client";
 import { ArgumentError, NotFoundError, ConflictError } from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
@@ -10,10 +10,22 @@ import {
   CreateUserInviteData,
   UpdateUserData,
 } from "@/types/api/user.types";
+import { Filters } from "@/types/api/filter.types";
+import {
+  buildQueryWithPagination,
+  buildWhereFromFilters,
+} from "@/util/table";
 
 export default class UserService {
-  static async getUsers() {
-    const users = await db.user.findMany({
+  static async getUsers(filters?: Filters, page?: number, pageSize?: number) {
+    
+    const where = buildWhereFromFilters<Prisma.UserWhereInput>(
+      Object.keys(Prisma.UserScalarFieldEnum),
+      filters,
+    );
+
+    const query: Prisma.UserFindManyArgs = {
+      where,
       select: {
         id: true,
         email: true,
@@ -22,8 +34,16 @@ export default class UserService {
         tag: true,
         enabled: true,
       },
-    });
-    return users;
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [users, total] = await Promise.all([
+      db.user.findMany(query),
+      db.user.count({ where }),
+    ]);
+
+    return { users, total };
   }
 
   static async getUserById(userId: number) {

@@ -6,6 +6,7 @@ import { ShipmentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import UserService from "@/services/userService";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const updateShippingStatusSchema = z.object({
   donorShippingNumber: z.string(),
@@ -14,7 +15,7 @@ const updateShippingStatusSchema = z.object({
 });
 
 export async function GET(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ partnerId: string }> }
 ) {
   try {
@@ -32,7 +33,24 @@ export async function GET(
       throw new ArgumentError("Invalid partner ID");
     }
 
-    const result = await ShippingStatusService.getPartnerShippingStatuses(partnerId);
+    const tableParams = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+    });
+
+    if (!tableParams.success) {
+      throw new ArgumentError(tableParams.error.message);
+    }
+
+    const { filters, page, pageSize } = tableParams.data;
+
+    const result = await ShippingStatusService.getPartnerShippingStatuses(
+      partnerId,
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined,
+    );
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

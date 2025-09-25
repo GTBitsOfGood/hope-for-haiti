@@ -29,6 +29,16 @@ export interface AdminDonorOffer {
   }[];
 }
 
+export interface PartnerDonorOffersResponse {
+  donorOffers: PartnerDonorOffer[];
+  total: number;
+}
+
+export interface AdminDonorOffersResponse {
+  donorOffers: AdminDonorOffer[];
+  total: number;
+}
+
 export interface ItemRequestWithAllocations {
   id: number;
   donorOfferItemId: number;
@@ -48,6 +58,16 @@ export interface ItemRequestWithAllocations {
     quantity: number;
     item: Item;
   }[];
+}
+
+export interface ItemRequestsWithTotal {
+  requests: ItemRequestWithAllocations[];
+  total: number;
+}
+
+export interface DonorOfferItemLineItemsResponse {
+  items: Item[];
+  total: number;
 }
 
 export interface CreateDonorOfferResult {
@@ -79,6 +99,7 @@ export interface DonorOfferItemsRequestsDTO {
 export interface DonorOfferItemsRequestsResponse {
   donorOfferName: string;
   donorOfferItemsRequests: DonorOfferItemsRequestsDTO[];
+  total: number;
 }
 
 export interface UpdateRequestItem {
@@ -112,4 +133,5 @@ export interface DonorOfferEditDetails {
   donorResponseDeadline: Date;
   items: DonorOfferItem[];
   partners: { id: number; name: string }[];
+  total: number;
 }

@@ -5,6 +5,7 @@ import UserService from "@/services/userService";
 import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const paramSchema = z.object({
   title: z.string(),
@@ -37,6 +38,18 @@ export async function GET(request: NextRequest) {
 
     const params = request.nextUrl.searchParams;
 
+    const tableParams = tableParamsSchema.safeParse({
+      filters: params.get("filters"),
+      page: params.get("page"),
+      pageSize: params.get("pageSize"),
+    });
+
+    if (!tableParams.success) {
+      throw new ArgumentError(tableParams.error.message);
+    }
+
+    const { filters, page, pageSize } = tableParams.data;
+
     const parsed = paramSchema.safeParse({
       title: params.get("title"),
       type: params.get("type"),
@@ -49,13 +62,18 @@ export async function GET(request: NextRequest) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await UnallocatedItemService.getLineItems({
-      title: parsed.data.title,
-      type: parsed.data.type,
-      expirationDate: parsed.data.expirationDate,
-      unitType: parsed.data.unitType,
-      quantityPerUnit: parsed.data.quantityPerUnit,
-    });
+    const result = await UnallocatedItemService.getLineItems(
+      {
+        title: parsed.data.title,
+        type: parsed.data.type,
+        expirationDate: parsed.data.expirationDate,
+        unitType: parsed.data.unitType,
+        quantityPerUnit: parsed.data.quantityPerUnit,
+      },
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined,
+    );
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

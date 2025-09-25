@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { DonorOfferState, UserType, RequestPriority, ItemCategory, Item, DonorOffer, DonorOfferItem, DonorOfferItemRequest } from "@prisma/client";
+import { DonorOfferState, UserType, RequestPriority, ItemCategory, DonorOffer, DonorOfferItem, DonorOfferItemRequest, Prisma } from "@prisma/client";
 import { isAfter } from "date-fns";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -14,8 +14,14 @@ import {
   UpdateRequestItem,
   FinalizeDetailsResult,
   FinalizeDonorOfferResult,
-  DonorOfferEditDetails
+  DonorOfferEditDetails,
+  PartnerDonorOffersResponse,
+  AdminDonorOffersResponse,
+  ItemRequestsWithTotal,
+  DonorOfferItemLineItemsResponse,
 } from "@/types/api/donorOffer.types";
+import { Filters } from "@/types/api/filter.types";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 const DonorOfferItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -121,15 +127,28 @@ type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
 
 
 export default class DonorOfferService {
-  static async getPartnerDonorOffers(partnerId: number): Promise<PartnerDonorOffer[]> {
-    const donorOffers = await db.donorOffer.findMany({
-      where: {
-        partnerVisibilities: {
-          some: {
-            partnerId,
-          },
+  static async getPartnerDonorOffers(
+    partnerId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<PartnerDonorOffersResponse> {
+    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferWhereInput>(
+      Object.keys(Prisma.DonorOfferScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.DonorOfferWhereInput = {
+      ...filterWhere,
+      partnerVisibilities: {
+        some: {
+          partnerId,
         },
       },
+    };
+
+    const query: Prisma.DonorOfferFindManyArgs = {
+      where,
       include: {
         items: {
           include: {
@@ -141,9 +160,16 @@ export default class DonorOfferService {
           },
         },
       },
-    });
+    };
 
-    return donorOffers.map((offer) => {
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [donorOffers, total] = await Promise.all([
+      db.donorOffer.findMany(query),
+      db.donorOffer.count({ where }),
+    ]);
+
+    const mappedOffers: PartnerDonorOffer[] = donorOffers.map((offer) => {
       let state = null;
 
       if (
@@ -171,10 +197,25 @@ export default class DonorOfferService {
         state: state,
       };
     });
+
+    return {
+      donorOffers: mappedOffers,
+      total,
+    };
   }
 
-  static async getAdminDonorOffers(): Promise<AdminDonorOffer[]> {
-    const donorOffers = await db.donorOffer.findMany({
+  static async getAdminDonorOffers(
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<AdminDonorOffersResponse> {
+    const where = buildWhereFromFilters<Prisma.DonorOfferWhereInput>(
+      Object.keys(Prisma.DonorOfferScalarFieldEnum),
+      filters,
+    );
+
+    const query: Prisma.DonorOfferFindManyArgs = {
+      where,
       include: {
         partnerVisibilities: {
           include: {
@@ -197,9 +238,16 @@ export default class DonorOfferService {
           },
         },
       },
-    });
+    };
 
-    return donorOffers.map((offer) => ({
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [donorOffers, total] = await Promise.all([
+      db.donorOffer.findMany(query),
+      db.donorOffer.count({ where }),
+    ]);
+
+    const mappedOffers: AdminDonorOffer[] = donorOffers.map((offer) => ({
       donorOfferId: offer.id,
       offerName: offer.offerName,
       donorName: offer.donorName,
@@ -212,11 +260,28 @@ export default class DonorOfferService {
         ),
       })),
     }));
+
+    return { donorOffers: mappedOffers, total };
   }
 
-  static async getItemRequests(itemId: number): Promise<ItemRequestWithAllocations[]> {
-    const requests = await db.donorOfferItemRequest.findMany({
-      where: { donorOfferItemId: itemId },
+  static async getItemRequests(
+    itemId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<ItemRequestsWithTotal> {
+    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemRequestWhereInput>(
+      Object.keys(Prisma.DonorOfferItemRequestScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.DonorOfferItemRequestWhereInput = {
+      ...filterWhere,
+      donorOfferItemId: itemId,
+    };
+
+    const query: Prisma.DonorOfferItemRequestFindManyArgs = {
+      where,
       include: {
         donorOfferItem: true,
         partner: {
@@ -225,7 +290,14 @@ export default class DonorOfferService {
           },
         },
       },
-    });
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [requests, total] = await Promise.all([
+      db.donorOfferItemRequest.findMany(query),
+      db.donorOfferItemRequest.count({ where }),
+    ]);
 
     const allocations = await Promise.all(
       requests.map(async (request) => {
@@ -240,23 +312,42 @@ export default class DonorOfferService {
       })
     );
 
-    return requests.map((request, index) => ({
+    const mapped: ItemRequestWithAllocations[] = requests.map((request, index) => ({
       ...request,
       allocations: allocations[index],
     }));
+
+    return { requests: mapped, total };
   }
 
-  static async getItemLineItems(itemId: number): Promise<Item[]> {
-    const donorOfferItem = await db.donorOfferItem.findUnique({
-      where: {
-        id: itemId,
-      },
-      select: {
-        items: true,
-      },
-    });
+  static async getItemLineItems(
+    itemId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<DonorOfferItemLineItemsResponse> {
+    const filterWhere = buildWhereFromFilters<Prisma.ItemWhereInput>(
+      Object.keys(Prisma.ItemScalarFieldEnum),
+      filters,
+    );
 
-    return donorOfferItem?.items ?? [];
+    const where: Prisma.ItemWhereInput = {
+      ...filterWhere,
+      donorOfferItemId: itemId,
+    };
+
+    const query: Prisma.ItemFindManyArgs = {
+      where,
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.item.findMany(query),
+      db.item.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   static async createDonorOffer(
@@ -374,7 +465,13 @@ export default class DonorOfferService {
     return { success: true };
   }
 
-  static async getPartnerDonorOfferDetails(donorOfferId: number, partnerId: string): Promise<DonorOfferItemsRequestsResponse> {
+  static async getPartnerDonorOfferDetails(
+    donorOfferId: number,
+    partnerId: string,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<DonorOfferItemsRequestsResponse> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
     });
@@ -383,14 +480,33 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const donorOfferItemsRequests = (
-      await db.donorOfferItem.findMany({
-        where: { donorOfferId },
-        include: {
-          requests: { where: { partnerId: parseInt(partnerId) } },
-        },
-      })
-    ).map(
+    const partnerIdNumber = parseInt(partnerId);
+
+    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemWhereInput>(
+      Object.keys(Prisma.DonorOfferItemScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.DonorOfferItemWhereInput = {
+      ...filterWhere,
+      donorOfferId,
+    };
+
+    const query: Prisma.DonorOfferItemFindManyArgs = {
+      where,
+      include: {
+        requests: { where: { partnerId: partnerIdNumber } },
+      },
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.donorOfferItem.findMany(query),
+      db.donorOfferItem.count({ where }),
+    ]);
+
+    const donorOfferItemsRequests = items.map(
       (item) =>
         ({
           donorOfferItemId: item.id,
@@ -421,10 +537,20 @@ export default class DonorOfferService {
     return {
       donorOfferName: donorOffer.offerName,
       donorOfferItemsRequests,
+      total,
     };
   }
 
-  static async getAdminDonorOfferDetails(donorOfferId: number): Promise<{ donorOffer: DonorOffer; itemsWithRequests: (DonorOfferItem & { requests: (DonorOfferItemRequest & { partner: { name: string } })[] })[] }> {
+  static async getAdminDonorOfferDetails(
+    donorOfferId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<{
+    donorOffer: DonorOffer;
+    itemsWithRequests: (DonorOfferItem & { requests: (DonorOfferItemRequest & { partner: { name: string } })[] })[];
+    total: number;
+  }> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
     });
@@ -433,14 +559,36 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const itemsWithRequests = await db.donorOfferItem.findMany({
-      where: { donorOfferId },
-      include: { requests: { include: { partner: { select: { name: true } } } } },
-    });
+    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemWhereInput>(
+      Object.keys(Prisma.DonorOfferItemScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.DonorOfferItemWhereInput = {
+      ...filterWhere,
+      donorOfferId,
+    };
+
+    const query: Prisma.DonorOfferItemFindManyArgs = {
+      where,
+      include: {
+        requests: {
+          include: { partner: { select: { name: true } } },
+        },
+      },
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [itemsWithRequests, total] = await Promise.all([
+      db.donorOfferItem.findMany(query),
+      db.donorOfferItem.count({ where }),
+    ]);
     
     return {
       donorOffer,
       itemsWithRequests,
+      total,
     };
   }
 
@@ -658,11 +806,15 @@ export default class DonorOfferService {
     return { success: true, donorOfferId, createdCount: validItems.length };
   }
 
-  static async getDonorOfferForEdit(donorOfferId: number): Promise<DonorOfferEditDetails | null> {
+  static async getDonorOfferForEdit(
+    donorOfferId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<DonorOfferEditDetails | null> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
       include: {
-        items: true,
         partnerVisibilities: {
           select: {
             partner: {
@@ -675,17 +827,39 @@ export default class DonorOfferService {
 
     if (!donorOffer) return null;
 
+    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemWhereInput>(
+      Object.keys(Prisma.DonorOfferItemScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.DonorOfferItemWhereInput = {
+      ...filterWhere,
+      donorOfferId,
+    };
+
+    const query: Prisma.DonorOfferItemFindManyArgs = {
+      where,
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.donorOfferItem.findMany(query),
+      db.donorOfferItem.count({ where }),
+    ]);
+
     return {
       id: donorOffer.id,
       offerName: donorOffer.offerName,
       donorName: donorOffer.donorName,
       partnerResponseDeadline: donorOffer.partnerResponseDeadline,
       donorResponseDeadline: donorOffer.donorResponseDeadline,
-      items: donorOffer.items,
+      items,
       partners: donorOffer.partnerVisibilities.map((pv) => ({
         id: pv.partner.id,
         name: pv.partner.name,
       })),
+      total,
     };
   }
 

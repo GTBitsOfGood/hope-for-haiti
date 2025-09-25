@@ -21,6 +21,11 @@ export interface SignOffSummary {
   status: string;
 }
 
+export interface SignOffSummaryResponse {
+  signOffs: SignOffSummary[];
+  total: number;
+}
+
 export interface SignOffDetails {
   id: number;
   date: Date;

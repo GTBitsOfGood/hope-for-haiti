@@ -1,10 +1,14 @@
 import { db } from "@/db";
+import { Prisma } from "@prisma/client";
 import { 
   CreateSignOffData, 
   SignOffSummary, 
   SignOffDetails, 
   DistributionItem,
+  SignOffSummaryResponse,
 } from "@/types/api/signOff.types";
+import { Filters } from "@/types/api/filter.types";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export class SignOffService {
   static async createSignOff(data: CreateSignOffData) {
@@ -33,9 +37,24 @@ export class SignOffService {
     });
   }
 
-  static async getSignOffsByPartner(partnerId: number): Promise<SignOffSummary[]> {
-    const signOffs = await db.signOff.findMany({
-      where: { partnerId },
+  static async getSignOffsByPartner(
+    partnerId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<SignOffSummaryResponse> {
+    const filterWhere = buildWhereFromFilters<Prisma.SignOffWhereInput>(
+      Object.keys(Prisma.SignOffScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.SignOffWhereInput = {
+      ...filterWhere,
+      partnerId,
+    };
+
+    const query: Prisma.SignOffFindManyArgs = {
+      where,
       include: {
         distributions: true,
         _count: {
@@ -44,15 +63,24 @@ export class SignOffService {
           },
         },
       },
-    });
+    };
 
-    return signOffs.map((signOff) => ({
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [signOffs, total] = await Promise.all([
+      db.signOff.findMany(query),
+      db.signOff.count({ where }),
+    ]);
+
+    const mapped: SignOffSummary[] = signOffs.map((signOff) => ({
       staffName: signOff.staffMemberName,
       numberOfItems: signOff._count.distributions,
       dateCreated: signOff.createdAt,
       signOffDate: signOff.createdAt,
       status: "-",
     }));
+
+    return { signOffs: mapped, total };
   }
 
   static async getSignOffById(signOffId: number): Promise<SignOffDetails | null> {

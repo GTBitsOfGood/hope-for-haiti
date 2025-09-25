@@ -6,6 +6,7 @@ import { UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { RequestPriority } from "@prisma/client";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const createMultipleRequestsSchema = z.array(z.object({
   generalItem: z.object({
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -60,8 +61,23 @@ export async function GET() {
       throw new AuthorizationError("User must be a partner");
     }
 
+    const tableParams = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+    });
+
+    if (!tableParams.success) {
+      throw new ArgumentError(tableParams.error.message);
+    }
+
+    const { filters, page, pageSize } = tableParams.data;
+
     const requests = await UnallocatedItemService.getPartnerUnallocatedItemRequests(
-      parseInt(session.user.id)
+      parseInt(session.user.id),
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined,
     );
 
     return NextResponse.json(requests, { status: 200 });

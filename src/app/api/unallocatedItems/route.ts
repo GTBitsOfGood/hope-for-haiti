@@ -8,6 +8,7 @@ import { RequestPriority, UserType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const createUnallocatedItemRequestSchema = zfd.formData({
   title: zfd.text(),
@@ -28,6 +29,19 @@ export async function GET(request: NextRequest) {
     }
 
     const params = request.nextUrl.searchParams;
+
+    const tableParams = tableParamsSchema.safeParse({
+      filters: params.get("filters"),
+      page: params.get("page"),
+      pageSize: params.get("pageSize"),
+    });
+
+    if (!tableParams.success) {
+      throw new ArgumentError(tableParams.error.message);
+    }
+
+    const { filters, page, pageSize } = tableParams.data;
+
     const expirationDateBefore = parseDateIfDefined(
       params.get("expirationDateBefore")
     );
@@ -43,12 +57,17 @@ export async function GET(request: NextRequest) {
       throw new ArgumentError("expirationDateAfter must be a valid ISO-8601 timestamp");
     }
 
-    const result = await UnallocatedItemService.getUnallocatedItems({
-      expirationDateBefore,
-      expirationDateAfter,
-      userType: session.user.type,
-      userId: session.user.id,
-    });
+    const result = await UnallocatedItemService.getUnallocatedItems(
+      {
+        expirationDateBefore,
+        expirationDateAfter,
+        userType: session.user.type,
+        userId: session.user.id,
+      },
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined,
+    );
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

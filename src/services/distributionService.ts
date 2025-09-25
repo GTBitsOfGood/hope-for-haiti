@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { UserType, ShipmentStatus } from "@prisma/client";
+import { Prisma, UserType, ShipmentStatus } from "@prisma/client";
 import { format } from "date-fns";
 import { ArgumentError, NotFoundError } from "@/util/errors";
 import {
@@ -10,8 +10,12 @@ import {
   DistributionRecord,
   AdminDistributionsResult,
   CompletedSignOff,
-  PartnerAllocationSummary
+  PartnerAllocationSummary,
+  CompletedSignOffResponse,
+  PartnerAllocationSummaryResponse
 } from "@/types/api/distribution.types";
+import { Filters } from "@/types/api/filter.types";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export default class DistributionService {
   static async getSignedDistributions(partnerId: number): Promise<SignedDistribution[]> {
@@ -224,8 +228,18 @@ export default class DistributionService {
     return { records };
   }
 
-  static async getCompletedSignOffs(): Promise<CompletedSignOff[]> {
-    const signoffs = await db.signOff.findMany({
+  static async getCompletedSignOffs(
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<CompletedSignOffResponse> {
+    const where = buildWhereFromFilters<Prisma.SignOffWhereInput>(
+      Object.keys(Prisma.SignOffScalarFieldEnum),
+      filters,
+    );
+
+    const query: Prisma.SignOffFindManyArgs = {
+      where,
       select: {
         partnerName: true,
         staffMemberName: true,
@@ -237,22 +251,43 @@ export default class DistributionService {
           },
         },
       },
-    });
+    };
 
-    return signoffs.map((signoff) => ({
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [signoffs, total] = await Promise.all([
+      db.signOff.findMany(query),
+      db.signOff.count({ where }),
+    ]);
+
+    const mapped: CompletedSignOff[] = signoffs.map((signoff) => ({
       partnerName: signoff.partnerName,
       staffMemberName: signoff.staffMemberName,
       date: signoff.date,
       createdAt: signoff.createdAt,
       distributionCount: signoff._count.distributions,
     }));
+
+    return { signoffs: mapped, total };
   }
 
-  static async getPartnerAllocationSummaries(): Promise<PartnerAllocationSummary[]> {
-    const usersWithAllocations = await db.user.findMany({
-      where: {
-        type: "PARTNER",
-      },
+  static async getPartnerAllocationSummaries(
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ): Promise<PartnerAllocationSummaryResponse> {
+    const filterWhere = buildWhereFromFilters<Prisma.UserWhereInput>(
+      Object.keys(Prisma.UserScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.UserWhereInput = {
+      ...filterWhere,
+      type: "PARTNER",
+    };
+
+    const query: Prisma.UserFindManyArgs = {
+      where,
       include: {
         unallocatedItemRequests: {
           include: {
@@ -278,9 +313,16 @@ export default class DistributionService {
           },
         },
       },
-    });
+    };
 
-    return usersWithAllocations.map((user) => {
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [usersWithAllocations, total] = await Promise.all([
+      db.user.findMany(query),
+      db.user.count({ where }),
+    ]);
+
+    const mapped: PartnerAllocationSummary[] = usersWithAllocations.map((user) => {
       const unallocatedRequestAllocations = user.unallocatedItemRequests.flatMap(
         (request) => request.allocations || []
       );
@@ -310,6 +352,8 @@ export default class DistributionService {
         pendingSignOffCount: user._count.distributions,
       };
     });
+
+    return { data: mapped, total };
   }
 
   static async toggleAllocationVisibility(allocType: "unallocated" | "donorOffer", id: number, visible: boolean): Promise<void> {
