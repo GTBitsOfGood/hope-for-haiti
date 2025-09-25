@@ -272,3 +272,10 @@ model SignOff {
 
   distributions Distribution[]
 }
+
+// Lookup table for AI-generated item descriptions to avoid recomputation
+model DescriptionLookup {
+  // Composite identity constructed as `${title} | ${type} | ${unitType}`
+  id          String @id
+  description String
+}

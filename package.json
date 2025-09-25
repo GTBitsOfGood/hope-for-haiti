@@ -22,6 +22,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "openai": "^4.63.0",
     "@azure/storage-blob": "^12.27.0",
     "@headlessui/react": "^2.2.1",
     "@phosphor-icons/react": "^2.1.7",
