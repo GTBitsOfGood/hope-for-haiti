@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { ItemCategory } from "@prisma/client";
+import { ItemCategory, Prisma } from "@prisma/client";
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -103,6 +103,42 @@ export class LineItemService {
     });
 
     return createdItem;
+  }
+
+  static async updateLineItem(
+    lineItemId: number,
+    data: Partial<CreateItemData>
+  ) {
+    try {
+      const updatedItem = await db.lineItem.update({
+        where: { id: lineItemId },
+        data,
+      });
+
+      return updatedItem;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new Error(`Line item with ID ${lineItemId} does not exist.`);
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async deleteLineItem(lineItemId: number) {
+    try {
+      await db.lineItem.delete({
+        where: { id: lineItemId },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new Error(`Line item with ID ${lineItemId} does not exist.`);
+        }
+      }
+      throw error;
+    }
   }
 
   static async getAllItems() {
