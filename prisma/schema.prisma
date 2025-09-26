@@ -59,6 +59,14 @@ model UserInvite {
   expiration     DateTime
 }
 
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+}
+
 model Item {
   id Int @id @default(autoincrement())
 
