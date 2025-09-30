@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DotsThree, Eye, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
-import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
 
 interface UnallocatedItemData {
   title: string;
@@ -19,6 +17,7 @@ interface UnallocatedItemData {
   quantityPerUnit: number;
 }
 import { useFetch } from "@/hooks/useFetch";
+import BaseTable from "@/components/BaseTable";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -217,7 +216,6 @@ export default function AdminUnallocatedItemsScreen() {
             "Expiration",
             "Unit type",
             "Qty/Unit",
-            extendTableHeader("Manage", "w-12"),
           ]}
           rows={items.map((item) => ({
             cells: [
@@ -228,36 +226,7 @@ export default function AdminUnallocatedItemsScreen() {
                 ? new Date(item.expirationDate).toLocaleDateString()
                 : "N/A",
               item.unitType,
-              item.quantityPerUnit,
-              <div onClick={(e) => e.stopPropagation()} key={1}>
-                <Menu as="div" className="float-right relative">
-                  <MenuButton>
-                    <DotsThree weight="bold" />
-                  </MenuButton>
-                  <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                    <MenuItem
-                      as="button"
-                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => {
-                        router.push(
-                          `/unallocatedItems/lineItems?${new URLSearchParams({
-                            title: item.title,
-                            type: item.type,
-                            unitType: item.unitType,
-                            quantityPerUnit: item.quantityPerUnit.toString(),
-                            ...(item.expirationDate
-                              ? { expirationDate: item.expirationDate }
-                              : {}),
-                          }).toString()}`
-                        );
-                      }}
-                    >
-                      <Eye className="inline-block mr-2" size={22} />
-                      View unique items
-                    </MenuItem>
-                  </MenuItems>
-                </Menu>
-              </div>,
+              item.quantityPerUnit
             ],
             onClick: () => {
               router.push(

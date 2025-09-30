@@ -107,9 +107,22 @@ export default function UnallocatedItemsLineItemsPage() {
           </button>
         </Link>
       </div>
-      <h1 className="text-2xl font-semibold">
-        {itemParams.title}: Unique Line Items
-      </h1>
+      <h1 className="text-2xl font-semibold">{itemParams.title}: Unique Line Items</h1>
+      
+      <div className="flex space-x-4 mt-4 border-b-2">
+        <Link
+          href={`/unallocatedItems/requests?${new URLSearchParams(itemParamsForUrl).toString()}`}
+          className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none text-gray-500 hover:text-black"
+        >
+          <div className="hover:bg-gray-100 px-2 py-1 rounded">Partner Requests</div>
+        </Link>
+        <button
+          className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none border-b-2 border-black bottom-[-1px]"
+        >
+          <div className="hover:bg-gray-100 px-2 py-1 rounded">Unique Line Items</div>
+        </button>
+      </div>
+      
       <h2 className="text-xl font-light text-gray-500 pt-4 pb-4">
         A list of all the unique items for this item.
       </h2>
