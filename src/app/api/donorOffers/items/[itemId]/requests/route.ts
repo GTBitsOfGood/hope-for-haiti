@@ -10,6 +10,7 @@ import {
   AuthorizationError,
   errorResponse,
 } from "@/util/errors";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const paramSchema = z.object({
   itemId: z
@@ -19,7 +20,7 @@ const paramSchema = z.object({
 });
 
 export async function GET(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
@@ -39,8 +40,25 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await DonorOfferService.getItemRequests(parsed.data.itemId);
-    
+    const tableParams = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+    });
+
+    if (!tableParams.success) {
+      throw new ArgumentError(tableParams.error.message);
+    }
+
+    const { filters, page, pageSize } = tableParams.data;
+
+    const result = await DonorOfferService.getItemRequests(
+      parsed.data.itemId,
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined,
+    );
+
     return Response.json(result);
   } catch (error) {
     return errorResponse(error);

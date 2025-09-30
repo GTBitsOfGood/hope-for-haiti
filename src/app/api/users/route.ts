@@ -10,13 +10,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import UserService from "@/services/userService";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const createUserSchema = zfd.formData({
   inviteToken: zfd.text(),
   password: zfd.text(),
 });
 
-const searchParamsSchema = z.object({
+const includeInvitesParamsSchema = z.object({
   includeInvites: z.string().optional().nullable().transform(val => val === "true")
 });
 
@@ -32,22 +33,31 @@ export async function GET(request: NextRequest) {
       throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
-    const parsed = searchParamsSchema.safeParse({
-      includeInvites: request.nextUrl.searchParams.get("includeInvites")
+    const parsed = tableParamsSchema.merge(includeInvitesParamsSchema).safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+      includeInvites: request.nextUrl.searchParams.get("includeInvites"),
     });
 
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const users = await UserService.getUsers();
+    const { filters, page, pageSize, includeInvites } = parsed.data;
 
-    if (parsed.data.includeInvites) {
+    const { users, total } = await UserService.getUsers(
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined
+    );
+
+    if (includeInvites) {
       const invites = await UserService.getUserInvites();
-      return NextResponse.json({ users, invites }, { status: 200 });
+      return NextResponse.json({ users, invites, total  }, { status: 200 });
     }
 
-    return NextResponse.json(users, { status: 200 });
+    return NextResponse.json({ users, total }, { status: 200 });
   } catch (error) {
     return errorResponse(error);
   }

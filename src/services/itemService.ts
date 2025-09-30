@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { ItemCategory } from "@prisma/client";
+import { ItemCategory, Prisma } from "@prisma/client";
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -9,6 +9,8 @@ import {
   BulkUploadResult,
   UnallocatedItemRequestSummary
 } from "@/types/api/item.types";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import { Filters } from "@/types/api/filter.types";
 
 const requiredKeys = [
   "title",
@@ -103,9 +105,26 @@ export class ItemService {
     return createdItem;
   }
 
-  static async getAllItems() {
-    const items = await db.item.findMany();
-    return items;
+  static async getAllItems(filters?: Filters, page?: number, pageSize?: number) {
+    const where = buildWhereFromFilters<Prisma.ItemWhereInput>(
+      Object.keys(Prisma.ItemScalarFieldEnum),
+      filters,
+    );
+
+    const query: Prisma.ItemFindManyArgs = {
+      where
+    };
+
+    console.log(query);
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.item.findMany(query),
+      db.item.count({ where }),
+    ]);
+
+    return { items, total }
   }
 
   static async getUnallocatedItemRequestsForItem(itemId: number): Promise<UnallocatedItemRequestSummary[]> {

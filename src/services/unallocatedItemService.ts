@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { NotFoundError } from "@/util/errors";
-import { UserType } from "@prisma/client";
+import { Prisma, UserType } from "@prisma/client";
 import { isEqual } from "date-fns";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import {
@@ -11,9 +11,16 @@ import {
   UnallocatedItem,
   CreateMultipleUnallocatedItemRequestsData
 } from "@/types/api/unallocatedItem.types";
+import { Filters } from "@/types/api/filter.types";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export class UnallocatedItemService {
-  static async getUnallocatedItems(params: GetUnallocatedItemsParams) {
+  static async getUnallocatedItems(
+    params: GetUnallocatedItemsParams,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ) {
     const scopeVisibility =
       params.userType === UserType.PARTNER ? { visible: true } : {};
 
@@ -37,30 +44,59 @@ export class UnallocatedItemService {
       },
     });
 
-    const tableItems = (
-      await db.item.groupBy({
-        by: ["title", "type", "expirationDate", "unitType", "quantityPerUnit"],
-        _sum: {
-          quantity: true,
-        },
-        where: {
-          ...scopeVisibility,
-          ...(params.expirationDateAfter && !params.expirationDateBefore
-            ? {
-                OR: [
-                  { expirationDate: { gt: params.expirationDateAfter } },
-                  { expirationDate: null },
-                ],
-              }
-            : {
-                expirationDate: {
-                  ...(params.expirationDateAfter && { gt: params.expirationDateAfter }),
-                  ...(params.expirationDateBefore && { lt: params.expirationDateBefore }),
-                },
-              }),
-        },
-      })
-    ).map((item) => {
+    const itemFilters = buildWhereFromFilters<Prisma.ItemWhereInput>(
+      Object.keys(Prisma.ItemScalarFieldEnum),
+      filters,
+    );
+
+    const expirationFilter = params.expirationDateAfter && !params.expirationDateBefore
+      ? {
+          OR: [
+            { expirationDate: { gt: params.expirationDateAfter } },
+            { expirationDate: null },
+          ],
+        }
+      : {
+          expirationDate: {
+            ...(params.expirationDateAfter && { gt: params.expirationDateAfter }),
+            ...(params.expirationDateBefore && { lt: params.expirationDateBefore }),
+          },
+        };
+
+    const where: Prisma.ItemWhereInput = {
+      ...scopeVisibility,
+      ...itemFilters,
+      ...expirationFilter,
+    };
+
+    const groupByFields: (keyof Prisma.ItemGroupByOutputType)[] = [
+      "title",
+      "type",
+      "expirationDate",
+      "unitType",
+      "quantityPerUnit",
+    ];
+
+    const query: Prisma.ItemGroupByArgs = {
+      by: groupByFields as string[],
+      _sum: {
+        quantity: true,
+      },
+      where,
+    };
+
+    buildQueryWithPagination(query as unknown as Record<string, unknown>, page, pageSize);
+
+    const [groupedItems, totalGroups] = await Promise.all([
+      db.item.groupBy(query),
+      db.item.groupBy({
+        by: groupByFields as string[],
+        _sum: { quantity: true },
+        where,
+      }),
+    ]);
+
+    const tableItems = groupedItems.map((item) => {
       const requestedItem = uniqueUnallocatedItemRequest.find(
         (unallocatedItem) => {
           return (
@@ -84,11 +120,11 @@ export class UnallocatedItemService {
       };
       delete copy._sum;
       return copy;
-    });
+      });
 
-    const donorNames = await db.item.findMany({
-      distinct: "donorName",
-      select: {
+      const donorNames = await db.item.findMany({
+        distinct: "donorName",
+        select: {
         donorName: true,
       },
       orderBy: {
@@ -121,6 +157,7 @@ export class UnallocatedItemService {
       unitTypes: unitTypes.map((item) => item.unitType),
       donorNames: donorNames.map((item) => item.donorName),
       itemTypes: itemTypes.map((item) => item.type),
+      total: totalGroups.length,
     };
   }
 
@@ -162,9 +199,24 @@ export class UnallocatedItemService {
     });
   }
 
-  static async getPartnerUnallocatedItemRequests(partnerId: number) {
-    const requests = await db.unallocatedItemRequest.findMany({
-      where: { partnerId },
+  static async getPartnerUnallocatedItemRequests(
+    partnerId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ) {
+    const filterWhere = buildWhereFromFilters<Prisma.UnallocatedItemRequestWhereInput>(
+      Object.keys(Prisma.UnallocatedItemRequestScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.UnallocatedItemRequestWhereInput = {
+      ...filterWhere,
+      partnerId,
+    };
+
+    const query: Prisma.UnallocatedItemRequestFindManyArgs = {
+      where,
       select: {
         id: true,
         title: true,
@@ -179,27 +231,56 @@ export class UnallocatedItemService {
       orderBy: {
         id: "asc",
       },
-    });
+    };
 
-    return requests.map((req) => ({
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [requests, total] = await Promise.all([
+      db.unallocatedItemRequest.findMany(query),
+      db.unallocatedItemRequest.count({ where }),
+    ]);
+
+    const mappedRequests = requests.map((req) => ({
       ...req,
       expirationDate: req.expirationDate?.toLocaleDateString(),
       createdAt: req.createdAt.toLocaleDateString(),
     }));
+
+    return { requests: mappedRequests, total };
   }
 
-  static async getLineItems(params: GetLineItemsParams) {
-    const items = await db.item.findMany({
-      where: {
-        title: params.title,
-        type: params.type,
-        expirationDate: params.expirationDate,
-        unitType: params.unitType,
-        quantityPerUnit: params.quantityPerUnit,
-      },
-    });
+  static async getLineItems(
+    params: GetLineItemsParams,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ) {
+    const filterWhere = buildWhereFromFilters<Prisma.ItemWhereInput>(
+      Object.keys(Prisma.ItemScalarFieldEnum),
+      filters,
+    );
 
-    return { items };
+    const where: Prisma.ItemWhereInput = {
+      ...filterWhere,
+      title: params.title,
+      type: params.type,
+      expirationDate: params.expirationDate,
+      unitType: params.unitType,
+      quantityPerUnit: params.quantityPerUnit,
+    };
+
+    const query: Prisma.ItemFindManyArgs = {
+      where,
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.item.findMany(query),
+      db.item.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   static async deleteItem(itemId: number) {
@@ -215,15 +296,28 @@ export class UnallocatedItemService {
     }
   }
 
-  static async getUnallocatedItemRequests(params: GetUnallocatedItemRequestsParams) {
-    const requests = await db.unallocatedItemRequest.findMany({
-      where: {
-        title: params.title,
-        type: params.type,
-        expirationDate: params.expirationDate,
-        unitType: params.unitType,
-        quantityPerUnit: params.quantityPerUnit,
-      },
+  static async getUnallocatedItemRequests(
+    params: GetUnallocatedItemRequestsParams,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number,
+  ) {
+    const filterWhere = buildWhereFromFilters<Prisma.UnallocatedItemRequestWhereInput>(
+      Object.keys(Prisma.UnallocatedItemRequestScalarFieldEnum),
+      filters,
+    );
+
+    const where: Prisma.UnallocatedItemRequestWhereInput = {
+      ...filterWhere,
+      title: params.title,
+      type: params.type,
+      expirationDate: params.expirationDate,
+      unitType: params.unitType,
+      quantityPerUnit: params.quantityPerUnit,
+    };
+
+    const query: Prisma.UnallocatedItemRequestFindManyArgs = {
+      where,
       include: {
         partner: {
           select: {
@@ -231,7 +325,14 @@ export class UnallocatedItemService {
           },
         },
       },
-    });
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [requests, total] = await Promise.all([
+      db.unallocatedItemRequest.findMany(query),
+      db.unallocatedItemRequest.count({ where }),
+    ]);
 
     const allocations = await Promise.all(
       requests.map(async (request) => {
@@ -280,6 +381,7 @@ export class UnallocatedItemService {
         allocations: allocations[index],
       })),
       items: modifiedItems,
+      total,
     };
   }
 }

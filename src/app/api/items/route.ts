@@ -5,6 +5,7 @@ import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/e
 import { NextResponse, NextRequest } from "next/server";
 import { ItemFormSchema } from "@/schema/itemForm";
 import UserService from "@/services/userService";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -42,8 +43,25 @@ export async function GET(): Promise<NextResponse> {
       throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
     }
 
-    const items = await ItemService.getAllItems();
-    return NextResponse.json(items, { status: 200 });
+    const parsed = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+      includeInvites: request.nextUrl.searchParams.get("includeInvites"),
+    });
+
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
+
+    const { filters, page, pageSize } = parsed.data;
+
+    const { items, total } = await ItemService.getAllItems(
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined
+    );
+    return NextResponse.json({items, total}, { status: 200 });
   } catch (error) {
     return errorResponse(error);
   }

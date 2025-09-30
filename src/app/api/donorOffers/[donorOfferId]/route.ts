@@ -11,6 +11,7 @@ import {
   errorResponse,
   ok,
 } from "@/util/errors";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const paramSchema = z.object({
   donorOfferId: z
@@ -35,7 +36,7 @@ const postBodySchema = z.object({
 });
 
 export async function GET(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
   try {
@@ -51,12 +52,35 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
+    const tableParams = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+    });
+
+    if (!tableParams.success) {
+      throw new ArgumentError(tableParams.error.message);
+    }
+
+    const { filters, page, pageSize } = tableParams.data;
+
     let result;
     
     if (session.user.type === "PARTNER") {
-      result = await DonorOfferService.getPartnerDonorOfferDetails(parsed.data.donorOfferId, session.user.id);
+      result = await DonorOfferService.getPartnerDonorOfferDetails(
+        parsed.data.donorOfferId,
+        session.user.id,
+        filters ?? undefined,
+        page ?? undefined,
+        pageSize ?? undefined,
+      );
     } else if (UserService.isStaff(session.user.type)) {
-      result = await DonorOfferService.getAdminDonorOfferDetails(parsed.data.donorOfferId);
+      result = await DonorOfferService.getAdminDonorOfferDetails(
+        parsed.data.donorOfferId,
+        filters ?? undefined,
+        page ?? undefined,
+        pageSize ?? undefined,
+      );
     } else {
       throw new AuthorizationError("Unauthorized user type");
     }

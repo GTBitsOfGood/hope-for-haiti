@@ -69,12 +69,22 @@ export interface CompletedSignOff {
   distributionCount: number;
 }
 
+export interface CompletedSignOffResponse {
+  signoffs: CompletedSignOff[];
+  total: number;
+}
+
 export interface PartnerAllocationSummary {
   partnerId: number;
   partnerName: string;
   visibleAllocationsCount: number;
   hiddenAllocationsCount: number;
   pendingSignOffCount: number;
+}
+
+export interface PartnerAllocationSummaryResponse {
+  data: PartnerAllocationSummary[];
+  total: number;
 }
 
 export interface SignOff {
