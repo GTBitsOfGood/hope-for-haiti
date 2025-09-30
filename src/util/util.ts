@@ -28,3 +28,8 @@ export function parseDateIfDefined(
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function validatePassword(pw: string) {
+  const regex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+  return regex.test(pw);
+}
