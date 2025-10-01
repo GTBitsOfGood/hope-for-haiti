@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable, { extendTableHeader } from "@/components/baseTable/BaseTable";
 
 interface UnallocatedItemData {
   title: string;
@@ -273,7 +273,6 @@ export default function AdminUnallocatedItemsScreen() {
               );
             },
           }))}
-          
         />
       )}
     </>

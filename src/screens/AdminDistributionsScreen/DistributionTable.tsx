@@ -3,7 +3,7 @@ import React from "react";
 import { Tooltip } from "react-tooltip";
 import DistributionActions from "./DistributionActions";
 import { DistributionRecord } from "@/types";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 
 export default function DistributionTable({
   refetch,
@@ -63,7 +63,6 @@ export default function DistributionTable({
           />,
         ],
       }))}
-      
     />
   );
 }

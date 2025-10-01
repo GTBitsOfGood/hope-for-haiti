@@ -17,7 +17,7 @@ import StatusTag from "@/components/tags/StatusTag";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import EditUniqueLineItemModal from "@/components/UnallocatedItems/EditUniqueLineItem";
 import { useFetch } from "@/hooks/useFetch";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable, { extendTableHeader } from "@/components/baseTable/BaseTable";
 
 export default function UnallocatedItemsLineItemsPage() {
   const searchParams = useSearchParams();
@@ -211,7 +211,6 @@ export default function UnallocatedItemsLineItemsPage() {
             ],
           }))}
           headerCellStyles="min-w-32"
-          
         />
       )}
     </>

@@ -5,7 +5,7 @@ import { CgSpinner } from "react-icons/cg";
 import { useRouter } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
 import { DonorOfferDto } from "@/types/ui/donorOffer.types";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 import OptionsTag from "@/components/tags/OptionsTag";
 
 function ResponseStatusTag({ status }: { status: string | null }) {
@@ -77,7 +77,6 @@ export default function PartnerDonorOffersScreen() {
             onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
           }))}
           headerCellStyles="min-w-[150px]"
-          
         />
       )}
     </>

@@ -1,5 +1,5 @@
 import { useUser } from "@/components/context/UserContext";
-import BaseTable from "../BaseTable";
+import BaseTable from "../baseTable/BaseTable";
 
 type DataItem = {
   title: string;
@@ -113,7 +113,6 @@ export default function DataTable({ data }: DataTableProps) {
             </span>
           )),
         }))}
-        
       />
     </div>
   );

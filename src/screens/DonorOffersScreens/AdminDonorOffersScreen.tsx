@@ -20,7 +20,7 @@ import { AdminDonorOffer } from "@/types/api/donorOffer.types";
 import BaseTable, {
   extendTableHeader,
   tableConditional,
-} from "@/components/BaseTable";
+} from "@/components/baseTable/BaseTable";
 
 enum StatusFilterKey {
   UNFINALIZED = "Unfinalized",
@@ -196,7 +196,6 @@ export default function AdminDonorOffersScreen() {
             ],
             onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
           }))}
-          
         />
       )}
     </>

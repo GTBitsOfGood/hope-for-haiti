@@ -1,6 +1,6 @@
 import { DistributionRecord } from "@/types";
 import React from "react";
-import BaseTable from "../BaseTable";
+import BaseTable from "../baseTable/BaseTable";
 
 export default function CreateSignOffTable({
   // refetch,
@@ -61,7 +61,6 @@ export default function CreateSignOffTable({
           distribution.hfhShippingNumber,
         ],
       }))}
-      
     />
   );
 }

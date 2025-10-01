@@ -3,7 +3,7 @@ import React from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
 import { ChatTeardropText } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
-import BaseTable from "./BaseTable";
+import BaseTable from "./baseTable/BaseTable";
 
 interface ShippingItemsModalProps {
   setIsOpen: (isOpen: boolean) => void; // Explicitly typing setIsOpen

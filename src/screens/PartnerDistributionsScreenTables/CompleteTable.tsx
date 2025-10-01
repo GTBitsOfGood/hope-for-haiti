@@ -1,6 +1,6 @@
 "use client";
 
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 import { SignedDistribution } from "@/types/api/distribution.types";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -21,7 +21,6 @@ export default function CompleteTable({ entries }: InProgressTableProps) {
         },
       }))}
       headerCellStyles="min-w-fit w-1/2"
-      
     />
   );
 }

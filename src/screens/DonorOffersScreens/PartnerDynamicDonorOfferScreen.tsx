@@ -16,7 +16,7 @@ import {
 } from "@/types/api/donorOffer.types";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import BaseTable, { tableConditional } from "@/components/BaseTable";
+import BaseTable, { tableConditional } from "@/components/baseTable/BaseTable";
 
 /**
  * Search bar and buttons cover the menu bar when looking at mobile view.
@@ -337,7 +337,6 @@ export default function PartnerDynamicDonorOfferScreen() {
               </button>,
             ],
           }))}
-          
         />
       )}
 

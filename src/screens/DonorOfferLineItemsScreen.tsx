@@ -9,7 +9,7 @@ import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
 import StatusTag from "@/components/tags/StatusTag";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable, { extendTableHeader } from "@/components/baseTable/BaseTable";
 
 export default function DonorOfferLineItemsScreen() {
   const { donorOfferId, itemId } = useParams();
@@ -196,7 +196,6 @@ export default function DonorOfferLineItemsScreen() {
                 ],
               }))}
               headerCellStyles="min-w-32"
-              
             />
           </div>
         </>

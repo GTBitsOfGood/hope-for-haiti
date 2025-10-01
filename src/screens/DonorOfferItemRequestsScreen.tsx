@@ -15,7 +15,7 @@ import {
 } from "@prisma/client";
 import toast from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 import PriorityTag from "@/components/tags/PriorityTag";
 
 type RequestWithAllocations = DonorOfferItemRequest & {
@@ -240,7 +240,6 @@ export default function DonorOfferItemRequestsScreen() {
                 </div>,
               ],
             }))}
-            
           />
         </>
       )}

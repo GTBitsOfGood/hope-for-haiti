@@ -15,7 +15,7 @@ import { Check, Pencil, Plus, Trash } from "@phosphor-icons/react";
 import toast from "react-hot-toast";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 
 interface DonorOfferItem {
   id?: number;
@@ -324,7 +324,6 @@ export default function EditDonorOfferPage() {
                 </button>,
               ],
         }))}
-        
       />
       <button
         onClick={handleAddItem}

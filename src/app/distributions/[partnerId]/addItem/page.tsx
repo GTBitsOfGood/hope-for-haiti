@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Item } from "@prisma/client";
 import { useParams } from "next/navigation";
 import { ChatTeardropText, MagnifyingGlass, Plus } from "@phosphor-icons/react";
@@ -11,7 +11,11 @@ import AddToDistributionModal from "@/components/AddToDistributionModal";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import { useApiClient } from "@/hooks/useApiClient";
+import AdvancedBaseTable, {
+  extendTableHeader,
+  FilterList,
+} from "@/components/baseTable/AdvancedBaseTable";
 
 interface Partner {
   name: string;
@@ -20,6 +24,7 @@ interface Partner {
 export default function AddItemToDistributionPage() {
   const { partnerId } = useParams();
   const router = useRouter();
+  const { apiClient } = useApiClient();
 
   const [selectedItem, setSelectedItem] = useState<Item>();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,18 +42,20 @@ export default function AddItemToDistributionPage() {
     }
   );
 
-  const { data: lineItems, isLoading: itemsLoading } = useFetch<Item[]>(
-    `/api/items`,
-    {
-      cache: "no-store",
-      onError: (error) => {
-        console.log(error);
-        toast.error("Error fetching line items", { position: "bottom-right" });
-      },
-    }
+  const fetchFn = useCallback(
+    async (pageSize: number, page: number, filters: FilterList<Item>) => {
+      const params = new URLSearchParams({
+        pageSize: pageSize.toString(),
+        page: page.toString(),
+        filters: JSON.stringify(filters),
+      });
+      const items = await apiClient.get<Item[]>(
+        `/api/items?${params.toString()}`
+      );
+      return { data: items, total: items.length };
+    },
+    [apiClient]
   );
-
-  const isLoading = partnerLoading || itemsLoading;
 
   const handleAddToDistribution = async (
     quantity: number,
@@ -90,7 +97,7 @@ export default function AddItemToDistributionPage() {
 
   return (
     <>
-      {isLoading ? (
+      {partnerLoading ? (
         <div className="flex justify-center items-center mt-8">
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
@@ -131,65 +138,63 @@ export default function AddItemToDistributionPage() {
               className="pl-10 pr-4 py-2 w-full border border-gray-primary border-opacity-10 rounded-lg bg-gray-100 text-gray-primary focus:outline-none focus:border-gray-400"
             />
           </div>
-          {lineItems && (
-            <BaseTable
-              headers={[
-                "Name",
-                "Quantity",
-                "Donor name",
-                "Pallet",
-                "Box number",
-                "Lot number",
-                "Unit price",
-                "Donor Shipping #",
-                "HfH Shipping #",
-                "Comment",
-                extendTableHeader("Add", "w-12"),
-              ]}
-              rows={lineItems.map((item) => ({
-                cells: [
-                  item.title,
-                  item.quantity,
-                  item.donorName,
-                  item.palletNumber,
-                  item.boxNumber,
-                  item.lotNumber,
-                  item.unitPrice.toString(),
-                  item.donorShippingNumber,
-                  item.hfhShippingNumber,
-                  <div className="flex justify-center" key="itemNotes">
-                    <ChatTeardropText
-                      data-tooltip-id={`comment-tooltip-${item.id}`}
-                      data-tooltip-content={item.notes}
-                      size={30}
-                      color={item.notes ? "black" : "lightgray"}
-                      key="itemNotes"
-                    />
-                    {item.notes && (
-                      <Tooltip
-                        id={`comment-tooltip-${item.id}`}
-                        className="max-w-40"
-                      >
-                        {item.notes}
-                      </Tooltip>
-                    )}
-                  </div>,
-                  <button
-                    className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setIsModalOpen(true);
-                    }}
-                    key="addButton"
-                  >
-                    <Plus className="text-blue-primary" weight="bold" />
-                  </button>,
-                ],
-              }))}
-              headerCellStyles="min-w-32"
-              
-            />
-          )}
+          <AdvancedBaseTable
+            headers={[
+              "Name",
+              "Quantity",
+              "Donor name",
+              "Pallet",
+              "Box number",
+              "Lot number",
+              "Unit price",
+              "Donor Shipping #",
+              "HfH Shipping #",
+              "Comment",
+              extendTableHeader("Add", "w-12"),
+            ]}
+            renderRow={(item) => ({
+              cells: [
+                item.title,
+                item.quantity,
+                item.donorName,
+                item.palletNumber,
+                item.boxNumber,
+                item.lotNumber,
+                item.unitPrice.toString(),
+                item.donorShippingNumber,
+                item.hfhShippingNumber,
+                <div className="flex justify-center" key="itemNotes">
+                  <ChatTeardropText
+                    data-tooltip-id={`comment-tooltip-${item.id}`}
+                    data-tooltip-content={item.notes}
+                    size={30}
+                    color={item.notes ? "black" : "lightgray"}
+                    key="itemNotes"
+                  />
+                  {item.notes && (
+                    <Tooltip
+                      id={`comment-tooltip-${item.id}`}
+                      className="max-w-40"
+                    >
+                      {item.notes}
+                    </Tooltip>
+                  )}
+                </div>,
+                <button
+                  className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setIsModalOpen(true);
+                  }}
+                  key="addButton"
+                >
+                  <Plus className="text-blue-primary" weight="bold" />
+                </button>,
+              ],
+            })}
+            fetchFn={fetchFn}
+            headerCellStyles="min-w-32"
+          />
         </>
       )}
       {isModalOpen && selectedItem && partner?.name && (

@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import { toast } from "react-hot-toast";
-import BaseTable from "./BaseTable";
+import BaseTable from "./baseTable/BaseTable";
 
 interface ShippingStatusTableProps {
   openModal: (
