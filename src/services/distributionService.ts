@@ -15,6 +15,19 @@ export default class DistributionService {
     return db.distribution.findMany();
   }
 
+  static async getDistribution(id: number) {
+    const distribution = await db.distribution.findUnique({
+      where: { id },
+      include: { allocations: true },
+    });
+
+    if (!distribution) {
+      throw new NotFoundError("Distribution not found");
+    }
+
+    return distribution;
+  }
+
   static async getSignedDistributions(
     partnerId?: number
   ): Promise<SignedDistribution[]> {
@@ -192,6 +205,16 @@ export default class DistributionService {
         },
       },
       include: { allocations: true },
+    });
+  }
+
+  static async updateDistribution(
+    distributionId: number,
+    data: Prisma.DistributionUpdateInput
+  ) {
+    return db.distribution.update({
+      where: { id: distributionId },
+      data,
     });
   }
 
