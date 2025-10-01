@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { Item, ShippingStatus } from "@prisma/client";
+import { LineItem, ShippingStatus } from "@prisma/client";
 import {
   ShippingStatusWithItems,
   UpdateShippingStatusData,
@@ -7,7 +7,7 @@ import {
 
 export class ShippingStatusService {
   static async getShippingStatuses(): Promise<ShippingStatusWithItems> {
-    const shippingNumberPairs = await db.item.findMany({
+    const shippingNumberPairs = await db.lineItem.findMany({
       where: {
         donorShippingNumber: { not: null },
         hfhShippingNumber: { not: null },
@@ -15,7 +15,7 @@ export class ShippingStatusService {
       distinct: ["donorShippingNumber", "hfhShippingNumber"],
     });
 
-    const itemMap: Item[][] = [];
+    const itemMap: LineItem[][] = [];
     const statuses: ShippingStatus[] = [];
     let i = 0;
 
@@ -41,7 +41,7 @@ export class ShippingStatusService {
         });
       }
 
-      const items = await db.item.findMany({
+      const items = await db.lineItem.findMany({
         where: {
           donorShippingNumber: donorShippingNumber,
           hfhShippingNumber: hfhShippingNumber,
@@ -60,7 +60,7 @@ export class ShippingStatusService {
   static async getPartnerShippingStatuses(
     partnerId: number
   ): Promise<ShippingStatusWithItems> {
-    const shippingNumberPairs = await db.item.findMany({
+    const shippingNumberPairs = await db.lineItem.findMany({
       where: {
         AND: [
           {
@@ -68,40 +68,16 @@ export class ShippingStatusService {
             hfhShippingNumber: { not: null },
           },
           {
-            OR: [
-              {
-                unallocatedItemRequestAllocations: {
-                  some: {
-                    partnerId,
-                  },
-                },
-              },
-              {
-                unallocatedItemRequestAllocations: {
-                  some: {
-                    unallocatedItemRequest: {
-                      partnerId,
-                    },
-                  },
-                },
-              },
-              {
-                donorOfferItemRequestAllocations: {
-                  some: {
-                    donorOfferItemRequest: {
-                      partnerId,
-                    },
-                  },
-                },
-              },
-            ],
+            allocation: {
+              partnerId,
+            },
           },
         ],
       },
       distinct: ["donorShippingNumber", "hfhShippingNumber"],
     });
 
-    const itemMap: Item[][] = [];
+    const itemMap: LineItem[][] = [];
     const statuses: ShippingStatus[] = [];
     let i = 0;
 
@@ -127,7 +103,7 @@ export class ShippingStatusService {
         });
       }
 
-      const items = await db.item.findMany({
+      const items = await db.lineItem.findMany({
         where: {
           donorShippingNumber: donorShippingNumber,
           hfhShippingNumber: hfhShippingNumber,

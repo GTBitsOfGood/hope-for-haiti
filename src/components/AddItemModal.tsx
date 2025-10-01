@@ -3,7 +3,7 @@ import ModalTextField from "./ModalTextField";
 import ModalFormRow from "./ModalFormRow";
 import ModalLongTextField from "./ModalLongTextField";
 import ModalToggleField from "./ModalToggleField";
-import { ItemFormSchema } from "@/schema/itemForm";
+import { lineItemFormSchema } from "@/schema/itemForm";
 import submitHandler from "@/util/formAction";
 import ModalDateField from "./ModalDateField";
 import toast from "react-hot-toast";
@@ -30,7 +30,7 @@ export default function BulkAddSuccessModal({
     console.log(Object.fromEntries(data)); // Log the form data for
     data.append("datePosted", new Date().toISOString()); // Add datePosted to the form data
 
-    const validatedForm = ItemFormSchema.safeParse(data);
+    const validatedForm = lineItemFormSchema.safeParse(data);
     console.log(validatedForm);
 
     //just logging errors directly from ZOD for now; there are probably more user-friendly ways to do this

@@ -5,20 +5,25 @@ import {
   PartnerSummary,
   PartnerSearchResult,
   PartnerDetails,
-  UnallocatedItemRequestSummary,
-  GetPartnersParams
+  GetPartnersParams,
 } from "@/types/api/partner.types";
 
 export class PartnerService {
-  static canAccessPartnerDetails(userType: UserType, currentUserId: string, targetUserId: string): boolean {
+  static canAccessPartnerDetails(
+    userType: UserType,
+    currentUserId: string,
+    targetUserId: string
+  ): boolean {
     if (userType !== UserType.PARTNER) {
       return true;
     }
-    
+
     return currentUserId === targetUserId;
   }
 
-  static async getPartners(params: GetPartnersParams): Promise<PartnerSummary[] | PartnerSearchResult[]> {
+  static async getPartners(
+    params: GetPartnersParams
+  ): Promise<PartnerSummary[] | PartnerSearchResult[]> {
     if (params.term) {
       const partners = await db.user.findMany({
         where: {
@@ -33,7 +38,7 @@ export class PartnerService {
           name: true,
         },
       });
-      
+
       return partners.map((partner) => ({
         id: partner.id,
         name: partner.name,
@@ -46,7 +51,7 @@ export class PartnerService {
         email: true,
         name: true,
         _count: {
-          select: { unallocatedItemRequests: true },
+          select: { generalItemRequests: true },
         },
       },
     });
@@ -54,11 +59,13 @@ export class PartnerService {
     return partners.map((partner) => ({
       name: partner.name,
       email: partner.email,
-      unallocatedItemRequestCount: partner._count.unallocatedItemRequests,
+      itemRequestCount: partner._count.generalItemRequests,
     }));
   }
 
-  static async getPartnerById(partnerId: number): Promise<PartnerDetails | null> {
+  static async getPartnerById(
+    partnerId: number
+  ): Promise<PartnerDetails | null> {
     const partner = await db.user.findFirst({
       where: {
         id: partnerId,
@@ -69,7 +76,7 @@ export class PartnerService {
         name: true,
         email: true,
         _count: {
-          select: { unallocatedItemRequests: true },
+          select: { generalItemRequests: true },
         },
       },
     });
@@ -82,21 +89,8 @@ export class PartnerService {
       id: partner.id,
       name: partner.name,
       email: partner.email,
-      unallocatedItemRequestCount: partner._count.unallocatedItemRequests,
+      itemRequestCount: partner._count.generalItemRequests,
     };
-  }
-
-  static async getPartnerUnallocatedItemRequests(partnerId: number): Promise<UnallocatedItemRequestSummary[]> {
-    const unallocatedItemRequests = await db.unallocatedItemRequest.findMany({
-      where: { partnerId },
-      select: {
-        id: true,
-        quantity: true,
-        comments: true,
-      },
-    });
-
-    return unallocatedItemRequests;
   }
 
   static async getPartnerEmails(): Promise<string[]> {

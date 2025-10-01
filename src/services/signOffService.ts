@@ -1,46 +1,56 @@
 import { db } from "@/db";
-import { 
-  CreateSignOffData, 
-  SignOffSummary, 
-  SignOffDetails, 
-  DistributionItem,
-} from "@/types/api/signOff.types";
+import { CreateSignOffData, SignOffSummary } from "@/types/api/signOff.types";
+import { NotFoundError } from "@/util/errors";
 
 export class SignOffService {
   static async createSignOff(data: CreateSignOffData) {
-    await db.signOff.create({
+    return db.signOff.create({
       data: {
         staffMemberName: data.staffName,
         partnerName: data.partnerName,
         date: data.date,
         partnerId: data.partnerId,
-        distributions: {
-          createMany: {
-            data: data.distributions.map((dist) => ({
-              partnerId: data.partnerId,
-              ...(dist.allocationType === "unallocated"
-                ? {
-                    unallocatedItemRequestAllocationId: dist.allocationId,
-                  }
-                : {
-                    donorOfferItemRequestAllocationId: dist.allocationId,
-                  }),
-              actualQuantity: dist.actualQuantity,
-            })),
-          },
+        signatureUrl: data.signatureUrl,
+        allocations: {
+          connect: data.allocations.map((id) => ({ id })),
         },
       },
     });
   }
 
-  static async getSignOffsByPartner(partnerId: number): Promise<SignOffSummary[]> {
-    const signOffs = await db.signOff.findMany({
-      where: { partnerId },
+  static async updateSignOff(
+    signOffId: number,
+    data: Partial<CreateSignOffData>
+  ) {
+    return db.signOff.update({
+      where: { id: signOffId },
+      data: {
+        ...data,
+        allocations: data.allocations
+          ? {
+              connect: data.allocations.map((id) => ({ id })),
+            }
+          : undefined,
+      },
       include: {
-        distributions: true,
+        allocations: true,
+      },
+    });
+  }
+
+  static async deleteSignOff(signOffId: number) {
+    await db.signOff.delete({
+      where: { id: signOffId },
+    });
+  }
+
+  static async getAllSignOffs() {
+    const signOffs = await db.signOff.findMany({
+      include: {
+        allocations: true,
         _count: {
           select: {
-            distributions: true,
+            allocations: true,
           },
         },
       },
@@ -48,70 +58,53 @@ export class SignOffService {
 
     return signOffs.map((signOff) => ({
       staffName: signOff.staffMemberName,
-      numberOfItems: signOff._count.distributions,
+      numberOfItems: signOff._count.allocations,
       dateCreated: signOff.createdAt,
       signOffDate: signOff.createdAt,
       status: "-",
     }));
   }
 
-  static async getSignOffById(signOffId: number): Promise<SignOffDetails | null> {
+  static async getSignOffsByPartner(
+    partnerId: number
+  ): Promise<SignOffSummary[]> {
+    const signOffs = await db.signOff.findMany({
+      where: { partnerId },
+      include: {
+        allocations: true,
+        _count: {
+          select: {
+            allocations: true,
+          },
+        },
+      },
+    });
+
+    return signOffs.map((signOff) => ({
+      staffName: signOff.staffMemberName,
+      numberOfItems: signOff._count.allocations,
+      dateCreated: signOff.createdAt,
+      signOffDate: signOff.createdAt,
+      status: "-",
+    }));
+  }
+
+  static async getSignOffById(signOffId: number) {
     const signOff = await db.signOff.findUnique({
       where: { id: signOffId },
-      include: { distributions: true },
+      include: {
+        allocations: {
+          include: {
+            lineItem: true,
+          },
+        },
+      },
     });
 
     if (!signOff) {
-      return null;
+      throw new NotFoundError("Sign-off not found");
     }
 
-    const distributionItems: DistributionItem[] = [];
-    
-    for (const distribution of signOff.distributions) {
-      let item = null;
-      let quantityAllocated = null;
-
-      if (distribution.unallocatedItemRequestAllocationId) {
-        const allocation = await db.unallocatedItemRequestAllocation.findUnique({
-          where: { id: distribution.unallocatedItemRequestAllocationId },
-          include: { unallocatedItem: true },
-        });
-        item = allocation?.unallocatedItem;
-        quantityAllocated = allocation?.quantity;
-
-        if (item && quantityAllocated !== undefined) {
-          distributionItems.push({
-            ...item,
-            quantityAllocated: quantityAllocated,
-            actualQuantity: distribution.actualQuantity,
-          });
-        }
-      }
-
-      if (distribution.donorOfferItemRequestAllocationId) {
-        const allocation = await db.donorOfferItemRequestAllocation.findUnique({
-          where: { id: distribution.donorOfferItemRequestAllocationId },
-          include: { item: true },
-        });
-        item = allocation?.item;
-        quantityAllocated = allocation?.quantity;
-
-        if (item && quantityAllocated !== undefined) {
-          distributionItems.push({
-            ...item,
-            quantityAllocated: quantityAllocated,
-            actualQuantity: distribution.actualQuantity,
-          });
-        }
-      }
-    }
-
-    return {
-      id: signOff.id,
-      date: signOff.date,
-      staffMemberName: signOff.staffMemberName,
-      partnerName: signOff.partnerName,
-      distributions: distributionItems,
-    };
+    return signOff;
   }
 }

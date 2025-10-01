@@ -1,7 +1,11 @@
 import { auth } from "@/auth";
 import { errorResponse } from "@/util/errors";
-import { ItemService } from "@/services/itemService";
-import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
+import { LineItemService } from "@/services/lineItemService";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ArgumentError,
+} from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import UserService from "@/services/userService";
 
@@ -25,7 +29,7 @@ export async function POST(request: NextRequest) {
       throw new ArgumentError("No file provided");
     }
 
-    const result = await ItemService.processBulkUpload(file, preview);
+    const result = await LineItemService.processBulkUpload(file, preview);
 
     if (!result.success) {
       return NextResponse.json({ errors: result.errors }, { status: 400 });

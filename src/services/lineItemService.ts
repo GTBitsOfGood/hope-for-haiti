@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { ItemCategory } from "@prisma/client";
+import { ItemCategory, Prisma } from "@prisma/client";
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -7,7 +7,6 @@ import {
   CreateItemData,
   BulkItemData,
   BulkUploadResult,
-  UnallocatedItemRequestSummary
 } from "@/types/api/item.types";
 
 const requiredKeys = [
@@ -37,7 +36,7 @@ const requiredKeys = [
 const containsRequiredKeys = (fields?: string[]) =>
   fields ? requiredKeys.every((key) => fields.includes(key)) : false;
 
-const SingleItemSchema = z.object({
+export const singleLineItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: z.string(),
   expirationDate: z
@@ -92,46 +91,76 @@ const SingleItemSchema = z.object({
     .transform((val) => val === "true"),
 });
 
-export class ItemService {
-  static async createItem(data: CreateItemData) {
-    const createdItem = await db.item.create({
+export class LineItemService {
+  static async createItem(data: CreateItemData, generalItemId?: number) {
+    const createdItem = await db.lineItem.create({
       data: {
         ...data,
+        ...(generalItemId !== undefined
+          ? { generalItem: { connect: { id: generalItemId } } }
+          : {}),
       },
     });
 
     return createdItem;
   }
 
+  static async updateLineItem(
+    lineItemId: number,
+    data: Partial<CreateItemData>
+  ) {
+    try {
+      const updatedItem = await db.lineItem.update({
+        where: { id: lineItemId },
+        data,
+      });
+
+      return updatedItem;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new Error(`Line item with ID ${lineItemId} does not exist.`);
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async deleteLineItem(lineItemId: number) {
+    try {
+      await db.lineItem.delete({
+        where: { id: lineItemId },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new Error(`Line item with ID ${lineItemId} does not exist.`);
+        }
+      }
+      throw error;
+    }
+  }
+
   static async getAllItems() {
-    const items = await db.item.findMany();
+    const items = await db.lineItem.findMany();
     return items;
   }
 
-  static async getUnallocatedItemRequestsForItem(itemId: number): Promise<UnallocatedItemRequestSummary[]> {
-    const allocations = await db.unallocatedItemRequestAllocation.findMany({
-      where: { itemId },
-      include: {
-        unallocatedItemRequest: {
-          select: {
-            id: true,
-            partnerId: true,
-            quantity: true,
-            comments: true,
-          },
-        },
-      },
+  static async getLineItemsForGeneralItem(generalItemId: number) {
+    return await db.lineItem.findMany({
+      where: { generalItemId },
     });
-
-    return allocations
-      .map(allocation => allocation.unallocatedItemRequest)
-      .filter((request): request is NonNullable<typeof request> => request !== null);
   }
 
-  static async processBulkUpload(file: File, preview: boolean = false): Promise<BulkUploadResult> {
+  static async processBulkUpload(
+    file: File,
+    preview: boolean = false
+  ): Promise<BulkUploadResult> {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
     if (!["csv", "xlsx"].includes(fileExt || "")) {
-      throw new Error(`Error opening ${file.name}: must be a valid CSV or XLSX file`);
+      throw new Error(
+        `Error opening ${file.name}: must be a valid CSV or XLSX file`
+      );
     }
 
     let jsonData: unknown[] = [];
@@ -167,7 +196,7 @@ export class ItemService {
     const validItems: BulkItemData[] = [];
 
     jsonData.forEach((row, index) => {
-      const parsed = SingleItemSchema.safeParse(row);
+      const parsed = singleLineItemSchema.safeParse(row);
       if (!parsed.success) {
         const errorMessages = parsed.error.issues
           .map((issue) => {
@@ -197,7 +226,7 @@ export class ItemService {
       };
     }
 
-    await db.item.createMany({ data: validItems });
+    await db.lineItem.createMany({ data: validItems });
 
     return {
       success: true,
