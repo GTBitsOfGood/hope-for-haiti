@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const updatedAllocation = await AllocationService.updateAllocation(
+    const updatedAllocation = await AllocationService.connectLineItem(
       parsed.data
     );
 

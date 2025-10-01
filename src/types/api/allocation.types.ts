@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface CreateAllocationData extends Partial<ItemSearchParams> {
   partnerId?: number;
   distributionId: number;
@@ -36,3 +38,9 @@ export interface ItemSearchResult {
   palletNumbers: string[];
   boxNumbers: string[];
 }
+
+export const allocationSchema = z.object({
+  partnerId: z.number().int().positive(),
+  lineItemId: z.number().int().positive(),
+  signOffId: z.number().int().positive().optional(),
+});

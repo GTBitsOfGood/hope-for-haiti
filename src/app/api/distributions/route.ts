@@ -9,12 +9,7 @@ import {
   AuthorizationError,
   errorResponse,
 } from "@/util/errors";
-
-const allocationSchema = z.object({
-  partnerId: z.number().int().positive(),
-  lineItemId: z.number().int().positive(),
-  signOffId: z.number().int().positive().optional(),
-});
+import { allocationSchema } from "@/types/api/allocation.types";
 
 const postSchema = z.object({
   partnerId: z.number().int().positive(),

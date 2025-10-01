@@ -76,7 +76,7 @@ export default class AllocationService {
   /**
    * Connects an allocation to a line item
    */
-  static async updateAllocation(data: UpdateAllocationData) {
+  static async connectLineItem(data: UpdateAllocationData) {
     const allocation = await db.allocation.findUnique({
       where: { id: data.allocationId },
     });
