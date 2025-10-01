@@ -2,8 +2,39 @@ import { db } from "@/db";
 import { NotFoundError } from "@/util/errors";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { UpdateGeneralItemRequestData } from "@/types/api/generalItemRequest.types";
+import { Prisma } from "@prisma/client";
 
 export class GeneralItemRequestService {
+  static async getRequestsByGeneralItemId(generalItemId: number) {
+    const requests = await db.generalItemRequest.findMany({
+      where: { generalItemId },
+      orderBy: { priority: "asc" },
+    });
+
+    return requests;
+  }
+
+  static async createRequest(
+    data: Omit<
+      Prisma.GeneralItemRequestCreateInput,
+      "generalItem" | "partner"
+    > & { generalItemId: number; partnerId: number }
+  ) {
+    const newRequest = await db.generalItemRequest.create({
+      data: {
+        generalItem: {
+          connect: { id: data.generalItemId as number },
+        },
+        partner: { connect: { id: data.partnerId as number } },
+        quantity: data.quantity,
+        comments: data.comments,
+        priority: data.priority,
+      },
+    });
+
+    return newRequest;
+  }
+
   static async updateRequest(data: UpdateGeneralItemRequestData) {
     try {
       const updatedRequest = await db.generalItemRequest.update({
