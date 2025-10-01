@@ -12,9 +12,7 @@ import UserService from "@/services/userService";
 import { isPartner } from "@/lib/userUtils";
 
 const createSignOffSchema = z.object({
-  partnerId: z
-    .union([z.string(), z.number()])
-    .transform((val) => (typeof val === "string" ? parseInt(val) : val)),
+  partnerId: z.number().int().positive(),
   staffName: z.string(),
   partnerName: z.string(),
   date: z.string().transform((str) => new Date(str)),

@@ -1,9 +1,6 @@
 import { db } from "@/db";
-import {
-  CreateSignOffData,
-  SignOffSummary,
-  SignOffDetails,
-} from "@/types/api/signOff.types";
+import { CreateSignOffData, SignOffSummary } from "@/types/api/signOff.types";
+import { NotFoundError } from "@/util/errors";
 
 export class SignOffService {
   static async createSignOff(data: CreateSignOffData) {
@@ -18,6 +15,32 @@ export class SignOffService {
           connect: data.allocations.map((id) => ({ id })),
         },
       },
+    });
+  }
+
+  static async updateSignOff(
+    signOffId: number,
+    data: Partial<CreateSignOffData>
+  ) {
+    return db.signOff.update({
+      where: { id: signOffId },
+      data: {
+        ...data,
+        allocations: data.allocations
+          ? {
+              connect: data.allocations.map((id) => ({ id })),
+            }
+          : undefined,
+      },
+      include: {
+        allocations: true,
+      },
+    });
+  }
+
+  static async deleteSignOff(signOffId: number) {
+    await db.signOff.delete({
+      where: { id: signOffId },
     });
   }
 
@@ -66,9 +89,7 @@ export class SignOffService {
     }));
   }
 
-  static async getSignOffById(
-    signOffId: number
-  ): Promise<SignOffDetails | null> {
+  static async getSignOffById(signOffId: number) {
     const signOff = await db.signOff.findUnique({
       where: { id: signOffId },
       include: {
@@ -81,17 +102,9 @@ export class SignOffService {
     });
 
     if (!signOff) {
-      return null;
+      throw new NotFoundError("Sign-off not found");
     }
 
-    return {
-      id: signOff.id,
-      date: signOff.date,
-      staffMemberName: signOff.staffMemberName,
-      partnerName: signOff.partnerName,
-      allocatedItems: signOff.allocations.map(
-        (allocation) => allocation.lineItem
-      ),
-    };
+    return signOff;
   }
 }
