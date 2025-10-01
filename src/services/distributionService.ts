@@ -8,8 +8,13 @@ import {
   CompletedSignOff,
   PartnerAllocationSummary,
 } from "@/types/api/distribution.types";
+import { Prisma } from "@prisma/client";
 
 export default class DistributionService {
+  static async getAllDistributions() {
+    return db.distribution.findMany();
+  }
+
   static async getSignedDistributions(
     partnerId?: number
   ): Promise<SignedDistribution[]> {
@@ -165,6 +170,28 @@ export default class DistributionService {
         allocationsCount: user._count.allocations,
         pendingSignOffCount: signOffsByPartnerId[user.id] || 0,
       };
+    });
+  }
+
+  static async createDistribution(
+    data: Omit<Prisma.DistributionCreateInput, "partner" | "allocations"> & {
+      partnerId: number;
+      allocations?: {
+        lineItemId: number;
+        partnerId: number;
+        signOffId?: number;
+      }[];
+    }
+  ) {
+    return db.distribution.create({
+      data: {
+        ...data,
+        partnerId: data.partnerId,
+        allocations: {
+          create: data.allocations ?? [],
+        },
+      },
+      include: { allocations: true },
     });
   }
 
