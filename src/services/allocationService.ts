@@ -73,6 +73,51 @@ export default class AllocationService {
     }
   }
 
+  static async updateAllocation(
+    id: number,
+    data: {
+      partnerId?: number;
+      lineItemId?: number;
+      signOffId?: number;
+    }
+  ) {
+    try {
+      return await db.allocation.update({
+        where: { id },
+        data: {
+          partnerId: data.partnerId,
+          lineItemId: data.lineItemId,
+          signOffId: data.signOffId,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundError("Allocation not found");
+        }
+        if (error.code === "P2002") {
+          throw new ArgumentError("Item is already allocated.");
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async deleteAllocation(id: number) {
+    try {
+      await db.allocation.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundError("Allocation not found");
+        }
+      }
+      throw error;
+    }
+  }
+
   /**
    * Connects an allocation to a line item
    */
