@@ -1,25 +1,51 @@
 import { auth } from "@/auth";
-import { errorResponse, ok } from "@/util/errors";
+import { errorResponse } from "@/util/errors";
 import { SignOffService } from "@/services/signOffService";
-import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
-import { NextRequest } from "next/server";
+import {
+  AuthenticationError,
+  AuthorizationError,
+  ArgumentError,
+} from "@/util/errors";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import UserService from "@/services/userService";
+import { isPartner } from "@/lib/userUtils";
 
 const createSignOffSchema = z.object({
-  partnerId: z.union([z.string(), z.number()]).transform((val) => 
-    typeof val === 'string' ? parseInt(val) : val
-  ),
+  partnerId: z
+    .union([z.string(), z.number()])
+    .transform((val) => (typeof val === "string" ? parseInt(val) : val)),
   staffName: z.string(),
   partnerName: z.string(),
-  date: z.string(),
-  signatureBlob: z.string(),
-  distributions: z.array(z.object({
-    allocationType: z.enum(["unallocated", "donorOffer"]),
-    allocationId: z.number(),
-    actualQuantity: z.number(),
-  })),
+  date: z.string().transform((str) => new Date(str)),
+  signatureUrl: z.string(),
+  allocations: z.array(z.number()),
 });
+
+export async function GET() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (isPartner(session.user.type)) {
+      const signOffs = await SignOffService.getSignOffsByPartner(
+        parseInt(session.user.id!)
+      );
+      return NextResponse.json(signOffs);
+    }
+
+    if (!UserService.isStaff(session.user.type)) {
+      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    }
+
+    const signOffs = await SignOffService.getAllSignOffs();
+    return NextResponse.json(signOffs);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,19 +58,42 @@ export async function POST(req: NextRequest) {
       throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
-    const reqBody = await req.json();
-    const parsed = createSignOffSchema.safeParse(reqBody);
-    
+    const form = await req.formData();
+    const formObj = {
+      partnerId:
+        form.get("partnerId") != null
+          ? Number(form.get("partnerId"))
+          : undefined,
+      staffName:
+        form.get("staffName") != null
+          ? String(form.get("staffName"))
+          : undefined,
+      partnerName:
+        form.get("partnerName") != null
+          ? String(form.get("partnerName"))
+          : undefined,
+      date: form.get("date") != null ? String(form.get("date")) : undefined,
+      signatureUrl:
+        form.get("signatureUrl") != null
+          ? String(form.get("signatureUrl"))
+          : undefined,
+      allocations:
+        form.getAll("allocation").length > 0
+          ? (form
+              .getAll("allocation")
+              .map((val) =>
+                typeof val === "string" ? parseInt(val) : NaN
+              ) as number[])
+          : [],
+    };
+
+    const parsed = createSignOffSchema.safeParse(formObj);
     if (!parsed.success) {
-      throw new ArgumentError(parsed.error.message);
+      throw new ArgumentError("Invalid form data: " + parsed.error.message);
     }
 
-    await SignOffService.createSignOff({
-      ...parsed.data,
-      date: new Date(parsed.data.date),
-    });
-
-    return ok();
+    const signOff = await SignOffService.createSignOff(parsed.data);
+    return NextResponse.json(signOff, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }

@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const distribution = await DistributionService.createDistribution(
       parsed.data
     );
-    return NextResponse.json(distribution);
+    return NextResponse.json(distribution, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }

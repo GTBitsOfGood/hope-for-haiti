@@ -5,7 +5,7 @@ export interface CreateSignOffData {
   staffName: string;
   partnerName: string;
   date: Date;
-  signatureBlob: string;
+  signatureUrl: string;
   allocations: number[];
 }
 

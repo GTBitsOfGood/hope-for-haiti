@@ -7,17 +7,39 @@ import {
 
 export class SignOffService {
   static async createSignOff(data: CreateSignOffData) {
-    await db.signOff.create({
+    return db.signOff.create({
       data: {
         staffMemberName: data.staffName,
         partnerName: data.partnerName,
         date: data.date,
         partnerId: data.partnerId,
+        signatureUrl: data.signatureUrl,
         allocations: {
           connect: data.allocations.map((id) => ({ id })),
         },
       },
     });
+  }
+
+  static async getAllSignOffs() {
+    const signOffs = await db.signOff.findMany({
+      include: {
+        allocations: true,
+        _count: {
+          select: {
+            allocations: true,
+          },
+        },
+      },
+    });
+
+    return signOffs.map((signOff) => ({
+      staffName: signOff.staffMemberName,
+      numberOfItems: signOff._count.allocations,
+      dateCreated: signOff.createdAt,
+      signOffDate: signOff.createdAt,
+      status: "-",
+    }));
   }
 
   static async getSignOffsByPartner(

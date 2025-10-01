@@ -55,7 +55,7 @@ export async function POST(
       distributionId,
     });
 
-    return NextResponse.json(allocation);
+    return NextResponse.json(allocation, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }
