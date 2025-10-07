@@ -7,7 +7,6 @@ import {
   ok,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { zfd } from "zod-form-data";
 import UserService from "@/services/userService";
 
@@ -16,11 +15,7 @@ const createUserSchema = zfd.formData({
   password: zfd.text(),
 });
 
-const searchParamsSchema = z.object({
-  includeInvites: z.string().optional().nullable().transform(val => val === "true")
-});
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -32,20 +27,7 @@ export async function GET(request: NextRequest) {
       throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
-    const parsed = searchParamsSchema.safeParse({
-      includeInvites: request.nextUrl.searchParams.get("includeInvites")
-    });
-
-    if (!parsed.success) {
-      throw new ArgumentError(parsed.error.message);
-    }
-
     const users = await UserService.getUsers();
-
-    if (parsed.data.includeInvites) {
-      const invites = await UserService.getUserInvites();
-      return NextResponse.json({ users, invites }, { status: 200 });
-    }
 
     return NextResponse.json(users, { status: 200 });
   } catch (error) {

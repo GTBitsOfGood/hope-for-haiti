@@ -13,12 +13,6 @@ export interface CreateUserInviteData {
   origin: string;
 }
 
-export interface UserInviteData {
-  email: string;
-  name: string;
-  expiration: Date;
-}
-
 export interface UpdateUserData {
   userId: number;
   name?: string;

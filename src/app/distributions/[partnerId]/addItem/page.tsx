@@ -2,20 +2,17 @@
 
 import React, { useCallback, useState } from "react";
 import { Item } from "@prisma/client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ChatTeardropText, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
 import AddToDistributionModal from "@/components/AddToDistributionModal";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import AdvancedBaseTable, {
-  extendTableHeader,
-  FilterList,
-} from "@/components/baseTable/AdvancedBaseTable";
+import AdvancedBaseTable from "@/components/baseTable/AdvancedBaseTable";
+import { ColumnDefinition, FilterList } from "@/types/ui/table.types";
 
 interface Partner {
   name: string;
@@ -56,6 +53,70 @@ export default function AddItemToDistributionPage() {
     },
     [apiClient]
   );
+
+  const columns: ColumnDefinition<Item>[] = [
+    {
+      id: "title",
+      header: "Name",
+    },
+    "quantity",
+    {
+      id: "donorName",
+      header: "Donor name",
+    },
+    "palletNumber",
+    "boxNumber",
+    "lotNumber",
+    {
+      id: "unitPrice",
+      header: "Unit price",
+      cell: (item) => item.unitPrice?.toString?.() ?? "",
+    },
+    {
+      id: "donorShippingNumber",
+      header: "Donor Shipping #",
+    },
+    {
+      id: "hfhShippingNumber",
+      header: "HfH Shipping #",
+    },
+    {
+      id: "comment",
+      header: "Comment",
+      cell: (item) => (
+        <div className="flex justify-center">
+          <ChatTeardropText
+            data-tooltip-id={`comment-tooltip-${item.id}`}
+            data-tooltip-content={item.notes || "No notes"}
+            size={30}
+            color={item.notes ? "black" : "lightgray"}
+          />
+          {item.notes && (
+            <Tooltip id={`comment-tooltip-${item.id}`} className="max-w-40">
+              {item.notes}
+            </Tooltip>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "add",
+      header: "Add",
+      headerClassName: "w-12",
+      cellClassName: "w-12",
+      cell: (item) => (
+        <button
+          className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
+          onClick={() => {
+            setSelectedItem(item);
+            setIsModalOpen(true);
+          }}
+        >
+          <Plus className="text-blue-primary" weight="bold" />
+        </button>
+      ),
+    },
+  ];
 
   const handleAddToDistribution = async (
     quantity: number,
@@ -139,66 +200,19 @@ export default function AddItemToDistributionPage() {
             />
           </div>
           <AdvancedBaseTable
-            headers={[
-              "Name",
-              "Quantity",
-              "Donor name",
-              "Pallet",
-              "Box number",
-              "Lot number",
-              "Unit price",
-              "Donor Shipping #",
-              "HfH Shipping #",
-              "Comment",
-              extendTableHeader("Add", "w-12"),
-            ]}
-            renderRow={(item) => ({
-              cells: [
-                item.title,
-                item.quantity,
-                item.donorName,
-                item.palletNumber,
-                item.boxNumber,
-                item.lotNumber,
-                item.unitPrice.toString(),
-                item.donorShippingNumber,
-                item.hfhShippingNumber,
-                <div className="flex justify-center" key="itemNotes">
-                  <ChatTeardropText
-                    data-tooltip-id={`comment-tooltip-${item.id}`}
-                    data-tooltip-content={item.notes}
-                    size={30}
-                    color={item.notes ? "black" : "lightgray"}
-                    key="itemNotes"
-                  />
-                  {item.notes && (
-                    <Tooltip
-                      id={`comment-tooltip-${item.id}`}
-                      className="max-w-40"
-                    >
-                      {item.notes}
-                    </Tooltip>
-                  )}
-                </div>,
-                <button
-                  className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
-                  onClick={() => {
-                    setSelectedItem(item);
-                    setIsModalOpen(true);
-                  }}
-                  key="addButton"
-                >
-                  <Plus className="text-blue-primary" weight="bold" />
-                </button>,
-              ],
-            })}
+            columns={columns}
             fetchFn={fetchFn}
+            rowId="id"
             headerCellStyles="min-w-32"
+            emptyState="No items available"
           />
         </>
       )}
       {isModalOpen && selectedItem && partner?.name && (
         <AddToDistributionModal
+          partnerName={partner.name}
+          maxQuantity={selectedItem.quantity}
+          unitType={selectedItem.unitType || ""}
           onClose={(success) => {
             setIsModalOpen(false);
             setSelectedItem(undefined);
@@ -206,9 +220,6 @@ export default function AddItemToDistributionPage() {
               router.push(`/distributions/${partnerId}`);
             }
           }}
-          partnerName={partner.name}
-          maxQuantity={selectedItem.quantity}
-          unitType={selectedItem.unitType || ""}
           onSubmit={handleAddToDistribution}
         />
       )}

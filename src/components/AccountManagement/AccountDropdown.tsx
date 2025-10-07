@@ -7,7 +7,6 @@ import {
   Eye,
   Trash,
 } from "@phosphor-icons/react";
-import { UserType } from "@prisma/client";
 import { useUser } from "@/components/context/UserContext";
 import { isAdmin } from "@/lib/userUtils";
 
@@ -19,16 +18,15 @@ interface DropdownItem {
 }
 
 interface AccountDropdownProps {
-  isInvite: boolean;
-  userType?: UserType;
-  user?: { enabled?: boolean; expiration?: Date; id?: number };
+  isPending: boolean;
+  user?: { enabled?: boolean; expiration?: Date | string; id?: number };
   onDeleteAccount?: () => void;
   onEditAccount?: () => void;
   onDeactivateAccount?: () => void;
 }
 
 export default function AccountDropdown({
-  isInvite,
+  isPending,
   user,
   onDeleteAccount,
   onEditAccount,
@@ -39,7 +37,7 @@ export default function AccountDropdown({
   const canEdit = currentUser && isAdmin(currentUser.type);
 
   const getDropdownItems = (): DropdownItem[] => {
-    if (isInvite) {
+    if (isPending) {
       return [
         {
           icon: <EnvelopeSimple size={18} />,

@@ -1,6 +1,10 @@
 import { db } from "@/db";
 import { UserType } from "@prisma/client";
-import { ArgumentError, NotFoundError, ConflictError } from "@/util/errors";
+import {
+  ArgumentError,
+  NotFoundError,
+  ConflictError,
+} from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from "uuid";
@@ -11,9 +15,25 @@ import {
   UpdateUserData,
 } from "@/types/api/user.types";
 
+function parsePartnerDetails(raw?: string) {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch {
+    throw new ArgumentError("Invalid partner details payload");
+  }
+}
+
+function inviteExpirationDate() {
+  const expiration = new Date();
+  expiration.setDate(expiration.getDate() + 1);
+  return expiration;
+}
+
 export default class UserService {
   static async getUsers() {
-    const users = await db.user.findMany({
+    return db.user.findMany({
       select: {
         id: true,
         email: true,
@@ -21,9 +41,16 @@ export default class UserService {
         name: true,
         tag: true,
         enabled: true,
+        pending: true,
+        partnerDetails: true,
+        invite: {
+          select: {
+            token: true,
+            expiration: true,
+          },
+        },
       },
     });
-    return users;
   }
 
   static async getUserById(userId: number) {
@@ -36,6 +63,14 @@ export default class UserService {
         name: true,
         tag: true,
         enabled: true,
+        pending: true,
+        partnerDetails: true,
+        invite: {
+          select: {
+            token: true,
+            expiration: true,
+          },
+        },
       },
     });
 
@@ -47,80 +82,133 @@ export default class UserService {
   }
 
   static async getUserByEmail(email: string) {
-    const user = await db.user.findUnique({
+    return db.user.findUnique({
       where: { email },
-      select: {
-        id: true,
-        email: true,
-        type: true,
-        name: true,
-        tag: true,
-        enabled: true,
+      include: {
+        invite: true,
       },
     });
-
-    return user;
   }
 
   static async getUserInviteByToken(token: string) {
     const invite = await db.userInvite.findUnique({
       where: { token },
-      select: { email: true, name: true, expiration: true },
+      include: {
+        user: true,
+      },
     });
 
-    if (!invite || invite.expiration < new Date()) {
+    if (!invite || invite.expiration < new Date() || !invite.user.pending) {
       throw new ArgumentError("Invalid invite token");
     }
 
-    return invite;
-  }
-
-  static async getUserInvites() {
-    const invites = await db.userInvite.findMany({
-      select: {
-        id: true,
-        token: true,
-        email: true,
-        userType: true,
-        name: true,
-        expiration: true,
-      },
-    });
-    return invites;
+    return {
+      email: invite.user.email,
+      name: invite.user.name,
+      expiration: invite.expiration,
+      userId: invite.userId,
+    };
   }
 
   static async createUserInvite(data: CreateUserInviteData) {
-    const token = uuidv4();
-    const expiration = new Date();
-    expiration.setDate(expiration.getDate() + 1);
+    const partnerDetails = parsePartnerDetails(data.partnerDetails);
+    const expiration = inviteExpirationDate();
+    const newToken = uuidv4();
 
     await db.$transaction(async (tx) => {
-      await tx.userInvite.create({
-        data: {
-          email: data.email,
-          name: data.name,
-          token,
-          expiration,
-          userType: data.userType,
-          partnerDetails: JSON.parse(data.partnerDetails || "{}"),
+      const existingUser = await tx.user.findUnique({
+        where: { email: data.email },
+        include: {
+          invite: true,
         },
       });
 
-      await EmailClient.sendUserInvite(data.email, { token, userRole: data.userType });
+      const sendInviteEmail = async (email: string, token: string) =>
+        EmailClient.sendUserInvite(email, {
+          token,
+          userRole: data.userType,
+        });
+
+      if (existingUser) {
+        if (!existingUser.pending) {
+          throw new ConflictError("Email already registered");
+        }
+
+        await tx.user.update({
+          where: { id: existingUser.id },
+          data: {
+            name: data.name,
+            type: data.userType,
+            partnerDetails: partnerDetails ?? undefined,
+          },
+        });
+
+        if (existingUser.invite) {
+          await tx.userInvite.update({
+            where: { userId: existingUser.id },
+            data: {
+              token: newToken,
+              expiration,
+            },
+          });
+        } else {
+          await tx.userInvite.create({
+            data: {
+              userId: existingUser.id,
+              token: newToken,
+              expiration,
+            },
+          });
+        }
+
+        await sendInviteEmail(existingUser.email, newToken);
+        return;
+      }
+
+      const placeholderPassword = await argon2.hash(uuidv4());
+
+      const createdUser = await tx.user.create({
+        data: {
+          email: data.email,
+          name: data.name,
+          type: data.userType,
+          tag: null,
+          enabled: true,
+          pending: true,
+          passwordHash: placeholderPassword,
+          partnerDetails: partnerDetails ?? undefined,
+        },
+      });
+
+      await tx.userInvite.create({
+        data: {
+          userId: createdUser.id,
+          token: newToken,
+          expiration,
+        },
+      });
+
+      await sendInviteEmail(createdUser.email, newToken);
     });
   }
 
   static async deleteUserInvite(token: string) {
-    try {
-      await db.userInvite.delete({ where: { token } });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === "P2025") {
-          throw new NotFoundError("Item not found");
-        }
-      }
-      throw error;
+    const invite = await db.userInvite.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!invite) {
+      throw new NotFoundError("Invite not found");
     }
+
+    await db.$transaction(async (tx) => {
+      await tx.userInvite.delete({ where: { token } });
+
+      if (invite.user.pending) {
+        await tx.user.delete({ where: { id: invite.userId } });
+      }
+    });
   }
 
   static async createUserFromInvite(data: CreateUserFromInviteData) {
@@ -132,38 +220,37 @@ export default class UserService {
       throw new ArgumentError("Password is required");
     }
 
-    const userInvite = await db.userInvite.findUnique({
+    const invite = await db.userInvite.findUnique({
       where: { token: data.inviteToken },
+      include: { user: true },
     });
 
-    if (!userInvite) {
+    if (!invite) {
       throw new NotFoundError("Invite does not exist");
     }
 
-    if (userInvite.expiration < new Date()) {
+    if (invite.expiration < new Date()) {
       throw new ArgumentError("Invite has expired");
+    }
+
+    if (!invite.user.pending) {
+      throw new ConflictError("Invite already used");
     }
 
     const passwordHash = await argon2.hash(data.password);
 
-    try {
-      await db.user.create({
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: invite.userId },
         data: {
-          name: userInvite.name,
-          email: userInvite.email,
           passwordHash,
-          type: userInvite.userType,
+          pending: false,
           enabled: true,
         },
       });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === "P2002") {
-          throw new ConflictError("User already exists");
-        }
-      }
-      throw error;
-    }
+
+      await tx.userInvite.delete({ where: { token: invite.token } });
+    });
   }
 
   static async updateUser(data: UpdateUserData) {
@@ -210,6 +297,24 @@ export default class UserService {
       }
       throw error;
     }
+  }
+
+  static getPendingUsers() {
+    return db.user.findMany({
+      where: { pending: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        type: true,
+        invite: {
+          select: {
+            token: true,
+            expiration: true,
+          },
+        },
+      },
+    });
   }
 
   static async getDistinctUserTags(): Promise<string[]> {

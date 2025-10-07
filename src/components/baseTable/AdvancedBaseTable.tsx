@@ -1,44 +1,393 @@
-import { formatTableValue } from "@/utils/format";
 import { Plus } from "@phosphor-icons/react";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  ForwardedRef,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import { CgChevronLeft, CgChevronRight, CgSpinner } from "react-icons/cg";
 import TableFilterMenu from "./TableFilterMenu";
 
-interface TableRow {
-  cells: React.ReactNode[];
-  onClick?: () => void;
-  className?: string;
-}
+import {
+  AdvancedBaseTableHandle,
+  ColumnDefinition,
+  FilterList,
+  FilterableColumnMeta,
+  RowIdAccessor,
+  TableQuery,
+} from "@/types/ui/table.types";
+export type {
+  AdvancedBaseTableHandle,
+  ColumnDefinition,
+  FilterValue,
+  FilterList,
+  FilterableColumnMeta,
+  RowIdAccessor,
+  TableQuery,
+} from "@/types/ui/table.types";
+import {
+  collectEnumOptions,
+  getDisplayContent,
+  humanizeKey,
+  inferFilterTypeFromSample,
+  normalizeColumns,
+} from "./TableUtils";
 
-type TableQuery<T> = {
-  data: T[];
-  total: number;
-};
-
-export type FilterValue =
-  | { type: "string"; value: string }
-  | { type: "number"; gte: number; lte?: number }
-  | { type: "date"; gte: string; lte?: string } // ISO strings
-  | { type: "enum"; values: string[] };
-
-interface BaseTableProps<T> {
-  headers: React.ReactNode[];
-  renderRow: (item: T, index: number) => TableRow;
+interface AdvancedBaseTableProps<T extends object> {
+  columns: ColumnDefinition<T>[];
   fetchFn: (
     pageSize: number,
     page: number,
-    filters: Partial<Record<keyof T, FilterValue>>
+    filters: FilterList<T>
   ) => Promise<TableQuery<T>>;
+  rowId: RowIdAccessor<T>;
+  pageSize?: number;
   headerClassName?: string;
   headerCellStyles?: string;
   rowCellStyles?: string;
-  pageSize?: number;
-  reloadKey?: number;
-  filterLabels: string[];
-  filterableCols?: (keyof T)[];
+  onRowClick?: (item: T) => void;
+  rowClassName?: (item: T, index: number) => string | undefined;
+  emptyState?: React.ReactNode;
 }
 
-export type FilterList<T> = Partial<Record<keyof T, FilterValue>>;
+function AdvancedBaseTableInner<T extends object>(
+  {
+    columns,
+    fetchFn,
+    rowId,
+    pageSize = 20,
+    headerClassName = "bg-gray-primary/5 text-gray-primary/70 border-b-2 border-gray-primary/10",
+    headerCellStyles,
+    rowCellStyles,
+    onRowClick,
+    rowClassName,
+    emptyState,
+  }: AdvancedBaseTableProps<T>,
+  ref: ForwardedRef<AdvancedBaseTableHandle<T>>
+) {
+  const normalizedColumns = useMemo(() => normalizeColumns(columns), [columns]);
+  const [items, setItems] = useState<T[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [filters, setFilters] = useState<FilterList<T>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const resolveRowId = useMemo(() => {
+    if (typeof rowId === "function") {
+      return rowId;
+    }
+    return (item: T) => (item as Record<string, unknown>)[rowId as string] as string | number;
+  }, [rowId]);
+
+  const filterableColumns = useMemo(() => {
+    return normalizedColumns
+      .map<FilterableColumnMeta<T> | null>((column) => {
+        if (!column.accessor) {
+          return null;
+        }
+        const key = column.accessor;
+        const values = items.map((item) => (item as Record<string, unknown>)[key as string]);
+        const type = inferFilterTypeFromSample(values);
+        if (!type) {
+          return null;
+        }
+
+        const headerLabel =
+          typeof column.header === "string"
+            ? column.header
+            : humanizeKey(String(key));
+
+        return {
+          accessor: key,
+          label: headerLabel,
+          type,
+          options: type === "enum" ? collectEnumOptions(values) : undefined,
+        };
+      })
+      .filter(Boolean) as FilterableColumnMeta<T>[];
+  }, [items, normalizedColumns]);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetchFn(pageSize, page, filters);
+      setItems(response.data);
+      setTotal(response.total);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load table data";
+      setItems([]);
+      setTotal(0);
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchFn, filters, page, pageSize]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData, reloadToken]);
+
+  const triggerReload = useCallback(() => {
+    setReloadToken((token) => token + 1);
+  }, []);
+
+  const goToPreviousPage = useCallback(() => {
+    setPage((current) => Math.max(current - 1, 1));
+  }, []);
+
+  const goToNextPage = useCallback(() => {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    setPage((current) => Math.min(current + 1, totalPages));
+  }, [pageSize, total]);
+
+  const applyFilters = useCallback((nextFilters: FilterList<T>) => {
+    setFilters(nextFilters);
+    setPage(1);
+  }, []);
+
+  const reload = useCallback(() => {
+    triggerReload();
+  }, [triggerReload]);
+
+  const setItemsExternally = useCallback(
+    (value: T[] | ((items: T[]) => T[])) => {
+      setItems((prev) => {
+        if (typeof value === "function") {
+          return (value as (items: T[]) => T[])(prev);
+        }
+        return value;
+      });
+    },
+    []
+  );
+
+  const upsertItem = useCallback(
+    (item: T) => {
+      setItems((prev) => {
+        const id = resolveRowId(item);
+        const index = prev.findIndex((current) => resolveRowId(current) === id);
+        if (index === -1) {
+          setTotal((prevTotal) => prevTotal + 1);
+          if (prev.length >= pageSize) {
+            triggerReload();
+            return prev;
+          }
+          return [...prev, item];
+        }
+        const next = [...prev];
+        next[index] = item;
+        return next;
+      });
+    },
+    [pageSize, resolveRowId, triggerReload]
+  );
+
+  const removeItemById = useCallback(
+    (id: string | number) => {
+      setItems((prev) => {
+        const next = prev.filter((row) => resolveRowId(row) !== id);
+        if (next.length !== prev.length) {
+          setTotal((prevTotal) => Math.max(prevTotal - 1, 0));
+          if (next.length === 0 && page > 1) {
+            setPage((current) => Math.max(current - 1, 1));
+            triggerReload();
+          }
+        }
+        return next;
+      });
+    },
+    [page, resolveRowId, triggerReload]
+  );
+
+  const updateItemById = useCallback(
+    (
+      id: string | number,
+      updater: Partial<T> | ((current: T) => Partial<T> | T | undefined)
+    ) => {
+      setItems((prev) => {
+        const index = prev.findIndex((row) => resolveRowId(row) === id);
+        if (index === -1) {
+          return prev;
+        }
+        const next = [...prev];
+        const currentItem = next[index];
+
+        const resolvedUpdate =
+          typeof updater === "function"
+            ? updater(currentItem)
+            : updater;
+
+        if (resolvedUpdate === undefined) {
+          return prev;
+        }
+
+        const mergedValue = {
+          ...currentItem,
+          ...(resolvedUpdate as Partial<T>),
+        } as T;
+
+        next[index] = mergedValue;
+        return next;
+      });
+    },
+    [resolveRowId]
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      reload,
+      setItems: setItemsExternally,
+      upsertItem,
+      removeItemById,
+      updateItemById,
+    }),
+    [reload, removeItemById, setItemsExternally, upsertItem, updateItemById]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const canGoPrevious = page > 1;
+  const canGoNext = page < totalPages;
+
+  const showEmptyState = !isLoading && !items.length && !error;
+
+  return (
+    <div>
+      {isFilterMenuOpen && filterableColumns.length > 0 && (
+        <TableFilterMenu
+          columns={filterableColumns}
+          filters={filters}
+          onFiltersChange={(next) => {
+            applyFilters(next);
+            setIsFilterMenuOpen(false);
+          }}
+          onClose={() => setIsFilterMenuOpen(false)}
+        />
+      )}
+      <div className="flex justify-end my-2">
+        {filterableColumns.length > 0 && (
+          <button
+            onClick={() => setIsFilterMenuOpen(true)}
+            className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition"
+          >
+            <Plus size={18} /> Filter
+          </button>
+        )}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="mt-4 min-w-full">
+          <thead>
+            <tr
+              className={`text-left font-bold ${
+                headerClassName ? headerClassName : ""
+              }`}
+            >
+              {normalizedColumns.map((column) => (
+                <th
+                  key={column.id}
+                  className={`px-4 py-4 first:rounded-tl-lg last:rounded-tr-lg ${
+                    headerCellStyles ? headerCellStyles : ""
+                  } ${column.headerClassName ? column.headerClassName : ""}`}
+                >
+                  {column.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan={normalizedColumns.length} className="py-10">
+                  <div className="flex justify-center">
+                    <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td
+                  colSpan={normalizedColumns.length}
+                  className="py-6 text-center text-sm text-red-600"
+                >
+                  {error}
+                </td>
+              </tr>
+            ) : showEmptyState ? (
+              <tr>
+                <td
+                  colSpan={normalizedColumns.length}
+                  className="py-6 text-center text-gray-primary/70"
+                >
+                  {emptyState ?? "No results found."}
+                </td>
+              </tr>
+            ) : (
+              items.map((item, rowIndex) => (
+                <tr
+                  key={String(resolveRowId(item))}
+                  data-odd={rowIndex % 2 !== 0}
+                  className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
+                    onRowClick ? "cursor-pointer" : ""
+                  } ${rowClassName ? rowClassName(item, rowIndex) ?? "" : ""}`}
+                  onClick={() => onRowClick?.(item)}
+                >
+                  {normalizedColumns.map((column) => {
+                    const rawContent = column.render(item, rowIndex);
+                    return (
+                      <td
+                        key={column.id}
+                        className={`px-4 py-4 ${
+                          rowCellStyles ? rowCellStyles : ""
+                        } ${column.cellClassName ? column.cellClassName : ""}`}
+                      >
+                        {getDisplayContent(rawContent)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-2 flex justify-end items-center text-gray-primary">
+        <CgChevronLeft
+          onClick={canGoPrevious ? goToPreviousPage : undefined}
+          className={`inline-block w-6 h-6 mr-2 ${
+            canGoPrevious ? "cursor-pointer" : "opacity-30"
+          }`}
+        />
+        <span>
+          Page {Math.min(page, totalPages)} of {totalPages}
+        </span>
+        <CgChevronRight
+          onClick={canGoNext ? goToNextPage : undefined}
+          className={`inline-block w-6 h-6 ml-2 ${
+            canGoNext ? "cursor-pointer" : "opacity-30"
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+
+const AdvancedBaseTable = forwardRef(AdvancedBaseTableInner) as <
+  T extends object
+>(
+  props: AdvancedBaseTableProps<T> & {
+    ref?: React.ForwardedRef<AdvancedBaseTableHandle<T>>;
+  }
+) => ReturnType<typeof AdvancedBaseTableInner>;
+
+export default AdvancedBaseTable;
 
 export function extendTableHeader(header: string, className: string) {
   return (
@@ -67,145 +416,14 @@ export function renderHeaders(
     typeof header === "string" ? (
       <th
         key={header}
-        className={`px-4 py-4 first:rounded-tl-lg last:rounded-tr-lg ${headerCellStyles || ""}`}
+        className={`px-4 py-4 first:rounded-tl-lg last:rounded-tr-lg ${
+          headerCellStyles || ""
+        }`}
       >
         {header}
       </th>
     ) : (
       header
     )
-  );
-}
-
-export default function AdvancedBaseTable<T extends object>({
-  headers,
-  renderRow,
-  fetchFn,
-  headerClassName = "bg-gray-primary/5 text-gray-primary/70 border-b-2 border-gray-primary/10",
-  pageSize = 20,
-  headerCellStyles,
-  rowCellStyles,
-  reloadKey = 0,
-  filterLabels = [],
-  filterableCols = [],
-}: BaseTableProps<T>) {
-  const [items, setItems] = useState<T[]>([]);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  console.log(total);
-  const [filters, setFilters] = useState<FilterList<T>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-
-  const fetch = useCallback(() => {
-    console.log(filters);
-    return fetchFn(pageSize, page, filters);
-  }, [filters, page, pageSize, fetchFn]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      const res = await fetch();
-      setItems(res.data);
-      setTotal(res.total);
-      setIsLoading(false);
-    };
-    loadData();
-  }, [fetch, reloadKey]);
-  const rows = useMemo(
-    () => items.map((item, index) => renderRow(item, index)),
-    [items, renderRow]
-  );
-  const paginationStart = (page - 1) * pageSize;
-  const paginationEnd = Math.min(paginationStart + pageSize, rows.length);
-  const decrementPage = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  };
-  const incrementPage = () => {
-    if (paginationEnd < rows.length) {
-      setPage(page + 1);
-    }
-  };
-
-  const openFilterMenu = () => {
-    setIsFilterMenuOpen(true);
-  };
-  const closeFilterMenu = () => {
-    setIsFilterMenuOpen(false);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center mt-8">
-        <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {isFilterMenuOpen && (
-        <TableFilterMenu
-          labels={filterLabels}
-          data={items}
-          close={closeFilterMenu}
-          setFilters={setFilters}
-          filters={filters}
-          filterableCols={filterableCols}
-        />
-      )}
-      <div className="flex justify-end my-2">
-        {filterableCols.length > 0 && items.length > 0 && (
-          <button
-            onClick={openFilterMenu}
-            className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition"
-          >
-            <Plus size={18} /> Filter
-          </button>
-        )}
-      </div>
-      <div className="overflow-x-auto">
-        <table className="mt-4 min-w-full">
-          <thead>
-            <tr
-              className={`text-left font-bold ${headerClassName ? headerClassName : ""}`}
-            >
-              {renderHeaders(headers, headerCellStyles)}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.slice(paginationStart, paginationEnd).map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                data-odd={rowIndex % 2 !== 0}
-                className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${row.onClick ? "cursor-pointer" : ""} ${row.className || ""}`}
-                onClick={row.onClick}
-              >
-                {row.cells.flat().map((cell, cellIndex) => (
-                  <td key={cellIndex} className={`px-4 py-4 ${rowCellStyles}`}>
-                    {typeof cell == "string" ? formatTableValue(cell) : cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-2 flex justify-end items-center text-gray-primary">
-        <CgChevronLeft
-          onClick={decrementPage}
-          className="inline-block w-6 h-6 mr-2 cursor-pointer"
-        />
-        <span>
-          Page {page} of {Math.ceil(rows.length / pageSize)}
-        </span>
-        <CgChevronRight
-          onClick={incrementPage}
-          className="inline-block w-6 h-6 ml-2 cursor-pointer"
-        />
-      </div>
-    </div>
   );
 }

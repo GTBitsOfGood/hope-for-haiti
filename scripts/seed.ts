@@ -401,13 +401,22 @@ async function run() {
       })),
     });
 
-    await tx.userInvite.create({
+    const pendingAdmin = await tx.user.create({
       data: {
         email: "new-admin@test.com",
-        expiration: new Date("July 24, 3000"),
+        passwordHash: pwHash,
+        type: UserType.ADMIN,
         name: "New Admin",
+        enabled: true,
+        pending: true,
+      },
+    });
+
+    await tx.userInvite.create({
+      data: {
+        userId: pendingAdmin.id,
+        expiration: new Date("July 24, 3000"),
         token: "1234",
-        userType: UserType.ADMIN,
       },
     });
 

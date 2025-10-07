@@ -1,5 +1,5 @@
 import SendGrid from "@sendgrid/mail";
-import { render } from "@react-email/render";
+import { render } from "@react-email/components";
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { exec } from "child_process";
