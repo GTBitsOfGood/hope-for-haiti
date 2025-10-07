@@ -7,139 +7,140 @@ export type DescribeItemInput = {
   unitType: string;
 };
 
+type BilingualDescription = {
+  haitian: string;
+  english: string;
+};
+
 export class DescriptionService {
-  static makeBaseId(item: DescribeItemInput) {
+  static makeCacheId(item: DescribeItemInput) {
     return `${item.title} | ${item.type} | ${item.unitType}`;
   }
 
-  static makeCacheId(item: DescribeItemInput, language?: string) {
-    const base = DescriptionService.makeBaseId(item);
-    return language && language.length > 0 ? `${base} | lang:${language}` : base;
+  static async getOrGenerateDescriptions(items: DescribeItemInput[]): Promise<string[]> {
+    if (items.length === 0) return [];
+
+    const ids = items.map(DescriptionService.makeCacheId);
+    const existing = await db.descriptionLookup.findMany({
+      where: { id: { in: ids } },
+    });
+    const existingMap = new Map(existing.map((entry: { id: string; description: string }) => [entry.id, entry.description]));
+
+    const missing: { id: string; item: DescribeItemInput }[] = [];
+    ids.forEach((id, index) => {
+      if (!existingMap.has(id)) missing.push({ id, item: items[index] });
+    });
+
+    const generated = await DescriptionService.generateDescriptions(missing.map((entry) => entry.item));
+    const generatedMap = new Map<string, string>();
+    missing.forEach((entry, index) => {
+      const combined = DescriptionService.combineDescriptions(generated[index] ?? DescriptionService.defaultDescription(entry.item));
+      generatedMap.set(entry.id, combined);
+    });
+
+    if (generatedMap.size > 0) {
+      await Promise.all(
+        Array.from(generatedMap.entries()).map(([id, description]) =>
+          db.descriptionLookup.upsert({
+            where: { id },
+            update: { description },
+            create: { id, description },
+          })
+        )
+      );
+    }
+
+    const finalMap = new Map([...existingMap, ...generatedMap]) as Map<string, string>;
+    return ids.map((id, index) => finalMap.get(id) || DescriptionService.combineDescriptions(DescriptionService.defaultDescription(items[index])));
   }
 
-  static async getOrGenerateDescriptions(items: DescribeItemInput[], language?: string): Promise<string[]> {
-    // De-duplicate identical requests within the batch
-    const baseIds = items.map(DescriptionService.makeBaseId);
-  const targetIds = items.map((it) => DescriptionService.makeCacheId(it, language));
-    const idsToFetch = new Set<string>();
-    // Always fetch the target ids; if language provided, also fetch base ids to allow fallback
-    targetIds.forEach((id) => idsToFetch.add(id));
-    if (language && language.length > 0) baseIds.forEach((id) => idsToFetch.add(id));
-    const uniqueIdsToFetch = Array.from(idsToFetch);
-
-    // Fetch existing descriptions
-    const existing = await db.descriptionLookup.findMany({
-      where: { id: { in: uniqueIdsToFetch } },
-    });
-    const existingMap = new Map(existing.map((e) => [e.id, e.description] as const));
-
-    // Determine which need generation
-    const toGenerate: { id: string; item: DescribeItemInput }[] = [];
-    targetIds.forEach((tid, index) => {
-      if (!existingMap.has(tid)) {
-        // If language provided and base exists, we can use base without generating
-        const baseId = baseIds[index];
-        const hasBase = existingMap.has(baseId);
-        if (!hasBase) {
-          toGenerate.push({ id: tid, item: items[index] });
-        }
-      }
-    });
-
-    // If no LLM needed, return in original order
-    if (toGenerate.length === 0) {
-      return targetIds.map((tid, idx) => existingMap.get(tid) || existingMap.get(baseIds[idx]) || "");
-    }
+  private static async generateDescriptions(items: DescribeItemInput[]): Promise<BilingualDescription[]> {
+    if (items.length === 0) return [];
 
     const { client } = getOpenAIClient();
+    if (!client) return items.map(DescriptionService.defaultDescription);
 
-    // If Azure is not configured, fall back to a simple deterministic template
-    const generatedMap = new Map<string, string>();
-    if (!client) {
-      // No hardcoded language mapping; if base exists, prefer it. Otherwise, use a neutral template in English.
-      for (const { id, item } of toGenerate) {
-        const baseId = DescriptionService.makeBaseId(item);
-        const base = existingMap.get(baseId);
-        const desc = base ?? `"${item.title}" is a ${item.type.toLowerCase()} provided in ${item.unitType.toLowerCase()} units. It is intended for general use and distribution.`;
-        generatedMap.set(id, desc);
-      }
-    } else {
-      // Batch prompt engineering: generate concise, safe descriptions for multiple items at once
-      const system = `You are a helpful assistant that writes neutral product descriptions.
-- Keep each description to 1-2 short sentences.
-- Avoid clinical claims, dosing, or medical advice.
-- Use plain language and mention the item's purpose at a high level.
-- If a field is generic, keep wording generic.
-- Do not include the name of the medication in the description`;
+    const system = `You write short, neutral product descriptions.
+- Produce one Haitian Creole sentence and one English sentence for each item.
+- Avoid medical claims, dosages, or promises of outcomes.
+- Keep language simple and suitable for a broad audience.`;
 
-      const userLines = toGenerate
-        .map(({ item }, idx) => `${idx + 1}. title="${item.title}", type="${item.type}", unitType="${item.unitType}"`)
-        .join("\n");
-      const languageLine = language && language.length > 0 ? `Respond in language: ${language}.` : "";
-      const user = `Write basic descriptions for these items, one per line and in order. ${languageLine} Return JSON only that matches the provided schema.\n${userLines}`;
+    const userLines = items
+      .map((item, index) => `${index + 1}. title="${item.title}", type="${item.type}", unitType="${item.unitType}"`)
+      .join("\n");
+    const user = `Return a JSON object with an \'items\' array. Each element must include \'haitian\' and \'english\' string fields that describe the matching item. Haitian Creole should be natural and come from the Haitian perspective; English should be clear and simple.\n${userLines}`;
 
-      const response = await client.chat.completions.create({
-        // For Azure OpenAI with OpenAI SDK: pass the deployment name to `model`
-        model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "descriptions_schema",
-            schema: {
-              type: "object",
-              properties: {
+    const response = await client.chat.completions.create({
+      model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "bilingual_descriptions",
+          schema: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
                 items: {
-                  type: "array",
-                  items: { type: "string" },
+                  type: "object",
+                  properties: {
+                    haitian: { type: "string" },
+                    english: { type: "string" },
+                  },
+                  required: ["haitian", "english"],
+                  additionalProperties: false,
                 },
               },
-              required: ["items"],
-              additionalProperties: false,
             },
-            strict: true,
+            required: ["items"],
+            additionalProperties: false,
           },
+          strict: true,
         },
-      });
+      },
+    });
 
-      const content = response.choices?.[0]?.message?.content ?? "";
-      let arr: string[] = [];
-      try {
-        const parsed = JSON.parse(content);
-        if (Array.isArray(parsed?.items)) {
-          arr = parsed.items as string[];
-        }
-      } catch {
-
+    const content = response.choices?.[0]?.message?.content ?? "";
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed?.items)) {
+        return parsed.items.map((entry: BilingualDescription, index: number) =>
+          DescriptionService.normalizeDescription(entry, items[index])
+        );
       }
-
-      if (arr.length !== toGenerate.length) {
-        while (arr.length < toGenerate.length) arr.push("");
-        arr = arr.slice(0, toGenerate.length);
-      }
-
-      toGenerate.forEach((entry, idx) => {
-        const raw = (arr[idx] ?? "").toString().trim();
-        const safe = raw.length > 0 ? raw : `"${entry.item.title}" is a ${entry.item.type.toLowerCase()} provided in ${entry.item.unitType.toLowerCase()} units.`;
-        generatedMap.set(entry.id, safe);
-      });
+    } catch {
+      // Fall through to deterministic fallback below.
     }
 
-    // Persist newly generated ones
-    const writes = Array.from(generatedMap.entries()).map(([id, description]) =>
-      db.descriptionLookup.upsert({
-        where: { id },
-        update: { description },
-        create: { id, description },
-      })
-    );
-    if (writes.length) await Promise.all(writes);
+    return items.map(DescriptionService.defaultDescription);
+  }
 
-    // Merge existing + newly generated, return in original order
-    const finalMap = new Map<string, string>([...existingMap, ...generatedMap]);
-    return targetIds.map((tid, idx) => finalMap.get(tid) || finalMap.get(baseIds[idx]) || "");
+  private static normalizeDescription(value: Partial<BilingualDescription> | undefined, item: DescribeItemInput): BilingualDescription {
+    const fallback = DescriptionService.defaultDescription(item);
+    const haitian = DescriptionService.cleanText(value?.haitian) || fallback.haitian;
+    const english = DescriptionService.cleanText(value?.english) || fallback.english;
+    return { haitian, english };
+  }
+
+  private static defaultDescription(item: DescribeItemInput): BilingualDescription {
+    const lowerType = item.type.toLowerCase();
+    const lowerUnit = item.unitType.toLowerCase();
+    const english = `"${item.title}" is a ${lowerType} offered in ${lowerUnit} units.`;
+    const haitian = `"${item.title}" se yon ${lowerType} ki disponib nan inite ${lowerUnit}.`;
+    return { haitian, english };
+  }
+
+  private static combineDescriptions(value: BilingualDescription): string {
+    const haitian = DescriptionService.cleanText(value.haitian);
+    const english = DescriptionService.cleanText(value.english);
+    return `${haitian} / ${english}`;
+  }
+
+  private static cleanText(value: string | undefined): string {
+    return (value ?? "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
   }
 }
