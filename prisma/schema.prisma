@@ -297,3 +297,9 @@ model Wishlist {
   partnerId Int
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
+
+model DescriptionLookup {
+  // Composite identity constructed as `${title} | ${type} | ${unitType}`
+  id          String @id
+  description String
+}
