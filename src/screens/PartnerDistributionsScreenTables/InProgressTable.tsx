@@ -4,7 +4,7 @@ import React from "react";
 import ShipmentStatusLabel from "./ShipmentStatusLabel";
 import { format } from "date-fns";
 import { AllocatedItem } from "@/types/api/distribution.types";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 
 interface InProgressTableProps {
   items: AllocatedItem[];
@@ -39,7 +39,6 @@ export default function InProgressTable({ items }: InProgressTableProps) {
         ],
       }))}
       headerCellStyles="min-w-fit"
-      
     />
   );
 }

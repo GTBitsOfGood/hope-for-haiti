@@ -1,6 +1,6 @@
 import { DistributionRecordWithActualQuantity } from "@/types";
 import React from "react";
-import BaseTable from "../BaseTable";
+import BaseTable from "../baseTable/BaseTable";
 
 export default function FinalSignOffTable({
   distributions,

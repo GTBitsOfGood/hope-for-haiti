@@ -1,119 +1,63 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { MagnifyingGlass, Plus, EyeSlash, Trash, Eye } from "@phosphor-icons/react";
-import { CgSpinner } from "react-icons/cg";
-import { User, UserType, UserInvite } from "@prisma/client";
+import { useState, useCallback, useRef } from "react";
+import { Plus, EyeSlash, Trash, Eye } from "@phosphor-icons/react";
+import { UserType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
 import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
 import EditModal from "@/components/AccountManagement/EditModal";
-import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import { isStaff, isPartner, isAdmin, formatUserType } from "@/lib/userUtils";
-import { useUser } from "@/components/context/UserContext";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import { isStaff, formatUserType } from "@/lib/userUtils";
 import AccountDropdown from "@/components/AccountManagement/AccountDropdown";
 import AccountStatusTag from "@/components/tags/AccountStatusTag";
+import AdvancedBaseTable from "@/components/baseTable/AdvancedBaseTable";
+import {
+  AdvancedBaseTableHandle,
+  ColumnDefinition,
+  FilterList,
+} from "@/types/ui/table.types";
 
-type UserOrInvite =
-  | (User & { isInvite?: false })
-  | (UserInvite & { isInvite: true, tag?: string });
-
-type UsersWithInvitesResponse = {
-  users: User[];
-  invites: UserInvite[];
-};
-
-const EMPTY_USERS: User[] = [];
-const EMPTY_INVITES: UserInvite[] = [];
-
-enum UserFilterKey {
-  ALL = "All",
-  INVITES = "Invites",
-  EXPIRED = "Expired",
-  DEACTIVATED = "Deactivated",
-  STAFF = "Hope for Haiti Staff",
-  PARTNERS = "Partners",
+interface AccountUserResponse {
+  id: number;
+  email: string;
+  type: UserType;
+  name: string;
+  tag: string | null;
+  enabled: boolean;
+  pending: boolean;
+  invite?: {
+    token: string;
+    expiration: string;
+  } | null;
 }
 
-const filterMap: Record<UserFilterKey, (item: UserOrInvite) => boolean> = {
-  [UserFilterKey.ALL]: () => true,
-  [UserFilterKey.INVITES]: (item) =>
-    item.isInvite === true &&
-    new Date() < new Date((item as UserInvite).expiration),
-  [UserFilterKey.EXPIRED]: (item) =>
-    item.isInvite === true &&
-    new Date() >= new Date((item as UserInvite).expiration),
-  [UserFilterKey.DEACTIVATED]: (item) =>
-    !item.isInvite && !(item as User).enabled,
-  [UserFilterKey.STAFF]: (item) =>
-    !item.isInvite && (item as User).enabled && isStaff((item as User).type),
-  [UserFilterKey.PARTNERS]: (item) =>
-    !item.isInvite && (item as User).enabled && isPartner((item as User).type),
-};
+type AccountRow = AccountUserResponse;
+
+function getStatusLabel(user: AccountUserResponse) {
+  if (user.pending) {
+    const expiration = user.invite?.expiration
+      ? new Date(user.invite.expiration)
+      : null;
+    if (expiration && expiration < new Date()) {
+      return "Expired";
+    }
+    return "Pending invite";
+  }
+
+  return user.enabled === false ? "Deactivated" : "Activated";
+}
 
 export default function AccountManagementPage() {
+  const tableRef = useRef<AdvancedBaseTableHandle<AccountRow>>(null);
   const { apiClient } = useApiClient();
-  const { user: currentUser } = useUser();
 
-  const {
-    data: usersData,
-    isLoading,
-    refetch: refetchData,
-  } = useFetch<UsersWithInvitesResponse>("/api/users?includeInvites=true", {
-    cache: "no-store",
-  });
-
-  const users = usersData?.users ?? EMPTY_USERS;
-  const invites = usersData?.invites ?? EMPTY_INVITES;
-
-  const [filteredItems, setFilteredItems] = useState<UserOrInvite[]>([]);
-  const [activeTab, setActiveTab] = useState<string>("All");
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeactivateModalOpen, setDeactivateModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserOrInvite | null>(null);
-
-  const applyFilters = useCallback((tabFilter: UserFilterKey, search: string) => {
-    const allItems: UserOrInvite[] = [
-      ...(invites || []).map((invite) => ({
-        ...invite,
-        isInvite: true as const,
-      })),
-      ...(users || []).map((user) => ({ ...user, isInvite: false as const })),
-    ];
-
-    let filtered = allItems.filter(filterMap[tabFilter]);
-
-    if (search.trim()) {
-      filtered = filtered.filter(
-        (item) =>
-          item.name.toLowerCase().includes(search.toLowerCase()) ||
-          item.email.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    setFilteredItems(filtered);
-  }, [usersData]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    applyFilters(activeTab as UserFilterKey, searchQuery);
-  }, [applyFilters, activeTab, searchQuery]);
-
-  const filterUsers = (type: UserFilterKey) => {
-    setActiveTab(type);
-    applyFilters(type, searchQuery);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    applyFilters(activeTab as UserFilterKey, query);
-  };
+  const [selectedUser, setSelectedUser] = useState<AccountRow | null>(null);
 
   const router = useRouter();
 
@@ -122,21 +66,24 @@ export default function AccountManagementPage() {
       setInviteModalOpen(false);
       router.push("/createPartnerAccount");
     } else {
-      console.log("Sending invite link for", role);
+      setInviteModalOpen(false);
+      tableRef.current?.reload();
     }
   };
 
-  const handleDeleteAccount = (user: UserOrInvite) => {
+  const handleDeleteAccount = (user: AccountRow) => {
     setSelectedUser(user);
     setDeleteModalOpen(true);
   };
 
-  const handleEditAccount = (user: UserOrInvite) => {
+  const handleEditAccount = (user: AccountRow) => {
+    if (user.pending) return;
     setSelectedUser(user);
     setEditModalOpen(true);
   };
 
-  const handleDeactivateAccount = (user: UserOrInvite) => {
+  const handleDeactivateAccount = (user: AccountRow) => {
+    if (user.pending) return;
     setSelectedUser(user);
     setDeactivateModalOpen(true);
   };
@@ -145,12 +92,11 @@ export default function AccountManagementPage() {
     if (!selectedUser) return;
 
     try {
-      if (selectedUser.isInvite) {
-        const invite = selectedUser as UserInvite;
-        await apiClient.delete(`/api/invites/${invite.token}`);
-        refetchData();
-      } else {
-        console.log("Delete user account for:", selectedUser);
+      if (selectedUser.pending) {
+        if (selectedUser.invite?.token) {
+          await apiClient.delete(`/api/invites/${selectedUser.invite.token}`);
+        }
+        tableRef.current?.removeItemById(selectedUser.id);
       }
     } catch (error) {
       console.error("Error deleting:", error);
@@ -166,7 +112,7 @@ export default function AccountManagementPage() {
     role: UserType;
     tag: string;
   }) => {
-    if (!selectedUser || selectedUser.isInvite) return;
+    if (!selectedUser || selectedUser.pending) return;
 
     try {
       await apiClient.patch(`/api/users/${selectedUser.id}`, {
@@ -177,7 +123,17 @@ export default function AccountManagementPage() {
           tag: data.tag,
         }),
       });
-      refetchData();
+
+      const nextUser: AccountRow = {
+        ...selectedUser,
+        name: data.name,
+        email: data.email,
+        type: data.role,
+        tag: data.tag || null,
+      };
+
+      tableRef.current?.upsertItem(nextUser);
+      setSelectedUser(nextUser);
     } catch (error) {
       console.error("Error updating user:", error);
     }
@@ -187,14 +143,16 @@ export default function AccountManagementPage() {
   };
 
   const confirmDeactivateAccount = async () => {
-    if (!selectedUser || selectedUser.isInvite) return;
+    if (!selectedUser || selectedUser.pending) return;
 
     try {
-      const isCurrentlyEnabled = (selectedUser as User).enabled;
+      const isCurrentlyEnabled = selectedUser.enabled;
       await apiClient.patch(`/api/users/${selectedUser.id}`, {
         body: JSON.stringify({ enabled: !isCurrentlyEnabled }),
       });
-      refetchData();
+      tableRef.current?.updateItemById(selectedUser.id, {
+        enabled: !isCurrentlyEnabled,
+      });
     } catch (error) {
       console.error("Error updating user status:", error);
     }
@@ -210,110 +168,95 @@ export default function AccountManagementPage() {
     setSelectedUser(null);
   };
 
+  const fetchFn = useCallback(
+    async (
+      pageSize: number,
+      page: number,
+      filters: FilterList<AccountRow>
+    ) => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        filters: JSON.stringify(filters),
+      });
+      const data = await apiClient.get<{ users: AccountUserResponse[], total: number }>(`/api/users?` + params);
+      return {
+        data: data.users,
+        total: data.total,
+      };
+    },
+    [apiClient]
+  );
+
+  const columns: ColumnDefinition<AccountRow>[] = [
+    "name",
+    "email",
+    {
+      id: "type",
+      header: "Role",
+      cell: (item) => formatUserType(item.type),
+    },
+    {
+      id: "tag",
+      filterType: "string",
+      cell: (item) =>
+        item.tag ? (
+          <span className="px-3 py-1 bg-red-primary/70 text-white rounded-md text-sm">
+            {item.tag}
+          </span>
+        ) : (
+          <span className="italic text-gray-400">No tag</span>
+        ),
+    },
+    {
+      id: "status",
+      cell: (item) => <AccountStatusTag status={getStatusLabel(item)} />,
+    },
+    {
+      id: "manage",
+      headerClassName: "w-1/12",
+      cellClassName: "w-1/12",
+      cell: (item) => (
+        <div
+          className="float-right"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <AccountDropdown
+            isPending={item.pending}
+            user={{ enabled: item.enabled }}
+            onDeleteAccount={() => handleDeleteAccount(item)}
+            onEditAccount={() => handleEditAccount(item)}
+            onDeactivateAccount={() => handleDeactivateAccount(item)}
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <h1 className="text-3xl text-gray-primary font-bold">
         Account Management
       </h1>
 
-      <div className="flex justify-between items-center w-full pt-6">
-        <div className="relative w-1/3">
-          <MagnifyingGlass
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-primary/50"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Search by name or email"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            className="pl-10 pr-4 py-2 text-gray-primary/50 w-full border border-gray-primary/10 rounded-lg bg-[#F9F9F9] focus:outline-none focus:border-gray-400"
-          />
-        </div>
-        {currentUser && isAdmin(currentUser.type) && (
-          <button
-            className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-            onClick={() => setInviteModalOpen(true)}
-          >
-            <Plus size={18} /> Add account
-          </button>
-        )}
-      </div>
-
-      <div className="flex space-x-4 my-3 border-b-2">
-        {Object.keys(filterMap).map((tab) => {
-          const key = tab as UserFilterKey;
-
-          return (
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={columns}
+        fetchFn={fetchFn}
+        rowId="id"
+        headerCellStyles="min-w-32"
+        emptyState="No accounts to display"
+        toolBar={
+          <>
             <button
-              key={tab}
-              data-active={activeTab === tab}
-              className="px-1 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:text-gray-primary data-[active=true]:border-b-2 data-[active=true]:border-gray-primary/70 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-primary/70"
-              onClick={() => filterUsers(key)}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+              onClick={() => setInviteModalOpen(true)}
             >
-              <div className="hover:bg-gray-primary/5 px-2 py-1 rounded">
-                {tab}
-              </div>
+              <Plus size={18} /> Add account
             </button>
-          );
-        })}
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center mt-8">
-          <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-        </div>
-      ) : (
-        <BaseTable
-          headers={[
-            "Name",
-            "Email",
-            "Role",
-            "Tag",
-            "Status",
-            extendTableHeader("Manage", "w-1/12"),
-          ]}
-          rows={filteredItems.map((item) => {
-            const roleType = item.isInvite ? item.userType : item.type!;
-            const roleText = formatUserType(roleType);
-
-            const status: string = item.isInvite
-              ? ("expiration" in item && item.expiration && new Date() >= new Date(item.expiration)
-                  ? "Expired"
-                  : "Pending invite")
-              : ("enabled" in item && item.enabled === false
-                  ? "Deactivated"
-                  : "Activated");
-
-            const tagNode = item.tag ? (
-              <span key="tag" className="px-3 py-1 bg-red-primary/70 text-white rounded-md text-sm">{item.tag}</span>
-            ) : (
-              <span key="tag" className="italic text-gray-400">No tag</span>
-            );
-
-            return {
-              cells: [
-                item.name,
-                item.email,
-                roleText,
-                tagNode,
-                <AccountStatusTag status={status} key="status" />,
-                <div className="float-right" key="options" onClick={(e) => e.stopPropagation()}>
-                  <AccountDropdown
-                    isInvite={!!item.isInvite}
-                    user={!item.isInvite ? (item as User) : undefined}
-                    onDeleteAccount={() => handleDeleteAccount(item)}
-                    onEditAccount={() => handleEditAccount(item)}
-                    onDeactivateAccount={() => handleDeactivateAccount(item)}
-                  />
-                </div>,
-              ],
-              onClick: () => {},
-              className: "text-gray-primary",
-            };
-          })}
-        />
-      )}
+          </>
+        }
+      />
 
       {isInviteModalOpen && (
         <InviteUserForm
@@ -336,25 +279,19 @@ Deleting an account will permanently remove all associated information from the 
 
       <ConfirmationModal
         title={
-          selectedUser &&
-          !selectedUser.isInvite &&
-          (selectedUser as User).enabled
+          selectedUser && !selectedUser.pending && selectedUser.enabled
             ? "Deactivate account"
             : "Activate account"
         }
         text={
-          selectedUser &&
-          !selectedUser.isInvite &&
-          (selectedUser as User).enabled
+          selectedUser && !selectedUser.pending && selectedUser.enabled
             ? `Are you sure you would like to deactivate this account?
 For partner accounts, deactivation means the partner will no longer have access to request distributions. However, admins will still retain access to view all historical data associated with the account.`
             : `Are you sure you would like to activate this account?
 This will restore the user's access to the system.`
         }
         icon={
-          selectedUser &&
-          !selectedUser.isInvite &&
-          (selectedUser as User).enabled ? (
+          selectedUser && !selectedUser.pending && selectedUser.enabled ? (
             <EyeSlash size={78} />
           ) : (
             <Eye size={78} />
@@ -365,9 +302,7 @@ This will restore the user's access to the system.`
         onCancel={closeAllModals}
         onConfirm={confirmDeactivateAccount}
         confirmText={
-          selectedUser &&
-          !selectedUser.isInvite &&
-          (selectedUser as User).enabled
+          selectedUser && !selectedUser.pending && selectedUser.enabled
             ? "Deactivate"
             : "Activate"
         }
@@ -375,7 +310,7 @@ This will restore the user's access to the system.`
 
       <EditModal
         title={
-          selectedUser && !selectedUser.isInvite && isStaff(selectedUser.type)
+          selectedUser && !selectedUser.pending && isStaff(selectedUser.type)
             ? "Edit staff account"
             : "Edit account"
         }
@@ -384,22 +319,22 @@ This will restore the user's access to the system.`
         onCancel={closeAllModals}
         onConfirm={confirmEditAccount}
         initialData={
-          selectedUser && !selectedUser.isInvite
+          selectedUser && !selectedUser.pending
             ? {
                 name: selectedUser.name,
                 email: selectedUser.email,
-                role: selectedUser.type || "STAFF",
-                tag: selectedUser.tag || "",
-              }
+              role: selectedUser.type,
+              tag: selectedUser.tag || "",
+            }
             : undefined
         }
         isStaffAccount={
-          selectedUser && !selectedUser.isInvite
+          selectedUser && !selectedUser.pending
             ? isStaff(selectedUser.type)
             : true
         }
         selectedUserId={
-          selectedUser && !selectedUser.isInvite ? selectedUser.id : undefined
+          selectedUser && !selectedUser.pending ? selectedUser.id : undefined
         }
       />
     </>

@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import { CgSpinner } from "react-icons/cg";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import BaseTable, { extendTableHeader } from "@/components/baseTable/BaseTable";
 import OptionsTag from "@/components/tags/OptionsTag";
 
 export const priorityOptions = [
@@ -361,7 +361,6 @@ export default function UnallocatedItems() {
               <RequestedTag requested={item.requested} key="requested" />,
             ],
           }))}
-          
         />
       )}
 

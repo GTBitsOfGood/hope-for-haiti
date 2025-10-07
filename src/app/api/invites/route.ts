@@ -9,7 +9,6 @@ import {
   ArgumentError,
   AuthenticationError,
   AuthorizationError,
-  ConflictError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -47,11 +46,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, name, userType, partnerDetails } = parseResult.data;
-
-    const existingUser = await UserService.getUserByEmail(email);
-    if (existingUser) {
-      throw new ConflictError("Email already registered");
-    }
 
     await UserService.createUserInvite({
       email,

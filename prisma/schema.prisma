@@ -35,6 +35,7 @@ model User {
   type         UserType
   tag          String?
   enabled      Boolean  @default(true)
+  pending      Boolean  @default(false)
 
   // Partner-only fields
   partnerDetails          Json?
@@ -47,16 +48,15 @@ model User {
   unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
   signOffs                          SignOff[]
   wishlists                         Wishlist[]
+  invite                           UserInvite?
 }
 
 model UserInvite {
   id             Int      @id @default(autoincrement())
   token          String   @unique
-  userType       UserType
-  email          String   @unique
-  name           String
-  partnerDetails Json?
   expiration     DateTime
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int      @unique
 }
 
 model PasswordResetToken {

@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Item } from "@prisma/client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ChatTeardropText, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CgSpinner } from "react-icons/cg";
 import { Tooltip } from "react-tooltip";
 import AddToDistributionModal from "@/components/AddToDistributionModal";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import { useFetch } from "@/hooks/useFetch";
-import BaseTable, { extendTableHeader } from "@/components/BaseTable";
+import { useApiClient } from "@/hooks/useApiClient";
+import AdvancedBaseTable from "@/components/baseTable/AdvancedBaseTable";
+import { ColumnDefinition, FilterList } from "@/types/ui/table.types";
 
 interface Partner {
   name: string;
@@ -20,6 +21,7 @@ interface Partner {
 export default function AddItemToDistributionPage() {
   const { partnerId } = useParams();
   const router = useRouter();
+  const { apiClient } = useApiClient();
 
   const [selectedItem, setSelectedItem] = useState<Item>();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,18 +39,84 @@ export default function AddItemToDistributionPage() {
     }
   );
 
-  const { data: lineItems, isLoading: itemsLoading } = useFetch<Item[]>(
-    `/api/items`,
-    {
-      cache: "no-store",
-      onError: (error) => {
-        console.log(error);
-        toast.error("Error fetching line items", { position: "bottom-right" });
-      },
-    }
+  const fetchFn = useCallback(
+    async (pageSize: number, page: number, filters: FilterList<Item>) => {
+      const params = new URLSearchParams({
+        pageSize: pageSize.toString(),
+        page: page.toString(),
+        filters: JSON.stringify(filters),
+      });
+      const items = await apiClient.get<Item[]>(
+        `/api/items?${params.toString()}`
+      );
+      return { data: items, total: items.length };
+    },
+    [apiClient]
   );
 
-  const isLoading = partnerLoading || itemsLoading;
+  const columns: ColumnDefinition<Item>[] = [
+    {
+      id: "title",
+      header: "Name",
+    },
+    "quantity",
+    {
+      id: "donorName",
+      header: "Donor name",
+    },
+    "palletNumber",
+    "boxNumber",
+    "lotNumber",
+    {
+      id: "unitPrice",
+      header: "Unit price",
+      cell: (item) => item.unitPrice?.toString?.() ?? "",
+    },
+    {
+      id: "donorShippingNumber",
+      header: "Donor Shipping #",
+    },
+    {
+      id: "hfhShippingNumber",
+      header: "HfH Shipping #",
+    },
+    {
+      id: "comment",
+      header: "Comment",
+      cell: (item) => (
+        <div className="flex justify-center">
+          <ChatTeardropText
+            data-tooltip-id={`comment-tooltip-${item.id}`}
+            data-tooltip-content={item.notes || "No notes"}
+            size={30}
+            color={item.notes ? "black" : "lightgray"}
+          />
+          {item.notes && (
+            <Tooltip id={`comment-tooltip-${item.id}`} className="max-w-40">
+              {item.notes}
+            </Tooltip>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "add",
+      header: "Add",
+      headerClassName: "w-12",
+      cellClassName: "w-12",
+      cell: (item) => (
+        <button
+          className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
+          onClick={() => {
+            setSelectedItem(item);
+            setIsModalOpen(true);
+          }}
+        >
+          <Plus className="text-blue-primary" weight="bold" />
+        </button>
+      ),
+    },
+  ];
 
   const handleAddToDistribution = async (
     quantity: number,
@@ -90,7 +158,7 @@ export default function AddItemToDistributionPage() {
 
   return (
     <>
-      {isLoading ? (
+      {partnerLoading ? (
         <div className="flex justify-center items-center mt-8">
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
@@ -131,69 +199,20 @@ export default function AddItemToDistributionPage() {
               className="pl-10 pr-4 py-2 w-full border border-gray-primary border-opacity-10 rounded-lg bg-gray-100 text-gray-primary focus:outline-none focus:border-gray-400"
             />
           </div>
-          {lineItems && (
-            <BaseTable
-              headers={[
-                "Name",
-                "Quantity",
-                "Donor name",
-                "Pallet",
-                "Box number",
-                "Lot number",
-                "Unit price",
-                "Donor Shipping #",
-                "HfH Shipping #",
-                "Comment",
-                extendTableHeader("Add", "w-12"),
-              ]}
-              rows={lineItems.map((item) => ({
-                cells: [
-                  item.title,
-                  item.quantity,
-                  item.donorName,
-                  item.palletNumber,
-                  item.boxNumber,
-                  item.lotNumber,
-                  item.unitPrice.toString(),
-                  item.donorShippingNumber,
-                  item.hfhShippingNumber,
-                  <div className="flex justify-center" key="itemNotes">
-                    <ChatTeardropText
-                      data-tooltip-id={`comment-tooltip-${item.id}`}
-                      data-tooltip-content={item.notes}
-                      size={30}
-                      color={item.notes ? "black" : "lightgray"}
-                      key="itemNotes"
-                    />
-                    {item.notes && (
-                      <Tooltip
-                        id={`comment-tooltip-${item.id}`}
-                        className="max-w-40"
-                      >
-                        {item.notes}
-                      </Tooltip>
-                    )}
-                  </div>,
-                  <button
-                    className="bg-blue-primary bg-opacity-20 rounded flex items-center justify-center w-8 h-8"
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setIsModalOpen(true);
-                    }}
-                    key="addButton"
-                  >
-                    <Plus className="text-blue-primary" weight="bold" />
-                  </button>,
-                ],
-              }))}
-              headerCellStyles="min-w-32"
-              
-            />
-          )}
+          <AdvancedBaseTable
+            columns={columns}
+            fetchFn={fetchFn}
+            rowId="id"
+            headerCellStyles="min-w-32"
+            emptyState="No items available"
+          />
         </>
       )}
       {isModalOpen && selectedItem && partner?.name && (
         <AddToDistributionModal
+          partnerName={partner.name}
+          maxQuantity={selectedItem.quantity}
+          unitType={selectedItem.unitType || ""}
           onClose={(success) => {
             setIsModalOpen(false);
             setSelectedItem(undefined);
@@ -201,9 +220,6 @@ export default function AddItemToDistributionPage() {
               router.push(`/distributions/${partnerId}`);
             }
           }}
-          partnerName={partner.name}
-          maxQuantity={selectedItem.quantity}
-          unitType={selectedItem.unitType || ""}
           onSubmit={handleAddToDistribution}
         />
       )}

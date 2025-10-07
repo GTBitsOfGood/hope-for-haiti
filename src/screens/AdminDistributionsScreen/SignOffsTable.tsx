@@ -3,7 +3,7 @@ import { useParams } from "next/navigation";
 import React from "react";
 import toast from "react-hot-toast";
 import { useFetch } from "@/hooks/useFetch";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 
 interface SignOff {
   staffName: string;
@@ -43,7 +43,6 @@ export default function SignOffsTable() {
           ],
         })) || []
       }
-      
     />
   );
 }

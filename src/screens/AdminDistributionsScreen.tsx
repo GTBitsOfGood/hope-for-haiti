@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import { useRouter } from "next/navigation";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 
 // Define the tab options
 enum DistributionTab {
@@ -168,7 +168,6 @@ export default function AdminDistributionsScreen() {
                     partner.pendingSignOffCount,
                   ],
                 }))}
-                
               />
             )}
           </>
@@ -196,7 +195,6 @@ export default function AdminDistributionsScreen() {
                     signoff._count?.distributions,
                   ],
                 }))}
-                
               />
             )}
           </>

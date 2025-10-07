@@ -7,6 +7,7 @@ import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
+import BaseTable from "@/components/baseTable/BaseTable";
 
 interface UnallocatedItemData {
   title: string;
@@ -17,7 +18,6 @@ interface UnallocatedItemData {
   quantityPerUnit: number;
 }
 import { useFetch } from "@/hooks/useFetch";
-import BaseTable from "@/components/BaseTable";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -242,7 +242,6 @@ export default function AdminUnallocatedItemsScreen() {
               );
             },
           }))}
-          
         />
       )}
     </>

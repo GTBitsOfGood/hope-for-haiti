@@ -110,7 +110,7 @@ function DesktopNavbar() {
     user?.type === "SUPER_ADMIN";
 
   return (
-    <nav className="h-screen relative flex-0 bg-blue-light w-16 md:min-w-60 p-2 sm:flex flex-col items-center md:rounded-r-3xl hidden">
+    <nav className="h-screen fixed flex-0 bg-blue-light w-16 md:min-w-60 p-2 sm:flex flex-col items-center md:rounded-r-3xl hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.svg" alt="Hope for Haiti Logo" className="mt-6 mb-2" />
 
@@ -186,7 +186,7 @@ export default function NavbarLayout({
         <>
           <DesktopNavbar />
           <MobileNavbar />
-          <main className="flex-1 px-6 py-8 overflow-scroll">{children}</main>
+          <main className="ml-16 md:ml-60 flex-1 px-6 py-8 overflow-scroll">{children}</main>
         </>
       ) : (
         <>{children}</>

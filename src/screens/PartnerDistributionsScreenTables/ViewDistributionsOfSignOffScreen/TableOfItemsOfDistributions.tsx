@@ -1,6 +1,6 @@
 "use client";
 
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 import { DistributionItem } from "@/types/api/distribution.types";
 import { format } from "date-fns";
 import React from "react";
@@ -33,7 +33,6 @@ export default function TableOfItemsOfDistributions({ entries }: Props) {
         ],
       }))}
       headerCellStyles="min-w-fit"
-      
     />
   );
 }

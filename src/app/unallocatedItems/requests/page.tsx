@@ -17,7 +17,7 @@ import EditAllocationModal from "@/components/EditAllocationModal";
 import { UnallocatedItem } from "@/types/api/unallocatedItem.types";
 import PriorityTag from "@/components/tags/PriorityTag";
 import { useFetch } from "@/hooks/useFetch";
-import BaseTable from "@/components/BaseTable";
+import BaseTable from "@/components/baseTable/BaseTable";
 
 type RequestWithAllocations = UnallocatedItemRequest & {
   allocations: (UnallocatedItemRequestAllocation & {
@@ -242,7 +242,6 @@ export default function UnallocatedItemRequestsPage() {
               </div>,
             ],
           }))}
-          
         />
       )}
     </>

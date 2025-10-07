@@ -17,7 +17,7 @@ import { formatTableValue } from "@/utils/format";
 import { Menu, MenuButton, MenuItems } from "@headlessui/react";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import BaseTable, { tableConditional } from "@/components/BaseTable";
+import BaseTable, { tableConditional } from "@/components/baseTable/BaseTable";
 
 type DonorOfferItemWithRequests = DonorOfferItem & {
   requests: (DonorOfferItemRequest & {
@@ -260,7 +260,6 @@ export default function AdminDynamicDonorOfferScreen() {
                     }
                   : undefined,
             }))}
-            
           />
         </>
       )}

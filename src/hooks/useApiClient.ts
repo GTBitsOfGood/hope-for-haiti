@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-type ApiClientOptions = Omit<RequestInit, 'method'>;
+type ApiClientOptions = Omit<RequestInit, "method">;
 
-type HTTPRequestType = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+type HTTPRequestType = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 export async function apiRequest<T = unknown>(
   url: string,
@@ -13,16 +13,16 @@ export async function apiRequest<T = unknown>(
 ): Promise<T> {
   // Determine if we should set Content-Type automatically
   const isFormData = options.body instanceof FormData;
-  
+
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
-  
+
   // Only set Content-Type to application/json if:
   // 1. No Content-Type is already specified in options.headers
   // 2. Body is not FormData (browser sets multipart/form-data automatically)
-  if (!isFormData && !headers['Content-Type'] && !headers['content-type']) {
-    headers['Content-Type'] = 'application/json';
+  if (!isFormData && !headers["Content-Type"] && !headers["content-type"]) {
+    headers["Content-Type"] = "application/json";
   }
 
   const response = await fetch(url, {
@@ -33,7 +33,7 @@ export async function apiRequest<T = unknown>(
 
   if (!response.ok) {
     let errorMessage = `${response.status} ${response.statusText}`;
-    
+
     try {
       const errorData = await response.json();
       if (errorData.error) {
@@ -44,12 +44,12 @@ export async function apiRequest<T = unknown>(
     } catch {
       // If response body is not JSON, use status + statusText
     }
-    
+
     throw new Error(errorMessage);
   }
 
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
     return {} as T;
   }
 
@@ -63,7 +63,10 @@ interface UseApiClientReturn {
     get: <T = unknown>(url: string, options?: ApiClientOptions) => Promise<T>;
     post: <T = unknown>(url: string, options?: ApiClientOptions) => Promise<T>;
     put: <T = unknown>(url: string, options?: ApiClientOptions) => Promise<T>;
-    delete: <T = unknown>(url: string, options?: ApiClientOptions) => Promise<T>;
+    delete: <T = unknown>(
+      url: string,
+      options?: ApiClientOptions
+    ) => Promise<T>;
     patch: <T = unknown>(url: string, options?: ApiClientOptions) => Promise<T>;
   };
 }
@@ -71,8 +74,12 @@ interface UseApiClientReturn {
 export function useApiClient(): UseApiClientReturn {
   const [isLoading, setIsLoading] = useState(false);
 
-  const createApiMethod = (method: HTTPRequestType) => 
-    async <T = unknown>(url: string, options?: ApiClientOptions): Promise<T> => {
+  const createApiMethod =
+    (method: HTTPRequestType) =>
+    async <T = unknown>(
+      url: string,
+      options?: ApiClientOptions
+    ): Promise<T> => {
       try {
         setIsLoading(true);
         const result = await apiRequest<T>(url, method, options);
@@ -84,13 +91,16 @@ export function useApiClient(): UseApiClientReturn {
       }
     };
 
-  const apiClient = {
-    get: createApiMethod('GET'),
-    post: createApiMethod('POST'),
-    put: createApiMethod('PUT'),
-    delete: createApiMethod('DELETE'),
-    patch: createApiMethod('PATCH'),
-  };
+  const apiClient = useMemo(
+    () => ({
+      get: createApiMethod("GET"),
+      post: createApiMethod("POST"),
+      put: createApiMethod("PUT"),
+      delete: createApiMethod("DELETE"),
+      patch: createApiMethod("PATCH"),
+    }),
+    []
+  ); // infinite rerender happens in BaseTable without useMemo for some reason
 
   return {
     isLoading,

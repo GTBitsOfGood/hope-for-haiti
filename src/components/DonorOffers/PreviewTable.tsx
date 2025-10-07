@@ -1,4 +1,4 @@
-import BaseTable, { tableConditional } from "../BaseTable";
+import BaseTable, { tableConditional } from "../baseTable/BaseTable";
 
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {
@@ -70,7 +70,6 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
           ]),
         ],
       }))}
-      
     />
   </div>
 );

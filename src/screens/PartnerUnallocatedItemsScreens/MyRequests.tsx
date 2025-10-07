@@ -18,7 +18,7 @@ import { cn } from "@/util/util";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import { RequestPriority } from "@prisma/client";
-import { renderHeaders } from "@/components/BaseTable";
+import { renderHeaders } from "@/components/baseTable/BaseTable";
 
 export type ItemRequest = {
   id: number;
