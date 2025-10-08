@@ -31,7 +31,7 @@ export async function GET(
       Number(generalItemId)
     );
 
-    return NextResponse.json(items, { status: 200 });
+    return NextResponse.json(items);
   } catch (error) {
     return errorResponse(error);
   }
