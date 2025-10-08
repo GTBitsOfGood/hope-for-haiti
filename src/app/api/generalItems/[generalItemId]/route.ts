@@ -6,6 +6,7 @@ import {
   AuthenticationError,
   errorResponse,
   ok,
+  ArgumentError,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -55,7 +56,7 @@ export async function PATCH(
     };
     const parsed = patchSchema.safeParse(obj);
     if (!parsed.success) {
-      throw new Error(`Invalid request data: ${parsed.error.message}`);
+      throw new ArgumentError(`Invalid request data: ${parsed.error.message}`);
     }
 
     const updatedItem = await GeneralItemService.updateGeneralItem(
