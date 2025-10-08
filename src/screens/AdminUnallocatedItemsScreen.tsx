@@ -86,7 +86,7 @@ export default function AdminUnallocatedItemsScreen() {
     unitTypes: string[];
     donorNames: string[];
     itemTypes: string[];
-  }>("/api/unallocatedItems", {
+  }>("/api/generalItems/unallocated", {
     cache: "no-store",
     onError: (error) => {
       console.error("Error fetching unallocated items:", error);
@@ -226,7 +226,7 @@ export default function AdminUnallocatedItemsScreen() {
                 ? new Date(item.expirationDate).toLocaleDateString()
                 : "N/A",
               item.unitType,
-              item.quantityPerUnit
+              item.quantityPerUnit,
             ],
             onClick: () => {
               router.push(
