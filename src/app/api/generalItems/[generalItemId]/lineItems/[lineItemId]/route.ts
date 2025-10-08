@@ -30,7 +30,9 @@ export async function PATCH(
     const { lineItemId } = await params;
     const form = await request.formData();
 
-    const data = Object.fromEntries(form.entries());
+    const data = Object.fromEntries(
+      form.entries().map(([key, value]) => [key, value ?? undefined])
+    );
     const parsed = updateSchema.safeParse(data);
     if (!parsed.success) {
       throw new Error(parsed.error.message);
