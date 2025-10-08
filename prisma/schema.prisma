@@ -229,3 +229,9 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
 }
+
+model DescriptionLookup {
+  // Composite identity constructed as `${title} | ${type} | ${unitType}`
+  id          String @id
+  description String
+}
