@@ -16,8 +16,18 @@ interface UnallocatedItemData {
   expirationDate: string | null;
   unitType: string;
   quantityPerUnit: number;
+  requests: {
+    partner: {
+      name: string;
+    };
+    createdAt: string;
+    quantity: number;
+    priority: $Enums.RequestPriority | null;
+    comments: string;
+  }[];
 }
 import { useFetch } from "@/hooks/useFetch";
+import { $Enums } from "@prisma/client";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -211,6 +221,7 @@ export default function AdminUnallocatedItemsScreen() {
         <BaseTable
           headers={[
             "Title",
+            "# of Requests",
             "Type",
             "Quantity",
             "Expiration",
@@ -227,6 +238,7 @@ export default function AdminUnallocatedItemsScreen() {
                 : "N/A",
               item.unitType,
               item.quantityPerUnit,
+              item.requests.length,
             ],
             onClick: () => {
               router.push(

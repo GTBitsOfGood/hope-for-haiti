@@ -54,6 +54,13 @@ export class GeneralItemService {
     const generalItems = await db.generalItem.findMany({
       include: {
         items: true,
+        requests: {
+          include: {
+            partner: {
+              select: { name: true },
+            },
+          },
+        },
         donorOffer: true,
       },
       orderBy: {
@@ -85,7 +92,10 @@ export class GeneralItemService {
 
     const paginated =
       page && pageSize
-        ? filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+        ? filtered.slice(
+            (page - 1) * pageSize,
+            (page - 1) * pageSize + pageSize
+          )
         : filtered;
 
     const sanitize = paginated.map(({ item, quantity }) => {
@@ -135,7 +145,10 @@ export class GeneralItemService {
     });
   }
 
-  private static matchesFilterValue(value: unknown, filter: FilterValue): boolean {
+  private static matchesFilterValue(
+    value: unknown,
+    filter: FilterValue
+  ): boolean {
     if (value === null || value === undefined) {
       return false;
     }
