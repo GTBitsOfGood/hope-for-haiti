@@ -16,16 +16,10 @@ export type GeneralItemInput = {
   requests: PartnerRequest[];
 };
 
-export type AllocationSuggestionBasic = {
+export type AllocationSuggestion = {
   items: { requests: { partnerId: number; quantity: number }[] }[];
 };
 
-export type AllocationSuggestionDetailed = {
-  items: {
-    before: { requests: { partnerId: number; quantity: number }[] };
-    after: { requests: { partnerId: number; quantity: number }[] };
-  }[];
-};
 
 type PartnerTotals = {
   normalizedTotal: number;
@@ -198,27 +192,8 @@ function sanitizeAllocations(
   }));
 }
 
-function buildDetailedResult(
-  items: GeneralItemInput[],
-  normalized: number[][],
-  adjusted: { partnerId: number; quantity: number }[][]
-): AllocationSuggestionDetailed {
-  return {
-    items: items.map((item, index) => ({
-      before: {
-        requests: item.requests.map((request, requestIndex) => ({
-          partnerId: request.partnerId,
-          quantity: normalized[index][requestIndex] ?? 0,
-        })),
-      },
-      after: {
-        requests: adjusted[index],
-      },
-    })),
-  };
-}
 
-function buildBasicResult(adjusted: { partnerId: number; quantity: number }[][]): AllocationSuggestionBasic {
+function buildBasicResult(adjusted: { partnerId: number; quantity: number }[][]): AllocationSuggestion {
   return {
     items: adjusted.map((requests) => ({ requests })),
   };
@@ -227,12 +202,9 @@ function buildBasicResult(adjusted: { partnerId: number; quantity: number }[][])
 export class UnfinalizedSuggestionService {
   static async suggestAllocations(
     generalItems: GeneralItemInput[],
-    options?: { includeDetails?: boolean }
-  ): Promise<AllocationSuggestionBasic | AllocationSuggestionDetailed> {
+  ): Promise<AllocationSuggestion> {
     if (generalItems.length === 0) {
-      return options?.includeDetails
-        ? ({ items: [] } satisfies AllocationSuggestionDetailed)
-        : ({ items: [] } satisfies AllocationSuggestionBasic);
+      return { items: [] };
     }
 
     const normalized = generalItems.map(normalizeRequests);
@@ -289,16 +261,12 @@ export class UnfinalizedSuggestionService {
         },
       });
 
-      modelResponse = parseModelResponse(response.choices?.[0]?.message?.content);
+      modelResponse = parseModelResponse(response.choices?.[0]?.message?.content ?? undefined);
     }
 
     const adjusted = generalItems.map((item, index) =>
       sanitizeAllocations(item, normalized[index], modelResponse?.items?.[index]?.requests)
     );
-
-    if (options?.includeDetails) {
-      return buildDetailedResult(generalItems, normalized, adjusted);
-    }
 
     return buildBasicResult(adjusted);
   }
