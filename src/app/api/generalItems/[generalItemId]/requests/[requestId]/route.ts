@@ -99,7 +99,7 @@ export async function PATCH(
       parsed.data
     );
 
-    return new NextResponse(JSON.stringify(updatedRequest), { status: 200 });
+    return NextResponse.json(updatedRequest, { status: 200 });
   } catch (error) {
     return errorResponse(error);
   }

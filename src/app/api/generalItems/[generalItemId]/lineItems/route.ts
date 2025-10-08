@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ generalItemId: string }> }
-) {
+) { 
   try {
     const session = await auth();
 
