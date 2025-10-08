@@ -5,6 +5,18 @@ import { UpdateGeneralItemRequestData } from "@/types/api/generalItemRequest.typ
 import { Prisma } from "@prisma/client";
 
 export class GeneralItemRequestService {
+  static async getById(id: number) {
+    const request = await db.generalItemRequest.findUnique({
+      where: { id },
+    });
+
+    if (!request) {
+      throw new NotFoundError("Unallocated item request not found");
+    }
+
+    return request;
+  }
+
   static async getRequestsByGeneralItemId(generalItemId: number) {
     const requests = await db.generalItemRequest.findMany({
       where: { generalItemId },
@@ -35,18 +47,29 @@ export class GeneralItemRequestService {
     return newRequest;
   }
 
-  static async updateRequest(data: UpdateGeneralItemRequestData) {
+  static async updateRequest(id: number, data: Partial<UpdateGeneralItemRequestData>) {
     try {
       const updatedRequest = await db.generalItemRequest.update({
-        where: { id: data.id },
-        data: {
-          priority: data.priority,
-          quantity: parseInt(data.quantity),
-          comments: data.comments,
-        },
+        where: { id },
+        data
       });
 
       return updatedRequest;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundError("Unallocated item request not found");
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async deleteRequest(id: number) {
+    try {
+      await db.generalItemRequest.delete({
+        where: { id },
+      });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === "P2025") {
