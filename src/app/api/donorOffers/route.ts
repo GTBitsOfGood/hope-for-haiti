@@ -8,7 +8,6 @@ import {
   AuthenticationError,
   AuthorizationError,
   errorResponse,
-  InternalError,
 } from "@/util/errors";
 import FileService from "@/services/fileService";
 
@@ -41,28 +40,7 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json(result);
   } catch (error) {
-    if (
-      error instanceof ArgumentError ||
-      error instanceof AuthenticationError ||
-      error instanceof AuthorizationError ||
-      error instanceof InternalError
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          errors: [error.message],
-        },
-        { status: error.statusCode }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        errors: ["An unexpected error occurred"],
-      },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 }
 
