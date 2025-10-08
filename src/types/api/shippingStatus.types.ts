@@ -1,8 +1,8 @@
-import { Item, ShippingStatus, ShipmentStatus } from "@prisma/client";
+import { LineItem, ShippingStatus, ShipmentStatus } from "@prisma/client";
 
 export interface ShippingStatusWithItems {
   shippingStatuses: ShippingStatus[];
-  items: Item[][];
+  items: LineItem[][];
   total: number;
 }
 

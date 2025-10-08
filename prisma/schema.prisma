@@ -35,47 +35,31 @@ model User {
   type         UserType
   tag          String?
   enabled      Boolean  @default(true)
-  pending      Boolean  @default(false)
 
   // Partner-only fields
-  partnerDetails          Json?
-  unallocatedItemRequests UnallocatedItemRequest[]
-  donorOfferVisibilities  DonorOfferPartnerVisibility[]
-  donorOfferItemRequests  DonorOfferItemRequest[]
+  donorOfferVisibilities DonorOffer[]
+  partnerDetails         Json?
+  generalItemRequests    GeneralItemRequest[]
+  allocations            Allocation[]
 
   // There should only ever be one distribution
-  distributions                     Distribution[]
-  unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
-  signOffs                          SignOff[]
-  wishlists                         Wishlist[]
-  invite                           UserInvite?
+  distributions Distribution[]
+  wishlists     Wishlist[]
 }
 
 model UserInvite {
   id             Int      @id @default(autoincrement())
   token          String   @unique
+  userType       UserType
+  email          String   @unique
+  name           String
+  partnerDetails Json?
   expiration     DateTime
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         Int      @unique
 }
 
-model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  token     String   @unique
-  expiresAt DateTime
-  used      Boolean  @default(false)
-}
-
-model Item {
+// A specific item inside a general item. Ex: a specific box inside a donation of many boxes
+model LineItem {
   id Int @id @default(autoincrement())
-
-  // Columns that define a general item
-  title           String
-  type            String
-  expirationDate  DateTime? @db.Date
-  unitType        String
-  quantityPerUnit Int
 
   // Columns that define a unique line item
   category            ItemCategory
@@ -96,53 +80,27 @@ model Item {
   visible          Boolean
   gik              Boolean
 
-  unallocatedItemRequestAllocations UnallocatedItemRequestAllocation[]
+  generalItemId Int?
+  generalItem   GeneralItem? @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
-  donorOfferItemId                 Int?
-  donorOfferItem                   DonorOfferItem?                   @relation(fields: [donorOfferItemId], references: [id], onDelete: Cascade)
-  donorOfferItemRequestAllocations DonorOfferItemRequestAllocation[]
+  allocationId Int?        @unique
+  allocation   Allocation? @relation
 }
 
-model UnallocatedItemRequest {
+model Allocation {
   id Int @id @default(autoincrement())
-
-  // Points to User, but only valid for `PARTNER` users
-  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  partnerId Int
-
-  title           String
-  type            String
-  expirationDate  DateTime? @db.Date
-  unitType        String
-  quantityPerUnit Int
-
-  priority RequestPriority
-  quantity Int
-  comments String
-
-  createdAt DateTime @default(now())
-
-  allocations UnallocatedItemRequestAllocation[]
-}
-
-model UnallocatedItemRequestAllocation {
-  id Int @id @default(autoincrement())
-
-  quantity Int
 
   partnerId Int?
   partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
-  unallocatedItemRequestId Int?
-  unallocatedItemRequest   UnallocatedItemRequest? @relation(fields: [unallocatedItemRequestId], references: [id], onDelete: Cascade)
+  lineItemId Int      @unique
+  lineItem   LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
 
-  itemId          Int
-  unallocatedItem Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  distributionId Int
+  distribution   Distribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
 
-  // There should only ever be one distribution
-  distributions Distribution[]
-
-  visible Boolean @default(false)
+  signOffId Int?
+  signOff   SignOff? @relation(fields: [signOffId], references: [id], onDelete: Cascade)
 }
 
 enum DonorOfferState {
@@ -160,11 +118,11 @@ model DonorOffer {
   partnerResponseDeadline DateTime
   donorResponseDeadline   DateTime
 
-  items               DonorOfferItem[]
-  partnerVisibilities DonorOfferPartnerVisibility[]
+  partnerVisibilities User[]
+  items               GeneralItem[]
 }
 
-model DonorOfferItem {
+model GeneralItem {
   id Int @id @default(autoincrement())
 
   donorOfferId Int
@@ -176,57 +134,31 @@ model DonorOfferItem {
   unitType        String
   quantityPerUnit Int
 
-  quantity        Int
+  initialQuantity Int
   requestQuantity Int?
 
-  requests DonorOfferItemRequest[]
-  items    Item[]
+  requests GeneralItemRequest[]
+  items    LineItem[]
 
   @@unique([donorOfferId, title, type, expirationDate, unitType, quantityPerUnit])
 }
 
-model DonorOfferItemRequest {
+model GeneralItemRequest {
   id Int @id @default(autoincrement())
 
-  donorOfferItemId Int
-  donorOfferItem   DonorOfferItem @relation(fields: [donorOfferItemId], references: [id], onDelete: Cascade)
+  generalItemId Int
+  generalItem   GeneralItem @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
-  quantity                        Int
-  comments                        String?
-  priority                        RequestPriority?
-  DonorOfferItemRequestAllocation DonorOfferItemRequestAllocation[]
+  quantity Int
+  comments String?
+  priority RequestPriority?
 
   createdAt DateTime @default(now())
 
-  @@unique([donorOfferItemId, partnerId])
-}
-
-model DonorOfferPartnerVisibility {
-  id Int @id @default(autoincrement())
-
-  donorOfferId Int
-  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
-
-  partnerId Int
-  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-}
-
-model DonorOfferItemRequestAllocation {
-  id Int @id @default(autoincrement())
-
-  quantity Int
-
-  donorOfferItemRequestId Int
-  donorOfferItemRequest   DonorOfferItemRequest @relation(fields: [donorOfferItemRequestId], references: [id], onDelete: Cascade)
-
-  itemId        Int
-  item          Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  distributions Distribution[]
-
-  visible Boolean @default(false)
+  @@unique([generalItemId, partnerId])
 }
 
 model Distribution {
@@ -235,15 +167,9 @@ model Distribution {
   partnerId Int
   partner   User @relation(fields: [partnerId], references: [id])
 
-  unallocatedItemRequestAllocationId Int?                              @unique
-  unallocatedItemAllocation          UnallocatedItemRequestAllocation? @relation(fields: [unallocatedItemRequestAllocationId], references: [id], onDelete: Cascade)
+  pending Boolean @default(false)
 
-  donorOfferItemRequestAllocationId Int?                             @unique
-  donorOfferItemAllocation          DonorOfferItemRequestAllocation? @relation(fields: [donorOfferItemRequestAllocationId], references: [id], onDelete: Cascade)
-
-  actualQuantity Int
-  signOffId      Int
-  signOff        SignOff @relation(fields: [signOffId], references: [id], onDelete: Cascade)
+  allocations Allocation[]
 }
 
 enum ShipmentStatus {
@@ -271,16 +197,14 @@ model SignOff {
   id Int @id @default(autoincrement())
 
   staffMemberName String
+  partnerId       Int
   partnerName     String
   date            DateTime
   signatureUrl    String?
 
   createdAt DateTime @default(now())
 
-  partnerId Int
-  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  distributions Distribution[]
+  allocations Allocation[]
 }
 
 model Wishlist {
@@ -293,13 +217,15 @@ model Wishlist {
 
   lastUpdated DateTime @updatedAt
 
-  comments   String
+  comments  String
   partnerId Int
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
 
-model DescriptionLookup {
-  // Composite identity constructed as `${title} | ${type} | ${unitType}`
-  id          String @id
-  description String
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
 }

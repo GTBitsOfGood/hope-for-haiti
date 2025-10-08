@@ -1,20 +1,10 @@
-export interface CreateAllocationData {
-  unallocatedItemRequestId?: number;
-  donorOfferItemRequestId?: number;
+import { z } from "zod";
+
+export interface CreateAllocationData extends Partial<ItemSearchParams> {
   partnerId?: number;
-  quantity: number;
-  itemId?: number;
-  visible: boolean;
-  // Item search fields
-  title?: string;
-  type?: string;
-  expirationDate?: Date;
-  unitType?: string;
-  quantityPerUnit?: number;
-  donorName?: string;
-  lotNumber?: string;
-  palletNumber?: string;
-  boxNumber?: string;
+  distributionId: number;
+  itemId: number;
+  signOffId?: number;
 }
 
 export interface UpdateAllocationData {
@@ -28,7 +18,6 @@ export interface UpdateAllocationData {
   lotNumber: string;
   palletNumber: string;
   boxNumber: string;
-  quantity: number;
 }
 
 export interface ItemSearchParams {
@@ -49,3 +38,9 @@ export interface ItemSearchResult {
   palletNumbers: string[];
   boxNumbers: string[];
 }
+
+export const allocationSchema = z.object({
+  partnerId: z.number().int().positive(),
+  lineItemId: z.number().int().positive(),
+  signOffId: z.number().int().positive().optional(),
+});

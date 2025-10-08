@@ -1,13 +1,10 @@
-import { DonorOfferState, DonorOfferItem, Item } from "@prisma/client";
-
-export interface DonorOfferItemDTO {
-  id: number;
-  title: string;
-  type: string;
-  expiration?: string | null;
-  quantity: number;
-  unitSize: number;
-}
+import {
+  $Enums,
+  DonorOfferState,
+  GeneralItem,
+  GeneralItemRequest,
+  LineItem,
+} from "@prisma/client";
 
 export interface PartnerDonorOffer {
   donorOfferId: number;
@@ -39,44 +36,32 @@ export interface AdminDonorOffersResponse {
   total: number;
 }
 
-export interface ItemRequestWithAllocations {
-  id: number;
-  donorOfferItemId: number;
-  partnerId: number;
-  quantity: number;
-  comments?: string | null;
-  priority?: string | null;
-  createdAt: Date;
-  donorOfferItem: DonorOfferItem;
+export type GeneralItemRequestWithDetails = GeneralItemRequest & {
+  generalItem: Pick<
+    GeneralItem,
+    "id" | "title" | "type" | "expirationDate" | "unitType" | "quantityPerUnit"
+  >;
   partner: {
     name: string;
   };
-  allocations: {
-    id: number;
-    donorOfferItemRequestId: number;
-    itemId: number;
-    quantity: number;
-    item: Item;
-  }[];
-}
+};
 
-export interface ItemRequestsWithTotal {
-  requests: ItemRequestWithAllocations[];
+export interface GeneralItemRequestsResponse {
+  requests: GeneralItemRequestWithDetails[];
   total: number;
 }
 
-export interface DonorOfferItemLineItemsResponse {
-  items: Item[];
+export interface GeneralItemLineItemsResponse {
+  items: LineItem[];
   total: number;
 }
-
 export interface CreateDonorOfferResult {
   success: boolean;
   errors?: string[];
   donorOfferItems?: {
     title: string;
     type: string;
-    quantity: number;
+    initialQuantity: number;
     unitType: string;
     quantityPerUnit: number;
     expirationDate?: Date | string;
@@ -88,7 +73,7 @@ export interface DonorOfferItemsRequestsDTO {
   title: string;
   type: string;
   expiration: string | null;
-  quantity: number;
+  initialQuantity: number;
   unitSize: number;
   requestId: number | null;
   quantityRequested: number;
@@ -125,13 +110,12 @@ export interface FinalizeDonorOfferResult {
   createdCount?: number;
 }
 
-export interface DonorOfferEditDetails {
+export interface DonorOfferUpdateParams {
   id: number;
   offerName: string;
   donorName: string;
   partnerResponseDeadline: Date;
   donorResponseDeadline: Date;
-  items: DonorOfferItem[];
-  partners: { id: number; name: string }[];
-  total: number;
+  partners: number[];
+  state: $Enums.DonorOfferState;
 }

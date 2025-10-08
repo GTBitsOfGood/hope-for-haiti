@@ -1,24 +1,31 @@
 import { db } from "@/db";
-import { DonorOfferState, UserType, RequestPriority, ItemCategory, DonorOffer, DonorOfferItem, DonorOfferItemRequest, Prisma } from "@prisma/client";
-import { isAfter } from "date-fns";
+import {
+  DonorOfferState,
+  UserType,
+  RequestPriority,
+  ItemCategory,
+  DonorOffer,
+  Prisma,
+  GeneralItem,
+  GeneralItemRequest,
+} from "@prisma/client";
+import { format, isAfter } from "date-fns";
 import { z } from "zod";
-import { format } from "date-fns";
 import { ArgumentError, NotFoundError } from "@/util/errors";
 import {
   PartnerDonorOffer,
   AdminDonorOffer,
-  ItemRequestWithAllocations,
+  PartnerDonorOffersResponse,
+  AdminDonorOffersResponse,
   CreateDonorOfferResult,
   DonorOfferItemsRequestsDTO,
   DonorOfferItemsRequestsResponse,
   UpdateRequestItem,
   FinalizeDetailsResult,
   FinalizeDonorOfferResult,
-  DonorOfferEditDetails,
-  PartnerDonorOffersResponse,
-  AdminDonorOffersResponse,
-  ItemRequestsWithTotal,
-  DonorOfferItemLineItemsResponse,
+  DonorOfferUpdateParams,
+  GeneralItemRequestsResponse,
+  GeneralItemLineItemsResponse,
 } from "@/types/api/donorOffer.types";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
@@ -26,10 +33,10 @@ import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 const DonorOfferItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
   type: z.string(),
-  quantity: z
+  initialQuantity: z
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
+    .pipe(z.number().int().min(0, "Initial quantity must be non-negative")),
   expirationDate: z
     .union([
       z.coerce.date(),
@@ -50,8 +57,6 @@ const DonorOfferSchema = z.object({
   donorResponseDeadline: z.coerce.date(),
   state: z.nativeEnum(DonorOfferState).default(DonorOfferState.UNFINALIZED),
 });
-
-
 
 const FinalizeDonorOfferItemSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -124,43 +129,44 @@ const FinalizeDonorOfferSchema = z.object({
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
 
-
-
 export default class DonorOfferService {
   static async getPartnerDonorOffers(
     partnerId: number,
     filters?: Filters,
     page?: number,
-    pageSize?: number,
+    pageSize?: number
   ): Promise<PartnerDonorOffersResponse> {
     const filterWhere = buildWhereFromFilters<Prisma.DonorOfferWhereInput>(
       Object.keys(Prisma.DonorOfferScalarFieldEnum),
-      filters,
+      filters
     );
 
     const where: Prisma.DonorOfferWhereInput = {
       ...filterWhere,
       partnerVisibilities: {
         some: {
-          partnerId,
+          id: partnerId,
         },
       },
     };
 
-    const query: Prisma.DonorOfferFindManyArgs = {
+    const query = Prisma.validator<Prisma.DonorOfferFindManyArgs>()({
       where,
       include: {
         items: {
           include: {
             requests: {
               where: {
-                partnerId: partnerId,
+                partnerId,
               },
             },
           },
         },
       },
-    };
+      orderBy: {
+        partnerResponseDeadline: "desc",
+      },
+    });
 
     buildQueryWithPagination(query, page, pageSize);
 
@@ -169,8 +175,10 @@ export default class DonorOfferService {
       db.donorOffer.count({ where }),
     ]);
 
-    const mappedOffers: PartnerDonorOffer[] = donorOffers.map((offer) => {
-      let state = null;
+    type DonorOfferWithItems = Prisma.DonorOfferGetPayload<typeof query>;
+
+    const mappedOffers: PartnerDonorOffer[] = donorOffers.map((offer: DonorOfferWithItems) => {
+      let state: string | null = null;
 
       if (
         offer.state === DonorOfferState.ARCHIVED ||
@@ -185,16 +193,16 @@ export default class DonorOfferService {
 
       if (requestSubmitted) {
         state = "submitted";
-      } else {
+      } else if (!state) {
         state = "pending";
       }
-      
+
       return {
         donorOfferId: offer.id,
         offerName: offer.offerName,
         donorName: offer.donorName,
         responseDeadline: offer.partnerResponseDeadline,
-        state: state,
+        state,
       };
     });
 
@@ -207,27 +215,17 @@ export default class DonorOfferService {
   static async getAdminDonorOffers(
     filters?: Filters,
     page?: number,
-    pageSize?: number,
+    pageSize?: number
   ): Promise<AdminDonorOffersResponse> {
     const where = buildWhereFromFilters<Prisma.DonorOfferWhereInput>(
       Object.keys(Prisma.DonorOfferScalarFieldEnum),
-      filters,
+      filters
     );
 
-    const query: Prisma.DonorOfferFindManyArgs = {
+    const query = Prisma.validator<Prisma.DonorOfferFindManyArgs>()({
       where,
       include: {
-        partnerVisibilities: {
-          include: {
-            partner: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
+        partnerVisibilities: true,
         items: {
           include: {
             requests: {
@@ -238,7 +236,10 @@ export default class DonorOfferService {
           },
         },
       },
-    };
+      orderBy: {
+        donorResponseDeadline: "desc",
+      },
+    });
 
     buildQueryWithPagination(query, page, pageSize);
 
@@ -247,16 +248,18 @@ export default class DonorOfferService {
       db.donorOffer.count({ where }),
     ]);
 
-    const mappedOffers: AdminDonorOffer[] = donorOffers.map((offer) => ({
+    type DonorOfferWithRelations = Prisma.DonorOfferGetPayload<typeof query>;
+
+    const mappedOffers: AdminDonorOffer[] = donorOffers.map((offer: DonorOfferWithRelations) => ({
       donorOfferId: offer.id,
       offerName: offer.offerName,
       donorName: offer.donorName,
       responseDeadline: offer.partnerResponseDeadline,
       state: offer.state,
       invitedPartners: offer.partnerVisibilities.map((pv) => ({
-        name: pv.partner.name,
+        name: pv.name,
         responded: offer.items.some((item) =>
-          item.requests.some((request) => request.partnerId === pv.partnerId)
+          item.requests.some((request) => request.partnerId === pv.id)
         ),
       })),
     }));
@@ -268,105 +271,124 @@ export default class DonorOfferService {
     itemId: number,
     filters?: Filters,
     page?: number,
-    pageSize?: number,
-  ): Promise<ItemRequestsWithTotal> {
-    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemRequestWhereInput>(
-      Object.keys(Prisma.DonorOfferItemRequestScalarFieldEnum),
-      filters,
-    );
+    pageSize?: number
+  ): Promise<GeneralItemRequestsResponse> {
+    const filterWhere =
+      buildWhereFromFilters<Prisma.GeneralItemRequestWhereInput>(
+        Object.keys(Prisma.GeneralItemRequestScalarFieldEnum),
+        filters
+      );
 
-    const where: Prisma.DonorOfferItemRequestWhereInput = {
+    const where: Prisma.GeneralItemRequestWhereInput = {
       ...filterWhere,
-      donorOfferItemId: itemId,
+      generalItemId: itemId,
     };
 
-    const query: Prisma.DonorOfferItemRequestFindManyArgs = {
+    const query = Prisma.validator<Prisma.GeneralItemRequestFindManyArgs>()({
       where,
       include: {
-        donorOfferItem: true,
+        generalItem: true,
         partner: {
           select: {
             name: true,
           },
         },
       },
-    };
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     buildQueryWithPagination(query, page, pageSize);
 
     const [requests, total] = await Promise.all([
-      db.donorOfferItemRequest.findMany(query),
-      db.donorOfferItemRequest.count({ where }),
+      db.generalItemRequest.findMany(query),
+      db.generalItemRequest.count({ where }),
     ]);
 
-    const allocations = await Promise.all(
-      requests.map(async (request) => {
-        return await db.donorOfferItemRequestAllocation.findMany({
-          where: {
-            donorOfferItemRequestId: request.id,
-          },
-          include: {
-            item: true,
-          },
-        });
-      })
-    );
+    type GeneralItemRequestWithRelations = Prisma.GeneralItemRequestGetPayload<
+      typeof query
+    >;
 
-    const mapped: ItemRequestWithAllocations[] = requests.map((request, index) => ({
-      ...request,
-      allocations: allocations[index],
-    }));
-
-    return { requests: mapped, total };
+    return { requests: requests as GeneralItemRequestWithRelations[], total };
   }
 
-  static async getItemLineItems(
+  static async getGeneralItemLineItems(
     itemId: number,
     filters?: Filters,
     page?: number,
-    pageSize?: number,
-  ): Promise<DonorOfferItemLineItemsResponse> {
-    const filterWhere = buildWhereFromFilters<Prisma.ItemWhereInput>(
-      Object.keys(Prisma.ItemScalarFieldEnum),
-      filters,
+    pageSize?: number
+  ): Promise<GeneralItemLineItemsResponse> {
+    const filterWhere = buildWhereFromFilters<Prisma.LineItemWhereInput>(
+      Object.keys(Prisma.LineItemScalarFieldEnum),
+      filters
     );
 
-    const where: Prisma.ItemWhereInput = {
+    const where: Prisma.LineItemWhereInput = {
       ...filterWhere,
-      donorOfferItemId: itemId,
+      generalItemId: itemId,
     };
 
-    const query: Prisma.ItemFindManyArgs = {
+    const query = Prisma.validator<Prisma.LineItemFindManyArgs>()({
       where,
-    };
+    });
 
     buildQueryWithPagination(query, page, pageSize);
 
     const [items, total] = await Promise.all([
-      db.item.findMany(query),
-      db.item.count({ where }),
+      db.lineItem.findMany(query),
+      db.lineItem.count({ where }),
     ]);
 
     return { items, total };
   }
 
   static async createDonorOffer(
-    formData: FormData, 
-    parsedFileData: { data: Record<string, unknown>[]; fields: string[] } | null, 
+    formData: FormData,
+    parsedFileData: {
+      data: Record<string, unknown>[];
+      fields: string[];
+    } | null,
     preview: boolean
   ): Promise<CreateDonorOfferResult> {
     const offerName = formData.get("offerName") as string;
     const donorName = formData.get("donorName") as string;
-    const partnerRequestDeadline = formData.get("partnerRequestDeadline") as string;
+    const partnerRequestDeadline = formData.get(
+      "partnerRequestDeadline"
+    ) as string;
     const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-    const state = (formData.get("state") as DonorOfferState) || DonorOfferState.UNFINALIZED;
+    const state =
+      (formData.get("state") as DonorOfferState) || DonorOfferState.UNFINALIZED;
 
     const partnerIdStrings = formData.getAll("partnerIds") as string[];
     const partnerIds = partnerIdStrings
       .map((id) => parseInt(id, 10))
       .filter((id) => !isNaN(id));
 
-    if (!offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline) {
+    if (partnerIds.length > 0) {
+      const partners = await db.user.findMany({
+        where: {
+          id: {
+            in: partnerIds,
+          },
+          type: UserType.PARTNER,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (partners.length !== partnerIds.length) {
+        throw new ArgumentError("One or more partner IDs are invalid");
+      }
+    }
+
+    if (
+      !offerName ||
+      !donorName ||
+      !partnerRequestDeadline ||
+      !donorRequestDeadline
+    ) {
       throw new ArgumentError("Missing required donor offer information");
     }
 
@@ -399,28 +421,30 @@ export default class DonorOfferService {
       return { success: false, errors };
     }
 
-    const donorOfferData = {
+    const donorOfferData: Prisma.DonorOfferCreateInput = {
       offerName,
       donorName,
       partnerResponseDeadline: new Date(partnerRequestDeadline),
       donorResponseDeadline: new Date(donorRequestDeadline),
       state,
+      partnerVisibilities: {
+        connect: partnerIds.map((id) => ({ id })),
+      },
     };
 
     const donorOfferValidation = DonorOfferSchema.safeParse(donorOfferData);
     if (!donorOfferValidation.success) {
-      const errorMessages = donorOfferValidation.error.issues
-        .map((issue) => {
-          const field = issue.path.join(".");
-          return `Field '${field}': ${issue.message}`;
-        })
+      const errorMessages = donorOfferValidation.error.issues.map((issue) => {
+        const field = issue.path.join(".");
+        return `Field '${field}': ${issue.message}`;
+      });
       return { success: false, errors: errorMessages };
     }
 
     if (preview) {
-      return { 
-        success: true, 
-        donorOfferItems: validDonorOfferItems.slice(0, 8) 
+      return {
+        success: true,
+        donorOfferItems: validDonorOfferItems.slice(0, 8),
       };
     }
 
@@ -434,32 +458,9 @@ export default class DonorOfferService {
         donorOfferId: donorOffer.id,
       }));
 
-      await tx.donorOfferItem.createMany({ data: itemsWithDonorOfferId });
-
-      if (partnerIds.length > 0) {
-        const partners = await tx.user.findMany({
-          where: {
-            id: {
-              in: partnerIds,
-            },
-            type: UserType.PARTNER,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        if (partners.length !== partnerIds.length) {
-          throw new ArgumentError("One or more partner IDs are invalid");
-        }
-
-        await tx.donorOfferPartnerVisibility.createMany({
-          data: partnerIds.map((partnerId) => ({
-            donorOfferId: donorOffer.id,
-            partnerId: partnerId,
-          })),
-        });
-      }
+      await tx.generalItem.createMany({
+        data: itemsWithDonorOfferId,
+      });
     });
 
     return { success: true };
@@ -467,46 +468,24 @@ export default class DonorOfferService {
 
   static async getPartnerDonorOfferDetails(
     donorOfferId: number,
-    partnerId: string,
-    filters?: Filters,
-    page?: number,
-    pageSize?: number,
+    partnerId: string
   ): Promise<DonorOfferItemsRequestsResponse> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
     });
-    
+
     if (!donorOffer) {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const partnerIdNumber = parseInt(partnerId);
-
-    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemWhereInput>(
-      Object.keys(Prisma.DonorOfferItemScalarFieldEnum),
-      filters,
-    );
-
-    const where: Prisma.DonorOfferItemWhereInput = {
-      ...filterWhere,
-      donorOfferId,
-    };
-
-    const query: Prisma.DonorOfferItemFindManyArgs = {
-      where,
-      include: {
-        requests: { where: { partnerId: partnerIdNumber } },
-      },
-    };
-
-    buildQueryWithPagination(query, page, pageSize);
-
-    const [items, total] = await Promise.all([
-      db.donorOfferItem.findMany(query),
-      db.donorOfferItem.count({ where }),
-    ]);
-
-    const donorOfferItemsRequests = items.map(
+    const donorOfferItemsRequests = (
+      await db.generalItem.findMany({
+        where: { donorOfferId },
+        include: {
+          requests: { where: { partnerId: parseInt(partnerId) } },
+        },
+      })
+    ).map(
       (item) =>
         ({
           donorOfferItemId: item.id,
@@ -516,7 +495,7 @@ export default class DonorOfferService {
             item.expirationDate === null
               ? null
               : format(item.expirationDate, "MM/dd/yyyy"),
-          quantity: item.quantity,
+          initialQuantity: item.initialQuantity,
           unitSize: item.quantityPerUnit,
           ...(item.requests[0]
             ? {
@@ -537,19 +516,15 @@ export default class DonorOfferService {
     return {
       donorOfferName: donorOffer.offerName,
       donorOfferItemsRequests,
-      total,
+      total: donorOfferItemsRequests.length,
     };
   }
 
-  static async getAdminDonorOfferDetails(
-    donorOfferId: number,
-    filters?: Filters,
-    page?: number,
-    pageSize?: number,
-  ): Promise<{
+  static async getAdminDonorOfferDetails(donorOfferId: number): Promise<{
     donorOffer: DonorOffer;
-    itemsWithRequests: (DonorOfferItem & { requests: (DonorOfferItemRequest & { partner: { name: string } })[] })[];
-    total: number;
+    itemsWithRequests: (GeneralItem & {
+      requests: (GeneralItemRequest & { partner: { name: string } })[];
+    })[];
   }> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
@@ -559,49 +534,35 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemWhereInput>(
-      Object.keys(Prisma.DonorOfferItemScalarFieldEnum),
-      filters,
-    );
-
-    const where: Prisma.DonorOfferItemWhereInput = {
-      ...filterWhere,
-      donorOfferId,
-    };
-
-    const query: Prisma.DonorOfferItemFindManyArgs = {
-      where,
+    const itemsWithRequests = await db.generalItem.findMany({
+      where: { donorOfferId },
       include: {
-        requests: {
-          include: { partner: { select: { name: true } } },
-        },
+        requests: { include: { partner: { select: { name: true } } } },
       },
-    };
+    });
 
-    buildQueryWithPagination(query, page, pageSize);
-
-    const [itemsWithRequests, total] = await Promise.all([
-      db.donorOfferItem.findMany(query),
-      db.donorOfferItem.count({ where }),
-    ]);
-    
     return {
       donorOffer,
       itemsWithRequests,
-      total,
     };
   }
 
-  static async createDonorOfferRequests(requests: DonorOfferItemsRequestsDTO[], partnerId: number): Promise<void> {
+  static async createDonorOfferRequests(
+    requests: DonorOfferItemsRequestsDTO[],
+    partnerId: number
+  ): Promise<void> {
     await db.$transaction(async (tx) => {
       await Promise.all(
         requests.map((item) => {
-          const priority = (item.priority as string) === "" ? null : (item.priority as RequestPriority);
+          const priority =
+            (item.priority as string) === ""
+              ? null
+              : (item.priority as RequestPriority);
 
-          return tx.donorOfferItemRequest.upsert({
+          return tx.generalItemRequest.upsert({
             where: {
-              donorOfferItemId_partnerId: {
-                donorOfferItemId: item.donorOfferItemId,
+              generalItemId_partnerId: {
+                generalItemId: item.donorOfferItemId,
                 partnerId: partnerId,
               },
             },
@@ -611,7 +572,7 @@ export default class DonorOfferService {
               priority: priority,
             },
             create: {
-              donorOfferItemId: item.donorOfferItemId,
+              generalItemId: item.donorOfferItemId,
               partnerId: partnerId,
               quantity: item.quantityRequested,
               comments: item.comments,
@@ -623,11 +584,14 @@ export default class DonorOfferService {
     });
   }
 
-  static async updateDonorOfferRequests(donorOfferId: number, requests: UpdateRequestItem[]): Promise<void> {
+  static async updateDonorOfferRequests(
+    donorOfferId: number,
+    requests: UpdateRequestItem[]
+  ): Promise<void> {
     await db.$transaction(async (tx) => {
       await Promise.all(
         requests.map(async (itemRequest) => {
-          const donorOfferItem = await tx.donorOfferItem.findFirst({
+          const donorOfferItem = await tx.generalItem.findFirst({
             where: {
               donorOfferId: donorOfferId,
               title: itemRequest.title,
@@ -638,11 +602,13 @@ export default class DonorOfferService {
           });
 
           if (!donorOfferItem) {
-            console.log(`Couldn't find matching donor offer item: ${itemRequest.title}`);
+            console.log(
+              `Couldn't find matching donor offer item: ${itemRequest.title}`
+            );
             return;
           }
 
-          await tx.donorOfferItem.update({
+          await tx.generalItem.update({
             where: {
               id: donorOfferItem.id,
             },
@@ -655,15 +621,13 @@ export default class DonorOfferService {
     });
   }
 
-  static async getFinalizeDetails(donorOfferId: number): Promise<FinalizeDetailsResult> {
+  static async getFinalizeDetails(
+    donorOfferId: number
+  ): Promise<FinalizeDetailsResult> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
       include: {
-        partnerVisibilities: {
-          include: {
-            partner: true,
-          },
-        },
+        partnerVisibilities: true,
       },
     });
 
@@ -684,8 +648,8 @@ export default class DonorOfferService {
       partnerRequestDeadline: formatDate(donorOffer.partnerResponseDeadline),
       donorRequestDeadline: formatDate(donorOffer.donorResponseDeadline),
       partners: donorOffer.partnerVisibilities.map((visibility) => ({
-        id: visibility.partner.id,
-        name: visibility.partner.name,
+        id: visibility.id,
+        name: visibility.name,
       })),
     };
   }
@@ -693,12 +657,18 @@ export default class DonorOfferService {
   static async finalizeDonorOffer(
     donorOfferId: number,
     formData: FormData,
-    parsedFileData: { data: Record<string, unknown>[]; fields: string[] } | null,
+    parsedFileData: {
+      data: Record<string, unknown>[];
+      fields: string[];
+    } | null,
     preview: boolean
   ): Promise<FinalizeDonorOfferResult> {
-    const partnerRequestDeadline = formData.get("partnerRequestDeadline") as string;
+    const partnerRequestDeadline = formData.get(
+      "partnerRequestDeadline"
+    ) as string;
     const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-    const state = (formData.get("state") as DonorOfferState) || DonorOfferState.FINALIZED;
+    const state =
+      (formData.get("state") as DonorOfferState) || DonorOfferState.FINALIZED;
 
     const partnerIds: number[] = [];
     formData.getAll("partnerIds").forEach((id) => {
@@ -707,7 +677,9 @@ export default class DonorOfferService {
     });
 
     if (!partnerRequestDeadline || !donorRequestDeadline) {
-      throw new ArgumentError("Partner request deadline and donor request deadline are required");
+      throw new ArgumentError(
+        "Partner request deadline and donor request deadline are required"
+      );
     }
 
     const partnerDeadline = new Date(partnerRequestDeadline);
@@ -740,11 +712,10 @@ export default class DonorOfferService {
       const validationResults = jsonData.map((row, index) => {
         const result = FinalizeDonorOfferItemSchema.safeParse(row);
         if (!result.success) {
-          const errorMessages = result.error.issues
-            .map((issue) => {
-              const field = issue.path.join(".");
-              return `Row ${index + 1}, Field '${field}': ${issue.message}`;
-            });
+          const errorMessages = result.error.issues.map((issue) => {
+            const field = issue.path.join(".");
+            return `Row ${index + 1}, Field '${field}': ${issue.message}`;
+          });
           return { valid: false, errors: errorMessages };
         }
         return { valid: true, data: result.data };
@@ -752,22 +723,50 @@ export default class DonorOfferService {
 
       const invalidRows = validationResults.filter((r) => !r.valid);
       if (invalidRows.length > 0) {
-        return { success: false, errors: invalidRows.flatMap((r) => r.errors as string[]) };
+        return {
+          success: false,
+          errors: invalidRows.flatMap((r) => r.errors as string[]),
+        };
       }
 
       validItems = validationResults
-        .filter((r): r is { valid: true; data: FinalizeDonorOfferItem } => r.valid)
+        .filter(
+          (r): r is { valid: true; data: FinalizeDonorOfferItem } => r.valid
+        )
         .map((r) => r.data);
     }
 
     if (preview) {
-      return { success: true, donorOfferId, createdCount: validItems.slice(0, 8).length };
+      return {
+        success: true,
+        donorOfferId,
+        createdCount: validItems.slice(0, 8).length,
+      };
     }
 
     await db.$transaction(async (tx) => {
+      const partners = await tx.user.findMany({
+        where: { id: { in: partnerIds }, type: UserType.PARTNER },
+        select: { id: true },
+      });
+      if (partners.length !== partnerIds.length) {
+        throw new ArgumentError("One or more partner IDs are invalid");
+      }
+
       const donorOffer = await tx.donorOffer.update({
         where: { id: donorOfferId },
-        data: donorOfferData,
+        data: {
+          ...(partnerIds.length > 0
+            ? {
+                partnerVisibilities: {
+                  connect: partnerIds.map((id) => ({
+                    id,
+                  })),
+                },
+              }
+            : {}),
+          ...donorOfferData,
+        },
         include: { items: true },
       });
 
@@ -779,27 +778,14 @@ export default class DonorOfferService {
             (di) =>
               item.title == di.title &&
               item.type === di.type &&
-              (item.expirationDate as Date).getTime() === (di.expirationDate as Date).getTime() &&
+              (item.expirationDate as Date).getTime() ===
+                (di.expirationDate as Date).getTime() &&
               item.unitType === di.unitType &&
               item.quantityPerUnit == di.quantityPerUnit
           )?.id,
         }));
 
-        await tx.item.createMany({ data: itemsWithDonorOfferItemId });
-      }
-
-      if (partnerIds.length > 0) {
-        await tx.donorOfferPartnerVisibility.deleteMany({ where: { donorOfferId } });
-        const partners = await tx.user.findMany({
-          where: { id: { in: partnerIds }, type: UserType.PARTNER },
-          select: { id: true },
-        });
-        if (partners.length !== partnerIds.length) {
-          throw new ArgumentError("One or more partner IDs are invalid");
-        }
-        await tx.donorOfferPartnerVisibility.createMany({
-          data: partnerIds.map((partnerId) => ({ donorOfferId, partnerId })),
-        });
+        await tx.lineItem.createMany({ data: itemsWithDonorOfferItemId });
       }
     });
 
@@ -807,46 +793,17 @@ export default class DonorOfferService {
   }
 
   static async getDonorOfferForEdit(
-    donorOfferId: number,
-    filters?: Filters,
-    page?: number,
-    pageSize?: number,
-  ): Promise<DonorOfferEditDetails | null> {
+    donorOfferId: number
+  ): Promise<DonorOfferUpdateParams | null> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
       include: {
-        partnerVisibilities: {
-          select: {
-            partner: {
-              select: { id: true, name: true },
-            },
-          },
-        },
+        items: true,
+        partnerVisibilities: true,
       },
     });
 
     if (!donorOffer) return null;
-
-    const filterWhere = buildWhereFromFilters<Prisma.DonorOfferItemWhereInput>(
-      Object.keys(Prisma.DonorOfferItemScalarFieldEnum),
-      filters,
-    );
-
-    const where: Prisma.DonorOfferItemWhereInput = {
-      ...filterWhere,
-      donorOfferId,
-    };
-
-    const query: Prisma.DonorOfferItemFindManyArgs = {
-      where,
-    };
-
-    buildQueryWithPagination(query, page, pageSize);
-
-    const [items, total] = await Promise.all([
-      db.donorOfferItem.findMany(query),
-      db.donorOfferItem.count({ where }),
-    ]);
 
     return {
       id: donorOffer.id,
@@ -854,76 +811,33 @@ export default class DonorOfferService {
       donorName: donorOffer.donorName,
       partnerResponseDeadline: donorOffer.partnerResponseDeadline,
       donorResponseDeadline: donorOffer.donorResponseDeadline,
-      items,
-      partners: donorOffer.partnerVisibilities.map((pv) => ({
-        id: pv.partner.id,
-        name: pv.partner.name,
-      })),
-      total,
+      partners: donorOffer.partnerVisibilities.map((pv) => pv.id),
+      state: donorOffer.state,
     };
   }
 
-  static async updateDonorOfferFromForm(donorOfferId: number, formData: FormData) {
-    console.log(formData);
-    const offerName = formData.get("offerName") as string;
-    const donorName = formData.get("donorName") as string;
-    const partnerRequestDeadline = formData.get("partnerRequestDeadline") as string;
-    const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-    const partnerIds = formData.getAll("partnerIds") as string[];
-    const items = (formData.getAll("items") as string[]).map((item) => JSON.parse(item));
-
-    return await db.$transaction(async (tx) => {
-      const updatedDonorOffer = await tx.donorOffer.update({
-        where: { id: donorOfferId },
-        data: {
-          offerName,
-          donorName,
-          partnerResponseDeadline: new Date(partnerRequestDeadline),
-          donorResponseDeadline: new Date(donorRequestDeadline),
-          state: DonorOfferState.UNFINALIZED,
-        },
-      });
-
-      await tx.donorOfferPartnerVisibility.deleteMany({
-        where: { donorOfferId },
-      });
-
-      await tx.donorOfferPartnerVisibility.createMany({
-        data: partnerIds.map((partnerId) => ({
-          donorOfferId,
-          partnerId: parseInt(partnerId),
-        })),
-      });
-
-      for (const item of items) {
-        if (item.id) {
-          await tx.donorOfferItem.update({
-            where: { id: item.id },
-            data: {
-              title: item.title,
-              type: item.type,
-              quantity: item.quantity,
-              expirationDate: item.expirationDate ? new Date(item.expirationDate) : null,
-              unitType: item.unitType,
-              quantityPerUnit: item.quantityPerUnit,
+  static async updateDonorOffer(
+    donorOfferId: number,
+    updateData: Partial<Omit<DonorOfferUpdateParams, "id">>
+  ) {
+    const update: Prisma.DonorOfferUpdateInput = {
+      offerName: updateData.offerName,
+      donorName: updateData.donorName,
+      partnerResponseDeadline: updateData.partnerResponseDeadline,
+      donorResponseDeadline: updateData.donorResponseDeadline,
+      ...(updateData.partners
+        ? {
+            partnerVisibilities: {
+              set: updateData.partners.map((p) => ({ id: p })),
             },
-          });
-        } else {
-          await tx.donorOfferItem.create({
-            data: {
-              donorOfferId,
-              title: item.title,
-              type: item.type,
-              quantity: item.quantity,
-              expirationDate: item.expirationDate ? new Date(item.expirationDate) : null,
-              unitType: item.unitType,
-              quantityPerUnit: item.quantityPerUnit,
-            },
-          });
-        }
-      }
+          }
+        : {}),
+      state: updateData.state,
+    };
 
-      return updatedDonorOffer;
+    return await db.donorOffer.update({
+      where: { id: donorOfferId },
+      data: update,
     });
   }
 
@@ -932,5 +846,20 @@ export default class DonorOfferService {
       where: { id: donorOfferId },
       data: { state: DonorOfferState.ARCHIVED },
     });
+  }
+
+  static async deleteDonorOffer(donorOfferId: number): Promise<void> {
+    try {
+      await db.donorOffer.delete({ where: { id: donorOfferId } });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2025"
+      ) {
+        return;
+      }
+
+      throw error;
+    }
   }
 }

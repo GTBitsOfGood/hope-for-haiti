@@ -3,14 +3,15 @@ import { exit } from "process";
 import { db } from "@/db";
 import { hash } from "argon2";
 import {
+  $Enums,
+  DonorOffer,
   DonorOfferState,
-  Item,
-  ItemCategory,
+  GeneralItem,
   Prisma,
   RequestPriority,
   UserType,
 } from "@prisma/client";
-import { GeneralItem } from "@/types/api/unallocatedItem.types";
+import { Partner } from "@/components/DonorOffers";
 
 const donorNames = ["Donor A", "Donor B", "Donor C", "Donor D"];
 const lots = ["Lot A", "Lot B", "Lot C", "Lot D"];
@@ -193,124 +194,126 @@ const partnerDetailsTemplate = {
     "Blood pressure monitors, glucometers, wound care supplies",
 };
 
-const generalItems: Array<GeneralItem> = [
+const generalItems: Array<Omit<GeneralItem, "id" | "donorOfferId">> = [
   {
     title: "Advil",
     type: "Pain Killer",
-    expirationDate: dateOffset(30).toISOString(),
+    expirationDate: dateOffset(30),
     unitType: "Bottle",
     quantityPerUnit: 50,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Tylenol",
     type: "Pain Killer",
-    expirationDate: dateOffset(4 * 30).toISOString(),
+    expirationDate: dateOffset(4 * 30),
     unitType: "Bottle",
     quantityPerUnit: 20,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Bandages",
     type: "First Aid",
-    expirationDate: dateOffset(20 * 12 * 30).toISOString(),
+    expirationDate: dateOffset(20 * 12 * 30),
     unitType: "Box",
     quantityPerUnit: 100,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Apples",
     type: "Fruit",
-    expirationDate: dateOffset(15).toISOString(),
+    expirationDate: dateOffset(15),
     unitType: "Box",
     quantityPerUnit: 4,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Bananas",
     type: "Fruit",
-    expirationDate: dateOffset(15).toISOString(),
+    expirationDate: dateOffset(15),
     unitType: "Bundle",
     quantityPerUnit: 4,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
-];
-
-interface ItemTemplate extends GeneralItem {
-  category: ItemCategory;
-  unitPrice: Prisma.Decimal;
-  maxRequestLimit: string | null;
-}
-
-const itemTemplates: Array<ItemTemplate> = [
   {
     title: "Advil",
     type: "Pain Killer",
-    expirationDate: dateOffset(30).toISOString(),
+    expirationDate: dateOffset(30),
     unitType: "Bottle",
     quantityPerUnit: 50,
-    category: ItemCategory.MEDICATION,
-    unitPrice: new Prisma.Decimal(10),
-    maxRequestLimit: null,
+    initialQuantity: 100,
+    requestQuantity: 0,
+  },
+];
+
+const itemTemplates: Array<Omit<GeneralItem, "id" | "donorOfferId">> = [
+  {
+    title: "Advil",
+    type: "Pain Killer",
+    expirationDate: dateOffset(30),
+    unitType: "Bottle",
+    quantityPerUnit: 50,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Tylenol",
     type: "Pain Killer",
-    expirationDate: dateOffset(4 * 30).toISOString(),
+    expirationDate: dateOffset(4 * 30),
     unitType: "Bottle",
     quantityPerUnit: 20,
-    category: ItemCategory.MEDICATION,
-    unitPrice: new Prisma.Decimal(5),
-    maxRequestLimit: null,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Bandages",
     type: "First Aid",
-    expirationDate: null as unknown as string,
+    expirationDate: dateOffset(20 * 12 * 30),
     unitType: "Box",
     quantityPerUnit: 100,
-    category: ItemCategory.MEDICAL_SUPPLY,
-    unitPrice: new Prisma.Decimal(25),
-    maxRequestLimit: null,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Apples",
     type: "Fruit",
-    expirationDate: dateOffset(15).toISOString(),
+    expirationDate: dateOffset(15),
     unitType: "Box",
     quantityPerUnit: 4,
-    category: ItemCategory.NON_MEDICAL,
-    unitPrice: new Prisma.Decimal(2),
-    maxRequestLimit: null,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
   {
     title: "Bananas",
     type: "Fruit",
-    expirationDate: dateOffset(15).toISOString(),
+    expirationDate: dateOffset(15),
     unitType: "Bundle",
     quantityPerUnit: 4,
-    category: ItemCategory.NON_MEDICAL,
-    unitPrice: new Prisma.Decimal(1.5),
-    maxRequestLimit: null,
+    initialQuantity: 100,
+    requestQuantity: 0,
   },
 ];
 
-function genItem(props: Partial<Item> = {}): Omit<Item, "id"> {
+function genItem(
+  donorOfferId: number,
+  props: Partial<GeneralItem> = {}
+): Omit<GeneralItem, "id"> {
   const template = pick(itemTemplates);
   return {
     ...template,
-    expirationDate: template.expirationDate
-      ? new Date(template.expirationDate)
-      : null,
-    donorName: pick(donorNames),
-    quantity: randInt(1, 10) * 10,
-    lotNumber: pick(lots),
-    palletNumber: pick(pallets),
-    boxNumber: pick(boxes),
-    donorShippingNumber: null,
-    hfhShippingNumber: null,
-    datePosted: new Date(),
-    ndc: null,
-    notes: null,
-    allowAllocations: true,
-    visible: true,
-    gik: true,
-    donorOfferItemId: null,
+    donorOfferId,
+    expirationDate: dateOffset(randInt(15, 20 * 12 * 30)),
+    initialQuantity: randInt(1, 4) * 5,
+    requestQuantity: 0,
+    title: template.title,
+    type: template.type,
+    unitType: template.unitType,
+    quantityPerUnit: template.quantityPerUnit,
     ...props,
   };
 }
@@ -318,18 +321,16 @@ function genItem(props: Partial<Item> = {}): Omit<Item, "id"> {
 async function run() {
   await db.$transaction(async (tx) => {
     await tx.shippingStatus.deleteMany();
-    await tx.donorOfferPartnerVisibility.deleteMany();
-    await tx.donorOfferItemRequestAllocation.deleteMany();
-    await tx.donorOfferItemRequest.deleteMany();
-    await tx.donorOfferItem.deleteMany();
     await tx.donorOffer.deleteMany();
-    await tx.unallocatedItemRequestAllocation.deleteMany();
-    await tx.unallocatedItemRequest.deleteMany();
     await tx.distribution.deleteMany();
     await tx.signOff.deleteMany();
     await tx.user.deleteMany();
     await tx.userInvite.deleteMany();
-    await tx.item.deleteMany();
+    await tx.generalItem.deleteMany();
+    await tx.lineItem.deleteMany();
+    await tx.wishlist.deleteMany();
+    await tx.allocation.deleteMany();
+    await tx.generalItemRequest.deleteMany();
 
     const pwHash = await hash("root");
 
@@ -420,20 +421,93 @@ async function run() {
       },
     });
 
-    await tx.item.createManyAndReturn({
-      data: Array.from({ length: 100 }, () => genItem()),
-    });
-
-    const partners = await tx.user.findMany({
+    const partners: Partner[] = await tx.user.findMany({
       where: { type: UserType.PARTNER },
     });
 
-    await tx.unallocatedItemRequest.createManyAndReturn({
-      data: Array.from({ length: 20 }, () => {
-        const genItem = pick(generalItems);
+    function getGenItemsToConnect(): Prisma.GeneralItemCreateWithoutDonorOfferInput[] {
+      return sample(randInt(1, 3), generalItems).map((item, index) => ({
+        ...item,
+        initialQuantity: randInt(1, 3) * 10,
+        title: `${item.title} ${index}`,
+        requests: {
+          create: [
+            {
+              partnerId: pick(partners).id,
+              quantity: randInt(1, 4) * 5,
+            },
+          ],
+        },
+      }));
+    }
+
+    const donorOffers: DonorOffer[] = await Promise.all(
+      [
+        {
+          state: DonorOfferState.UNFINALIZED,
+          offerName: "Offer A",
+          donorName: "Donor A",
+          partnerResponseDeadline: dateOffset(20),
+          donorResponseDeadline: dateOffset(30),
+          items: {
+            create: getGenItemsToConnect(),
+          },
+          partnerVisibilities: {
+            connect: partners.map((p) => ({ id: p.id })),
+          },
+        },
+        {
+          state: DonorOfferState.UNFINALIZED,
+          offerName: "Offer B",
+          donorName: "Donor B",
+          partnerResponseDeadline: dateOffset(20),
+          donorResponseDeadline: dateOffset(30),
+          items: {
+            create: getGenItemsToConnect(),
+          },
+          partnerVisibilities: {
+            connect: partners.map((p) => ({ id: p.id })),
+          },
+        },
+        {
+          state: DonorOfferState.UNFINALIZED,
+          offerName: "Offer C",
+          donorName: "Donor C",
+          partnerResponseDeadline: dateOffset(20),
+          donorResponseDeadline: dateOffset(30),
+          items: {
+            create: getGenItemsToConnect(),
+          },
+          partnerVisibilities: {
+            connect: partners.map((p) => ({ id: p.id })),
+          },
+        },
+        {
+          state: DonorOfferState.UNFINALIZED,
+          offerName: "Offer D",
+          donorName: "Donor D",
+          partnerResponseDeadline: dateOffset(20),
+          donorResponseDeadline: dateOffset(30),
+          items: {
+            create: getGenItemsToConnect(),
+          },
+          partnerVisibilities: {
+            connect: partners.map((p) => ({ id: p.id })),
+          },
+        },
+      ].map((data) => tx.donorOffer.create({ data })) // Can't use createMany with relational data
+    );
+
+    const actualGeneralItems: GeneralItem[] =
+      await tx.generalItem.createManyAndReturn({
+        data: donorOffers.map((offer) => genItem(offer.id)),
+      });
+
+    await tx.generalItemRequest.createManyAndReturn({
+      data: actualGeneralItems.flatMap((genItem) => {
         return {
           partnerId: pick(partners).id,
-          ...genItem,
+          generalItemId: genItem.id,
           priority: pick(Object.values(RequestPriority)) as RequestPriority,
           quantity: randInt(1, 4) * 5,
           comments: "pls",
@@ -443,7 +517,7 @@ async function run() {
 
     await tx.wishlist.createManyAndReturn({
       data: Array.from({ length: 20 }, () => {
-        const genItem = pick(generalItems);
+        const genItem = pick(actualGeneralItems);
         return {
           partnerId: pick(partners).id,
           name: genItem.title,
@@ -456,123 +530,55 @@ async function run() {
     });
 
     await Promise.all(
-      (
-        [
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer A",
-            donorName: "Donor A",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: sample(4, partners).map((partner) => ({
-                    partnerId: partner.id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(
-                      Object.values(RequestPriority)
-                    ) as RequestPriority,
-                  })),
+      Array.from({ length: 10 }, (_, index) => ({
+        partnerId: partners[index % partners.length].id,
+        allocations: {
+          create: [
+            {
+              partner: {
+                connect: { id: partners[index % partners.length].id },
+              },
+              lineItem: {
+                create: {
+                  generalItem: {
+                    connect: { id: pick(actualGeneralItems).id },
+                  },
+                  category: $Enums.ItemCategory.MEDICAL_SUPPLY,
+                  donorName: pick(donorNames),
+                  quantity: randInt(1, 4) * 5,
+                  lotNumber: pick(lots),
+                  palletNumber: pick(pallets),
+                  boxNumber: pick(boxes),
+                  unitPrice: randInt(1, 4) * 5,
+                  allowAllocations: false,
+                  visible: false,
+                  gik: false,
                 },
-              })),
-            },
-            partnerVisibilities: {
-              create: partners.map((partner: { id: number }) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer B",
-            donorName: "Donor B",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: sample(2, partners).map((partner) => ({
-                    partnerId: partner.id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(
-                      Object.values(RequestPriority)
-                    ) as RequestPriority,
-                  })),
+              },
+              signOff: {
+                create: {
+                  staffMemberName: "Staff Member",
+                  partnerId: partners[index % partners.length].id,
+                  partnerName: partners[index % partners.length].name,
+                  signatureUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                  date: new Date(),
                 },
-              })),
+              },
             },
-            partnerVisibilities: {
-              create: partners.map((partner: { id: number }) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer C",
-            donorName: "Donor C",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: sample(1, partners).map((partner) => ({
-                    partnerId: partner.id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(
-                      Object.values(RequestPriority)
-                    ) as RequestPriority,
-                  })),
-                },
-              })),
-            },
-            partnerVisibilities: {
-              create: partners.map((partner: { id: number }) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-          {
-            state: DonorOfferState.UNFINALIZED,
-            offerName: "Offer D",
-            donorName: "Donor D",
-            partnerResponseDeadline: dateOffset(20),
-            donorResponseDeadline: dateOffset(30),
-            items: {
-              create: sample(randInt(2, 4), generalItems).map((item) => ({
-                ...item,
-                quantity: randInt(1, 3) * 10,
-                requests: {
-                  create: sample(3, partners).map((partner) => ({
-                    partnerId: partner.id,
-                    quantity: randInt(1, 8),
-                    comments: "pls give me this",
-                    priority: pick(
-                      Object.values(RequestPriority)
-                    ) as RequestPriority,
-                  })),
-                },
-              })),
-            },
-            partnerVisibilities: {
-              create: partners.map((partner: { id: number }) => ({
-                partnerId: partner.id,
-              })),
-            },
-          },
-        ] as Prisma.DonorOfferCreateInput[]
-      ).map((data) => tx.donorOffer.create({ data }))
+          ],
+        },
+      })).map((data) => tx.distribution.create({ data }))
     );
+  });
+
+  await db.shippingStatus.createMany({
+    data: Array.from({ length: 10 }, (_, index) => ({
+      donorShippingNumber: `SH${index}`,
+      hfhShippingNumber: `HFH${index}`,
+      value: Object.values($Enums.ShipmentStatus)[
+        index % Object.values($Enums.ShipmentStatus).length
+      ],
+    })),
   });
 }
 

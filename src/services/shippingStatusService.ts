@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { Item, Prisma, ShippingStatus } from "@prisma/client";
+import { LineItem, Prisma, ShippingStatus } from "@prisma/client";
 import {
   ShippingStatusWithItems,
   UpdateShippingStatusData,
@@ -11,95 +11,87 @@ export class ShippingStatusService {
   static async getShippingStatuses(
     filters?: Filters,
     page?: number,
-    pageSize?: number,
+    pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    const { itemFilters, statusFilters } = this.splitShippingFilters(filters);
+    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
 
-    const itemWhereFilters = buildWhereFromFilters<Prisma.ItemWhereInput>(
-      Object.keys(Prisma.ItemScalarFieldEnum),
-      itemFilters,
+    const lineItemWhereFilters = buildWhereFromFilters<Prisma.LineItemWhereInput>(
+      Object.keys(Prisma.LineItemScalarFieldEnum),
+      lineItemFilters
     );
 
-    const clauses: Prisma.ItemWhereInput[] = [
+    const clauses: Prisma.LineItemWhereInput[] = [
       {
         donorShippingNumber: { not: null },
         hfhShippingNumber: { not: null },
       },
     ];
 
-    if (Object.keys(itemWhereFilters).length > 0) {
-      clauses.push(itemWhereFilters);
+    if (Object.keys(lineItemWhereFilters).length > 0) {
+      clauses.push(lineItemWhereFilters);
     }
 
-    return this.buildShippingStatusResponse(clauses, statusFilters, page, pageSize);
+    return this.buildShippingStatusResponse(
+      clauses,
+      statusFilters,
+      page,
+      pageSize
+    );
   }
 
   static async getPartnerShippingStatuses(
     partnerId: number,
     filters?: Filters,
     page?: number,
-    pageSize?: number,
+    pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    const { itemFilters, statusFilters } = this.splitShippingFilters(filters);
+    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
 
-    const itemWhereFilters = buildWhereFromFilters<Prisma.ItemWhereInput>(
-      Object.keys(Prisma.ItemScalarFieldEnum),
-      itemFilters,
+    const lineItemWhereFilters = buildWhereFromFilters<Prisma.LineItemWhereInput>(
+      Object.keys(Prisma.LineItemScalarFieldEnum),
+      lineItemFilters
     );
 
-    const clauses: Prisma.ItemWhereInput[] = [
+    const clauses: Prisma.LineItemWhereInput[] = [
       {
         donorShippingNumber: { not: null },
         hfhShippingNumber: { not: null },
       },
       {
-        OR: [
-          {
-            unallocatedItemRequestAllocations: {
-              some: {
-                partnerId,
-              },
-            },
-          },
-          {
-            unallocatedItemRequestAllocations: {
-              some: {
-                unallocatedItemRequest: {
-                  partnerId,
-                },
-              },
-            },
-          },
-          {
-            donorOfferItemRequestAllocations: {
-              some: {
-                donorOfferItemRequest: {
-                  partnerId,
-                },
-              },
-            },
-          },
-        ],
+        allocation: {
+          partnerId,
+        },
       },
     ];
 
-    if (Object.keys(itemWhereFilters).length > 0) {
-      clauses.push(itemWhereFilters);
+    if (Object.keys(lineItemWhereFilters).length > 0) {
+      clauses.push(lineItemWhereFilters);
     }
 
-    return this.buildShippingStatusResponse(clauses, statusFilters, page, pageSize);
+    return this.buildShippingStatusResponse(
+      clauses,
+      statusFilters,
+      page,
+      pageSize
+    );
   }
 
   private static splitShippingFilters(filters?: Filters): {
-    itemFilters?: Filters;
+    lineItemFilters?: Filters;
     statusFilters?: Filters;
   } {
     if (!filters) {
       return {};
     }
 
-    const itemFieldKeys = new Set(Object.keys(Prisma.ItemScalarFieldEnum));
-    const itemFilters: Filters = {};
+    const lineItemFieldKeys = new Set(
+      Object.keys(Prisma.LineItemScalarFieldEnum)
+    );
+    const statusFieldKeys = new Set(
+      Object.keys(Prisma.ShippingStatusScalarFieldEnum)
+    );
+
+    const lineItemFilters: Filters = {};
     const statusFilters: Filters = {};
 
     for (const [key, value] of Object.entries(filters)) {
@@ -107,16 +99,20 @@ export class ShippingStatusService {
         continue;
       }
 
-      if (itemFieldKeys.has(key)) {
-        itemFilters[key] = value;
-      } else {
+      if (lineItemFieldKeys.has(key)) {
+        lineItemFilters[key] = value;
+      } else if (statusFieldKeys.has(key)) {
         statusFilters[key] = value;
       }
     }
 
     return {
-      itemFilters: Object.keys(itemFilters).length ? itemFilters : undefined,
-      statusFilters: Object.keys(statusFilters).length ? statusFilters : undefined,
+      lineItemFilters: Object.keys(lineItemFilters).length
+        ? lineItemFilters
+        : undefined,
+      statusFilters: Object.keys(statusFilters).length
+        ? statusFilters
+        : undefined,
     };
   }
 
@@ -127,29 +123,32 @@ export class ShippingStatusService {
 
     switch (filter.type) {
       case "string": {
-        if (typeof value !== "string") return false;
-        return value.toLowerCase().includes(filter.value.toLowerCase());
+        return String(value).toLowerCase().includes(filter.value.toLowerCase());
       }
       case "enum": {
-        if (typeof value !== "string") return false;
-        return filter.values.includes(value);
+        return filter.values.includes(String(value));
       }
       case "number": {
-        if (typeof value !== "number") return false;
-        if (value < filter.gte) return false;
-        if (filter.lte !== undefined && value > filter.lte) return false;
-        return true;
+        const num = Number(value);
+        if (Number.isNaN(num)) {
+          return false;
+        }
+        if (filter.lte !== undefined) {
+          return num >= filter.gte && num <= filter.lte;
+        }
+        return num >= filter.gte;
       }
       case "date": {
-        const date = value instanceof Date ? value : new Date(value);
-        if (isNaN(date.getTime())) return false;
-        const gteDate = new Date(filter.gte);
-        if (date < gteDate) return false;
-        if (filter.lte) {
-          const lteDate = new Date(filter.lte);
-          if (date > lteDate) return false;
+        const dateValue = new Date(value as string).getTime();
+        const gte = new Date(filter.gte).getTime();
+        const lte = filter.lte ? new Date(filter.lte).getTime() : undefined;
+        if (Number.isNaN(dateValue)) {
+          return false;
         }
-        return true;
+        if (lte) {
+          return dateValue >= gte && dateValue <= lte;
+        }
+        return dateValue >= gte;
       }
       default:
         return false;
@@ -157,14 +156,15 @@ export class ShippingStatusService {
   }
 
   private static async buildShippingStatusResponse(
-    clauses: Prisma.ItemWhereInput[],
+    clauses: Prisma.LineItemWhereInput[],
     statusFilters?: Filters,
     page?: number,
-    pageSize?: number,
+    pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    const where: Prisma.ItemWhereInput = clauses.length > 1 ? { AND: clauses } : clauses[0];
+    const where: Prisma.LineItemWhereInput =
+      clauses.length > 1 ? { AND: clauses } : clauses[0];
 
-    const shippingNumberPairs = await db.item.findMany({
+    const shippingNumberPairs = await db.lineItem.findMany({
       where,
       distinct: ["donorShippingNumber", "hfhShippingNumber"],
       select: {
@@ -174,8 +174,10 @@ export class ShippingStatusService {
     });
 
     const validPairs = shippingNumberPairs.filter(
-      (pair): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
-        Boolean(pair.donorShippingNumber && pair.hfhShippingNumber),
+      (
+        pair
+      ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
+        Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
     );
 
     if (validPairs.length === 0) {
@@ -218,8 +220,11 @@ export class ShippingStatusService {
     const filteredPairs = statusFilters
       ? pairsWithStatuses.filter(({ status }) =>
           Object.entries(statusFilters).every(([field, filter]) =>
-            this.matchesFilterValue((status as Record<string, unknown>)[field], filter),
-          ),
+            this.matchesFilterValue(
+              (status as Record<string, unknown>)[field],
+              filter as FilterValue
+            )
+          )
         )
       : pairsWithStatuses;
 
@@ -232,12 +237,12 @@ export class ShippingStatusService {
       paginatedPairs = filteredPairs.slice(offset, offset + pageSize);
     }
 
-    const items: Item[][] = [];
+    const items: LineItem[][] = [];
     const shippingStatuses: ShippingStatus[] = [];
 
     await Promise.all(
       paginatedPairs.map(async ({ pair, status }, index) => {
-        const lineItems = await db.item.findMany({
+        const lineItems = await db.lineItem.findMany({
           where: {
             donorShippingNumber: pair.donorShippingNumber,
             hfhShippingNumber: pair.hfhShippingNumber,
@@ -249,7 +254,7 @@ export class ShippingStatusService {
           ...status,
           id: offset + index,
         };
-      }),
+      })
     );
 
     return {

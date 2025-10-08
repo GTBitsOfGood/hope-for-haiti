@@ -1,16 +1,12 @@
-export interface SignedOffDistribution {
-  allocationType: "unallocated" | "donorOffer";
-  allocationId: number;
-  actualQuantity: number;
-}
+import { DistributionItem } from "@/types/api/distribution.types";
 
 export interface CreateSignOffData {
   partnerId: number;
   staffName: string;
   partnerName: string;
   date: Date;
-  signatureBlob: string;
-  distributions: SignedOffDistribution[];
+  signatureUrl: string;
+  allocations: number[];
 }
 
 export interface SignOffSummary {
@@ -31,16 +27,6 @@ export interface SignOffDetails {
   date: Date;
   staffMemberName: string;
   partnerName: string;
+  partnerId: number;
   distributions: DistributionItem[];
-}
-
-export interface DistributionItem {
-  id: number;
-  title: string;
-  type: string;
-  expirationDate: Date | null;
-  unitType: string;
-  quantityPerUnit: number;
-  quantityAllocated: number;
-  actualQuantity: number;
 }
