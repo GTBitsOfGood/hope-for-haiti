@@ -82,9 +82,8 @@ export async function PATCH(
       throw new AuthorizationError("Admin access required");
     }
 
-    const resolvedParams = await params;
     const parsedParams = paramSchema.safeParse({
-      distributionId: resolvedParams.distributionId,
+      distributionId: (await params).distributionId,
     });
 
     if (!parsedParams.success) {
@@ -130,9 +129,8 @@ export async function DELETE(
       throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
     }
 
-    const resolvedParams = await params;
     const parsed = paramSchema.safeParse({
-      distributionId: resolvedParams.distributionId,
+      distributionId: (await params).distributionId,
     });
 
     if (!parsed.success) {
