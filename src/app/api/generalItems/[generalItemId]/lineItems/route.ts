@@ -5,9 +5,10 @@ import { LineItemService } from "@/services/lineItemService";
 import {
   ArgumentError,
   AuthenticationError,
+  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   _: NextRequest,
@@ -21,7 +22,7 @@ export async function GET(
     }
 
     if (!isAdmin(session.user.type)) {
-      throw new AuthenticationError("You are not allowed to view items");
+      throw new AuthorizationError("You are not allowed to view items");
     }
 
     const { generalItemId } = await params;
@@ -30,7 +31,7 @@ export async function GET(
       Number(generalItemId)
     );
 
-    return new Response(JSON.stringify(items), { status: 200 });
+    return NextResponse.json(items, { status: 200 });
   } catch (error) {
     return errorResponse(error);
   }
@@ -65,7 +66,7 @@ export async function POST(
       Number(generalItemId)
     );
 
-    return new Response(JSON.stringify(newItem), { status: 201 });
+    return NextResponse.json(newItem, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }
