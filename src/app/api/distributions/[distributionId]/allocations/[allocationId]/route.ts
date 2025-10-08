@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import AllocationService from "@/services/allocationService";
 import UserService from "@/services/userService";
 import {
+  ArgumentError,
   AuthenticationError,
   AuthorizationError,
   errorResponse,
@@ -54,12 +55,12 @@ export async function PATCH(
 
     const distributionId = parseInt((await params).distributionId);
     if (isNaN(distributionId) || distributionId <= 0) {
-      throw new Error("Invalid distribution ID");
+      throw new ArgumentError("Invalid distribution ID");
     }
 
     const allocationId = parseInt((await params).allocationId);
     if (isNaN(allocationId) || allocationId <= 0) {
-      throw new Error("Invalid allocation ID");
+      throw new ArgumentError("Invalid allocation ID");
     }
 
     const allocation = await AllocationService.updateAllocation(allocationId, {
@@ -90,10 +91,11 @@ export async function DELETE(
 
     const allocationId = parseInt((await params).allocationId);
     if (isNaN(allocationId) || allocationId <= 0) {
-      throw new Error("Invalid allocation ID");
+      throw new ArgumentError("Invalid allocation ID");
     }
 
     await AllocationService.deleteAllocation(allocationId);
+    
     return ok();
   } catch (error) {
     return errorResponse(error);
