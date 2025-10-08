@@ -1,5 +1,3 @@
-import { LineItem } from "@prisma/client";
-
 export interface CreateSignOffData {
   partnerId: number;
   staffName: string;
@@ -15,12 +13,4 @@ export interface SignOffSummary {
   dateCreated: Date;
   signOffDate: Date;
   status: string;
-}
-
-export interface SignOffDetails {
-  id: number;
-  date: Date;
-  staffMemberName: string;
-  partnerName: string;
-  allocatedItems: LineItem[];
 }

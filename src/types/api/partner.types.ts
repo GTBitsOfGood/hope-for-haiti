@@ -16,12 +16,6 @@ export interface PartnerDetails {
   itemRequestCount: number;
 }
 
-export interface UnallocatedItemRequestSummary {
-  id: number;
-  quantity: number;
-  comments: string;
-}
-
 export interface GetPartnersParams {
   term?: string;
 }

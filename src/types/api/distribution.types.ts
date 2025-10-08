@@ -53,11 +53,3 @@ export interface PartnerAllocationSummary {
   allocationsCount: number;
   pendingSignOffCount: number;
 }
-
-export interface SignOff {
-  staffMemberName: string;
-  partnerName: string;
-  date: Date;
-  signatureUrl: string;
-  partnerId: number;
-}
