@@ -5,7 +5,6 @@ import {
   ArgumentError,
   AuthenticationError,
   errorResponse,
-  ok,
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
