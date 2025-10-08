@@ -5,28 +5,19 @@ import { auth } from "@/auth";
 import UserService from "@/services/userService";
 import DistributionService from "@/services/distributionService";
 import {
-  ArgumentError,
   AuthenticationError,
   AuthorizationError,
   errorResponse,
 } from "@/util/errors";
+import { allocationSchema } from "@/types/api/allocation.types";
 
-const searchParamsSchema = z.object({
-  visible: z
-    .string()
-    .optional()
-    .transform((val) => {
-      if (!val) return null;
-      return val === "true" ? true : val === "false" ? false : null;
-    }),
-  partnerId: z
-    .string()
-    .optional()
-    .transform((val) => (val ? parseInt(val) : undefined))
-    .pipe(z.number().int().positive()),
+const postSchema = z.object({
+  partnerId: z.number().int().positive(),
+  pending: z.boolean().optional(),
+  allocations: z.array(allocationSchema).optional(),
 });
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -37,7 +28,8 @@ export async function GET(request: NextRequest) {
 
     if (user.type === "PARTNER") {
       const partnerId = parseInt(user.id);
-      const result = await DistributionService.getPartnerDistributions(partnerId);
+      const result =
+        await DistributionService.getPartnerDistributions(partnerId);
       return NextResponse.json(result);
     }
 
@@ -45,20 +37,47 @@ export async function GET(request: NextRequest) {
       throw new AuthorizationError("You are not allowed to view this");
     }
 
-    const searchParams = new URL(request.url).searchParams;
-    const parsed = searchParamsSchema.safeParse({
-      visible: searchParams.get("visible"),
-      partnerId: searchParams.get("partnerId"),
-    });
+    const result = await DistributionService.getAllDistributions();
+    return NextResponse.json(result);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
 
-    if (!parsed.success) {
-      throw new ArgumentError(parsed.error.message);
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
     }
 
-    const { visible, partnerId } = parsed.data;
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError("Admin access required");
+    }
 
-    const result = await DistributionService.getAdminDistributions(partnerId, visible);
-    return NextResponse.json(result);
+    const form = await request.formData();
+    const formObj = {
+      partnerId: form.get("partnerId")
+        ? parseInt(form.get("partnerId") as string)
+        : undefined,
+      pending: form.get("pending") ? form.get("pending") === "true" : undefined,
+      allocations: form
+        .getAll("allocation")
+        .map((a) => JSON.parse(a as string)),
+    };
+
+    const parsed = postSchema.safeParse(formObj);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.errors.map((e) => e.message).join(", ") },
+        { status: 400 }
+      );
+    }
+
+    const distribution = await DistributionService.createDistribution(
+      parsed.data
+    );
+    return NextResponse.json(distribution, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }

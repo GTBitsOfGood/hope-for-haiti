@@ -1,4 +1,4 @@
-import { ShipmentStatus, Item } from "@prisma/client";
+import { LineItem, ShipmentStatus } from "@prisma/client";
 
 export interface AllocatedItem {
   title: string;
@@ -10,7 +10,7 @@ export interface AllocatedItem {
   shipmentStatus: ShipmentStatus;
 }
 
-export interface DistributionItem extends Item {
+export interface DistributionItem extends LineItem {
   shipmentStatus: ShipmentStatus;
   quantityAllocated: number;
 }
@@ -35,30 +35,8 @@ export interface PartnerDistributionsResponse {
 }
 
 export interface PartnerDistributionsResult {
-  items: AllocatedItem[];
   distributionItems: DistributionItem[];
   signedDistributions: SignedDistribution[];
-}
-
-export interface DistributionRecord {
-  allocationType: string;
-  allocationId: number;
-  title: string;
-  unitType: string;
-  donorName: string;
-  lotNumber: string;
-  palletNumber: string;
-  boxNumber: string;
-  unitPrice: number;
-  quantityAllocated: number;
-  quantityAvailable: number;
-  quantityTotal: number;
-  donorShippingNumber: string | null;
-  hfhShippingNumber: string | null;
-}
-
-export interface AdminDistributionsResult {
-  records: DistributionRecord[];
 }
 
 export interface CompletedSignOff {
@@ -66,21 +44,12 @@ export interface CompletedSignOff {
   staffMemberName: string;
   date: Date;
   createdAt: Date;
-  distributionCount: number;
+  allocationCount: number;
 }
 
 export interface PartnerAllocationSummary {
   partnerId: number;
   partnerName: string;
-  visibleAllocationsCount: number;
-  hiddenAllocationsCount: number;
+  allocationsCount: number;
   pendingSignOffCount: number;
-}
-
-export interface SignOff {
-  staffMemberName: string;
-  partnerName: string;
-  date: Date;
-  signatureUrl: string;
-  partnerId: number;
 }

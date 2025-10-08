@@ -1,7 +1,7 @@
 export interface PartnerSummary {
   name: string;
   email: string;
-  unallocatedItemRequestCount: number;
+  itemRequestCount: number;
 }
 
 export interface PartnerSearchResult {
@@ -13,13 +13,7 @@ export interface PartnerDetails {
   id: number;
   name: string;
   email: string;
-  unallocatedItemRequestCount: number;
-}
-
-export interface UnallocatedItemRequestSummary {
-  id: number;
-  quantity: number;
-  comments: string;
+  itemRequestCount: number;
 }
 
 export interface GetPartnersParams {

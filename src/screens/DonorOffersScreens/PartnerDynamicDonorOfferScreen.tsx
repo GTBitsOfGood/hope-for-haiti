@@ -155,7 +155,7 @@ export default function PartnerDynamicDonorOfferScreen() {
       title: row.title,
       type: row.type,
       expiration: row.expiration,
-      quantity: row.quantity,
+      initialQuantity: row.initialQuantity,
       unitSize: row.unitSize,
       quantityRequested: row.quantityRequested,
       comments: modalComment,
@@ -265,7 +265,7 @@ export default function PartnerDynamicDonorOfferScreen() {
               item.title,
               item.type,
               item.expiration,
-              item.quantity,
+              item.initialQuantity,
               "Bottle",
               "1", // Hardcoded -- replace when possible
               tableConditional(
@@ -337,7 +337,6 @@ export default function PartnerDynamicDonorOfferScreen() {
               </button>,
             ],
           }))}
-          
         />
       )}
 
