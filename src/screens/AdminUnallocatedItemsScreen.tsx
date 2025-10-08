@@ -28,6 +28,7 @@ interface UnallocatedItemData {
 }
 import { useFetch } from "@/hooks/useFetch";
 import { $Enums } from "@prisma/client";
+import { Filters } from "@/types/api/filter.types";
 
 enum ExpirationFilterKey {
   ALL = "All",
@@ -64,11 +65,16 @@ function generateFetchUrl(filterKey: ExpirationFilterKey): string {
     ).toISOString();
   }
 
-  const url = new URL("/api/unallocatedItems", window.location.origin);
-  if (expirationDateBefore)
-    url.searchParams.set("expirationDateBefore", expirationDateBefore);
-  if (expirationDateAfter)
-    url.searchParams.set("expirationDateAfter", expirationDateAfter);
+  const filter: Filters<UnallocatedItemData> = {};
+  if (expirationDateBefore || expirationDateAfter)
+    filter.expirationDate = {
+      type: "date",
+      gte: expirationDateAfter ?? new Date(0).toISOString(),
+      lte: expirationDateBefore ?? undefined,
+    };
+
+  const url = new URL("/api/generalItems/unallocated", window.location.origin);
+  url.searchParams.append("filters", JSON.stringify(filter));
 
   return url.toString();
 }
@@ -86,6 +92,8 @@ export default function AdminUnallocatedItemsScreen() {
   const [filteredItems, setFilteredItems] = useState<
     UnallocatedItemData[] | null
   >(null);
+
+  // const [selectedItem, setSelectedItem] = useState<UnallocatedItemData>();
 
   const {
     isLoading,
@@ -241,17 +249,7 @@ export default function AdminUnallocatedItemsScreen() {
               item.requests.length,
             ],
             onClick: () => {
-              router.push(
-                `/unallocatedItems/requests?${new URLSearchParams({
-                  title: item.title,
-                  type: item.type,
-                  unitType: item.unitType,
-                  quantityPerUnit: item.quantityPerUnit.toString(),
-                  ...(item.expirationDate
-                    ? { expirationDate: item.expirationDate }
-                    : {}),
-                }).toString()}`
-              );
+              setSelectedItem(item);
             },
           }))}
         />
