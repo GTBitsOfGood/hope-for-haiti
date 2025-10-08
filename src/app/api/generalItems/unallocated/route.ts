@@ -6,6 +6,7 @@ import {
   AuthorizationError,
   errorResponse,
 } from "@/util/errors";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
@@ -22,7 +23,7 @@ export async function GET() {
 
     const unallocatedItems = await GeneralItemService.getUnallocatedItems();
 
-    return new Response(JSON.stringify(unallocatedItems), {
+    return NextResponse.json(unallocatedItems, {
       status: 200,
     });
   } catch (error) {

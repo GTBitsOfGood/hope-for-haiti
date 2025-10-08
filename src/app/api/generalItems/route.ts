@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const createdItem = await GeneralItemService.createGeneralItem(data);
 
-    return new NextResponse(JSON.stringify(createdItem), {
+    return NextResponse.json(createdItem, {
       status: 201,
     });
   } catch (error) {

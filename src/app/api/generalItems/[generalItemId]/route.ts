@@ -63,7 +63,7 @@ export async function PATCH(
       parsed.data
     );
 
-    return new NextResponse(JSON.stringify(updatedItem), {
+    return NextResponse.json(updatedItem, {
       status: 200,
     });
   } catch (error) {

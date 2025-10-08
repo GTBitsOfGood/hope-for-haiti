@@ -7,7 +7,7 @@ import {
   errorResponse,
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -37,7 +37,7 @@ export async function GET(
       parseInt(generalItemId)
     );
 
-    return new Response(JSON.stringify(requests), { status: 200 });
+    return NextResponse.json(requests, { status: 200 });
   } catch (error) {
     return errorResponse(error);
   }
@@ -76,7 +76,7 @@ export async function POST(
       parsedData.data
     );
 
-    return new Response(JSON.stringify(itemRequest), { status: 201 });
+    return NextResponse.json(itemRequest, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }
