@@ -9,7 +9,7 @@ import {
   AuthorizationError,
   errorResponse,
 } from "@/util/errors";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const updateSchema = singleLineItemSchema.partial();
 
@@ -43,7 +43,7 @@ export async function PATCH(
       parsed.data
     );
 
-    return new Response(JSON.stringify(updatedItem), { status: 200 });
+    return NextResponse.json(updatedItem, { status: 200 });
   } catch (error) {
     return errorResponse(error);
   }
@@ -67,7 +67,7 @@ export async function DELETE(
 
     await LineItemService.deleteLineItem(Number(lineItemId));
 
-    return new Response(null, { status: 204 });
+    return NextResponse.json(null, { status: 204 });
   } catch (error) {
     return errorResponse(error);
   }
