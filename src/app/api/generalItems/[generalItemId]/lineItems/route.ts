@@ -54,7 +54,7 @@ export async function POST(
 
     const { generalItemId } = await params;
     const form = await request.formData();
-    const data = Object.fromEntries(form.entries());
+    const data = Object.fromEntries(form.entries().map(([key, value]) => [key, value ?? undefined]));
 
     const parsed = lineItemFormSchema.safeParse(data);
     if (!parsed.success) {
