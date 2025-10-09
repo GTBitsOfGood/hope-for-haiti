@@ -105,6 +105,7 @@ const MyComponent = () => {
 | `emptyState` | `React.ReactNode` | `"No results found."` | Content to show when no data |
 | `toolBar` | `React.ReactNode` | `undefined` | Custom toolbar content (renders before filter button) |
 | `additionalFilters` | `FilterList<T>` | `undefined` | Additional filters to apply on every fetch that are merged with the user-specified filters. Additional filters take precedence over user-specified filters |
+| `embeds` | `{ [key: string]: React.ReactNode }` | `undefined` | Optional embedded content to show below specific rows, keyed by row ID. Be sure to convert row IDs to strings when passing the embeds object |
 
 ## Column Definitions
 

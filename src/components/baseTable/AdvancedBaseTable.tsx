@@ -54,6 +54,7 @@ interface AdvancedBaseTableProps<T extends object> {
   emptyState?: React.ReactNode;
   toolBar?: React.ReactNode;
   additionalFilters?: FilterList<T>;
+  embeds?: { [id: string]: React.ReactNode };
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -70,6 +71,7 @@ function AdvancedBaseTableInner<T extends object>(
     emptyState,
     toolBar,
     additionalFilters,
+    embeds,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -392,28 +394,33 @@ function AdvancedBaseTableInner<T extends object>(
               </tr>
             ) : (
               items.map((item, rowIndex) => (
-                <tr
-                  key={String(resolveRowId(item))}
-                  data-odd={rowIndex % 2 !== 0}
-                  className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
-                    onRowClick ? "cursor-pointer" : ""
-                  } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
-                  onClick={() => onRowClick?.(item)}
-                >
-                  {normalizedColumns.map((column) => {
-                    const rawContent = column.render(item, rowIndex);
-                    return (
-                      <td
-                        key={column.id}
-                        className={`px-4 py-4 ${
-                          rowCellStyles ? rowCellStyles : ""
-                        } ${column.cellClassName ? column.cellClassName : ""}`}
-                      >
-                        {getDisplayContent(rawContent)}
-                      </td>
-                    );
-                  })}
-                </tr>
+                <React.Fragment key={String(resolveRowId(item))}>
+                  <tr
+                    key={String(resolveRowId(item))}
+                    data-odd={rowIndex % 2 !== 0}
+                    className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
+                      onRowClick ? "cursor-pointer" : ""
+                    } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
+                    onClick={() => onRowClick?.(item)}
+                  >
+                    {normalizedColumns.map((column) => {
+                      const rawContent = column.render(item, rowIndex);
+                      return (
+                        <td
+                          key={column.id}
+                          className={`px-4 py-4 ${
+                            rowCellStyles ? rowCellStyles : ""
+                          } ${column.cellClassName ? column.cellClassName : ""}`}
+                        >
+                          {getDisplayContent(rawContent)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {embeds?.[String(resolveRowId(item))] && (
+                    <tr><td>{embeds?.[String(resolveRowId(item))]}</td></tr>
+                  )}
+                </React.Fragment>
               ))
             )}
           </tbody>

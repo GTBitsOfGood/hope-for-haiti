@@ -14,6 +14,7 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 
 interface UnallocatedItemData {
+  id: number;
   title: string;
   type: string;
   quantity: number;
@@ -37,7 +38,7 @@ export default function AdminUnallocatedItemsScreen() {
   const [addItemExpanded, setAddItemExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // const [selectedItem, setSelectedItem] = useState<UnallocatedItemData>();
+  const [selectedItem, setSelectedItem] = useState<UnallocatedItemData>();
 
   const [data, setData] = useState<{
     items: UnallocatedItemData[];
@@ -142,9 +143,25 @@ export default function AdminUnallocatedItemsScreen() {
         ref={tableRef}
         columns={columns}
         fetchFn={fetchTableData}
-        rowId="title"
+        rowId="id"
         pageSize={20}
         additionalFilters={searchFilter}
+        onRowClick={(item) => {
+          if (item.id === selectedItem?.id) {
+            setSelectedItem(undefined);
+          } else setSelectedItem(item);
+        }}
+        embeds={
+          selectedItem
+            ? {
+                [String(selectedItem.id)]: (
+                  <div>
+                    <h2 className="text-lg font-medium mb-2">Requests</h2>
+                  </div>
+                ),
+              }
+            : undefined
+        }
         emptyState={
           <div className="flex justify-center items-center mt-8">
             <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
