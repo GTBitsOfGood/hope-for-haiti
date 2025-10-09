@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import React from "react";
-import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
-import BaseTable from "@/components/baseTable/BaseTable";
+import { $Enums } from "@prisma/client";
+import AdvancedBaseTable, {
+  AdvancedBaseTableHandle,
+  ColumnDefinition,
+  FilterList,
+} from "@/components/baseTable/AdvancedBaseTable";
 
 interface UnallocatedItemData {
   title: string;
@@ -26,124 +30,85 @@ interface UnallocatedItemData {
     comments: string;
   }[];
 }
-import { useFetch } from "@/hooks/useFetch";
-import { $Enums } from "@prisma/client";
-import { Filters } from "@/types/api/filter.types";
-
-enum ExpirationFilterKey {
-  ALL = "All",
-  ZERO_TO_THREE = "Expiring (0-3 Months)",
-  THREE_TO_SIX = "Expiring (3-6 Months)",
-  SIX_PLUS = "Expiring (6+ Months)",
-}
-const expirationFilterTabs = [
-  ExpirationFilterKey.ALL,
-  ExpirationFilterKey.ZERO_TO_THREE,
-  ExpirationFilterKey.THREE_TO_SIX,
-  ExpirationFilterKey.SIX_PLUS,
-] as const;
-
-function generateFetchUrl(filterKey: ExpirationFilterKey): string {
-  let expirationDateBefore: string | null = null;
-  let expirationDateAfter: string | null = null;
-  const today = new Date();
-
-  if (filterKey === ExpirationFilterKey.ZERO_TO_THREE) {
-    expirationDateBefore = new Date(
-      today.setMonth(today.getMonth() + 3)
-    ).toISOString();
-  } else if (filterKey === ExpirationFilterKey.THREE_TO_SIX) {
-    expirationDateAfter = new Date(
-      today.setMonth(today.getMonth() + 3)
-    ).toISOString();
-    expirationDateBefore = new Date(
-      today.setMonth(today.getMonth() + 6)
-    ).toISOString();
-  } else if (filterKey === ExpirationFilterKey.SIX_PLUS) {
-    expirationDateAfter = new Date(
-      today.setMonth(today.getMonth() + 6)
-    ).toISOString();
-  }
-
-  const filter: Filters<UnallocatedItemData> = {};
-  if (expirationDateBefore || expirationDateAfter)
-    filter.expirationDate = {
-      type: "date",
-      gte: expirationDateAfter ?? new Date(0).toISOString(),
-      lte: expirationDateBefore ?? undefined,
-    };
-
-  const url = new URL("/api/generalItems/unallocated", window.location.origin);
-  url.searchParams.append("filters", JSON.stringify(filter));
-
-  return url.toString();
-}
 
 export default function AdminUnallocatedItemsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ExpirationFilterKey>(
-    ExpirationFilterKey.ALL
-  );
 
   const [addItemExpanded, setAddItemExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formSuccess, setFormSuccess] = useState(false);
-
-  const [filteredItems, setFilteredItems] = useState<
-    UnallocatedItemData[] | null
-  >(null);
 
   // const [selectedItem, setSelectedItem] = useState<UnallocatedItemData>();
 
-  const {
-    isLoading,
-    refetch: refetchItems,
-    data,
-  } = useFetch<{
+  const [data, setData] = useState<{
     items: UnallocatedItemData[];
     unitTypes: string[];
     donorNames: string[];
     itemTypes: string[];
-  }>("/api/generalItems/unallocated", {
-    cache: "no-store",
-    onError: (error) => {
-      console.error("Error fetching unallocated items:", error);
-      toast.error("Failed to fetch unallocated items");
-    },
-  });
+  }>();
 
-  const items = filteredItems || data?.items || [];
   const unitTypes = data?.unitTypes || [];
   const donorNames = data?.donorNames || [];
   const itemTypes = data?.itemTypes || [];
+  const isLoading = !data;
 
-  useEffect(() => {
-    if (formSuccess) {
-      refetchItems();
-      setFilteredItems(null);
-      setFormSuccess(false);
-    }
-  }, [formSuccess, refetchItems]);
+  const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
 
-  const filterItems = async (key: ExpirationFilterKey) => {
-    setActiveTab(key);
-
-    try {
-      const response = await fetch(generateFetchUrl(key), {
-        cache: "no-store",
+  const fetchTableData = useCallback(
+    async (
+      pageSize: number,
+      page: number,
+      filters: FilterList<UnallocatedItemData>
+    ) => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        filters: JSON.stringify(filters),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch filtered items");
+      const res = await fetch(
+        `/api/generalItems/unallocated?${params.toString()}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch table data");
       }
 
-      const filterData = await response.json();
-      setFilteredItems(filterData.items);
-    } catch (error) {
-      console.error("Filter fetch error:", error);
-      toast.error("Failed to fetch items");
-    }
-  };
+      const body = (await res.json()) as Exclude<typeof data, undefined>;
+
+      setData(body);
+
+      return {
+        data: body.items,
+        total: body.items.length,
+      };
+    },
+    []
+  );
+
+  const columns: ColumnDefinition<UnallocatedItemData>[] = [
+    "title",
+    "type",
+    "quantity",
+    {
+      id: "expirationDate",
+      header: "Expiration",
+      cell: (item) => {
+        return item.expirationDate
+          ? new Date(item.expirationDate).toLocaleDateString()
+          : "N/A";
+      },
+    },
+    "unitType",
+    "quantityPerUnit",
+    {
+      id: "requests",
+      header: "# of Requests",
+      cell: (item) => item.requests.length,
+    },
+  ];
 
   return (
     <>
@@ -153,7 +118,6 @@ export default function AdminUnallocatedItemsScreen() {
           unitTypes={unitTypes}
           donorNames={donorNames}
           itemTypes={itemTypes}
-          formSuccess={setFormSuccess}
         />
       ) : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
@@ -204,56 +168,21 @@ export default function AdminUnallocatedItemsScreen() {
           </div>
         </div>
       </div>
-      <div className="flex space-x-4 mt-4 border-b-2">
-        {expirationFilterTabs.map((tab) => {
-          const key = tab as ExpirationFilterKey;
 
-          return (
-            <button
-              key={tab}
-              data-active={activeTab === tab}
-              className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
-              onClick={() => filterItems(key)}
-            >
-              <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
-            </button>
-          );
-        })}
+      <div
+        className={`${isLoading ? "" : "hidden"} flex justify-center items-center mt-8`}
+      >
+        <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
       </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center mt-8">
-          <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-        </div>
-      ) : (
-        <BaseTable
-          headers={[
-            "Title",
-            "# of Requests",
-            "Type",
-            "Quantity",
-            "Expiration",
-            "Unit type",
-            "Qty/Unit",
-          ]}
-          rows={items.map((item) => ({
-            cells: [
-              item.title,
-              item.type,
-              item.quantity,
-              item.expirationDate
-                ? new Date(item.expirationDate).toLocaleDateString()
-                : "N/A",
-              item.unitType,
-              item.quantityPerUnit,
-              item.requests.length,
-            ],
-            onClick: () => {
-              setSelectedItem(item);
-            },
-          }))}
+      <div className={isLoading ? "hidden" : ""}>
+        <AdvancedBaseTable
+          ref={tableRef}
+          columns={columns}
+          fetchFn={fetchTableData}
+          rowId="title"
+          pageSize={20}
         />
-      )}
+      </div>
     </>
   );
 }
