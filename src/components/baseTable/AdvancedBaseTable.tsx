@@ -418,7 +418,11 @@ function AdvancedBaseTableInner<T extends object>(
                     })}
                   </tr>
                   {embeds?.[String(resolveRowId(item))] && (
-                    <tr><td>{embeds?.[String(resolveRowId(item))]}</td></tr>
+                    <tr>
+                      <td colSpan={normalizedColumns.length}>
+                        {embeds?.[String(resolveRowId(item))]}
+                      </td>
+                    </tr>
                   )}
                 </React.Fragment>
               ))
