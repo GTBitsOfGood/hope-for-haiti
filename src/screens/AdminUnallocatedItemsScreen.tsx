@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { CgSpinner } from "react-icons/cg";
 import React from "react";
@@ -109,6 +109,23 @@ export default function AdminUnallocatedItemsScreen() {
     },
   ];
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFilter, setSearchFilter] =
+    useState<FilterList<UnallocatedItemData>>();
+
+  useEffect(() => {
+    if (!searchQuery && !searchFilter) return;
+
+    if (!searchQuery) {
+      setSearchFilter(undefined);
+      return;
+    }
+
+    setSearchFilter({
+      title: { type: "string", value: searchQuery },
+    });
+  }, [searchQuery]);
+
   return (
     <>
       {isModalOpen ? (
@@ -127,6 +144,7 @@ export default function AdminUnallocatedItemsScreen() {
         fetchFn={fetchTableData}
         rowId="title"
         pageSize={20}
+        additionalFilters={searchFilter}
         emptyState={
           <div className="flex justify-center items-center mt-8">
             <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
@@ -140,6 +158,8 @@ export default function AdminUnallocatedItemsScreen() {
                 size={18}
               />
               <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 type="text"
                 placeholder="Search"
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
