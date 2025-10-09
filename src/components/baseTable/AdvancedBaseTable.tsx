@@ -157,7 +157,7 @@ function AdvancedBaseTableInner<T extends object>(
       const response = await fetchFn(
         pageSize,
         page,
-        mergeFilters(filters, additionalFilters)
+        mergeFilters(additionalFilters, filters)
       );
       setItems(response.data);
       setTotal(response.total);

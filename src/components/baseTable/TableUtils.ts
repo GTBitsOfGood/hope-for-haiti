@@ -142,11 +142,14 @@ export function inferFilterTypeFromSample(
   return undefined;
 }
 
+/**
+ * a takes precedence over b
+ */
 export function mergeFilters(
   a: FilterList<unknown> | undefined,
   b: FilterList<unknown> | undefined
 ): FilterList<unknown> {
-  return { ...(a ?? {}), ...(b ?? {}) };
+  return { ...(b ?? {}), ...(a ?? {}) };
 }
 
 export function collectEnumOptions(values: unknown[]) {
