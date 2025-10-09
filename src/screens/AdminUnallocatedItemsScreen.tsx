@@ -12,8 +12,9 @@ import AdvancedBaseTable, {
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
+import ItemRequestTable from "@/components/ItemRequestTable";
 
-interface UnallocatedItemData {
+export interface UnallocatedItemData {
   id: number;
   title: string;
   type: string;
@@ -22,6 +23,7 @@ interface UnallocatedItemData {
   unitType: string;
   quantityPerUnit: number;
   requests: {
+    id: number;
     partner: {
       name: string;
     };
@@ -155,9 +157,7 @@ export default function AdminUnallocatedItemsScreen() {
           selectedItem
             ? {
                 [String(selectedItem.id)]: (
-                  <div>
-                    <h2 className="text-lg font-medium mb-2">Requests</h2>
-                  </div>
+                  <ItemRequestTable requests={selectedItem.requests} />
                 ),
               }
             : undefined
