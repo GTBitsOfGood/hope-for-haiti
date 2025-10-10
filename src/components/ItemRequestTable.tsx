@@ -5,50 +5,57 @@ export default function ItemRequestTable({
 }: {
   requests: UnallocatedItemData["requests"];
 }) {
+  const headerClassName =
+    "text-left bg-gray-primary/5 text-gray-primary/70 border-b-2 border-gray-primary/10";
+
+  const rowCellClassName = "text-gray-primary/90";
+
   return (
     <table className="min-w-full divide-y divide-gray-200">
       <thead className="bg-gray-50">
         <tr>
           <th
-            scope="col"
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            className={headerClassName}
           >
             Partner
           </th>
           <th
-            scope="col"
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            className={headerClassName}
           >
-            Date
+            Requested On
           </th>
           <th
-            scope="col"
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            className={headerClassName}
           >
             Quantity
           </th>
           <th
-            scope="col"
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            className={headerClassName}
           >
             Priority
+          </th>
+          <th className={headerClassName}>
+            Comments
           </th>
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
         {requests.map((request) => (
           <tr key={request.id}>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <td className={rowCellClassName}>
               {request.partner.name}
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <td className={rowCellClassName}>
               {new Date(request.createdAt).toLocaleDateString()}
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <td className={rowCellClassName}>
               {request.quantity}
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <td className={rowCellClassName}>
               {request.priority ?? "N/A"}
+            </td>
+            <td className={rowCellClassName}>
+              {request.comments ?? "N/A"}
             </td>
           </tr>
         ))}
