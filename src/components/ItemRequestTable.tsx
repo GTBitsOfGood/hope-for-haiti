@@ -46,10 +46,12 @@ export default function ItemRequestTable({
                 <MultiSelectDropdown
                   label="Allocate Items"
                   options={unallocatedLineItems.map((item) => ({
-                    id: String(item.id),
-                    label: generalItemData.title,
+                    id: item.id,
+                    label: `${generalItemData.title} x${item.quantity}`,
                   }))}
-                  onChange={() => {}}
+                  onChange={(items) => {
+                    console.log("Selected items for allocation:", items);
+                  }}
                 />
               )}
             </td>

@@ -1,21 +1,21 @@
 import { ReactNode, useState } from "react";
 
-export default function MultiSelectDropdown({
+export default function MultiSelectDropdown<TId>({
   label,
   options,
   onChange,
 }: {
   label: string;
   options: {
-    id: string;
+    id: TId;
     label: ReactNode;
   }[];
-  onChange: (selectedValues: string[]) => void;
+  onChange: (selectedValues: TId[]) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const [selectedValues, setSelectedValues] = useState<TId[]>([]);
 
-  function handleCheckboxChange(value: string, isChecked: boolean) {
+  function handleCheckboxChange(value: TId, isChecked: boolean) {
     if (isChecked) {
       setSelectedValues((prev) => [...prev, value]);
     } else {
@@ -40,17 +40,20 @@ export default function MultiSelectDropdown({
           </label>
           <div>
             {options.map((option) => (
-              <div key={option.id}>
+              <div key={String(option.id)}>
                 <input
                   type="checkbox"
-                  id={option.id}
+                  id={String(option.id)}
                   checked={selectedValues.includes(option.id)}
                   onChange={(e) =>
                     handleCheckboxChange(option.id, e.target.checked)
                   }
                   className="mr-2"
                 />
-                <label htmlFor={option.id} className="text-sm text-gray-700">
+                <label
+                  htmlFor={String(option.id)}
+                  className="text-sm text-gray-700"
+                >
                   {option.label}
                 </label>
               </div>

@@ -140,8 +140,6 @@ export default function AdminUnallocatedItemsScreen() {
     });
   }, [searchQuery]);
 
-  console.log(data?.items);
-
   return (
     <>
       {isModalOpen ? (
