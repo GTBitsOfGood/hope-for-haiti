@@ -32,6 +32,11 @@ export interface UnallocatedItemData {
     priority: $Enums.RequestPriority | null;
     comments: string;
   }[];
+  items: {
+    id: number;
+    quantity: number;
+    allocationId: number | null;
+  }[];
 }
 
 export default function AdminUnallocatedItemsScreen() {
@@ -49,9 +54,9 @@ export default function AdminUnallocatedItemsScreen() {
     itemTypes: string[];
   }>();
 
-  const unitTypes = data?.unitTypes || [];
-  const donorNames = data?.donorNames || [];
-  const itemTypes = data?.itemTypes || [];
+  const unitTypes = data?.unitTypes ?? [];
+  const donorNames = data?.donorNames ?? [];
+  const itemTypes = data?.itemTypes ?? [];
 
   const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
 
@@ -79,12 +84,13 @@ export default function AdminUnallocatedItemsScreen() {
       }
 
       const body = (await res.json()) as Exclude<typeof data, undefined>;
+      console.log(body);
 
       setData(body);
 
       return {
         data: body.items,
-        total: body.items.length,
+        total: body.items?.length ?? 0,
       };
     },
     []
@@ -108,8 +114,13 @@ export default function AdminUnallocatedItemsScreen() {
     {
       id: "requests",
       header: "# of Requests",
-      cell: (item) => item.requests.length,
+      cell: (item) => item.requests?.length,
     },
+    {
+      id: "items",
+      header: "# of Line Items",
+      cell: (item) => item.items?.length,
+    }
   ];
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,6 +139,8 @@ export default function AdminUnallocatedItemsScreen() {
       title: { type: "string", value: searchQuery },
     });
   }, [searchQuery]);
+
+  console.log(data?.items);
 
   return (
     <>
@@ -157,7 +170,7 @@ export default function AdminUnallocatedItemsScreen() {
           selectedItem
             ? {
                 [String(selectedItem.id)]: (
-                  <ItemRequestTable requests={selectedItem.requests} />
+                  <ItemRequestTable generalItemData={selectedItem} />
                 ),
               }
             : undefined

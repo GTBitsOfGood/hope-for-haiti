@@ -321,6 +321,8 @@ function AdvancedBaseTableInner<T extends object>(
 
   const showEmptyState = !isLoading && !items.length && !error;
 
+  console.log("Table items:", items);
+
   return (
     <div>
       <div className="my-2 space-x-4 flex justify-end">

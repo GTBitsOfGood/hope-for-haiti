@@ -99,9 +99,8 @@ export class GeneralItemService {
         : filtered;
 
     const sanitize = paginated.map(({ item, quantity }) => {
-      const { items, ...rest } = item; // eslint-disable-line @typescript-eslint/no-unused-vars
       return {
-        ...rest,
+        ...item,
         quantity,
       };
     });
