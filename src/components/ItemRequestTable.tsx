@@ -52,14 +52,6 @@ function ItemRequestTableRow({
 }) {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
-  const toggleItemSelection = (itemId: number) => {
-    setSelectedItems((prev) =>
-      prev.includes(itemId)
-        ? prev.filter((id) => id !== itemId)
-        : [...prev, itemId]
-    );
-  };
-
   return (
     <tr>
       <td>{request.partner.name}</td>
@@ -77,8 +69,8 @@ function ItemRequestTableRow({
               id: item.id,
               label: `${generalItemData.title} x${item.quantity}`,
             }))}
-            selectedValues={selectedItems}
-            onChange={toggleItemSelection}
+            defaultSelectedValues={selectedItems}
+            onConfirm={setSelectedItems}
           />
         )}
       </td>

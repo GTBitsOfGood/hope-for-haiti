@@ -3,18 +3,27 @@ import { ReactNode, useState } from "react";
 export default function MultiSelectDropdown<TId>({
   label,
   options,
-  onChange,
-  selectedValues = [],
+  onConfirm,
+  defaultSelectedValues = [],
 }: {
   label: string;
   options: {
     id: TId;
     label: ReactNode;
   }[];
-  onChange: (toggledId: TId) => void;
-  selectedValues?: TId[];
+  onConfirm: (selectedValues: TId[]) => void;
+  defaultSelectedValues?: TId[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedValues, setSelectedValues] = useState<TId[]>(
+    defaultSelectedValues
+  );
+
+  function toggleValue(id: TId) {
+    setSelectedValues((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  }
 
   return (
     <div className="relative">
@@ -36,7 +45,7 @@ export default function MultiSelectDropdown<TId>({
                   type="checkbox"
                   id={String(option.id)}
                   checked={selectedValues.includes(option.id)}
-                  onChange={() => onChange(option.id)}
+                  onChange={() => toggleValue(option.id)}
                   className="mr-2"
                 />
                 <label
@@ -49,10 +58,22 @@ export default function MultiSelectDropdown<TId>({
             ))}
           </div>
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+              onConfirm(selectedValues);
+            }}
+            className="mt-2 px-3 py-1 bg-blue-500 text-white rounded"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setSelectedValues(defaultSelectedValues);
+            }}
             className="mt-2 px-3 py-1 bg-gray-300 rounded"
           >
-            Close
+            Cancel
           </button>
         </div>
       )}
