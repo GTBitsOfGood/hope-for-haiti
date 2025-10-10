@@ -34,27 +34,25 @@ model User {
   passwordHash String
   type         UserType
   tag          String?
-  enabled      Boolean  @default(true)
+  enabled      Boolean  @default(false)
+  pending      Boolean  @default(true)
 
-  // Partner-only fields
   donorOfferVisibilities DonorOffer[]
   partnerDetails         Json?
   generalItemRequests    GeneralItemRequest[]
   allocations            Allocation[]
 
-  // There should only ever be one distribution
   distributions Distribution[]
   wishlists     Wishlist[]
+  invite        UserInvite?
 }
 
 model UserInvite {
   id             Int      @id @default(autoincrement())
   token          String   @unique
-  userType       UserType
-  email          String   @unique
-  name           String
-  partnerDetails Json?
   expiration     DateTime
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int      @unique
 }
 
 // A specific item inside a general item. Ex: a specific box inside a donation of many boxes
