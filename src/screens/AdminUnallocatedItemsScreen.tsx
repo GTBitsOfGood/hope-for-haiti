@@ -120,7 +120,7 @@ export default function AdminUnallocatedItemsScreen() {
       id: "items",
       header: "# of Line Items",
       cell: (item) => item.items?.length,
-    }
+    },
   ];
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,7 +138,7 @@ export default function AdminUnallocatedItemsScreen() {
     setSearchFilter({
       title: { type: "string", value: searchQuery },
     });
-  }, [searchQuery]);
+  }, [searchQuery, searchFilter]);
 
   return (
     <>

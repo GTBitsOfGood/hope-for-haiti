@@ -4,26 +4,17 @@ export default function MultiSelectDropdown<TId>({
   label,
   options,
   onChange,
+  selectedValues = [],
 }: {
   label: string;
   options: {
     id: TId;
     label: ReactNode;
   }[];
-  onChange: (selectedValues: TId[]) => void;
+  onChange: (toggledId: TId) => void;
+  selectedValues?: TId[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedValues, setSelectedValues] = useState<TId[]>([]);
-
-  function handleCheckboxChange(value: TId, isChecked: boolean) {
-    if (isChecked) {
-      setSelectedValues((prev) => [...prev, value]);
-    } else {
-      setSelectedValues((prev) => prev.filter((v) => v !== value));
-    }
-
-    onChange(selectedValues);
-  }
 
   return (
     <div className="relative">
@@ -45,9 +36,7 @@ export default function MultiSelectDropdown<TId>({
                   type="checkbox"
                   id={String(option.id)}
                   checked={selectedValues.includes(option.id)}
-                  onChange={(e) =>
-                    handleCheckboxChange(option.id, e.target.checked)
-                  }
+                  onChange={() => onChange(option.id)}
                   className="mr-2"
                 />
                 <label
