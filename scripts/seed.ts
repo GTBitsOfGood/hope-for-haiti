@@ -409,13 +409,14 @@ async function run() {
         type: UserType.ADMIN,
         name: "New Admin",
         enabled: true,
-        pending: true,
       },
     });
 
     await tx.userInvite.create({
       data: {
-        userId: pendingAdmin.id,
+        userType: UserType.ADMIN,
+        name: "New Admin",
+        email: "new.admin@test.com",
         expiration: new Date("July 24, 3000"),
         token: "1234",
       },
