@@ -505,15 +505,17 @@ async function run() {
       });
 
     await tx.generalItemRequest.createManyAndReturn({
-      data: actualGeneralItems.flatMap((genItem) => {
-        return {
-          partnerId: pick(partners).id,
-          generalItemId: genItem.id,
-          priority: pick(Object.values(RequestPriority)) as RequestPriority,
-          quantity: randInt(1, 4) * 5,
-          comments: "pls",
-        };
-      }),
+      data: actualGeneralItems.flatMap((genItem) =>
+        partners.map((partner) => {
+          return {
+            partnerId: partner.id,
+            generalItemId: genItem.id,
+            priority: pick(Object.values(RequestPriority)) as RequestPriority,
+            quantity: randInt(1, 4) * 5,
+            comments: "pls",
+          };
+        })
+      ),
     });
 
     await tx.lineItem.createMany({
