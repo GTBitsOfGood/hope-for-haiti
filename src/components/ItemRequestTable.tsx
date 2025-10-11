@@ -34,7 +34,7 @@ export default function ItemRequestTable({
             request={request}
             lineItems={lineItems}
             generalItemData={generalItemData}
-            odd={index % 2 === 1}
+            isOddRow={index % 2 === 1}
           />
         ))}
       </tbody>
@@ -46,12 +46,12 @@ function ItemRequestTableRow({
   generalItemData,
   request,
   lineItems,
-  odd,
+  isOddRow,
 }: {
   generalItemData: UnallocatedItemData;
   request: UnallocatedItemData["requests"][number];
   lineItems: UnallocatedItemData["items"];
-  odd: boolean;
+  isOddRow: boolean;
 }) {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [allocations, setAllocations] = useState<{
@@ -175,7 +175,7 @@ function ItemRequestTableRow({
   }
 
   return (
-    <tr className={odd ? "bg-gray-100" : ""}>
+    <tr className={isOddRow ? "bg-gray-100" : ""}>
       <td className="pl-1">{request.partner.name}</td>
       <td>{new Date(request.createdAt).toLocaleDateString()}</td>
       <td>{request.quantity}</td>
