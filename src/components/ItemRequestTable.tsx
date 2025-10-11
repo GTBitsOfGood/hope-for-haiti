@@ -186,7 +186,7 @@ function ItemRequestTableRow({
             label="Allocate Items"
             options={lineItems.map((item) => ({
               id: item.id,
-              label: `${generalItemData.title} x${item.quantity}`,
+              label: `${generalItemData.title} x${item.quantity} (lot ${item.lotNumber ?? "N/A"}, pallet ${item.palletNumber ?? "N/A"}, box ${item.boxNumber ?? "N/A"})`,
             }))}
             defaultSelectedValues={selectedItems}
             onConfirm={onConfirmAllocation}
