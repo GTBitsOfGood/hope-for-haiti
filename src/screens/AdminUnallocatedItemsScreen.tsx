@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { CgSpinner } from "react-icons/cg";
+import { CgChevronDown, CgChevronRight, CgSpinner } from "react-icons/cg";
 import React from "react";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
@@ -101,7 +101,20 @@ export default function AdminUnallocatedItemsScreen() {
   );
 
   const columns: ColumnDefinition<UnallocatedItemData>[] = [
-    "title",
+    {
+      id: "title",
+      header: "Title",
+      cell: (item) => (
+        <span className="flex gap-2 items-center -ml-2">
+          {selectedItem?.id === item.id ? (
+            <CgChevronDown />
+          ) : (
+            <CgChevronRight />
+          )}
+          <p>{item.title || "N/A"}</p>
+        </span>
+      ),
+    },
     "type",
     "quantity",
     {
@@ -207,7 +220,7 @@ export default function AdminUnallocatedItemsScreen() {
                 >
                   <Plus size={18} /> Add Item
                 </button>
-                {addItemExpanded ? (
+                {addItemExpanded && (
                   <div className="flex flex-col gap-y-1 items-center absolute left-0 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
                     <button
                       className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
@@ -225,7 +238,7 @@ export default function AdminUnallocatedItemsScreen() {
                       Bulk items
                     </button>
                   </div>
-                ) : null}
+                )}
               </div>
             </div>
           </div>

@@ -14,10 +14,10 @@ export default function ItemRequestTable({
   const { requests, items: lineItems } = generalItemData;
 
   return (
-    <table className="min-w-full divide-y divide-gray-200">
+    <table className="w-full divide-y divide-gray-200">
       <thead className="bg-gray-50">
         <tr>
-          <th className={headerClassName}>Partner</th>
+          <th className={`${headerClassName} pl-1`}>Partner</th>
           <th className={headerClassName}>Requested On</th>
           <th className={headerClassName}>Quantity</th>
           <th className={headerClassName}>Priority</th>
@@ -28,12 +28,13 @@ export default function ItemRequestTable({
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
-        {requests.map((request) => (
+        {requests.map((request, index) => (
           <ItemRequestTableRow
             key={request.id}
             request={request}
             lineItems={lineItems}
             generalItemData={generalItemData}
+            odd={index % 2 === 1}
           />
         ))}
       </tbody>
@@ -45,10 +46,12 @@ function ItemRequestTableRow({
   generalItemData,
   request,
   lineItems,
+  odd,
 }: {
   generalItemData: UnallocatedItemData;
   request: UnallocatedItemData["requests"][number];
   lineItems: UnallocatedItemData["items"];
+  odd: boolean;
 }) {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [allocations, setAllocations] = useState<{
@@ -172,8 +175,8 @@ function ItemRequestTableRow({
   }
 
   return (
-    <tr>
-      <td>{request.partner.name}</td>
+    <tr className={odd ? "bg-gray-100" : ""}>
+      <td className="pl-1">{request.partner.name}</td>
       <td>{new Date(request.createdAt).toLocaleDateString()}</td>
       <td>{request.quantity}</td>
       <td>{request.priority ?? "N/A"}</td>
