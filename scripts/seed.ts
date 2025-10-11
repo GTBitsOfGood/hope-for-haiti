@@ -516,6 +516,22 @@ async function run() {
       }),
     });
 
+    await tx.lineItem.createMany({
+      data: Array.from({ length: 50 }, () => ({
+        generalItemId: pick(actualGeneralItems).id,
+        category: $Enums.ItemCategory.MEDICAL_SUPPLY,
+        donorName: pick(donorNames),
+        quantity: randInt(1, 4) * 5,
+        lotNumber: pick(lots),
+        palletNumber: pick(pallets),
+        boxNumber: pick(boxes),
+        unitPrice: randInt(1, 4) * 5,
+        allowAllocations: true,
+        visible: false,
+        gik: false,
+      })),
+    });
+
     await tx.wishlist.createManyAndReturn({
       data: Array.from({ length: 20 }, () => {
         const genItem = pick(actualGeneralItems);

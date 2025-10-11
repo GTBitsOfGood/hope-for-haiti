@@ -85,8 +85,6 @@ export default function AdminUnallocatedItemsScreen() {
       }
 
       const body = (await res.json()) as Exclude<typeof data, undefined>;
-      console.log(body);
-
       setData(body);
 
       return {
@@ -129,7 +127,7 @@ export default function AdminUnallocatedItemsScreen() {
     useState<FilterList<UnallocatedItemData>>();
 
   useEffect(() => {
-    if (!searchQuery && !searchFilter) return;
+    if (!searchQuery) return;
 
     if (!searchQuery) {
       setSearchFilter(undefined);
@@ -139,7 +137,7 @@ export default function AdminUnallocatedItemsScreen() {
     setSearchFilter({
       title: { type: "string", value: searchQuery },
     });
-  }, [searchQuery, searchFilter]);
+  }, [searchQuery]);
 
   return (
     <>

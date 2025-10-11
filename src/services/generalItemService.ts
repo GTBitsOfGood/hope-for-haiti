@@ -54,7 +54,7 @@ export class GeneralItemService {
     const generalItems = await db.generalItem.findMany({
       include: {
         items: {
-          where: { allocation: null },
+          where: { allocationId: null },
         },
         requests: {
           include: {
@@ -73,7 +73,8 @@ export class GeneralItemService {
     const unallocatedWithLineItems = generalItems
       .map((item) => {
         const allocatedQuantity = item.items.reduce(
-          (sum, lineItem) => sum + lineItem.quantity,
+          (sum, lineItem) =>
+            sum + (lineItem.allocationId !== null ? lineItem.quantity : 0),
           0
         );
         const quantity = item.initialQuantity - allocatedQuantity;
