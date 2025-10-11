@@ -134,6 +134,12 @@ export default class AllocationService {
     }
   }
 
+  static async deleteManyAllocations(ids: number[]) {
+    await db.allocation.deleteMany({
+      where: { id: { in: ids } },
+    });
+  }
+
   /**
    * Connects an allocation to a line item
    */

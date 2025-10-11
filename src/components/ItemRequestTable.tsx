@@ -51,9 +51,15 @@ function ItemRequestTableRow({
   lineItems: UnallocatedItemData["items"];
 }) {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [allocations, setAllocations] = useState<{
+    [itemId: number]: {
+      allocationId: number;
+      distributionId: number;
+    };
+  }>({});
 
-  async function onConfirmAllocation(lineItemIds: number[]) {
-    setSelectedItems(lineItemIds);
+  async function allocateItems(lineItemIds: number[]) {
+    if (lineItemIds.length === 0) return;
 
     const response = await fetch("/api/allocations", {
       method: "POST",
@@ -75,6 +81,94 @@ function ItemRequestTableRow({
 
     console.log("Allocation successful:", data);
     toast.success("Items allocated successfully!");
+
+    setAllocations((prev) => {
+      for (const allocation of data.allocations) {
+        prev[allocation.itemId] = {
+          allocationId: allocation.id,
+          distributionId: allocation.distributionId,
+        };
+      }
+      return { ...prev };
+    });
+  }
+
+  async function unallocateItems(
+    allocationsToDelete: { allocationId: number; distributionId: number }[]
+  ) {
+    if (allocationsToDelete.length === 0) return;
+
+    const distributionIds = new Set(
+      allocationsToDelete.map((a) => a.distributionId)
+    );
+    if (distributionIds.size > 1) {
+      throw new Error(
+        "Cannot unallocate items from multiple distributions. This case should not be reached!"
+      );
+    }
+
+    const response = await fetch(
+      `/api/distributions/${distributionIds.values().next().value}/allocations`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          allocations: allocationsToDelete.map((a) => a.allocationId),
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      toast.error(data.message);
+      throw new Error(data.message);
+    }
+
+    console.log("Unallocation successful:", data);
+    toast.success("Items unallocated successfully!");
+
+    setAllocations((prev) => {
+      for (const { allocationId } of allocationsToDelete) {
+        for (const [itemId, alloc] of Object.entries(prev)) {
+          if (alloc.allocationId === allocationId) {
+            delete prev[parseInt(itemId)];
+            break;
+          }
+        }
+      }
+      return { ...prev };
+    });
+  }
+
+  async function onConfirmAllocation(lineItemIds: number[]) {
+    setSelectedItems(lineItemIds);
+
+    const itemsToAllocate: number[] = [];
+    for (const itemId of lineItemIds) {
+      if (!allocations[itemId]) {
+        itemsToAllocate.push(itemId);
+      }
+    }
+
+    allocateItems(itemsToAllocate);
+
+    const allocationsToDelete: {
+      allocationId: number;
+      distributionId: number;
+    }[] = [];
+    for (const entry of Object.entries(allocations).map(([id, data]) => ({
+      id: parseInt(id),
+      ...data,
+    }))) {
+      if (!lineItemIds.includes(entry.id)) {
+        allocationsToDelete.push(entry);
+      }
+    }
+
+    unallocateItems(allocationsToDelete);
   }
 
   return (
