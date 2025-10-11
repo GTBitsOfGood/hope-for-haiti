@@ -1,5 +1,13 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 
+/**
+ * A multi-select dropdown component. Has a button to open the dropdown,
+ * a list of options with checkboxes, and Confirm/Cancel buttons. Closes
+ * when clicking outside or pressing Escape.
+ *
+ * Pass defaultSelectedValues to pre-select options when opening. These
+ * options can be changed later by the user.
+ */
 export default function MultiSelectDropdown<TId>({
   label,
   options,
