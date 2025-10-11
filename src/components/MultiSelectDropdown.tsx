@@ -31,6 +31,7 @@ export default function MultiSelectDropdown<TId>({
     setSelectedValues(defaultSelectedValues);
   }
 
+  // Close dropdown on outside click or escape key
   useEffect(() => {
     if (!dropdownRef.current) return;
 
@@ -48,7 +49,6 @@ export default function MultiSelectDropdown<TId>({
         cancel();
       }
     }
-
 
     document.addEventListener("click", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
