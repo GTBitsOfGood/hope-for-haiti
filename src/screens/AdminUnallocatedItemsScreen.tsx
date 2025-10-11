@@ -1,131 +1,161 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { CgSpinner } from "react-icons/cg";
+import { CgChevronDown, CgChevronRight, CgSpinner } from "react-icons/cg";
 import React from "react";
-import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import AddItemModal from "@/components/AddItemModal";
-import BaseTable from "@/components/baseTable/BaseTable";
+import { $Enums } from "@prisma/client";
+import AdvancedBaseTable, {
+  AdvancedBaseTableHandle,
+  ColumnDefinition,
+  FilterList,
+} from "@/components/baseTable/AdvancedBaseTable";
+import ItemRequestTable from "@/components/ItemRequestTable";
 
-interface UnallocatedItemData {
+export interface UnallocatedItemData {
+  id: number;
   title: string;
   type: string;
   quantity: number;
   expirationDate: string | null;
   unitType: string;
   quantityPerUnit: number;
-}
-import { useFetch } from "@/hooks/useFetch";
-
-enum ExpirationFilterKey {
-  ALL = "All",
-  ZERO_TO_THREE = "Expiring (0-3 Months)",
-  THREE_TO_SIX = "Expiring (3-6 Months)",
-  SIX_PLUS = "Expiring (6+ Months)",
-}
-const expirationFilterTabs = [
-  ExpirationFilterKey.ALL,
-  ExpirationFilterKey.ZERO_TO_THREE,
-  ExpirationFilterKey.THREE_TO_SIX,
-  ExpirationFilterKey.SIX_PLUS,
-] as const;
-
-function generateFetchUrl(filterKey: ExpirationFilterKey): string {
-  let expirationDateBefore: string | null = null;
-  let expirationDateAfter: string | null = null;
-  const today = new Date();
-
-  if (filterKey === ExpirationFilterKey.ZERO_TO_THREE) {
-    expirationDateBefore = new Date(
-      today.setMonth(today.getMonth() + 3)
-    ).toISOString();
-  } else if (filterKey === ExpirationFilterKey.THREE_TO_SIX) {
-    expirationDateAfter = new Date(
-      today.setMonth(today.getMonth() + 3)
-    ).toISOString();
-    expirationDateBefore = new Date(
-      today.setMonth(today.getMonth() + 6)
-    ).toISOString();
-  } else if (filterKey === ExpirationFilterKey.SIX_PLUS) {
-    expirationDateAfter = new Date(
-      today.setMonth(today.getMonth() + 6)
-    ).toISOString();
-  }
-
-  const url = new URL("/api/unallocatedItems", window.location.origin);
-  if (expirationDateBefore)
-    url.searchParams.set("expirationDateBefore", expirationDateBefore);
-  if (expirationDateAfter)
-    url.searchParams.set("expirationDateAfter", expirationDateAfter);
-
-  return url.toString();
+  requests: {
+    id: number;
+    partnerId: number;
+    partner: {
+      name: string;
+    };
+    createdAt: string;
+    quantity: number;
+    priority: $Enums.RequestPriority | null;
+    comments: string;
+  }[];
+  items: {
+    id: number;
+    quantity: number;
+    allocationId: number | null;
+    datePosted: string | null;
+    donorName: string | null;
+    lotNumber: string | null;
+    palletNumber: string | null;
+    boxNumber: string | null;
+  }[];
 }
 
 export default function AdminUnallocatedItemsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ExpirationFilterKey>(
-    ExpirationFilterKey.ALL
-  );
 
   const [addItemExpanded, setAddItemExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formSuccess, setFormSuccess] = useState(false);
 
-  const [filteredItems, setFilteredItems] = useState<
-    UnallocatedItemData[] | null
-  >(null);
+  const [selectedItem, setSelectedItem] = useState<UnallocatedItemData>();
 
-  const {
-    isLoading,
-    refetch: refetchItems,
-    data,
-  } = useFetch<{
+  const [data, setData] = useState<{
     items: UnallocatedItemData[];
     unitTypes: string[];
     donorNames: string[];
     itemTypes: string[];
-  }>("/api/unallocatedItems", {
-    cache: "no-store",
-    onError: (error) => {
-      console.error("Error fetching unallocated items:", error);
-      toast.error("Failed to fetch unallocated items");
-    },
-  });
+  }>();
 
-  const items = filteredItems || data?.items || [];
-  const unitTypes = data?.unitTypes || [];
-  const donorNames = data?.donorNames || [];
-  const itemTypes = data?.itemTypes || [];
+  const unitTypes = data?.unitTypes ?? [];
+  const donorNames = data?.donorNames ?? [];
+  const itemTypes = data?.itemTypes ?? [];
 
-  useEffect(() => {
-    if (formSuccess) {
-      refetchItems();
-      setFilteredItems(null);
-      setFormSuccess(false);
-    }
-  }, [formSuccess, refetchItems]);
+  const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
 
-  const filterItems = async (key: ExpirationFilterKey) => {
-    setActiveTab(key);
-
-    try {
-      const response = await fetch(generateFetchUrl(key), {
-        cache: "no-store",
+  const fetchTableData = useCallback(
+    async (
+      pageSize: number,
+      page: number,
+      filters: FilterList<UnallocatedItemData>
+    ) => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        filters: JSON.stringify(filters),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch filtered items");
+      const res = await fetch(
+        `/api/generalItems/unallocated?${params.toString()}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch table data");
       }
 
-      const filterData = await response.json();
-      setFilteredItems(filterData.items);
-    } catch (error) {
-      console.error("Filter fetch error:", error);
-      toast.error("Failed to fetch items");
+      const body = (await res.json()) as Exclude<typeof data, undefined>;
+      setData(body);
+
+      return {
+        data: body.items,
+        total: body.items?.length ?? 0,
+      };
+    },
+    []
+  );
+
+  const columns: ColumnDefinition<UnallocatedItemData>[] = [
+    {
+      id: "title",
+      header: "Title",
+      cell: (item) => (
+        <span className="flex gap-2 items-center -ml-2">
+          {selectedItem?.id === item.id ? (
+            <CgChevronDown />
+          ) : (
+            <CgChevronRight />
+          )}
+          <p>{item.title || "N/A"}</p>
+        </span>
+      ),
+    },
+    "type",
+    "quantity",
+    {
+      id: "expirationDate",
+      header: "Expiration",
+      cell: (item) => {
+        return item.expirationDate
+          ? new Date(item.expirationDate).toLocaleDateString()
+          : "N/A";
+      },
+    },
+    "unitType",
+    "quantityPerUnit",
+    {
+      id: "requests",
+      header: "# of Requests",
+      cell: (item) => item.requests?.length,
+    },
+    {
+      id: "items",
+      header: "# of Line Items",
+      cell: (item) => item.items?.length,
+    },
+  ];
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFilter, setSearchFilter] =
+    useState<FilterList<UnallocatedItemData>>();
+
+  useEffect(() => {
+    if (!searchQuery) return;
+
+    if (!searchQuery) {
+      setSearchFilter(undefined);
+      return;
     }
-  };
+
+    setSearchFilter({
+      title: { type: "string", value: searchQuery },
+    });
+  }, [searchQuery]);
 
   return (
     <>
@@ -135,115 +165,85 @@ export default function AdminUnallocatedItemsScreen() {
           unitTypes={unitTypes}
           donorNames={donorNames}
           itemTypes={itemTypes}
-          formSuccess={setFormSuccess}
         />
       ) : null}
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
-      <div className="flex justify-between items-center w-full py-4">
-        <div className="relative w-1/3">
-          <MagnifyingGlass
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Search"
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
-          />
-        </div>
-        <div className="flex gap-4">
-          <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
-            <Plus size={18} /> Filter
-          </button>
-          <div className="relative">
-            <button
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-              onClick={() => {
-                setAddItemExpanded(!addItemExpanded);
-              }}
-            >
-              <Plus size={18} /> Add Item
-            </button>
-            {addItemExpanded ? (
-              <div className="flex flex-col gap-y-1 items-center absolute left-0 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
+
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={columns}
+        fetchFn={fetchTableData}
+        rowId="id"
+        pageSize={20}
+        additionalFilters={searchFilter}
+        onRowClick={(item) => {
+          if (item.id === selectedItem?.id) {
+            setSelectedItem(undefined);
+          } else setSelectedItem(item);
+        }}
+        embeds={
+          selectedItem
+            ? {
+                [String(selectedItem.id)]: (
+                  <ItemRequestTable generalItemData={selectedItem} />
+                ),
+              }
+            : undefined
+        }
+        emptyState={
+          <div className="flex justify-center items-center mt-8">
+            <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
+          </div>
+        }
+        toolBar={
+          <div className="flex justify-between items-center w-full">
+            <div className="relative w-1/3">
+              <MagnifyingGlass
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                size={18}
+              />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                type="text"
+                placeholder="Search"
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
+              />
+            </div>
+            <div className="flex gap-4">
+              <div className="relative">
                 <button
-                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                  className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
                   onClick={() => {
-                    setIsModalOpen(true);
-                    setAddItemExpanded(false);
+                    setAddItemExpanded(!addItemExpanded);
                   }}
                 >
-                  Single item
+                  <Plus size={18} /> Add Item
                 </button>
-                <button
-                  className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
-                  onClick={() => router.push("/bulkAddItems")}
-                >
-                  Bulk items
-                </button>
+                {addItemExpanded && (
+                  <div className="flex flex-col gap-y-1 items-center absolute left-0 mt-2 p-1 origin-top-right bg-white border border-solid border-gray-primary rounded border-opacity-10">
+                    <button
+                      className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                      onClick={() => {
+                        setIsModalOpen(true);
+                        setAddItemExpanded(false);
+                      }}
+                    >
+                      Single item
+                    </button>
+                    <button
+                      className="block font-medium w-full rounded text-gray-primary text-opacity-70 text-center px-2 py-1 hover:bg-gray-primary hover:bg-opacity-5"
+                      onClick={() => router.push("/bulkAddItems")}
+                    >
+                      Bulk items
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : null}
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="flex space-x-4 mt-4 border-b-2">
-        {expirationFilterTabs.map((tab) => {
-          const key = tab as ExpirationFilterKey;
-
-          return (
-            <button
-              key={tab}
-              data-active={activeTab === tab}
-              className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
-              onClick={() => filterItems(key)}
-            >
-              <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center mt-8">
-          <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-        </div>
-      ) : (
-        <BaseTable
-          headers={[
-            "Title",
-            "Type",
-            "Quantity",
-            "Expiration",
-            "Unit type",
-            "Qty/Unit",
-          ]}
-          rows={items.map((item) => ({
-            cells: [
-              item.title,
-              item.type,
-              item.quantity,
-              item.expirationDate
-                ? new Date(item.expirationDate).toLocaleDateString()
-                : "N/A",
-              item.unitType,
-              item.quantityPerUnit
-            ],
-            onClick: () => {
-              router.push(
-                `/unallocatedItems/requests?${new URLSearchParams({
-                  title: item.title,
-                  type: item.type,
-                  unitType: item.unitType,
-                  quantityPerUnit: item.quantityPerUnit.toString(),
-                  ...(item.expirationDate
-                    ? { expirationDate: item.expirationDate }
-                    : {}),
-                }).toString()}`
-              );
-            },
-          }))}
-        />
-      )}
+        }
+      />
     </>
   );
 }

@@ -1,13 +1,20 @@
 import { auth } from "@/auth";
 import AllocationService from "@/services/allocationService";
+import DistributionService from "@/services/distributionService";
 import UserService from "@/services/userService";
 import { allocationSchema } from "@/types/api/allocation.types";
 import {
   AuthenticationError,
   AuthorizationError,
   errorResponse,
+  ok,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const deleteSchema = z.object({
+  allocations: z.array(z.number().min(1)),
+});
 
 export async function POST(
   request: NextRequest,
@@ -56,6 +63,46 @@ export async function POST(
     });
 
     return NextResponse.json(allocation, { status: 201 });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ distributionId: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError("Admin access required");
+    }
+
+    const body = await request.json();
+    const parsed = deleteSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new Error("Invalid request data: " + parsed.error.message);
+    }
+
+    const distributionId = parseInt((await params).distributionId);
+    if (isNaN(distributionId) || distributionId <= 0) {
+      throw new Error("Invalid distribution ID");
+    }
+
+    await AllocationService.deleteManyAllocations(parsed.data.allocations);
+
+    const distribution =
+      await DistributionService.getDistribution(distributionId);
+
+    if (distribution?.allocations.length === 0) {
+      await DistributionService.deleteDistribution(distributionId);
+    }
+
+    return ok();
   } catch (error) {
     return errorResponse(error);
   }

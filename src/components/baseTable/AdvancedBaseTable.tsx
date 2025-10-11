@@ -33,6 +33,7 @@ import {
   getDisplayContent,
   humanizeKey,
   inferFilterTypeFromSample,
+  mergeFilters,
   normalizeColumns,
 } from "./TableUtils";
 
@@ -52,6 +53,8 @@ interface AdvancedBaseTableProps<T extends object> {
   rowClassName?: (item: T, index: number) => string | undefined;
   emptyState?: React.ReactNode;
   toolBar?: React.ReactNode;
+  additionalFilters?: FilterList<T>;
+  embeds?: { [id: string]: React.ReactNode };
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -67,6 +70,8 @@ function AdvancedBaseTableInner<T extends object>(
     rowClassName,
     emptyState,
     toolBar,
+    additionalFilters,
+    embeds,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -78,8 +83,9 @@ function AdvancedBaseTableInner<T extends object>(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [filterableColumns, setFilterableColumns] =
-    useState<FilterableColumnMeta<T>[]>([]);
+  const [filterableColumns, setFilterableColumns] = useState<
+    FilterableColumnMeta<T>[]
+  >([]);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -87,7 +93,8 @@ function AdvancedBaseTableInner<T extends object>(
     if (typeof rowId === "function") {
       return rowId;
     }
-    return (item: T) => (item as Record<string, unknown>)[rowId as string] as string | number;
+    return (item: T) =>
+      (item as Record<string, unknown>)[rowId as string] as string | number;
   }, [rowId]);
 
   useEffect(() => {
@@ -129,7 +136,8 @@ function AdvancedBaseTableInner<T extends object>(
             ...(previousMeta?.options ?? []),
             ...values,
           ]);
-          options = collectedOptions.length > 0 ? collectedOptions : providedOptions;
+          options =
+            collectedOptions.length > 0 ? collectedOptions : providedOptions;
         }
 
         next.push({
@@ -148,7 +156,11 @@ function AdvancedBaseTableInner<T extends object>(
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetchFn(pageSize, page, filters);
+      const response = await fetchFn(
+        pageSize,
+        page,
+        mergeFilters(additionalFilters, filters)
+      );
       setItems(response.data);
       setTotal(response.total);
     } catch (err) {
@@ -160,7 +172,7 @@ function AdvancedBaseTableInner<T extends object>(
     } finally {
       setIsLoading(false);
     }
-  }, [fetchFn, filters, page, pageSize]);
+  }, [fetchFn, filters, page, pageSize, additionalFilters]);
 
   useEffect(() => {
     loadData();
@@ -188,17 +200,20 @@ function AdvancedBaseTableInner<T extends object>(
   // Click outside detection
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
+      if (
+        filterMenuRef.current &&
+        !filterMenuRef.current.contains(event.target as Node)
+      ) {
         setIsFilterMenuOpen(false);
       }
     };
 
     if (isFilterMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isFilterMenuOpen]);
 
@@ -270,9 +285,7 @@ function AdvancedBaseTableInner<T extends object>(
         const currentItem = next[index];
 
         const resolvedUpdate =
-          typeof updater === "function"
-            ? updater(currentItem)
-            : updater;
+          typeof updater === "function" ? updater(currentItem) : updater;
 
         if (resolvedUpdate === undefined) {
           return prev;
@@ -381,28 +394,37 @@ function AdvancedBaseTableInner<T extends object>(
               </tr>
             ) : (
               items.map((item, rowIndex) => (
-                <tr
-                  key={String(resolveRowId(item))}
-                  data-odd={rowIndex % 2 !== 0}
-                  className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
-                    onRowClick ? "cursor-pointer" : ""
-                  } ${rowClassName ? rowClassName(item, rowIndex) ?? "" : ""}`}
-                  onClick={() => onRowClick?.(item)}
-                >
-                  {normalizedColumns.map((column) => {
-                    const rawContent = column.render(item, rowIndex);
-                    return (
-                      <td
-                        key={column.id}
-                        className={`px-4 py-4 ${
-                          rowCellStyles ? rowCellStyles : ""
-                        } ${column.cellClassName ? column.cellClassName : ""}`}
-                      >
-                        {getDisplayContent(rawContent)}
+                <React.Fragment key={String(resolveRowId(item))}>
+                  <tr
+                    key={String(resolveRowId(item))}
+                    data-odd={rowIndex % 2 !== 0}
+                    className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
+                      onRowClick ? "cursor-pointer" : ""
+                    } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
+                    onClick={() => onRowClick?.(item)}
+                  >
+                    {normalizedColumns.map((column) => {
+                      const rawContent = column.render(item, rowIndex);
+                      return (
+                        <td
+                          key={column.id}
+                          className={`px-4 py-4 ${
+                            rowCellStyles ? rowCellStyles : ""
+                          } ${column.cellClassName ? column.cellClassName : ""}`}
+                        >
+                          {getDisplayContent(rawContent)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {embeds?.[String(resolveRowId(item))] && (
+                    <tr>
+                      <td colSpan={normalizedColumns.length}>
+                        {embeds?.[String(resolveRowId(item))]}
                       </td>
-                    );
-                  })}
-                </tr>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             )}
           </tbody>
@@ -430,7 +452,7 @@ function AdvancedBaseTableInner<T extends object>(
 }
 
 const AdvancedBaseTable = forwardRef(AdvancedBaseTableInner) as <
-  T extends object
+  T extends object,
 >(
   props: AdvancedBaseTableProps<T> & {
     ref?: React.ForwardedRef<AdvancedBaseTableHandle<T>>;

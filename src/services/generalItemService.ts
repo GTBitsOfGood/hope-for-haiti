@@ -53,7 +53,16 @@ export class GeneralItemService {
   ) {
     const generalItems = await db.generalItem.findMany({
       include: {
-        items: true,
+        items: {
+          where: { allocation: null },
+        },
+        requests: {
+          include: {
+            partner: {
+              select: { name: true },
+            },
+          },
+        },
         donorOffer: true,
       },
       orderBy: {
@@ -63,14 +72,9 @@ export class GeneralItemService {
 
     const unallocatedWithLineItems = generalItems
       .map((item) => {
-        const allocatedQuantity = item.items.reduce(
-          (sum, lineItem) => sum + lineItem.quantity,
-          0
-        );
-        const quantity = item.initialQuantity - allocatedQuantity;
         return {
           item,
-          quantity,
+          quantity: item.initialQuantity,
         };
       })
       .filter(({ quantity }) => quantity > 0);
@@ -85,13 +89,15 @@ export class GeneralItemService {
 
     const paginated =
       page && pageSize
-        ? filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+        ? filtered.slice(
+            (page - 1) * pageSize,
+            (page - 1) * pageSize + pageSize
+          )
         : filtered;
 
     const sanitize = paginated.map(({ item, quantity }) => {
-      const { items, ...rest } = item; // eslint-disable-line @typescript-eslint/no-unused-vars
       return {
-        ...rest,
+        ...item,
         quantity,
       };
     });
@@ -135,7 +141,10 @@ export class GeneralItemService {
     });
   }
 
-  private static matchesFilterValue(value: unknown, filter: FilterValue): boolean {
+  private static matchesFilterValue(
+    value: unknown,
+    filter: FilterValue
+  ): boolean {
     if (value === null || value === undefined) {
       return false;
     }

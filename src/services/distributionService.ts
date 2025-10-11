@@ -119,6 +119,12 @@ export default class DistributionService {
     };
   }
 
+  static async getPendingDistributionForPartner(partnerId: number) {
+    return db.distribution.findFirst({
+      where: { partnerId, pending: true },
+    });
+  }
+
   static async getCompletedSignOffs(
     filters?: Filters,
     page?: number,
@@ -216,15 +222,18 @@ export default class DistributionService {
 
     buildQueryWithPagination(usersQuery, page, pageSize);
 
-    const [signOffsByPartnerId, usersWithAllocations, total] = await Promise.all([
-      signOffsByPartnerIdPromise,
-      db.user.findMany(usersQuery),
-      db.user.count({ where }),
-    ]);
+    const [signOffsByPartnerId, usersWithAllocations, total] =
+      await Promise.all([
+        signOffsByPartnerIdPromise,
+        db.user.findMany(usersQuery),
+        db.user.count({ where }),
+      ]);
 
     type UserWithAllocationCount = Prisma.UserGetPayload<typeof usersQuery>;
 
-    const data: PartnerAllocationSummary[] = (usersWithAllocations as UserWithAllocationCount[]).map((user) => {
+    const data: PartnerAllocationSummary[] = (
+      usersWithAllocations as UserWithAllocationCount[]
+    ).map((user) => {
       return {
         partnerId: user.id,
         partnerName: user.name,
