@@ -53,7 +53,9 @@ export class GeneralItemService {
   ) {
     const generalItems = await db.generalItem.findMany({
       include: {
-        items: true,
+        items: {
+          where: { allocation: null },
+        },
         requests: {
           include: {
             partner: {

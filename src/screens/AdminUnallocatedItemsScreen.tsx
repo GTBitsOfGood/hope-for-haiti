@@ -24,6 +24,7 @@ export interface UnallocatedItemData {
   quantityPerUnit: number;
   requests: {
     id: number;
+    partnerId: number;
     partner: {
       name: string;
     };
