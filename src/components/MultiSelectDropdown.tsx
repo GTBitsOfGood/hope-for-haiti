@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 export default function MultiSelectDropdown<TId>({
   label,
@@ -18,12 +18,47 @@ export default function MultiSelectDropdown<TId>({
   const [selectedValues, setSelectedValues] = useState<TId[]>(
     defaultSelectedValues
   );
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   function toggleValue(id: TId) {
     setSelectedValues((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   }
+
+  function cancel() {
+    setIsOpen(false);
+    setSelectedValues(defaultSelectedValues);
+  }
+
+  useEffect(() => {
+    if (!dropdownRef.current) return;
+
+    function handleClickOutside(event: Event) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        cancel();
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        cancel();
+      }
+    }
+
+
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [dropdownRef.current, defaultSelectedValues, isOpen]);
 
   return (
     <div className="relative">
@@ -34,7 +69,10 @@ export default function MultiSelectDropdown<TId>({
         {label}
       </button>
       {isOpen && (
-        <div className="w-full bg-gray-100 rounded p-2 flex flex-col absolute top-0 left-0 z-10">
+        <div
+          ref={dropdownRef}
+          className="w-full bg-gray-100 rounded p-2 flex flex-col absolute top-0 left-0 z-10"
+        >
           <label className="block text-sm font-medium text-gray-700">
             {label}
           </label>
@@ -67,10 +105,7 @@ export default function MultiSelectDropdown<TId>({
             Confirm
           </button>
           <button
-            onClick={() => {
-              setIsOpen(false);
-              setSelectedValues(defaultSelectedValues);
-            }}
+            onClick={cancel}
             className="mt-2 px-3 py-1 bg-gray-300 rounded"
           >
             Cancel
