@@ -162,6 +162,9 @@ function ChipGroup({
 }) {
   return (
     <div className="w-full bg-gray-100 flex flex-wrap p-2">
+      {items.length === 0 && (
+        <p className="w-full text-center text-gray-500 p-2">No line items available.</p>
+      )}
       {items.map((item) => (
         <LineItemChip key={item.id} item={item} requests={requests} />
       ))}

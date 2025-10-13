@@ -59,6 +59,11 @@ export default function LineItemChip({
               <p className="text-blue-500">{request.quantity}</p>
             </button>
           ))}
+          <button className="text-left px-2 py-1 hover:bg-red-100 rounded">
+            {
+              item.allocation ? "Unallocate" : "None"
+            }
+          </button>
         </div>
       </div>
     </div>
