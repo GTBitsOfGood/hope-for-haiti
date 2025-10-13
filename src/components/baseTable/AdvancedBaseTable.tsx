@@ -33,7 +33,6 @@ import {
   getDisplayContent,
   humanizeKey,
   inferFilterTypeFromSample,
-  mergeFilters,
   normalizeColumns,
 } from "./TableUtils";
 
@@ -53,7 +52,6 @@ interface AdvancedBaseTableProps<T extends object> {
   rowClassName?: (item: T, index: number) => string | undefined;
   emptyState?: React.ReactNode;
   toolBar?: React.ReactNode;
-  additionalFilters?: FilterList<T>;
   embeds?: { [id: string]: React.ReactNode };
 }
 
@@ -70,7 +68,6 @@ function AdvancedBaseTableInner<T extends object>(
     rowClassName,
     emptyState,
     toolBar,
-    additionalFilters,
     embeds,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
@@ -156,11 +153,7 @@ function AdvancedBaseTableInner<T extends object>(
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetchFn(
-        pageSize,
-        page,
-        mergeFilters(additionalFilters, filters)
-      );
+      const response = await fetchFn(pageSize, page, filters);
       setItems(response.data);
       setTotal(response.total);
     } catch (err) {
@@ -172,7 +165,7 @@ function AdvancedBaseTableInner<T extends object>(
     } finally {
       setIsLoading(false);
     }
-  }, [fetchFn, filters, page, pageSize, additionalFilters]);
+  }, [fetchFn, filters, page, pageSize]);
 
   useEffect(() => {
     loadData();

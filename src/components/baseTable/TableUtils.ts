@@ -3,7 +3,6 @@ import { formatTableValue } from "@/utils/format";
 import {
   ColumnConfig,
   ColumnDefinition,
-  FilterList,
   FilterValue,
   ResolvedColumn,
 } from "@/types/ui/table.types";
@@ -140,16 +139,6 @@ export function inferFilterTypeFromSample(
   }
 
   return undefined;
-}
-
-/**
- * a takes precedence over b
- */
-export function mergeFilters(
-  a: FilterList<unknown> | undefined,
-  b: FilterList<unknown> | undefined
-): FilterList<unknown> {
-  return { ...(b ?? {}), ...(a ?? {}) };
 }
 
 export function collectEnumOptions(values: unknown[]) {
