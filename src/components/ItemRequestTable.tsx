@@ -2,6 +2,7 @@ import { UnallocatedItemData } from "@/screens/AdminUnallocatedItemsScreen";
 import MultiSelectDropdown from "./MultiSelectDropdown";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useApiClient } from "@/hooks/useApiClient";
 
 export default function ItemRequestTable({
   generalItemData,
@@ -61,32 +62,25 @@ function ItemRequestTableRow({
     };
   }>({});
 
+  const { apiClient } = useApiClient();
+
   async function allocateItems(lineItemIds: number[]) {
     if (lineItemIds.length === 0) return;
 
-    const response = await fetch("/api/allocations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+    const response = await apiClient.post<{
+      allocations: { id: number; itemId: number; distributionId: number }[];
+    }>("/api/allocations", {
       body: JSON.stringify({
         partnerId: request.partnerId,
         allocations: lineItemIds,
       }),
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      toast.error(data.message);
-      throw new Error(data.message);
-    }
-
-    console.log("Allocation successful:", data);
+    console.log("Allocation successful:", response);
     toast.success("Items allocated successfully!");
 
     setAllocations((prev) => {
-      for (const allocation of data.allocations) {
+      for (const allocation of response.allocations) {
         prev[allocation.itemId] = {
           allocationId: allocation.id,
           distributionId: allocation.distributionId,
@@ -110,27 +104,16 @@ function ItemRequestTableRow({
       );
     }
 
-    const response = await fetch(
+    const response = await apiClient.delete(
       `/api/distributions/${distributionIds.values().next().value}/allocations`,
       {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           allocations: allocationsToDelete.map((a) => a.allocationId),
         }),
       }
     );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      toast.error(data.message);
-      throw new Error(data.message);
-    }
-
-    console.log("Unallocation successful:", data);
+    console.log("Unallocation successful:", response);
     toast.success("Items unallocated successfully!");
 
     setAllocations((prev) => {

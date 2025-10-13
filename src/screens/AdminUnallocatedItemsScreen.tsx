@@ -10,6 +10,7 @@ import AdvancedBaseTable, {
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
 import ItemRequestTable from "@/components/ItemRequestTable";
+import { useApiClient } from "@/hooks/useApiClient";
 
 export interface UnallocatedItemData {
   id: number;
@@ -46,6 +47,8 @@ export default function AdminUnallocatedItemsScreen() {
 
   const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
 
+  const { apiClient } = useApiClient();
+
   const fetchTableData = useCallback(
     async (
       pageSize: number,
@@ -58,22 +61,16 @@ export default function AdminUnallocatedItemsScreen() {
         filters: JSON.stringify(filters),
       });
 
-      const res = await fetch(
-        `/api/generalItems/unallocated?${params.toString()}`,
-        {
-          cache: "no-store",
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch table data");
-      }
-
-      const body = await res.json();
+      const res = await apiClient.get<{
+        items: UnallocatedItemData[];
+        total: number;
+      }>(`/api/generalItems/unallocated?${params.toString()}`, {
+        cache: "no-store",
+      });
 
       return {
-        data: body.items,
-        total: body.items?.length ?? 0,
+        data: res.items,
+        total: res.items?.length ?? 0,
       };
     },
     []
