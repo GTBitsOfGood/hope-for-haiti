@@ -36,7 +36,6 @@ export interface UnallocatedItemData {
   items: {
     id: number;
     quantity: number;
-    allocationId: number | null;
     datePosted: string | null;
     donorName: string | null;
     lotNumber: string | null;
