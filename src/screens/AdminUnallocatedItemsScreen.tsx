@@ -9,8 +9,8 @@ import AdvancedBaseTable, {
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
-import ItemRequestTable from "@/components/ItemRequestTable";
 import { useApiClient } from "@/hooks/useApiClient";
+import LineItemChip from "@/components/LineItemChip";
 
 export interface UnallocatedItemData {
   id: number;
@@ -39,6 +39,7 @@ export interface UnallocatedItemData {
     lotNumber: string | null;
     palletNumber: string | null;
     boxNumber: string | null;
+    allocation: { id: number; distributionId: number } | null;
   }[];
 }
 
@@ -73,7 +74,7 @@ export default function AdminUnallocatedItemsScreen() {
         total: res.items?.length ?? 0,
       };
     },
-    []
+    [apiClient]
   );
 
   const columns: ColumnDefinition<UnallocatedItemData>[] = [
@@ -134,9 +135,7 @@ export default function AdminUnallocatedItemsScreen() {
           } else setSelectedItem(item);
         }}
         rowBody={(item) =>
-          item === selectedItem ? (
-            <ItemRequestTable generalItemData={selectedItem} />
-          ) : undefined
+          item === selectedItem ? <ChipGroup items={item.items} /> : undefined
         }
         emptyState={
           <div className="flex justify-center items-center mt-8">
@@ -145,5 +144,15 @@ export default function AdminUnallocatedItemsScreen() {
         }
       />
     </>
+  );
+}
+
+function ChipGroup({ items }: { items: UnallocatedItemData["items"] }) {
+  return (
+    <div className="w-full bg-gray-100 flex flex-wrap p-2">
+      {items.map((item) => (
+        <LineItemChip key={item.id} item={item} />
+      ))}
+    </div>
   );
 }
