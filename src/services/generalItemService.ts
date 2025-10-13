@@ -102,27 +102,8 @@ export class GeneralItemService {
       };
     });
 
-    const unitTypes = Array.from(
-      new Set(unallocatedWithLineItems.map(({ item }) => item.unitType))
-    ).sort();
-
-    const donorNames = Array.from(
-      new Set(
-        unallocatedWithLineItems.map(({ item }) => item.donorOffer?.donorName)
-      )
-    )
-      .filter((name): name is string => Boolean(name))
-      .sort();
-
-    const itemTypes = Array.from(
-      new Set(unallocatedWithLineItems.map(({ item }) => item.type))
-    ).sort();
-
     return {
       items: sanitize,
-      unitTypes,
-      donorNames,
-      itemTypes,
       total,
     };
   }
