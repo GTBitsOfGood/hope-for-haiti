@@ -52,7 +52,7 @@ interface AdvancedBaseTableProps<T extends object> {
   rowClassName?: (item: T, index: number) => string | undefined;
   emptyState?: React.ReactNode;
   toolBar?: React.ReactNode;
-  embeds?: { [id: string]: React.ReactNode };
+  rowBody?: (item: T) => React.ReactNode | undefined;
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -68,7 +68,7 @@ function AdvancedBaseTableInner<T extends object>(
     rowClassName,
     emptyState,
     toolBar,
-    embeds,
+    rowBody,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -410,10 +410,10 @@ function AdvancedBaseTableInner<T extends object>(
                       );
                     })}
                   </tr>
-                  {embeds?.[String(resolveRowId(item))] && (
+                  {rowBody && (
                     <tr>
                       <td colSpan={normalizedColumns.length}>
-                        {embeds?.[String(resolveRowId(item))]}
+                        {rowBody(item)}
                       </td>
                     </tr>
                   )}

@@ -133,14 +133,10 @@ export default function AdminUnallocatedItemsScreen() {
             setSelectedItem(undefined);
           } else setSelectedItem(item);
         }}
-        embeds={
-          selectedItem
-            ? {
-                [String(selectedItem.id)]: (
-                  <ItemRequestTable generalItemData={selectedItem} />
-                ),
-              }
-            : undefined
+        rowBody={(item) =>
+          item === selectedItem ? (
+            <ItemRequestTable generalItemData={selectedItem} />
+          ) : undefined
         }
         emptyState={
           <div className="flex justify-center items-center mt-8">

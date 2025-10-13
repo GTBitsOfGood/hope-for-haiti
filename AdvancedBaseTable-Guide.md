@@ -104,7 +104,7 @@ const MyComponent = () => {
 | `rowClassName` | `(item: T, index: number) => string \| undefined` | `undefined` | Function to determine row CSS classes |
 | `emptyState` | `React.ReactNode` | `"No results found."` | Content to show when no data |
 | `toolBar` | `React.ReactNode` | `undefined` | Custom toolbar content (renders before filter button) |
-| `embeds` | `{ [key: string]: React.ReactNode }` | `undefined` | Optional embedded content to show below specific rows, keyed by row ID. Be sure to convert row IDs to strings when passing the embeds object |
+| `rowBody` | `(item: T) => React.ReactNode \| undefined` | `undefined` | Function to render additional row content below each row |
 
 ## Column Definitions
 
