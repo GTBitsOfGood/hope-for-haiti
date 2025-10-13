@@ -64,7 +64,7 @@ export default function AdminUnallocatedItemsScreen() {
       const res = await apiClient.get<{
         items: UnallocatedItemData[];
         total: number;
-      }>(`/api/generalItems/unallocated?${params.toString()}`, {
+      }>(`/api/generalItems/unallocated?${params}`, {
         cache: "no-store",
       });
 
