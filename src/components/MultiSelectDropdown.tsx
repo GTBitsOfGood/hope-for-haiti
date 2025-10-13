@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * A multi-select dropdown component. Has a button to open the dropdown,
@@ -34,10 +34,10 @@ export default function MultiSelectDropdown<TId>({
     );
   }
 
-  function cancel() {
+  const cancel = useCallback(() => {
     setIsOpen(false);
     setSelectedValues(defaultSelectedValues);
-  }
+  }, [defaultSelectedValues]);
 
   // Close dropdown on outside click or escape key
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function MultiSelectDropdown<TId>({
       document.removeEventListener("touchstart", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [dropdownRef.current, defaultSelectedValues, isOpen]);
+  }, [defaultSelectedValues, isOpen, cancel]);
 
   return (
     <div className="relative">
