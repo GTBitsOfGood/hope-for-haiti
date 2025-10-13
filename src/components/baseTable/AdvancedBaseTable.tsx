@@ -103,7 +103,7 @@ function AdvancedBaseTableInner<T extends object>(
       const next: FilterableColumnMeta<T>[] = [];
 
       normalizedColumns.forEach((column) => {
-        if (!column.accessor) {
+        if (!column.accessor || column.filterable == false) {
           return;
         }
 

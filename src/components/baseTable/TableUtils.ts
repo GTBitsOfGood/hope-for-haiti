@@ -76,6 +76,7 @@ export function normalizeColumns<T>(
       render,
       filterType: config.filterType,
       filterOptions: config.filterOptions,
+      filterable: config.filterable,
     };
   });
 }

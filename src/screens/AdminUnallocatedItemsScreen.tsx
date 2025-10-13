@@ -108,11 +108,13 @@ export default function AdminUnallocatedItemsScreen() {
       id: "requests",
       header: "# of Requests",
       cell: (item) => item.requests?.length,
+      filterable: false,
     },
     {
       id: "items",
       header: "# of Line Items",
       cell: (item) => item.items?.length,
+      filterable: false,
     },
   ];
 

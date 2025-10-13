@@ -23,6 +23,7 @@ export interface ColumnConfig<T> {
   cellClassName?: string;
   filterType?: FilterValue["type"];
   filterOptions?: string[];
+  filterable?: boolean;
 }
 
 export type ColumnDefinition<T> = keyof T | ColumnConfig<T>;
@@ -36,6 +37,7 @@ export interface ResolvedColumn<T> {
   render: (item: T, index: number) => React.ReactNode;
   filterType?: FilterValue["type"];
   filterOptions?: string[];
+  filterable?: boolean;
 }
 
 export interface FilterableColumnMeta<T> {
