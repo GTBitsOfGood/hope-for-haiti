@@ -39,7 +39,11 @@ export interface UnallocatedItemData {
     lotNumber: string | null;
     palletNumber: string | null;
     boxNumber: string | null;
-    allocation: { id: number; distributionId: number } | null;
+    allocation: {
+      partner: {
+        name: string;
+      } | null;
+    } | null;
   }[];
 }
 

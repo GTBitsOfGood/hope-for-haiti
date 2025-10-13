@@ -1,3 +1,4 @@
+import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { UnallocatedItemData } from "@/screens/AdminUnallocatedItemsScreen";
 import { useState } from "react";
 
@@ -7,6 +8,10 @@ export default function LineItemChip({
   item: UnallocatedItemData["items"][number];
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useOnClickOutside<HTMLDivElement>({
+    deps: [isDropdownOpen],
+    onClick: () => setIsDropdownOpen(false),
+  });
 
   return (
     <div className="relative">
@@ -22,8 +27,16 @@ export default function LineItemChip({
       <span
         className={`absolute left-0 top-0 rounded text-xs px-1 shadow-sm ${item.allocation ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"}`}
       >
-        {item.allocation ? item.allocation.id : "None"}
+        {item.allocation?.partner ? item.allocation.partner.name : "None"}
       </span>
+
+      {/* Allocation Dropdown */}
+      <div
+        ref={dropdownRef}
+        className={`absolute z-10 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm ${
+          isDropdownOpen ? "block" : "hidden"
+        }`}
+      ></div>
     </div>
   );
 }

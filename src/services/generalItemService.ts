@@ -54,7 +54,15 @@ export class GeneralItemService {
     const generalItems = await db.generalItem.findMany({
       include: {
         items: {
-          where: { allocation: null },
+          include: {
+            allocation: {
+              include: {
+                partner: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
         },
         requests: {
           include: {
@@ -72,9 +80,15 @@ export class GeneralItemService {
 
     const unallocatedWithLineItems = generalItems
       .map((item) => {
+        const allocatedCount = item.items.reduce(
+          (sum, lineItem) =>
+            sum + (lineItem.allocation ? lineItem.quantity : 0),
+          0
+        );
+
         return {
           item,
-          quantity: item.initialQuantity,
+          quantity: item.initialQuantity - allocatedCount,
         };
       })
       .filter(({ quantity }) => quantity > 0);

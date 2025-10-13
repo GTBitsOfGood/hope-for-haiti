@@ -1,4 +1,5 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import useOnClickOutside from "@/hooks/useOnClickOutside";
+import { ReactNode, useCallback, useState } from "react";
 
 /**
  * A multi-select dropdown component. Has a button to open the dropdown,
@@ -26,7 +27,6 @@ export default function MultiSelectDropdown<TId>({
   const [selectedValues, setSelectedValues] = useState<TId[]>(
     defaultSelectedValues
   );
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   function toggleValue(id: TId) {
     setSelectedValues((prev) =>
@@ -39,34 +39,10 @@ export default function MultiSelectDropdown<TId>({
     setSelectedValues(defaultSelectedValues);
   }, [defaultSelectedValues]);
 
-  // Close dropdown on outside click or escape key
-  useEffect(() => {
-    if (!dropdownRef.current) return;
-
-    function handleClickOutside(event: Event) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        cancel();
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        cancel();
-      }
-    }
-
-    document.addEventListener("click", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [defaultSelectedValues, isOpen, cancel]);
+  const dropdownRef = useOnClickOutside<HTMLDivElement>({
+    deps: [cancel],
+    onClick: cancel,
+  });
 
   return (
     <div className="relative">
