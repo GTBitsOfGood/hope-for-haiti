@@ -39,10 +39,7 @@ export default function MultiSelectDropdown<TId>({
     setSelectedValues(defaultSelectedValues);
   }, [defaultSelectedValues]);
 
-  const dropdownRef = useOnClickOutside<HTMLDivElement>({
-    deps: [cancel],
-    onClick: cancel,
-  });
+  const dropdownRef = useOnClickOutside<HTMLDivElement>(cancel);
 
   return (
     <div className="relative">

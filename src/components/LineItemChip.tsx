@@ -10,10 +10,9 @@ export default function LineItemChip({
   requests: UnallocatedItemData["requests"];
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useOnClickOutside<HTMLDivElement>({
-    deps: [isDropdownOpen],
-    onClick: () => setIsDropdownOpen(false),
-  });
+  const dropdownRef = useOnClickOutside<HTMLDivElement>(() =>
+    setIsDropdownOpen(false)
+  );
 
   async function allocateItem(
     request: UnallocatedItemData["requests"][number]

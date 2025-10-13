@@ -1,15 +1,13 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Fires onClick on outside click or escape key
+ * Fires onClick on outside click or escape key.
+ * Deps automatically includes onClick.
  */
-export default function useOnClickOutside<TRef extends HTMLElement>({
-  deps,
-  onClick,
-}: {
-  deps: unknown[];
-  onClick: () => void;
-}) {
+export default function useOnClickOutside<TRef extends HTMLElement>(
+  onClick: () => void,
+  deps: unknown[] = []
+) {
   const ref = useRef<TRef>(null);
 
   useEffect(
