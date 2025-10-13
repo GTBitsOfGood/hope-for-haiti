@@ -33,7 +33,7 @@ export default function useOnClickOutside<TRef extends HTMLElement>({
       document.removeEventListener("click", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClick, ...deps]);
+  }, [onClick, deps]);
 
   return ref;
 }

@@ -139,7 +139,9 @@ export default function AdminUnallocatedItemsScreen() {
           } else setSelectedItem(item);
         }}
         rowBody={(item) =>
-          item === selectedItem ? <ChipGroup items={item.items} /> : undefined
+          item === selectedItem ? (
+            <ChipGroup items={item.items} requests={item.requests} />
+          ) : undefined
         }
         emptyState={
           <div className="flex justify-center items-center mt-8">
@@ -151,11 +153,17 @@ export default function AdminUnallocatedItemsScreen() {
   );
 }
 
-function ChipGroup({ items }: { items: UnallocatedItemData["items"] }) {
+function ChipGroup({
+  items,
+  requests,
+}: {
+  items: UnallocatedItemData["items"];
+  requests: UnallocatedItemData["requests"];
+}) {
   return (
     <div className="w-full bg-gray-100 flex flex-wrap p-2">
       {items.map((item) => (
-        <LineItemChip key={item.id} item={item} />
+        <LineItemChip key={item.id} item={item} requests={requests} />
       ))}
     </div>
   );

@@ -4,14 +4,24 @@ import { useState } from "react";
 
 export default function LineItemChip({
   item,
+  requests,
 }: {
   item: UnallocatedItemData["items"][number];
+  requests: UnallocatedItemData["requests"];
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useOnClickOutside<HTMLDivElement>({
     deps: [isDropdownOpen],
     onClick: () => setIsDropdownOpen(false),
   });
+
+  async function allocateItem(
+    request: UnallocatedItemData["requests"][number]
+  ) {
+    // Handle allocation logic here
+    console.log(`Allocating item ${item.id} to request ${request.id}`);
+    setIsDropdownOpen(false);
+  }
 
   return (
     <div className="relative">
@@ -33,10 +43,25 @@ export default function LineItemChip({
       {/* Allocation Dropdown */}
       <div
         ref={dropdownRef}
-        className={`absolute z-10 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm ${
+        className={`absolute z-10 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm font-bold ${
           isDropdownOpen ? "block" : "hidden"
         }`}
-      ></div>
+      >
+        <p className="text-gray-500 mb-1">Assign to Organization</p>
+        <div className="flex flex-col">
+          {requests.map((request) => (
+            <button
+              key={request.id}
+              onClick={() => allocateItem(request)}
+              className="flex justify-between text-left px-2 py-1 hover:bg-blue-100 rounded"
+            >
+              <p>{request.partner.name}</p>
+              {/* TODO: Replace with "allocated / requested" */}
+              <p className="text-blue-500">{request.quantity}</p>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
