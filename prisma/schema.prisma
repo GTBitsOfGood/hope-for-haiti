@@ -81,7 +81,6 @@ model LineItem {
   generalItemId Int?
   generalItem   GeneralItem? @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
-  allocationId Int?        @unique
   allocation   Allocation? @relation
 }
 

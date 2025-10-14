@@ -52,6 +52,7 @@ interface AdvancedBaseTableProps<T extends object> {
   rowClassName?: (item: T, index: number) => string | undefined;
   emptyState?: React.ReactNode;
   toolBar?: React.ReactNode;
+  rowBody?: (item: T) => React.ReactNode | undefined;
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -67,6 +68,7 @@ function AdvancedBaseTableInner<T extends object>(
     rowClassName,
     emptyState,
     toolBar,
+    rowBody,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -78,16 +80,19 @@ function AdvancedBaseTableInner<T extends object>(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [filterableColumns, setFilterableColumns] =
-    useState<FilterableColumnMeta<T>[]>([]);
+  const [filterableColumns, setFilterableColumns] = useState<
+    FilterableColumnMeta<T>[]
+  >([]);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const [openRowIds, setOpenRowIds] = useState<Set<string | number>>(new Set());
 
   const resolveRowId = useMemo(() => {
     if (typeof rowId === "function") {
       return rowId;
     }
-    return (item: T) => (item as Record<string, unknown>)[rowId as string] as string | number;
+    return (item: T) =>
+      (item as Record<string, unknown>)[rowId as string] as string | number;
   }, [rowId]);
 
   useEffect(() => {
@@ -99,7 +104,7 @@ function AdvancedBaseTableInner<T extends object>(
       const next: FilterableColumnMeta<T>[] = [];
 
       normalizedColumns.forEach((column) => {
-        if (!column.accessor) {
+        if (!column.accessor || column.filterable == false) {
           return;
         }
 
@@ -129,7 +134,8 @@ function AdvancedBaseTableInner<T extends object>(
             ...(previousMeta?.options ?? []),
             ...values,
           ]);
-          options = collectedOptions.length > 0 ? collectedOptions : providedOptions;
+          options =
+            collectedOptions.length > 0 ? collectedOptions : providedOptions;
         }
 
         next.push({
@@ -188,17 +194,20 @@ function AdvancedBaseTableInner<T extends object>(
   // Click outside detection
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
+      if (
+        filterMenuRef.current &&
+        !filterMenuRef.current.contains(event.target as Node)
+      ) {
         setIsFilterMenuOpen(false);
       }
     };
 
     if (isFilterMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isFilterMenuOpen]);
 
@@ -270,9 +279,7 @@ function AdvancedBaseTableInner<T extends object>(
         const currentItem = next[index];
 
         const resolvedUpdate =
-          typeof updater === "function"
-            ? updater(currentItem)
-            : updater;
+          typeof updater === "function" ? updater(currentItem) : updater;
 
         if (resolvedUpdate === undefined) {
           return prev;
@@ -333,7 +340,7 @@ function AdvancedBaseTableInner<T extends object>(
         )}
       </div>
       <div className="overflow-visible">
-        <table className="mt-4 min-w-full">
+        <table className="mt-4 w-full">
           <thead>
             <tr
               className={`text-left font-bold ${
@@ -381,28 +388,57 @@ function AdvancedBaseTableInner<T extends object>(
               </tr>
             ) : (
               items.map((item, rowIndex) => (
-                <tr
-                  key={String(resolveRowId(item))}
-                  data-odd={rowIndex % 2 !== 0}
-                  className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
-                    onRowClick ? "cursor-pointer" : ""
-                  } ${rowClassName ? rowClassName(item, rowIndex) ?? "" : ""}`}
-                  onClick={() => onRowClick?.(item)}
-                >
-                  {normalizedColumns.map((column) => {
-                    const rawContent = column.render(item, rowIndex);
-                    return (
-                      <td
-                        key={column.id}
-                        className={`px-4 py-4 ${
-                          rowCellStyles ? rowCellStyles : ""
-                        } ${column.cellClassName ? column.cellClassName : ""}`}
-                      >
-                        {getDisplayContent(rawContent)}
+                <React.Fragment key={String(resolveRowId(item))}>
+                  <tr
+                    key={String(resolveRowId(item))}
+                    data-odd={rowIndex % 2 !== 0}
+                    className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
+                      onRowClick || rowBody ? "cursor-pointer" : ""
+                    } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
+                    onClick={() => {
+                      onRowClick?.(item);
+                      if (rowBody) {
+                        const id = resolveRowId(item);
+                        setOpenRowIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(id)) {
+                            next.delete(id);
+                          } else {
+                            next.add(id);
+                          }
+                          return next;
+                        });
+                      }
+                    }}
+                  >
+                    {normalizedColumns.map((column) => {
+                      const rawContent = column.render(
+                        item,
+                        rowIndex,
+                        openRowIds.has(resolveRowId(item))
+                      );
+                      return (
+                        <td
+                          key={column.id}
+                          className={`px-4 py-4 ${
+                            rowCellStyles ? rowCellStyles : ""
+                          } ${column.cellClassName ? column.cellClassName : ""}`}
+                        >
+                          {getDisplayContent(rawContent)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {rowBody && openRowIds.has(resolveRowId(item)) && (
+                    <tr>
+                      <td colSpan={normalizedColumns.length} className="p-0" style={{ width: 0 }}>
+                        <div style={{ width: '100%', maxWidth: '100%' }}>
+                          {rowBody(item)}
+                        </div>
                       </td>
-                    );
-                  })}
-                </tr>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             )}
           </tbody>
@@ -430,7 +466,7 @@ function AdvancedBaseTableInner<T extends object>(
 }
 
 const AdvancedBaseTable = forwardRef(AdvancedBaseTableInner) as <
-  T extends object
+  T extends object,
 >(
   props: AdvancedBaseTableProps<T> & {
     ref?: React.ForwardedRef<AdvancedBaseTableHandle<T>>;

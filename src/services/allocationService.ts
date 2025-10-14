@@ -57,15 +57,36 @@ export default class AllocationService {
     try {
       return await db.allocation.create({
         data: {
-          lineItemId: itemId,
-          partnerId: data.partnerId || null,
-          distributionId: data.distributionId,
-          signOffId: data.signOffId || null,
+          lineItem: {
+            connect: {
+              id: itemId,
+            },
+          },
+          partner: {
+            connect: data.partnerId ? { id: data.partnerId } : undefined,
+          },
+          distribution: {
+            connect: {
+              id: data.distributionId,
+            },
+          },
+          signOff: {
+            connect: data.signOffId
+              ? {
+                  id: data.signOffId,
+                }
+              : undefined,
+          },
+        },
+        include: {
+          partner: {
+            select: { id: true, name: true },
+          },
         },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2002") {
+        if (error.code === "P2002" || error.code === "P2014") {
           throw new ArgumentError("Item is already allocated.");
         }
       }
@@ -116,6 +137,21 @@ export default class AllocationService {
       }
       throw error;
     }
+  }
+
+  static async deleteManyAllocations(ids: number[]) {
+    await db.allocation.deleteMany({
+      where: { id: { in: ids } },
+    });
+  }
+
+  static async getAllocation(id: number) {
+    return db.allocation.findUnique({
+      where: { id },
+      include: {
+        distribution: true,
+      },
+    });
   }
 
   /**

@@ -53,7 +53,24 @@ export class GeneralItemService {
   ) {
     const generalItems = await db.generalItem.findMany({
       include: {
-        items: true,
+        items: {
+          include: {
+            allocation: {
+              include: {
+                partner: {
+                  select: { id: true, name: true },
+                },
+              },
+            },
+          },
+        },
+        requests: {
+          include: {
+            partner: {
+              select: { id: true, name: true },
+            },
+          },
+        },
         donorOffer: true,
       },
       orderBy: {
@@ -63,17 +80,24 @@ export class GeneralItemService {
 
     const unallocatedWithLineItems = generalItems
       .map((item) => {
-        const allocatedQuantity = item.items.reduce(
-          (sum, lineItem) => sum + lineItem.quantity,
-          0
-        );
-        const quantity = item.initialQuantity - allocatedQuantity;
+        let totalQuantity = 0;
+        let allocatedQuantity = 0;
+
+        item.items.forEach((lineItem) => {
+          totalQuantity += lineItem.quantity;
+          if (lineItem.allocation) {
+            allocatedQuantity += lineItem.quantity;
+          }
+        });
+
         return {
           item,
-          quantity,
+          quantity: item.initialQuantity,
+          unallocatedQuantity: totalQuantity - allocatedQuantity,
         };
       })
-      .filter(({ quantity }) => quantity > 0);
+      .filter(({ unallocatedQuantity }) => unallocatedQuantity > 0)
+      .map(({ item, quantity }) => ({ item, quantity }));
 
     const filtered = filters
       ? unallocatedWithLineItems.filter(({ item, quantity }) =>
@@ -85,38 +109,21 @@ export class GeneralItemService {
 
     const paginated =
       page && pageSize
-        ? filtered.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+        ? filtered.slice(
+            (page - 1) * pageSize,
+            (page - 1) * pageSize + pageSize
+          )
         : filtered;
 
     const sanitize = paginated.map(({ item, quantity }) => {
-      const { items, ...rest } = item; // eslint-disable-line @typescript-eslint/no-unused-vars
       return {
-        ...rest,
+        ...item,
         quantity,
       };
     });
 
-    const unitTypes = Array.from(
-      new Set(unallocatedWithLineItems.map(({ item }) => item.unitType))
-    ).sort();
-
-    const donorNames = Array.from(
-      new Set(
-        unallocatedWithLineItems.map(({ item }) => item.donorOffer?.donorName)
-      )
-    )
-      .filter((name): name is string => Boolean(name))
-      .sort();
-
-    const itemTypes = Array.from(
-      new Set(unallocatedWithLineItems.map(({ item }) => item.type))
-    ).sort();
-
     return {
       items: sanitize,
-      unitTypes,
-      donorNames,
-      itemTypes,
       total,
     };
   }
@@ -135,7 +142,10 @@ export class GeneralItemService {
     });
   }
 
-  private static matchesFilterValue(value: unknown, filter: FilterValue): boolean {
+  private static matchesFilterValue(
+    value: unknown,
+    filter: FilterValue
+  ): boolean {
     if (value === null || value === undefined) {
       return false;
     }

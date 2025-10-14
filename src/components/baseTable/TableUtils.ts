@@ -46,7 +46,10 @@ export function normalizeColumns<T>(
         id: keyName,
         accessor,
         header: resolveHeader(column, keyName),
-        render: (item: T) => (item as Record<string, unknown>)[accessor as string] as React.ReactNode,
+        render: (item: T) =>
+          (item as Record<string, unknown>)[
+            accessor as string
+          ] as React.ReactNode,
       };
     }
 
@@ -57,21 +60,23 @@ export function normalizeColumns<T>(
     const render: (item: T, index: number) => React.ReactNode = config.cell
       ? config.cell
       : typeof config.id === "string"
-        ? (item: T) => (item as Record<string, unknown>)[config.id as string] as React.ReactNode
+        ? (item: T) =>
+            (item as Record<string, unknown>)[
+              config.id as string
+            ] as React.ReactNode
         : () => undefined;
 
     return {
       id,
       accessor:
-        typeof config.id === "string"
-          ? (config.id as keyof T)
-          : undefined,
+        typeof config.id === "string" ? (config.id as keyof T) : undefined,
       header,
       headerClassName: config.headerClassName,
       cellClassName: config.cellClassName,
       render,
       filterType: config.filterType,
       filterOptions: config.filterOptions,
+      filterable: config.filterable,
     };
   });
 }
@@ -88,7 +93,9 @@ export function isDateLikeString(value: string) {
 export function inferFilterTypeFromSample(
   values: unknown[]
 ): FilterValue["type"] | undefined {
-  const filtered = values.filter((value) => value !== null && value !== undefined);
+  const filtered = values.filter(
+    (value) => value !== null && value !== undefined
+  );
   if (!filtered.length) {
     return undefined;
   }
