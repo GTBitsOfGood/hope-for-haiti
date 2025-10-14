@@ -31,6 +31,7 @@ export interface UnallocatedItemData {
     quantity: number;
     priority: $Enums.RequestPriority | null;
     comments: string;
+    itemsAllocated: number;
   }[];
   items: {
     id: number;
@@ -57,6 +58,15 @@ export default function AdminUnallocatedItemsScreen() {
 
   const { apiClient } = useApiClient();
 
+  function calculateItemsAllocated(
+    item: UnallocatedItemData,
+    request: UnallocatedItemData["requests"][number]
+  ) {
+    return item.items
+      .filter((it) => it.allocation?.partner?.id === request.partnerId)
+      .reduce((sum, it) => sum + it.quantity, 0);
+  }
+
   const fetchTableData = useCallback(
     async (
       pageSize: number,
@@ -76,13 +86,35 @@ export default function AdminUnallocatedItemsScreen() {
         cache: "no-store",
       });
 
+      const items = res.items.map((item) => ({
+        ...item,
+        requests: item.requests.map((request) => ({
+          ...request,
+          itemsAllocated: calculateItemsAllocated(item, request),
+        })),
+      }));
+
       return {
-        data: res.items,
-        total: res.items?.length ?? 0,
+        data: items,
+        total: items.length,
       };
     },
     [apiClient]
   );
+
+  function updateItemsAllocated(itemId: number, partnerId: number) {
+    tableRef.current?.updateItemById(itemId, (prev) => ({
+      ...prev,
+      requests: prev.requests.map((request) =>
+        request.partnerId === partnerId
+          ? {
+              ...request,
+              itemsAllocated: calculateItemsAllocated(prev, request),
+            }
+          : request
+      ),
+    }));
+  }
 
   const columns: ColumnDefinition<UnallocatedItemData>[] = [
     {
@@ -146,6 +178,7 @@ export default function AdminUnallocatedItemsScreen() {
               requests={item.requests}
               generalItemId={item.id}
               updateItem={tableRef.current!.updateItemById}
+              updateItemsAllocated={updateItemsAllocated}
             />
           ) : undefined
         }
@@ -164,11 +197,13 @@ function ChipGroup({
   requests,
   generalItemId,
   updateItem,
+  updateItemsAllocated,
 }: {
   items: UnallocatedItemData["items"];
   requests: UnallocatedItemData["requests"];
   generalItemId: number;
   updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
+  updateItemsAllocated: (itemId: number, partnerId: number) => void;
 }) {
   return (
     <div className="w-full bg-gray-100 flex flex-wrap p-2">
@@ -184,6 +219,9 @@ function ChipGroup({
           requests={requests}
           generalItemId={generalItemId}
           updateItem={updateItem}
+          updateItemsAllocated={(partnerId) =>
+            updateItemsAllocated(generalItemId, partnerId)
+          }
         />
       ))}
     </div>

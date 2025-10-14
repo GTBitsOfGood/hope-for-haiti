@@ -10,11 +10,13 @@ export default function LineItemChip({
   requests,
   generalItemId,
   updateItem,
+  updateItemsAllocated,
 }: {
   item: UnallocatedItemData["items"][number];
   requests: UnallocatedItemData["requests"];
   generalItemId: number;
   updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
+  updateItemsAllocated: (partnerId: number) => void;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useOnClickOutside<HTMLDivElement>(() =>
@@ -33,6 +35,12 @@ export default function LineItemChip({
   }
 
   async function unallocateItem() {
+    if (!item.allocation?.id) {
+      toast("Item is not allocated to any organization.");
+      setIsDropdownOpen(false);
+      return;
+    }
+
     // Handle unallocation logic here
     setIsDropdownOpen(false);
 
@@ -47,11 +55,18 @@ export default function LineItemChip({
     );
 
     updateLineItemInTable({ allocation: null });
+    updateItemsAllocated(item.allocation.partner!.id);
   }
 
   async function allocateItem(
     request: UnallocatedItemData["requests"][number]
   ) {
+    if (item.allocation?.partner?.id === request.partnerId) {
+      toast("Item is already allocated to this organization.");
+      setIsDropdownOpen(false);
+      return;
+    }
+
     if (item.allocation?.id) {
       await unallocateItem();
     }
@@ -79,6 +94,7 @@ export default function LineItemChip({
     toast.success(`Item allocated to ${request.partner.name} successfully!`);
 
     updateLineItemInTable({ allocation: response.allocation });
+    updateItemsAllocated(request.partnerId);
   }
 
   return (
@@ -114,8 +130,9 @@ export default function LineItemChip({
               className={`flex justify-between text-left px-2 py-1 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-200" : ""} hover:bg-blue-100 rounded`}
             >
               <p>{request.partner.name}</p>
-              {/* TODO: Replace with "allocated / requested" */}
-              <p className="text-blue-500">{request.quantity}</p>
+              <p className="text-blue-500">
+                {request.itemsAllocated}/{request.quantity}
+              </p>
             </button>
           ))}
           <button
