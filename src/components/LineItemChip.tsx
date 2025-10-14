@@ -121,7 +121,7 @@ export default function LineItemChip({
         }`}
       >
         <p className="text-gray-500 mb-1">Allocate to Partner</p>
-        <div className="flex flex-col overflow-y-scroll max-h-60">
+        <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
           {requests.map((request) => (
             <button
               key={request.id}
