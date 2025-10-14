@@ -1,7 +1,7 @@
 import { useApiClient } from "@/hooks/useApiClient";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { UnallocatedItemData } from "@/screens/AdminUnallocatedItemsScreen";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
 
@@ -138,6 +138,19 @@ function LineItemChip({
     updateItemsAllocated(request.partnerId);
   }
 
+  const [distToNavbar, setDistToNavbar] = useState(0);
+
+  useEffect(() => {
+    const navbar = document.getElementById("navbar");
+    if (!navbar || !dropdownRef.current || !isDropdownOpen) return;
+
+    const navbarRect = navbar.getBoundingClientRect();
+    const dropdownRect = dropdownRef.current.getBoundingClientRect();
+
+    console.log(dropdownRect.left - navbarRect.right);
+    setDistToNavbar(dropdownRect.left - navbarRect.right);
+  }, [dropdownRef, isDropdownOpen]);
+
   return (
     <div className="relative">
       <button
@@ -161,7 +174,7 @@ function LineItemChip({
       {/* Allocation Dropdown */}
       <div
         ref={dropdownRef}
-        className={`absolute -left-8 z-50 w-48 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold ${
+        className={`absolute ${distToNavbar < 50 ? "left-0" : "right-0"} z-50 w-48 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold ${
           isDropdownOpen ? "block" : "hidden"
         }`}
       >
