@@ -25,7 +25,7 @@ export default function LineItemChipGroup({
   );
 
   return (
-    <div className="w-full bg-gray-100 flex flex-wrap justify-end p-2">
+    <div className="w-full bg-gray-100 flex flex-wrap p-2">
       {items.length === 0 && (
         <p className="w-full text-center text-gray-500">
           No line items available.
@@ -142,14 +142,14 @@ function LineItemChip({
     <div className="relative">
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="relative rounded-lg border border-blue-300 m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow"
+        className="relative rounded-lg border border-sky-700 m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow"
       >
-        <span className="text-blue-500">{item.palletNumber}</span>
-        <span className="rounded bg-blue-200 text-blue-500 font-bold px-[2px]">
+        <span className="text-sky-700">{item.palletNumber}</span>
+        <span className="rounded bg-sky-200 text-sky-700 font-bold px-[2px]">
           {item.quantity}
         </span>
         <span
-          className={`absolute -left-2 -top-2 rounded text-xs px-1 shadow-sm ${item.allocation ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"}`}
+          className={`absolute -left-2 -top-2 rounded text-xs px-1 shadow-sm ${item.allocation ? "bg-sky-200 text-sky-700" : "bg-gray-200 text-gray-700"}`}
         >
           {item.allocation?.partner ? item.allocation.partner.name : "None"}
         </span>
@@ -158,7 +158,7 @@ function LineItemChip({
       {/* Allocation Dropdown */}
       <div
         ref={dropdownRef}
-        className={`absolute right-0 z-10 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm font-bold ${
+        className={`absolute -left-8 z-50 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm font-bold ${
           isDropdownOpen ? "block" : "hidden"
         }`}
       >
@@ -168,10 +168,10 @@ function LineItemChip({
             <button
               key={request.id}
               onClick={() => allocateItem(request)}
-              className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-200 hover:bg-red-100" : "hover:bg-blue-100"}`}
+              className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-sky-200 hover:bg-red-100" : "hover:bg-sky-100"}`}
             >
               <p>{request.partner.name}</p>
-              <p className="text-blue-500">
+              <p className="text-sky-700">
                 {request.itemsAllocated}/{request.quantity}
               </p>
             </button>
