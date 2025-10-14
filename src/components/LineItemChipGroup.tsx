@@ -5,7 +5,49 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
 
-export default function LineItemChip({
+export default function LineItemChipGroup({
+  items,
+  requests,
+  generalItemId,
+  updateItem,
+  updateItemsAllocated,
+}: {
+  items: UnallocatedItemData["items"];
+  requests: UnallocatedItemData["requests"];
+  generalItemId: number;
+  updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
+  updateItemsAllocated: (itemId: number, partnerId: number) => void;
+}) {
+  const sortedItems = [...items].sort((a, b) =>
+    (a.allocation === null) === (b.allocation === null)
+      ? a.palletNumber?.localeCompare(b.palletNumber || "") || 0
+      : (a.allocation === null ? 1 : -1) - (b.allocation === null ? 1 : -1)
+  );
+
+  return (
+    <div className="w-full bg-gray-100 flex flex-wrap p-2">
+      {items.length === 0 && (
+        <p className="w-full text-center text-gray-500">
+          No line items available.
+        </p>
+      )}
+      {sortedItems.map((item) => (
+        <LineItemChip
+          key={item.id}
+          item={item}
+          requests={requests}
+          generalItemId={generalItemId}
+          updateItem={updateItem}
+          updateItemsAllocated={(partnerId) =>
+            updateItemsAllocated(generalItemId, partnerId)
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function LineItemChip({
   item,
   requests,
   generalItemId,

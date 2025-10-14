@@ -10,7 +10,7 @@ import AdvancedBaseTable, {
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
 import { useApiClient } from "@/hooks/useApiClient";
-import LineItemChip from "@/components/LineItemChip";
+import LineItemChipGroup from "@/components/LineItemChipGroup";
 
 export interface UnallocatedItemData {
   id: number;
@@ -179,7 +179,7 @@ export default function AdminUnallocatedItemsScreen() {
         }}
         rowBody={(item) =>
           selectedItems.includes(item.id) ? (
-            <ChipGroup
+            <LineItemChipGroup
               items={item.items}
               requests={item.requests}
               generalItemId={item.id}
@@ -195,41 +195,5 @@ export default function AdminUnallocatedItemsScreen() {
         }
       />
     </>
-  );
-}
-
-function ChipGroup({
-  items,
-  requests,
-  generalItemId,
-  updateItem,
-  updateItemsAllocated,
-}: {
-  items: UnallocatedItemData["items"];
-  requests: UnallocatedItemData["requests"];
-  generalItemId: number;
-  updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
-  updateItemsAllocated: (itemId: number, partnerId: number) => void;
-}) {
-  return (
-    <div className="w-full bg-gray-100 flex flex-wrap p-2">
-      {items.length === 0 && (
-        <p className="w-full text-center text-gray-500">
-          No line items available.
-        </p>
-      )}
-      {items.map((item) => (
-        <LineItemChip
-          key={item.id}
-          item={item}
-          requests={requests}
-          generalItemId={generalItemId}
-          updateItem={updateItem}
-          updateItemsAllocated={(partnerId) =>
-            updateItemsAllocated(generalItemId, partnerId)
-          }
-        />
-      ))}
-    </div>
   );
 }
