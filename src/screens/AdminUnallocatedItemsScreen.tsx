@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { CgChevronDown, CgChevronRight, CgSpinner } from "react-icons/cg";
 import React from "react";
 import { $Enums } from "@prisma/client";
@@ -52,10 +52,6 @@ export interface UnallocatedItemData {
 }
 
 export default function AdminUnallocatedItemsScreen() {
-  const [selectedItems, setSelectedItems] = useState<
-    UnallocatedItemData["id"][]
-  >([]);
-
   const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
 
   const { apiClient } = useApiClient();
@@ -122,13 +118,9 @@ export default function AdminUnallocatedItemsScreen() {
     {
       id: "title",
       header: "Title",
-      cell: (item) => (
+      cell: (item, _, isOpen) => (
         <span className="flex gap-2 items-center -ml-2">
-          {selectedItems.includes(item.id) ? (
-            <CgChevronDown />
-          ) : (
-            <CgChevronRight />
-          )}
+          {isOpen ? <CgChevronDown /> : <CgChevronRight />}
           <p>{item.title || "N/A"}</p>
         </span>
       ),
@@ -170,24 +162,15 @@ export default function AdminUnallocatedItemsScreen() {
         fetchFn={fetchTableData}
         rowId="id"
         pageSize={20}
-        onRowClick={(item) => {
-          setSelectedItems((prev) =>
-            prev.includes(item.id)
-              ? prev.filter((id) => id !== item.id)
-              : [...prev, item.id]
-          );
-        }}
-        rowBody={(item) =>
-          selectedItems.includes(item.id) ? (
-            <LineItemChipGroup
-              items={item.items}
-              requests={item.requests}
-              generalItemId={item.id}
-              updateItem={tableRef.current!.updateItemById}
-              updateItemsAllocated={updateItemsAllocated}
-            />
-          ) : undefined
-        }
+        rowBody={(item) => (
+          <LineItemChipGroup
+            items={item.items}
+            requests={item.requests}
+            generalItemId={item.id}
+            updateItem={tableRef.current!.updateItemById}
+            updateItemsAllocated={updateItemsAllocated}
+          />
+        )}
         emptyState={
           <div className="flex justify-center items-center mt-8">
             <CgSpinner className="w-16 h-16 animate-spin opacity-50" />

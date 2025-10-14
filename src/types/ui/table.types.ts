@@ -18,7 +18,7 @@ export type RowIdAccessor<T> = keyof T | ((item: T) => string | number);
 export interface ColumnConfig<T> {
   id: keyof T | string;
   header?: React.ReactNode;
-  cell?: (item: T, index: number) => React.ReactNode;
+  cell?: (item: T, index: number, isOpen: boolean) => React.ReactNode;
   headerClassName?: string;
   cellClassName?: string;
   filterType?: FilterValue["type"];
@@ -34,7 +34,7 @@ export interface ResolvedColumn<T> {
   header: React.ReactNode;
   headerClassName?: string;
   cellClassName?: string;
-  render: (item: T, index: number) => React.ReactNode;
+  render: (item: T, index: number, isOpen: boolean) => React.ReactNode;
   filterType?: FilterValue["type"];
   filterOptions?: string[];
   filterable?: boolean;

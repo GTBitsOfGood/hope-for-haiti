@@ -85,6 +85,7 @@ function AdvancedBaseTableInner<T extends object>(
   >([]);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const [openRowIds, setOpenRowIds] = useState<Set<string | number>>(new Set());
 
   const resolveRowId = useMemo(() => {
     if (typeof rowId === "function") {
@@ -392,12 +393,30 @@ function AdvancedBaseTableInner<T extends object>(
                     key={String(resolveRowId(item))}
                     data-odd={rowIndex % 2 !== 0}
                     className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
-                      onRowClick ? "cursor-pointer" : ""
+                      onRowClick || rowBody ? "cursor-pointer" : ""
                     } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
-                    onClick={() => onRowClick?.(item)}
+                    onClick={() => {
+                      onRowClick?.(item);
+                      if (rowBody) {
+                        const id = resolveRowId(item);
+                        setOpenRowIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(id)) {
+                            next.delete(id);
+                          } else {
+                            next.add(id);
+                          }
+                          return next;
+                        });
+                      }
+                    }}
                   >
                     {normalizedColumns.map((column) => {
-                      const rawContent = column.render(item, rowIndex);
+                      const rawContent = column.render(
+                        item,
+                        rowIndex,
+                        openRowIds.has(resolveRowId(item))
+                      );
                       return (
                         <td
                           key={column.id}
@@ -410,7 +429,7 @@ function AdvancedBaseTableInner<T extends object>(
                       );
                     })}
                   </tr>
-                  {rowBody && (
+                  {rowBody && openRowIds.has(resolveRowId(item)) && (
                     <tr>
                       <td colSpan={normalizedColumns.length}>
                         {rowBody(item)}
