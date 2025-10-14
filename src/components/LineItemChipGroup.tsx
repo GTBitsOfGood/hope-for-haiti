@@ -25,9 +25,9 @@ export default function LineItemChipGroup({
   );
 
   return (
-    <div className="w-full bg-gray-100 flex flex-wrap p-2">
+    <div className="w-full bg-gray-primary/10 flex flex-wrap p-2">
       {items.length === 0 && (
-        <p className="w-full text-center text-gray-500">
+        <p className="w-full text-center text-gray-primary">
           No line items available.
         </p>
       )}
@@ -142,48 +142,50 @@ function LineItemChip({
     <div className="relative">
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="relative rounded-lg border border-sky-700 m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow"
+        className="relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow"
       >
-        <span className="text-sky-700">{item.palletNumber}</span>
-        <span className="rounded bg-sky-200 text-sky-700 font-bold px-[2px]">
+        <span className="text-blue-primary">{item.palletNumber}</span>
+        <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
           {item.quantity}
         </span>
-        <span
-          className={`absolute -left-2 -top-2 rounded text-xs px-1 shadow-sm ${item.allocation ? "bg-sky-200 text-sky-700" : "bg-gray-200 text-gray-700"}`}
-        >
-          {item.allocation?.partner ? item.allocation.partner.name : "None"}
+        <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
+          <span
+            className={`w-full h-full px-1 pb-[1px] ${item.allocation ? "bg-blue-primary/20 text-blue-primary" : "bg-gray-primary/20 text-gray-primary"}`}
+          >
+            {item.allocation?.partner ? item.allocation.partner.name : "None"}
+          </span>
         </span>
       </button>
 
       {/* Allocation Dropdown */}
       <div
         ref={dropdownRef}
-        className={`absolute -left-8 z-50 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm font-bold ${
+        className={`absolute -left-8 z-50 w-48 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold ${
           isDropdownOpen ? "block" : "hidden"
         }`}
       >
         <p className="text-gray-500 mb-1">Allocate to Partner</p>
         <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
-          {requests.map((request) => (
-            <button
-              key={request.id}
-              onClick={() => allocateItem(request)}
-              className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-sky-200 hover:bg-red-100" : "hover:bg-sky-100"}`}
-            >
-              <p>{request.partner.name}</p>
-              <p className="text-sky-700">
-                {request.itemsAllocated}/{request.quantity}
-              </p>
-            </button>
-          ))}
           {item.allocation && (
             <button
               onClick={unallocateItem}
-              className="text-left px-2 py-1 hover:bg-red-100 rounded transition-all duration-200"
+              className="text-left px-2 py-1 hover:bg-red-primary/20 rounded transition-all duration-200"
             >
               Unallocate
             </button>
           )}
+          {requests.map((request) => (
+            <button
+              key={request.id}
+              onClick={() => allocateItem(request)}
+              className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-primary/20 hover:bg-red-primary/20" : "hover:bg-blue-primary/20"}`}
+            >
+              <p>{request.partner.name}</p>
+              <p className="text-blue-primary">
+                {request.itemsAllocated}/{request.quantity}
+              </p>
+            </button>
+          ))}
         </div>
       </div>
     </div>
