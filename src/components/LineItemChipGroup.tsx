@@ -149,6 +149,7 @@ function LineItemChip({
           {item.quantity}
         </span>
         <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
+          {/* Double span is because the background color is based off opacity, but should still be opaque */}
           <span
             className={`w-full h-full px-1 pb-[1px] ${item.allocation ? "bg-blue-primary/20 text-blue-primary" : "bg-gray-primary/20 text-gray-primary"}`}
           >
