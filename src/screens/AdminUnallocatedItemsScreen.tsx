@@ -170,6 +170,7 @@ export default function AdminUnallocatedItemsScreen() {
         fetchFn={fetchTableData}
         rowId="id"
         pageSize={20}
+        headerClassName="bg-sky-600 text-white"
         onRowClick={(item) => {
           setSelectedItems((prev) =>
             prev.includes(item.id)

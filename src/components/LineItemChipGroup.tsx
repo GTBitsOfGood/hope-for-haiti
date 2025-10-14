@@ -25,7 +25,7 @@ export default function LineItemChipGroup({
   );
 
   return (
-    <div className="w-full bg-gray-100 flex flex-wrap p-2">
+    <div className="w-full bg-gray-100 flex flex-wrap justify-end p-2">
       {items.length === 0 && (
         <p className="w-full text-center text-gray-500">
           No line items available.
@@ -142,10 +142,10 @@ function LineItemChip({
     <div className="relative">
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="relative rounded-lg border border-blue-300 bg-white m-2 px-2 py-1 text-sm font-bold flex items-center gap-1 hover:shadow"
+        className="relative rounded-lg border border-blue-300 m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow"
       >
-        <span>{item.palletNumber}</span>
-        <span className="rounded-lg bg-blue-200 text-blue-500 px-1">
+        <span className="text-blue-500">{item.palletNumber}</span>
+        <span className="rounded bg-blue-200 text-blue-500 font-bold px-[2px]">
           {item.quantity}
         </span>
         <span
