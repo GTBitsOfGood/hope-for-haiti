@@ -52,7 +52,9 @@ export interface UnallocatedItemData {
 }
 
 export default function AdminUnallocatedItemsScreen() {
-  const [selectedItem, setSelectedItem] = useState<UnallocatedItemData>();
+  const [selectedItems, setSelectedItems] = useState<
+    UnallocatedItemData["id"][]
+  >([]);
 
   const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
 
@@ -122,7 +124,7 @@ export default function AdminUnallocatedItemsScreen() {
       header: "Title",
       cell: (item) => (
         <span className="flex gap-2 items-center -ml-2">
-          {selectedItem?.id === item.id ? (
+          {selectedItems.includes(item.id) ? (
             <CgChevronDown />
           ) : (
             <CgChevronRight />
@@ -169,10 +171,14 @@ export default function AdminUnallocatedItemsScreen() {
         rowId="id"
         pageSize={20}
         onRowClick={(item) => {
-          setSelectedItem(item.id === selectedItem?.id ? undefined : item);
+          setSelectedItems((prev) =>
+            prev.includes(item.id)
+              ? prev.filter((id) => id !== item.id)
+              : [...prev, item.id]
+          );
         }}
         rowBody={(item) =>
-          item.id === selectedItem?.id ? (
+          selectedItems.includes(item.id) ? (
             <ChipGroup
               items={item.items}
               requests={item.requests}
