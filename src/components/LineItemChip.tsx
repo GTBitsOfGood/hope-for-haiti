@@ -120,7 +120,7 @@ export default function LineItemChip({
           isDropdownOpen ? "block" : "hidden"
         }`}
       >
-        <p className="text-gray-500 mb-1">Allocate to Organization</p>
+        <p className="text-gray-500 mb-1">Allocate to Partner</p>
         <div className="flex flex-col overflow-y-scroll max-h-60">
           {requests.map((request) => (
             <button
