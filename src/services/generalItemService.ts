@@ -80,15 +80,19 @@ export class GeneralItemService {
 
     const unallocatedWithLineItems = generalItems
       .map((item) => {
-        const allocatedCount = item.items.reduce(
-          (sum, lineItem) =>
-            sum + (lineItem.allocation ? lineItem.quantity : 0),
-          0
-        );
+        let totalQuantity = 0;
+        let allocatedQuantity = 0;
+
+        item.items.forEach((lineItem) => {
+          totalQuantity += lineItem.quantity;
+          if (lineItem.allocation) {
+            allocatedQuantity += lineItem.quantity;
+          }
+        });
 
         return {
           item,
-          quantity: item.initialQuantity - allocatedCount,
+          quantity: totalQuantity - allocatedQuantity,
         };
       })
       .filter(({ quantity }) => quantity > 0);
