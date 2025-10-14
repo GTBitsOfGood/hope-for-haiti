@@ -62,8 +62,7 @@ export default function LineItemChip({
     request: UnallocatedItemData["requests"][number]
   ) {
     if (item.allocation?.partner?.id === request.partnerId) {
-      toast("Item is already allocated to this organization.");
-      setIsDropdownOpen(false);
+      unallocateItem();
       return;
     }
 
@@ -121,13 +120,13 @@ export default function LineItemChip({
           isDropdownOpen ? "block" : "hidden"
         }`}
       >
-        <p className="text-gray-500 mb-1">Assign to Organization</p>
+        <p className="text-gray-500 mb-1">Allocate to Organization</p>
         <div className="flex flex-col overflow-y-scroll max-h-60">
           {requests.map((request) => (
             <button
               key={request.id}
               onClick={() => allocateItem(request)}
-              className={`flex justify-between text-left px-2 py-1 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-200" : ""} hover:bg-blue-100 rounded`}
+              className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-200 hover:bg-red-100" : "hover:bg-blue-100"}`}
             >
               <p>{request.partner.name}</p>
               <p className="text-blue-500">
@@ -137,7 +136,7 @@ export default function LineItemChip({
           ))}
           <button
             onClick={unallocateItem}
-            className="text-left px-2 py-1 hover:bg-red-100 rounded"
+            className="text-left px-2 py-1 hover:bg-red-100 rounded transition-all duration-200"
           >
             {item.allocation ? "Unallocate" : "None"}
           </button>
