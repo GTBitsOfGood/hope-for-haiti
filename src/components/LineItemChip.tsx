@@ -134,12 +134,14 @@ export default function LineItemChip({
               </p>
             </button>
           ))}
-          <button
-            onClick={unallocateItem}
-            className="text-left px-2 py-1 hover:bg-red-100 rounded transition-all duration-200"
-          >
-            {item.allocation ? "Unallocate" : "None"}
-          </button>
+          {item.allocation && (
+            <button
+              onClick={unallocateItem}
+              className="text-left px-2 py-1 hover:bg-red-100 rounded transition-all duration-200"
+            >
+              Unallocate
+            </button>
+          )}
         </div>
       </div>
     </div>
