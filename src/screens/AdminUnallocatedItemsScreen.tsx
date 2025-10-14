@@ -24,6 +24,7 @@ export interface UnallocatedItemData {
     id: number;
     partnerId: number;
     partner: {
+      id: number;
       name: string;
     };
     createdAt: string;
@@ -42,6 +43,7 @@ export interface UnallocatedItemData {
     allocation: {
       id: number;
       partner: {
+        id: number;
         name: string;
       } | null;
     } | null;

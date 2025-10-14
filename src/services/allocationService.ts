@@ -80,7 +80,7 @@ export default class AllocationService {
         },
         include: {
           partner: {
-            select: { name: true },
+            select: { id: true, name: true },
           },
         },
       });

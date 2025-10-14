@@ -58,7 +58,7 @@ export class GeneralItemService {
             allocation: {
               include: {
                 partner: {
-                  select: { name: true },
+                  select: { id: true, name: true },
                 },
               },
             },
@@ -67,7 +67,7 @@ export class GeneralItemService {
         requests: {
           include: {
             partner: {
-              select: { name: true },
+              select: { id: true, name: true },
             },
           },
         },
@@ -92,10 +92,12 @@ export class GeneralItemService {
 
         return {
           item,
-          quantity: totalQuantity - allocatedQuantity,
+          quantity: item.initialQuantity,
+          unallocatedQuantity: totalQuantity - allocatedQuantity,
         };
       })
-      .filter(({ quantity }) => quantity > 0);
+      .filter(({ unallocatedQuantity }) => unallocatedQuantity > 0)
+      .map(({ item, quantity }) => ({ item, quantity }));
 
     const filtered = filters
       ? unallocatedWithLineItems.filter(({ item, quantity }) =>

@@ -65,6 +65,7 @@ export default function LineItemChip({
         itemId: number;
         distributionId: number;
         partner: {
+          id: number;
           name: string;
         } | null;
       };
@@ -105,12 +106,12 @@ export default function LineItemChip({
         }`}
       >
         <p className="text-gray-500 mb-1">Assign to Organization</p>
-        <div className="flex flex-col">
+        <div className="flex flex-col overflow-y-scroll max-h-60">
           {requests.map((request) => (
             <button
               key={request.id}
               onClick={() => allocateItem(request)}
-              className="flex justify-between text-left px-2 py-1 hover:bg-blue-100 rounded"
+              className={`flex justify-between text-left px-2 py-1 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-200" : ""} hover:bg-blue-100 rounded`}
             >
               <p>{request.partner.name}</p>
               {/* TODO: Replace with "allocated / requested" */}
