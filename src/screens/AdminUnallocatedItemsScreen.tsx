@@ -135,13 +135,16 @@ export default function AdminUnallocatedItemsScreen() {
         rowId="id"
         pageSize={20}
         onRowClick={(item) => {
-          if (item.id === selectedItem?.id) {
-            setSelectedItem(undefined);
-          } else setSelectedItem(item);
+          setSelectedItem(item.id === selectedItem?.id ? undefined : item);
         }}
         rowBody={(item) =>
-          item === selectedItem ? (
-            <ChipGroup items={item.items} requests={item.requests} />
+          item.id === selectedItem?.id ? (
+            <ChipGroup
+              items={item.items}
+              requests={item.requests}
+              generalItemId={item.id}
+              updateItem={tableRef.current!.updateItemById}
+            />
           ) : undefined
         }
         emptyState={
@@ -157,9 +160,13 @@ export default function AdminUnallocatedItemsScreen() {
 function ChipGroup({
   items,
   requests,
+  generalItemId,
+  updateItem,
 }: {
   items: UnallocatedItemData["items"];
   requests: UnallocatedItemData["requests"];
+  generalItemId: number;
+  updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
 }) {
   return (
     <div className="w-full bg-gray-100 flex flex-wrap p-2">
@@ -169,7 +176,13 @@ function ChipGroup({
         </p>
       )}
       {items.map((item) => (
-        <LineItemChip key={item.id} item={item} requests={requests} />
+        <LineItemChip
+          key={item.id}
+          item={item}
+          requests={requests}
+          generalItemId={generalItemId}
+          updateItem={updateItem}
+        />
       ))}
     </div>
   );

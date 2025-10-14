@@ -33,7 +33,8 @@ export default function useOnClickOutside<TRef extends HTMLElement>(
         document.removeEventListener("keydown", handleKeyDown);
       };
     },
-    ([onClick] as unknown[]).concat(deps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onClick, ...deps]
   );
 
   return ref;

@@ -3,13 +3,18 @@ import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { UnallocatedItemData } from "@/screens/AdminUnallocatedItemsScreen";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
 
 export default function LineItemChip({
   item,
   requests,
+  generalItemId,
+  updateItem,
 }: {
   item: UnallocatedItemData["items"][number];
   requests: UnallocatedItemData["requests"];
+  generalItemId: number;
+  updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useOnClickOutside<HTMLDivElement>(() =>
@@ -18,32 +23,51 @@ export default function LineItemChip({
 
   const { apiClient } = useApiClient();
 
+  function updateLineItemInTable(updatedItem: Partial<typeof item>) {
+    updateItem(generalItemId, (prev) => ({
+      ...prev,
+      items: prev.items.map((it) =>
+        it.id === item.id ? { ...it, ...updatedItem } : it
+      ),
+    }));
+  }
+
   async function unallocateItem() {
     // Handle unallocation logic here
-    console.log(`Unallocating item ${item.id}`);
     setIsDropdownOpen(false);
 
     const response = await apiClient.delete<{
       deletedDistribution: boolean;
     }>(`/api/allocations/${item.allocation?.id}`);
 
-    console.log("Allocation successful:", response);
     toast.success(
       response.deletedDistribution
-        ? "Allocation and distribution deleted successfully!"
-        : "Allocation deleted successfully!"
+        ? `Item unallocated from ${item.allocation?.partner?.name} and distribution deleted successfully.`
+        : `Item unallocated from ${item.allocation?.partner?.name} successfully.`
     );
+
+    updateLineItemInTable({ allocation: null });
   }
 
   async function allocateItem(
     request: UnallocatedItemData["requests"][number]
   ) {
+    if (item.allocation?.id) {
+      await unallocateItem();
+    }
+
     // Handle allocation logic here
-    console.log(`Allocating item ${item.id} to request ${request?.id}`);
     setIsDropdownOpen(false);
 
     const response = await apiClient.post<{
-      allocation: { id: number; itemId: number; distributionId: number };
+      allocation: {
+        id: number;
+        itemId: number;
+        distributionId: number;
+        partner: {
+          name: string;
+        } | null;
+      };
     }>("/api/allocations", {
       body: JSON.stringify({
         partnerId: request.partnerId,
@@ -51,8 +75,9 @@ export default function LineItemChip({
       }),
     });
 
-    console.log("Allocation successful:", response);
-    toast.success("Items allocated successfully!");
+    toast.success(`Item allocated to ${request.partner.name} successfully!`);
+
+    updateLineItemInTable({ allocation: response.allocation });
   }
 
   return (

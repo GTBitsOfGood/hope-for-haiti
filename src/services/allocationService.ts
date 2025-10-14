@@ -78,6 +78,11 @@ export default class AllocationService {
               : undefined,
           },
         },
+        include: {
+          partner: {
+            select: { name: true },
+          },
+        },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
