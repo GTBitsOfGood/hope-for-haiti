@@ -140,6 +140,15 @@ export default class AllocationService {
     });
   }
 
+  static async getAllocation(id: number) {
+    return db.allocation.findUnique({
+      where: { id },
+      include: {
+        distribution: true,
+      },
+    });
+  }
+
   /**
    * Connects an allocation to a line item
    */

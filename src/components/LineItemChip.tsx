@@ -1,6 +1,8 @@
+import { useApiClient } from "@/hooks/useApiClient";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { UnallocatedItemData } from "@/screens/AdminUnallocatedItemsScreen";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 
 export default function LineItemChip({
   item,
@@ -14,12 +16,43 @@ export default function LineItemChip({
     setIsDropdownOpen(false)
   );
 
+  const { apiClient } = useApiClient();
+
+  async function unallocateItem() {
+    // Handle unallocation logic here
+    console.log(`Unallocating item ${item.id}`);
+    setIsDropdownOpen(false);
+
+    const response = await apiClient.delete<{
+      deletedDistribution: boolean;
+    }>(`/api/allocations/${item.allocation?.id}`);
+
+    console.log("Allocation successful:", response);
+    toast.success(
+      response.deletedDistribution
+        ? "Allocation and distribution deleted successfully!"
+        : "Allocation deleted successfully!"
+    );
+  }
+
   async function allocateItem(
     request: UnallocatedItemData["requests"][number]
   ) {
     // Handle allocation logic here
-    console.log(`Allocating item ${item.id} to request ${request.id}`);
+    console.log(`Allocating item ${item.id} to request ${request?.id}`);
     setIsDropdownOpen(false);
+
+    const response = await apiClient.post<{
+      allocation: { id: number; itemId: number; distributionId: number };
+    }>("/api/allocations", {
+      body: JSON.stringify({
+        partnerId: request.partnerId,
+        lineItem: item.id,
+      }),
+    });
+
+    console.log("Allocation successful:", response);
+    toast.success("Items allocated successfully!");
   }
 
   return (
@@ -59,10 +92,11 @@ export default function LineItemChip({
               <p className="text-blue-500">{request.quantity}</p>
             </button>
           ))}
-          <button className="text-left px-2 py-1 hover:bg-red-100 rounded">
-            {
-              item.allocation ? "Unallocate" : "None"
-            }
+          <button
+            onClick={unallocateItem}
+            className="text-left px-2 py-1 hover:bg-red-100 rounded"
+          >
+            {item.allocation ? "Unallocate" : "None"}
           </button>
         </div>
       </div>

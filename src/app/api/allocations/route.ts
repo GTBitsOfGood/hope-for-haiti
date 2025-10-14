@@ -13,7 +13,7 @@ import { z } from "zod";
 
 const postSchema = z.object({
   partnerId: z.number().int().positive(),
-  allocations: z.array(z.number().int().positive()),
+  lineItem: z.number().int().positive(),
 });
 
 export async function POST(request: NextRequest) {
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       await DistributionService.getPendingDistributionForPartner(
         parsed.data.partnerId
       );
+    const createdNewDistribution = !distribution;
     if (!distribution) {
       distribution = await DistributionService.createDistribution({
         partnerId: parsed.data.partnerId,
@@ -44,28 +45,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    let failureCount = 0;
-    const errorMessages: string[] = [];
-
-    const allocationPromises = parsed.data.allocations.map((allocationId) =>
-      AllocationService.createAllocation({
-        itemId: allocationId,
+    try {
+      const allocation = await AllocationService.createAllocation({
+        itemId: parsed.data.lineItem,
         partnerId: parsed.data.partnerId,
         distributionId: distribution!.id,
-      }).catch((error) => {
-        failureCount++;
-        errorMessages.push(error.message);
-      })
-    );
+      });
 
-    const allocations = await Promise.all(allocationPromises);
+      return NextResponse.json({ allocation, distribution }, { status: 201 });
+    } catch (error) {
+      if (createdNewDistribution) {
+        // If we created a new distribution and allocation fails, clean up the distribution
+        DistributionService.deleteDistribution(distribution!.id);
+      }
 
-    if (failureCount === parsed.data.allocations.length) {
-      await DistributionService.deleteDistribution(distribution.id);
-      throw new Error("All allocations failed: " + errorMessages.join("; "));
+      throw error;
     }
-
-    return NextResponse.json({ allocations, distribution }, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }
