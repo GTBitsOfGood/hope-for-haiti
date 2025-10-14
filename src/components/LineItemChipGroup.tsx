@@ -158,7 +158,7 @@ function LineItemChip({
       {/* Allocation Dropdown */}
       <div
         ref={dropdownRef}
-        className={`absolute z-10 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm font-bold ${
+        className={`absolute right-0 z-10 w-48 bg-white border border-gray-300 rounded shadow-lg p-2 text-sm font-bold ${
           isDropdownOpen ? "block" : "hidden"
         }`}
       >
