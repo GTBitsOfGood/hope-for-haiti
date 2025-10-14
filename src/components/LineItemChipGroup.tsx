@@ -182,7 +182,7 @@ function LineItemChip({
               className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-primary/20 hover:bg-red-primary/20" : "hover:bg-blue-primary/20"}`}
             >
               <p>{request.partner.name}</p>
-              <p className="text-blue-primary">
+              <p className="text-blue-primary pr-2">
                 {request.itemsAllocated}/{request.quantity}
               </p>
             </button>
