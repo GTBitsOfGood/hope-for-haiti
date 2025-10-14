@@ -340,7 +340,7 @@ function AdvancedBaseTableInner<T extends object>(
         )}
       </div>
       <div className="overflow-visible">
-        <table className="mt-4 min-w-full">
+        <table className="mt-4 w-full">
           <thead>
             <tr
               className={`text-left font-bold ${
@@ -431,8 +431,10 @@ function AdvancedBaseTableInner<T extends object>(
                   </tr>
                   {rowBody && openRowIds.has(resolveRowId(item)) && (
                     <tr>
-                      <td colSpan={normalizedColumns.length}>
-                        {rowBody(item)}
+                      <td colSpan={normalizedColumns.length} className="p-0" style={{ width: 0 }}>
+                        <div style={{ width: '100%', maxWidth: '100%' }}>
+                          {rowBody(item)}
+                        </div>
                       </td>
                     </tr>
                   )}
