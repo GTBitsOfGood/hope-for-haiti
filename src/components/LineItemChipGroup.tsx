@@ -25,7 +25,7 @@ export default function LineItemChipGroup({
   );
 
   return (
-    <div className="w-full bg-gray-primary/5 flex flex-wrap p-2">
+    <div className="w-full bg-sunken flex flex-wrap p-2">
       {items.length === 0 && (
         <p className="w-full text-center text-gray-primary">
           No line items available.
