@@ -1,29 +1,59 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { errorResponse, AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
+import {
+  errorResponse,
+  AuthenticationError,
+  AuthorizationError,
+  ArgumentError,
+} from "@/util/errors";
 import UserService from "@/services/userService";
 import { UnfinalizedSuggestionService } from "@/services/unfinalizedSuggestionService";
+import DonorOfferService from "@/services/donorOfferService";
 
 const bodySchema = z.object({
-  generalItems: z.array(
-    z.object({
-      title: z.string().min(1),
-      type: z.string().min(1),
-      description: z.string().min(1),
-      expirationDate: z.string().min(1), // ISO date string
-      unitType: z.string().min(1),
-      quantityPerUnit: z.number().int().positive(),
-      totalQuantity: z.number().int().nonnegative(),
-      requests: z.array(
-        z.object({
-          partnerId: z.number().int(),
-          quantity: z.number().int().nonnegative(),
-        })
-      ).min(1),
-    })
-  ).min(1),
+  donorOfferId: z
+    .number()
+    .int()
+    .positive("Donor offer ID must be a positive integer"),
 });
+
+// Type definitions for the data structures
+type GeneralItemWithRequests = {
+  id: number;
+  title: string;
+  type: string;
+  expirationDate: Date | null;
+  unitType: string;
+  quantityPerUnit: number;
+  initialQuantity: number;
+  donorOfferId: number;
+  requests: {
+    id: number;
+    quantity: number;
+    finalQuantity: number;
+    partnerId: number;
+    generalItemId: number;
+    partner: {
+      id: number;
+      name: string;
+    };
+  }[];
+};
+
+type GeneralItemForLLM = {
+  title: string;
+  type: string;
+  description: string;
+  expirationDate: string;
+  unitType: string;
+  quantityPerUnit: number;
+  totalQuantity: number;
+  requests: {
+    partnerId: number;
+    quantity: number;
+  }[];
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,8 +72,72 @@ export async function POST(req: NextRequest) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await UnfinalizedSuggestionService.suggestAllocations(parsed.data.generalItems);
-    return NextResponse.json(result, { status: 200 });
+    const { itemsWithRequests } =
+      await DonorOfferService.getAdminDonorOfferDetails(
+        parsed.data.donorOfferId
+      );
+
+    const generalItems: GeneralItemForLLM[] = itemsWithRequests.map(
+      (item: GeneralItemWithRequests) => ({
+        title: item.title,
+        type: item.type,
+        description: `${item.title} - ${item.type}`,
+        expirationDate: item.expirationDate
+          ? new Date(item.expirationDate).toISOString()
+          : new Date().toISOString(),
+        unitType: item.unitType,
+        quantityPerUnit: item.quantityPerUnit,
+        totalQuantity: item.initialQuantity,
+        requests: item.requests.map(
+          (req: GeneralItemWithRequests["requests"][0]) => ({
+            partnerId: req.partner.id,
+            quantity: req.quantity,
+          })
+        ),
+      })
+    );
+
+    console.log("API: Sending to LLM:", JSON.stringify(generalItems, null, 2));
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const result =
+            await UnfinalizedSuggestionService.suggestAllocationsStream(
+              generalItems,
+              (chunk) => {
+                console.log("API: Sending chunk to frontend:", chunk);
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
+                );
+              }
+            );
+
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ done: true, result })}\n\n`
+            )
+          );
+          controller.close();
+        } catch (error) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" })}\n\n`
+            )
+          );
+          controller.close();
+        }
+      },
+    });
+
+    return new NextResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
   } catch (error) {
     return errorResponse(error);
   }

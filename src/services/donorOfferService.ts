@@ -177,34 +177,36 @@ export default class DonorOfferService {
 
     type DonorOfferWithItems = Prisma.DonorOfferGetPayload<typeof query>;
 
-    const mappedOffers: PartnerDonorOffer[] = donorOffers.map((offer: DonorOfferWithItems) => {
-      let state: string | null = null;
+    const mappedOffers: PartnerDonorOffer[] = donorOffers.map(
+      (offer: DonorOfferWithItems) => {
+        let state: string | null = null;
 
-      if (
-        offer.state === DonorOfferState.ARCHIVED ||
-        isAfter(new Date(), offer.partnerResponseDeadline)
-      ) {
-        state = "closed";
+        if (
+          offer.state === DonorOfferState.ARCHIVED ||
+          isAfter(new Date(), offer.partnerResponseDeadline)
+        ) {
+          state = "closed";
+        }
+
+        const requestSubmitted = offer.items.some(
+          (item) => item.requests.length > 0
+        );
+
+        if (requestSubmitted) {
+          state = "submitted";
+        } else if (!state) {
+          state = "pending";
+        }
+
+        return {
+          donorOfferId: offer.id,
+          offerName: offer.offerName,
+          donorName: offer.donorName,
+          responseDeadline: offer.partnerResponseDeadline,
+          state,
+        };
       }
-
-      const requestSubmitted = offer.items.some(
-        (item) => item.requests.length > 0
-      );
-
-      if (requestSubmitted) {
-        state = "submitted";
-      } else if (!state) {
-        state = "pending";
-      }
-
-      return {
-        donorOfferId: offer.id,
-        offerName: offer.offerName,
-        donorName: offer.donorName,
-        responseDeadline: offer.partnerResponseDeadline,
-        state,
-      };
-    });
+    );
 
     return {
       donorOffers: mappedOffers,
@@ -250,19 +252,21 @@ export default class DonorOfferService {
 
     type DonorOfferWithRelations = Prisma.DonorOfferGetPayload<typeof query>;
 
-    const mappedOffers: AdminDonorOffer[] = donorOffers.map((offer: DonorOfferWithRelations) => ({
-      donorOfferId: offer.id,
-      offerName: offer.offerName,
-      donorName: offer.donorName,
-      responseDeadline: offer.partnerResponseDeadline,
-      state: offer.state,
-      invitedPartners: offer.partnerVisibilities.map((pv) => ({
-        name: pv.name,
-        responded: offer.items.some((item) =>
-          item.requests.some((request) => request.partnerId === pv.id)
-        ),
-      })),
-    }));
+    const mappedOffers: AdminDonorOffer[] = donorOffers.map(
+      (offer: DonorOfferWithRelations) => ({
+        donorOfferId: offer.id,
+        offerName: offer.offerName,
+        donorName: offer.donorName,
+        responseDeadline: offer.partnerResponseDeadline,
+        state: offer.state,
+        invitedPartners: offer.partnerVisibilities.map((pv) => ({
+          name: pv.name,
+          responded: offer.items.some((item) =>
+            item.requests.some((request) => request.partnerId === pv.id)
+          ),
+        })),
+      })
+    );
 
     return { donorOffers: mappedOffers, total };
   }
@@ -537,7 +541,11 @@ export default class DonorOfferService {
     const itemsWithRequests = await db.generalItem.findMany({
       where: { donorOfferId },
       include: {
-        requests: { include: { partner: { select: { name: true } } } },
+        requests: {
+          include: {
+            partner: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
@@ -568,6 +576,7 @@ export default class DonorOfferService {
             },
             update: {
               quantity: item.quantityRequested,
+              finalQuantity: item.quantityRequested,
               comments: item.comments,
               priority: priority,
             },
@@ -575,6 +584,7 @@ export default class DonorOfferService {
               generalItemId: item.donorOfferItemId,
               partnerId: partnerId,
               quantity: item.quantityRequested,
+              finalQuantity: item.quantityRequested,
               comments: item.comments,
               priority: priority,
             },
@@ -618,6 +628,16 @@ export default class DonorOfferService {
           });
         })
       );
+    });
+  }
+
+  static async updateRequestFinalQuantity(
+    requestId: number,
+    finalQuantity: number
+  ): Promise<void> {
+    await db.generalItemRequest.update({
+      where: { id: requestId },
+      data: { finalQuantity },
     });
   }
 

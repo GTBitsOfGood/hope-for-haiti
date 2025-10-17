@@ -20,7 +20,6 @@ export type AllocationSuggestion = {
   items: { requests: { partnerId: number; quantity: number }[] }[];
 };
 
-
 type PartnerTotals = {
   normalizedTotal: number;
   requestedTotal: number;
@@ -50,6 +49,17 @@ type ModelResponse = {
   items: { requests: { partnerId: number; quantity: number }[] }[];
 };
 
+// Type for individual item in LLM response
+type LLMResponseItem = {
+  requests: { partnerId: number; quantity: number }[];
+};
+
+// Type for individual request in LLM response
+type LLMResponseRequest = {
+  partnerId: number;
+  quantity: number;
+};
+
 const SYSTEM_PROMPT = `You are assisting Hope for Haiti staff with distributing limited items across partner requests.
 Return allocations that:
 - keep partner IDs and ordering unchanged;
@@ -71,7 +81,9 @@ function distributeIntegers(total: number, weights: number[]): number[] {
   if (n === 0) return [];
   if (total <= 0) return Array(n).fill(0);
 
-  const safeWeights = weights.map((value) => (Number.isFinite(value) && value > 0 ? value : 0));
+  const safeWeights = weights.map((value) =>
+    Number.isFinite(value) && value > 0 ? value : 0
+  );
   const weightSum = safeWeights.reduce((sum, value) => sum + value, 0);
   const baseline = weightSum > 0 ? safeWeights : Array(n).fill(1);
   const baselineSum = weightSum > 0 ? weightSum : n;
@@ -109,7 +121,10 @@ function normalizeRequests(item: GeneralItemInput): number[] {
   return distributeIntegers(item.totalQuantity, weights);
 }
 
-function collectPartnerTotals(items: GeneralItemInput[], normalized: number[][]): Map<number, PartnerTotals> {
+function collectPartnerTotals(
+  items: GeneralItemInput[],
+  normalized: number[][]
+): Map<number, PartnerTotals> {
   const totals = new Map<number, PartnerTotals>();
 
   items.forEach((item, itemIndex) => {
@@ -129,7 +144,11 @@ function collectPartnerTotals(items: GeneralItemInput[], normalized: number[][])
   return totals;
 }
 
-function buildModelPayload(items: GeneralItemInput[], normalized: number[][], partnerTotals: Map<number, PartnerTotals>): ModelRequestPayload {
+function buildModelPayload(
+  items: GeneralItemInput[],
+  normalized: number[][],
+  partnerTotals: Map<number, PartnerTotals>
+): ModelRequestPayload {
   return {
     items: items.map((item, index) => ({
       index,
@@ -172,7 +191,10 @@ function sanitizeAllocations(
 ): { partnerId: number; quantity: number }[] {
   const candidateMap = new Map<number, number>();
   candidate?.forEach((entry) => {
-    if (typeof entry?.partnerId === "number" && Number.isFinite(entry?.quantity)) {
+    if (
+      typeof entry?.partnerId === "number" &&
+      Number.isFinite(entry?.quantity)
+    ) {
       candidateMap.set(entry.partnerId, Math.max(0, entry.quantity));
     }
   });
@@ -192,16 +214,21 @@ function sanitizeAllocations(
   }));
 }
 
-
-function buildBasicResult(adjusted: { partnerId: number; quantity: number }[][]): AllocationSuggestion {
+function buildBasicResult(
+  adjusted: { partnerId: number; quantity: number }[][]
+): AllocationSuggestion {
   return {
     items: adjusted.map((requests) => ({ requests })),
   };
 }
 
 export class UnfinalizedSuggestionService {
-  static async suggestAllocations(
+  static async suggestAllocationsStream(
     generalItems: GeneralItemInput[],
+    onChunk: (chunk: {
+      itemIndex: number;
+      requests: { partnerId: number; finalQuantity: number }[];
+    }) => void
   ): Promise<AllocationSuggestion> {
     if (generalItems.length === 0) {
       return { items: [] };
@@ -214,14 +241,141 @@ export class UnfinalizedSuggestionService {
     let modelResponse: ModelResponse | null = null;
 
     if (client) {
-      const payload = buildModelPayload(generalItems, normalized, partnerTotals);
+      const payload = buildModelPayload(
+        generalItems,
+        normalized,
+        partnerTotals
+      );
       const userInstruction = `Review the normalized suggestions and adjust only when the heuristics call for it. Respond with JSON matching the schema.`;
 
       const response = await client.chat.completions.create({
         model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: JSON.stringify({ instruction: userInstruction, data: payload }) },
+          {
+            role: "user",
+            content: JSON.stringify({
+              instruction: userInstruction,
+              data: payload,
+            }),
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "allocation_schema",
+            schema: {
+              type: "object",
+              properties: {
+                items: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      requests: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            partnerId: { type: "number" },
+                            quantity: { type: "number" },
+                          },
+                          required: ["partnerId", "quantity"],
+                          additionalProperties: false,
+                        },
+                      },
+                    },
+                    required: ["requests"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["items"],
+              additionalProperties: false,
+            },
+            strict: true,
+          },
+        },
+        stream: true,
+      });
+
+      for await (const chunk of response) {
+        const content = chunk.choices?.[0]?.delta?.content;
+        console.log("LLM Stream Chunk:", content);
+
+        if (content) {
+          try {
+            const parsed = JSON.parse(content);
+            console.log("LLM Parsed Chunk:", parsed);
+
+            if (parsed.items) {
+              parsed.items.forEach((item: LLMResponseItem, index: number) => {
+                if (item.requests) {
+                  const chunkData = {
+                    itemIndex: index,
+                    requests: item.requests.map((req: LLMResponseRequest) => ({
+                      partnerId: req.partnerId,
+                      finalQuantity: req.quantity,
+                    })),
+                  };
+                  console.log("LLM Sending Chunk:", chunkData);
+                  onChunk(chunkData);
+                }
+              });
+            }
+          } catch (e) {
+            console.log("LLM Parse Error:", e, "Content:", content);
+          }
+        }
+      }
+
+      const finalContent = response.choices?.[0]?.message?.content ?? undefined;
+      modelResponse = parseModelResponse(finalContent);
+    }
+
+    const adjusted = generalItems.map((item, index) =>
+      sanitizeAllocations(
+        item,
+        normalized[index],
+        modelResponse?.items?.[index]?.requests
+      )
+    );
+
+    return buildBasicResult(adjusted);
+  }
+
+  static async suggestAllocations(
+    generalItems: GeneralItemInput[]
+  ): Promise<AllocationSuggestion> {
+    if (generalItems.length === 0) {
+      return { items: [] };
+    }
+
+    const normalized = generalItems.map(normalizeRequests);
+    const partnerTotals = collectPartnerTotals(generalItems, normalized);
+
+    const { client } = getOpenAIClient();
+    let modelResponse: ModelResponse | null = null;
+
+    if (client) {
+      const payload = buildModelPayload(
+        generalItems,
+        normalized,
+        partnerTotals
+      );
+      const userInstruction = `Review the normalized suggestions and adjust only when the heuristics call for it. Respond with JSON matching the schema.`;
+
+      const response = await client.chat.completions.create({
+        model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: JSON.stringify({
+              instruction: userInstruction,
+              data: payload,
+            }),
+          },
         ],
         response_format: {
           type: "json_schema",
@@ -261,11 +415,17 @@ export class UnfinalizedSuggestionService {
         },
       });
 
-      modelResponse = parseModelResponse(response.choices?.[0]?.message?.content ?? undefined);
+      modelResponse = parseModelResponse(
+        response.choices?.[0]?.message?.content ?? undefined
+      );
     }
 
     const adjusted = generalItems.map((item, index) =>
-      sanitizeAllocations(item, normalized[index], modelResponse?.items?.[index]?.requests)
+      sanitizeAllocations(
+        item,
+        normalized[index],
+        modelResponse?.items?.[index]?.requests
+      )
     );
 
     return buildBasicResult(adjusted);

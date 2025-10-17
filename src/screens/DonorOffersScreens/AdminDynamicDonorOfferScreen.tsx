@@ -1,268 +1,450 @@
 "use client";
 
-import { useState } from "react";
-import { DotsThree, MagnifyingGlass, ShareFat } from "@phosphor-icons/react";
-import { CgSpinner } from "react-icons/cg";
-import React from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  DonorOffer,
-  DonorOfferItem,
-  DonorOfferItemRequest,
-  DonorOfferState,
-} from "@prisma/client";
-import toast from "react-hot-toast";
+import { DonorOffer } from "@prisma/client";
 import { formatTableValue } from "@/utils/format";
-import { Menu, MenuButton, MenuItems } from "@headlessui/react";
-import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import BaseTable, { tableConditional } from "@/components/baseTable/BaseTable";
+import { useStreamClient } from "@/hooks/useStreamClient";
+import AdvancedBaseTable, {
+  AdvancedBaseTableHandle,
+  ColumnDefinition,
+} from "@/components/baseTable/AdvancedBaseTable";
+import PartnerRequestChipGroup, {
+  PartnerRequestChipData,
+} from "@/components/DonorOffers/PartnerRequestChipGroup";
+import toast from "react-hot-toast";
 
-type DonorOfferItemWithRequests = DonorOfferItem & {
-  requests: (DonorOfferItemRequest & {
-    partner: {
-      name: string;
-    };
-  })[];
+type GeneralItemWithRequests = {
+  id: number;
+  title: string;
+  type: string;
+  expirationDate: string | Date | null;
+  unitType: string;
+  quantityPerUnit: number;
+  initialQuantity: number;
+  requestQuantity: number | null;
+  requests: {
+    id: number;
+    quantity: number;
+    finalQuantity: number;
+    partner: { id: number; name: string };
+  }[];
+};
+
+type AdminDonorOfferDetails = {
+  donorOffer: DonorOffer;
+  itemsWithRequests: GeneralItemWithRequests[];
 };
 
 export default function AdminDynamicDonorOfferScreen() {
-  const router = useRouter();
   const { donorOfferId } = useParams();
-
-  const [items, setItems] = useState<DonorOfferItemWithRequests[]>([]);
-  const [donorOffer, setDonorOffer] = useState<DonorOffer>();
-  const [editing, setEditing] = useState(false);
-  const [firstTime, setFirstTime] = useState(false);
-
-  const { isLoading } = useFetch<{
-    donorOffer: DonorOffer;
-    itemsWithRequests: DonorOfferItemWithRequests[];
-  }>(`/api/donorOffers/${donorOfferId}`, {
-    cache: "no-store",
-    onSuccess: (data) => {
-      const { donorOffer, itemsWithRequests } = data;
-      setItems(itemsWithRequests);
-      setDonorOffer(donorOffer);
-
-      if (
-        (itemsWithRequests as DonorOfferItemWithRequests[]).some(
-          (item) => item.requestQuantity === null
-        )
-      ) {
-        setEditing(true);
-        setFirstTime(true);
-      } else {
-        setEditing(false);
-      }
-    },
-    onError: (error) => {
-      toast.error("Error fetching item requests", {
-        position: "bottom-right",
-      });
-      console.error("Fetch error:", error);
-    },
-  });
-
+  const tableRef =
+    useRef<AdvancedBaseTableHandle<GeneralItemWithRequests>>(null);
   const { apiClient } = useApiClient();
+  const { isStreaming, streamClient } = useStreamClient<{
+    itemIndex: number;
+    requests: { partnerId: number; finalQuantity: number }[];
+  }>();
 
-  const setRequestQuantity = (index: number, value: number) =>
-    setItems((prev) => {
-      const newVal = [...prev];
-      newVal[index].requestQuantity = value;
+  // LLM Interaction Mode state
+  const [isLLMMode, setIsLLMMode] = useState(false);
+  const [preStreamState, setPreStreamState] = useState<
+    GeneralItemWithRequests[]
+  >([]);
+  const [isStreamComplete, setIsStreamComplete] = useState(false);
+  const [currentItems, setCurrentItems] = useState<GeneralItemWithRequests[]>(
+    []
+  );
 
-      return newVal;
-    });
+  const fetchItems = useCallback(
+    async (pageSize: number, page: number) => {
+      const data = await apiClient.get<AdminDonorOfferDetails>(
+        `/api/donorOffers/${donorOfferId}`,
+        { cache: "no-store" }
+      );
 
-  const handleSave = async () => {
+      const items = data.itemsWithRequests;
+      setCurrentItems(items);
+      const start = (page - 1) * pageSize;
+      const paged = items.slice(start, start + pageSize);
+      return { data: paged, total: items.length };
+    },
+    [apiClient, donorOfferId]
+  );
+
+  const columns: ColumnDefinition<GeneralItemWithRequests>[] = useMemo(
+    () => [
+      {
+        id: "title",
+        header: "Item Name",
+        cell: (i) => i.title,
+        filterType: "string",
+      },
+      { id: "type", header: "Type", cell: (i) => i.type, filterType: "string" },
+      {
+        id: "expirationDate",
+        header: "Expiration",
+        cell: (i) =>
+          i.expirationDate
+            ? new Date(i.expirationDate).toLocaleDateString()
+            : "None",
+        filterType: "date",
+      },
+      { id: "unitType", header: "Unit Type", cell: (i) => i.unitType },
+      {
+        id: "quantityPerUnit",
+        header: "Qty/Unit",
+        cell: (i) => i.quantityPerUnit,
+      },
+      {
+        id: "initialQuantity",
+        header: "Quantity",
+        cell: (i) => i.initialQuantity,
+      },
+      {
+        id: "requestSummary",
+        header: "Request Summary",
+        cell: (i) => {
+          const totalQty = i.requests.reduce(
+            (s, r) =>
+              s +
+              (r.finalQuantity !== r.quantity ? r.finalQuantity : r.quantity),
+            0
+          );
+          return (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-600">↓</span>
+              <button className="px-2 py-1 border-black border rounded text-sm">
+                Total <span className="font-semibold">{totalQty}</span>
+              </button>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const handleSuggestRevisions = useCallback(async () => {
+    if (!donorOfferId) return;
+
+    // Save current state before streaming
+    setPreStreamState(currentItems);
+    setIsLLMMode(true);
+    setIsStreamComplete(false);
+
     try {
-      await apiClient.put(`/api/donorOffers/${donorOfferId}/requests`, {
-        body: JSON.stringify({
-          requests: items.map((item) => ({
-            title: item.title,
-            type: item.type,
-            expirationDate: item.expirationDate,
-            unitType: item.unitType,
-            quantityPerUnit: item.quantityPerUnit,
-            quantity: item.requestQuantity || 0,
-          })),
-        }),
+      await streamClient.stream("/api/suggest/unfinalized", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ donorOfferId: parseInt(String(donorOfferId)) }),
+        parseChunk: (chunk) => {
+          console.log("Raw chunk received:", chunk);
+          // Handle Server-Sent Events format
+          if (chunk.startsWith("data: ")) {
+            const data = chunk.substring(6); // Remove 'data: ' prefix
+            try {
+              return JSON.parse(data);
+            } catch {
+              console.log("Failed to parse SSE data:", data);
+              return null;
+            }
+          }
+          return null;
+        },
+        onChunk: (chunk) => {
+          console.log("Frontend received chunk:", chunk);
+
+          // Handle test chunk
+          if (chunk && chunk.test) {
+            console.log("Test chunk received:", chunk.test);
+            return;
+          }
+
+          // Handle final result chunk
+          if (chunk && chunk.done && chunk.result) {
+            console.log("Final result received:", chunk.result);
+            // Process the final result
+            chunk.result.items.forEach(
+              (item: { requests: { partnerId: number }[] }, index: number) => {
+                if (item.requests && item.requests.length > 0) {
+                  console.log(
+                    "Processing final result for item:",
+                    index,
+                    item.requests
+                  );
+
+                  // Find the corresponding item in currentItems by index
+                  const currentItem = currentItems[index];
+                  if (currentItem) {
+                    console.log("Found current item:", currentItem.id);
+                    tableRef.current?.updateItemById(
+                      currentItem.id,
+                      (currentTableItem) => ({
+                        ...currentTableItem,
+                        requests: currentTableItem.requests.map((req) => {
+                          const updatedReq = item.requests.find(
+                            (r: { partnerId: number }) =>
+                              r.partnerId === req.partner.id
+                          );
+                          console.log(
+                            "Updating request:",
+                            req.id,
+                            "from",
+                            req.finalQuantity,
+                            "to",
+                            updatedReq?.quantity
+                          );
+                          return updatedReq
+                            ? { ...req, finalQuantity: updatedReq.quantity }
+                            : req;
+                        }),
+                      })
+                    );
+                  }
+                }
+              }
+            );
+
+            // Also update the currentItems state
+            setCurrentItems((prevItems) =>
+              prevItems.map((prevItem, index) => {
+                const resultItem = chunk.result.items[index];
+                if (
+                  resultItem &&
+                  resultItem.requests &&
+                  resultItem.requests.length > 0
+                ) {
+                  return {
+                    ...prevItem,
+                    requests: prevItem.requests.map((req) => {
+                      const updatedReq = resultItem.requests.find(
+                        (r: { partnerId: number }) =>
+                          r.partnerId === req.partner.id
+                      );
+                      return updatedReq
+                        ? { ...req, finalQuantity: updatedReq.quantity }
+                        : req;
+                    }),
+                  };
+                }
+                return prevItem;
+              })
+            );
+            return;
+          }
+
+          // Handle streaming chunks
+          if (chunk && chunk.itemIndex !== undefined && chunk.requests) {
+            console.log("Processing chunk for item:", chunk.itemIndex);
+            // Update the table with new quantities
+            tableRef.current?.updateItemById(chunk.itemIndex, (item) => ({
+              ...item,
+              requests: item.requests.map((req) => {
+                const updatedReq = chunk.requests.find(
+                  (r: { partnerId: number }) => r.partnerId === req.partner.id
+                );
+                console.log(
+                  "Updating request:",
+                  req.id,
+                  "from",
+                  req.finalQuantity,
+                  "to",
+                  updatedReq?.finalQuantity
+                );
+                return updatedReq
+                  ? { ...req, finalQuantity: updatedReq.finalQuantity }
+                  : req;
+              }),
+            }));
+          }
+        },
+        onDone: () => {
+          setIsStreamComplete(true);
+        },
+        onError: (error) => {
+          toast.error("Failed to get LLM suggestions");
+          console.error("Streaming error:", error);
+          setIsLLMMode(false);
+        },
       });
-      setEditing(false);
-      setFirstTime(false);
-      toast.success("Request data saved successfully!");
-    } catch {
-      toast.error("Error saving request data");
+    } catch (error) {
+      toast.error("Failed to start LLM suggestions");
+      console.error("Error:", error);
+      setIsLLMMode(false);
     }
-  };
+  }, [donorOfferId, streamClient]);
+
+  const handleCancel = useCallback(() => {
+    streamClient.cancel();
+    setIsLLMMode(false);
+    setIsStreamComplete(false);
+
+    if (preStreamState.length > 0) {
+      tableRef.current?.setItems(preStreamState);
+    }
+  }, [streamClient, preStreamState]);
+
+  const handleUndo = useCallback(() => {
+    setIsLLMMode(false);
+    setIsStreamComplete(false);
+
+    // Revert to pre-stream state
+    if (preStreamState.length > 0) {
+      console.log("Reverting to pre-stream state");
+      tableRef.current?.setItems(preStreamState);
+      setCurrentItems(preStreamState);
+    }
+  }, [preStreamState]);
+
+  const handleKeep = useCallback(async () => {
+    try {
+      // Use currentItems which should have the updated finalQuantity values
+      console.log("Saving revisions for items:", currentItems.length);
+
+      // Collect all requests that need to be updated
+      const requestsToUpdate: Array<{
+        generalItemId: number;
+        requestId: number;
+        finalQuantity: number;
+      }> = [];
+
+      for (const item of currentItems) {
+        for (const request of item.requests) {
+          if (request.finalQuantity !== request.quantity) {
+            requestsToUpdate.push({
+              generalItemId: item.id,
+              requestId: request.id,
+              finalQuantity: request.finalQuantity,
+            });
+          }
+        }
+      }
+
+      console.log("Requests to update:", requestsToUpdate);
+
+      // Update all requests in parallel
+      await Promise.all(
+        requestsToUpdate.map(({ generalItemId, requestId, finalQuantity }) =>
+          apiClient.patch(
+            `/api/generalItems/${generalItemId}/requests/${requestId}`,
+            {
+              body: JSON.stringify({ finalQuantity }),
+            }
+          )
+        )
+      );
+
+      toast.success(
+        `Revisions saved successfully (${requestsToUpdate.length} requests updated)`
+      );
+      setIsLLMMode(false);
+      setIsStreamComplete(false);
+
+      tableRef.current?.reload();
+    } catch (error) {
+      toast.error("Failed to save revisions");
+      console.error("Save error:", error);
+    }
+  }, [apiClient, currentItems]);
+
+  const handleRequestUpdated = useCallback(() => {
+    // Refresh the table to update the request summary
+    tableRef.current?.reload();
+  }, []);
+
+  const rowBody = useCallback(
+    (item: GeneralItemWithRequests) => {
+      const chipData: PartnerRequestChipData[] = item.requests.map((r) => ({
+        id: r.id,
+        partner: { name: r.partner.name },
+        quantity: r.quantity,
+        finalQuantity: r.finalQuantity,
+      }));
+      return (
+        <PartnerRequestChipGroup
+          requests={chipData}
+          generalItemId={item.id}
+          onRequestUpdated={handleRequestUpdated}
+        />
+      );
+    },
+    [handleRequestUpdated]
+  );
 
   return (
-    <>
-      {isLoading ? (
-        <div className="flex justify-center items-center mt-8">
-          <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
+    <div>
+      <div className="flex flex-row justify-between items-center mb-4">
+        <div className="flex items-center gap-1">
+          <Link
+            href="/donorOffers"
+            className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1"
+          >
+            Donor Offers
+          </Link>
+          <span className="text-gray-500 text-sm flex items-center">/</span>
+          <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
+            {formatTableValue(String(donorOfferId))}
+          </span>
         </div>
-      ) : (
-        <>
-          <div className="flex flex-row justify-between items-center mb-4">
-            <div className="flex items-center gap-1">
-              <Link
-                href="/donorOffers"
-                className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1"
-              >
-                Donor Offers
-              </Link>
-              <span className="text-gray-500 text-sm flex items-center">/</span>
-              <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
-                {formatTableValue(donorOffer?.offerName)}
-              </span>
-            </div>
-          </div>
-          <h1 className="text-2xl font-semibold">
-            {formatTableValue(donorOffer?.offerName)}:{" "}
-            <span className="text-gray-primary text-opacity-70">
-              {donorOffer?.state === DonorOfferState.UNFINALIZED
-                ? "Partner Requests"
-                : "General Items"}
-            </span>
-          </h1>
-          <div className="flex flex-row justify-between items-center mb-4">
-            <div className="relative w-1/3 py-4">
-              <MagnifyingGlass
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Search"
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
-              />
-            </div>
-            <div className="flex flex-row gap-3">
-              {donorOffer?.state === DonorOfferState.UNFINALIZED ? (
-                <>
-                  <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-1 rounded-md font-medium hover:bg-red-50 transition">
-                    <ShareFat size={18} weight="fill" />
-                    Export Partner Requests
-                  </button>
-                  {editing ? (
-                    <>
-                      {!firstTime && (
-                        <button
-                          className="flex items-center gap-2 border border-red-500 text-red-600 bg-red-500 bg-opacity-25 px-4 py-1 rounded-md font-medium hover:bg-opacity-35 transition"
-                          onClick={() => setEditing(false)}
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      <button
-                        className="flex items-center gap-2 border border-red-500 text-white bg-red-500 px-4 py-1 rounded-md font-medium hover:bg-red-600 transition"
-                        onClick={handleSave}
-                      >
-                        Save
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="flex items-center gap-2 border border-red-500 text-white bg-red-500 px-4 py-1 rounded-md font-medium hover:bg-red-600 transition"
-                      onClick={() => setEditing(true)}
-                    >
-                      Edit
-                    </button>
-                  )}
-                </>
-              ) : (
-                <button className="flex items-center gap-2 border border-red-500 text-white bg-red-500 px-4 py-1 rounded-md font-medium hover:bg-red-600 transition">
-                  View All Unique Line Items
-                </button>
+      </div>
+
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={columns}
+        fetchFn={fetchItems}
+        rowId="id"
+        rowBody={rowBody}
+        pageSize={20}
+        toolBar={
+          !isLLMMode ? (
+            <button
+              onClick={handleSuggestRevisions}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              disabled={isStreaming}
+            >
+              Suggest Revisions
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              {isStreaming && (
+                <span className="text-blue-600 text-sm mr-2">
+                  Streaming suggestions...
+                </span>
               )}
+              {isStreamComplete && !isStreaming && (
+                <span className="text-green-600 text-sm mr-2">
+                  Stream complete
+                </span>
+              )}
+              {isStreaming ? (
+                <button
+                  onClick={handleCancel}
+                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              ) : isStreamComplete ? (
+                <button
+                  onClick={handleUndo}
+                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                >
+                  Undo
+                </button>
+              ) : null}
+              <button
+                onClick={handleKeep}
+                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                disabled={isStreaming}
+              >
+                Keep
+              </button>
             </div>
-          </div>
-          <BaseTable
-            headers={[
-              "Item Name",
-              "Type",
-              "Expiration",
-              "Unit Type",
-              "Qty/Unit",
-              "Quantity",
-              tableConditional(
-                donorOffer?.state === DonorOfferState.UNFINALIZED,
-                ["Request Summary", "Request Quantity"],
-                ["Manage"]
-              ),
-            ]}
-            rows={items.map((item) => ({
-              cells: [
-                item.title,
-                item.type,
-                item.expirationDate
-                  ? new Date(item.expirationDate).toLocaleDateString()
-                  : "None",
-                item.unitType,
-                item.quantityPerUnit,
-                item.quantity,
-                ...(donorOffer?.state === DonorOfferState.UNFINALIZED
-                  ? [
-                      item.requests?.length > 0 ? (
-                        <div>
-                          Total -{" "}
-                          {item.requests?.reduce(
-                            (sum, request) => sum + request.quantity,
-                            0
-                          )}
-                          {item.requests?.map((request) => (
-                            <div key={request.id}>
-                              {request.partner.name} - {request.quantity}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="inline-block border-dashed border border-gray-primary rounded-md px-2 py-1 text-gray-primary opacity-20 text-sm font-semibold select-none">
-                          No Requests
-                        </div>
-                      ),
-                      editing ? (
-                        <input
-                          type="number"
-                          className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          min={0}
-                          value={item.requestQuantity || 0}
-                          onChange={(e) =>
-                            setRequestQuantity(
-                              items.indexOf(item),
-                              parseInt(e.currentTarget.value)
-                            )
-                          }
-                        />
-                      ) : (
-                        <p>{item.requestQuantity}</p>
-                      ),
-                    ]
-                  : [
-                      <div onClick={(e) => e.stopPropagation()} key={1}>
-                        <Menu as="div" className="float-right relative">
-                          <MenuButton>
-                            <DotsThree weight="bold" />
-                          </MenuButton>
-                          <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max"></MenuItems>
-                        </Menu>
-                      </div>,
-                    ]),
-              ],
-              onClick:
-                donorOffer?.state === DonorOfferState.FINALIZED
-                  ? () => {
-                      router.push(
-                        `/donorOffers/${donorOfferId}/itemRequests/${item.id}`
-                      );
-                    }
-                  : undefined,
-            }))}
-          />
-        </>
-      )}
-    </>
+          )
+        }
+      />
+    </div>
   );
 }

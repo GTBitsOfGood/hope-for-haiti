@@ -150,6 +150,7 @@ model GeneralItemRequest {
   partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   quantity Int
+  finalQuantity Int @default(0)
   comments String?
   priority RequestPriority?
 
