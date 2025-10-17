@@ -79,9 +79,11 @@ export async function POST(
     const formData = await request.formData();
  
     const parsedData = createSchema.safeParse({
-      ...formData,
       generalItemId: parseInt(generalItemId),
-      partnerId: session.user.id,
+      partnerId: parseInt(session.user.id),
+      quantity: formData.get("quantity") ? parseInt(formData.get("quantity") as string) : undefined,
+      priority: formData.get("priority") ? formData.get("priority") as string : undefined,
+      comments: formData.get("comments") ? formData.get("comments") as string : undefined,
     });
 
     if (!parsedData.success) {

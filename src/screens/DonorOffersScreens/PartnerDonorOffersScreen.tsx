@@ -21,19 +21,35 @@ function ResponseStatusTag({ status }: { status: string | null }) {
 export default function PartnerDonorOffersScreen() {
   const router = useRouter();
 
-  const { data: rawDonorOffers, isLoading } = useFetch<DonorOfferDto[]>(
-    "/api/donorOffers",
-    {
-      method: "GET",
-      cache: "no-store",
-    }
-  );
+  const { data: apiResponse, isLoading, error } = useFetch<{
+    donorOffers: DonorOfferDto[];
+    total: number;
+  }>("/api/donorOffers", {
+    method: "GET",
+    cache: "no-store",
+  });
 
   // Format the data to ensure responseDeadline is a Date object
-  const donorOffers = (rawDonorOffers || []).map((offer) => ({
-    ...offer,
-    responseDeadline: new Date(offer.responseDeadline),
-  }));
+  // Extract the donorOffers array from the API response
+  const donorOffers = Array.isArray(apiResponse?.donorOffers) 
+    ? apiResponse.donorOffers.map((offer) => {
+        let responseDeadline: Date;
+        try {
+          responseDeadline = new Date(offer.responseDeadline);
+          // Handle invalid dates
+          if (isNaN(responseDeadline.getTime())) {
+            responseDeadline = new Date(); // fallback to current date
+          }
+        } catch {
+          responseDeadline = new Date(); // fallback to current date
+        }
+        
+        return {
+          ...offer,
+          responseDeadline,
+        };
+      })
+    : [];
 
   return (
     <>
@@ -55,7 +71,11 @@ export default function PartnerDonorOffersScreen() {
       </div>
 
       {/* table */}
-      {isLoading ? (
+      {error ? (
+        <div className="flex justify-center items-center mt-8 text-red-500">
+          <p>Error loading donor offers: {error}</p>
+        </div>
+      ) : isLoading ? (
         <div className="flex justify-center items-center mt-8">
           <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
         </div>
