@@ -61,7 +61,7 @@ function AdvancedBaseTableInner<T extends object>(
     fetchFn,
     rowId,
     pageSize = 20,
-    headerClassName = "bg-gray-primary/5 text-gray-primary/70 border-b-2 border-gray-primary/10",
+    headerClassName = "bg-blue-light text-gray-primary/70 border-b-2 border-blue-primary/10",
     headerCellStyles,
     rowCellStyles,
     onRowClick,
@@ -392,7 +392,7 @@ function AdvancedBaseTableInner<T extends object>(
                   <tr
                     key={String(resolveRowId(item))}
                     data-odd={rowIndex % 2 !== 0}
-                    className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
+                    className={`bg-white data-[odd=false]:bg-blue-light/35 border-b border-blue-primary/10 text-gray-primary ${
                       onRowClick || rowBody ? "cursor-pointer" : ""
                     } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
                     onClick={() => {

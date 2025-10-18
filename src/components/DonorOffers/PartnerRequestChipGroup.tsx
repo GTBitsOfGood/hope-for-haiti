@@ -19,11 +19,13 @@ export default function PartnerRequestChipGroup({
   onChange,
   generalItemId,
   onRequestUpdated,
+  isLLMMode = false,
 }: {
   requests: PartnerRequestChipData[];
   onChange?: (updated: PartnerRequestChipData[]) => void;
   generalItemId?: number;
-  onRequestUpdated?: () => void;
+  onRequestUpdated?: (itemId?: number, updatedRequests?: PartnerRequestChipData[]) => void;
+  isLLMMode?: boolean;
 }) {
   const [data, setData] = useState<PartnerRequestChipData[]>(() =>
     requests.map((r) => ({ ...r }))
@@ -53,11 +55,11 @@ export default function PartnerRequestChipGroup({
             key={req.id}
             request={req}
             generalItemId={generalItemId}
+            isLLMMode={isLLMMode}
             onSave={(finalQuantity) => {
-              setData((prev) =>
-                prev.map((p) => (p.id === req.id ? { ...p, finalQuantity } : p))
-              );
-              onRequestUpdated?.();
+              const updatedData = data.map((p) => (p.id === req.id ? { ...p, finalQuantity } : p));
+              setData(updatedData);
+              onRequestUpdated?.(generalItemId, updatedData);
             }}
           />
         ))
@@ -70,10 +72,12 @@ function PartnerRequestChip({
   request,
   onSave,
   generalItemId,
+  isLLMMode = false,
 }: {
   request: PartnerRequestChipData;
   onSave: (finalQuantity: number) => void;
   generalItemId?: number;
+  isLLMMode?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(String(request.finalQuantity));
@@ -105,7 +109,8 @@ function PartnerRequestChip({
 
     setIsSaving(true);
     try {
-      if (generalItemId) {
+      // Only make API call if not in LLM mode
+      if (generalItemId && !isLLMMode) {
         await apiClient.patch(
           `/api/generalItems/${generalItemId}/requests/${request.id}`,
           {

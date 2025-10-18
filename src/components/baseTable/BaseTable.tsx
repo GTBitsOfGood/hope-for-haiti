@@ -57,7 +57,7 @@ export function renderHeaders(
 export default function BaseTable({
   headers,
   rows,
-  headerClassName = "bg-gray-primary/5 text-gray-primary/70 border-b-2 border-gray-primary/10",
+  headerClassName = "bg-blue-light text-gray-primary/70 border-b-2 border-blue-primary/10",
   pageSize = 20,
   headerCellStyles,
   rowCellStyles,
@@ -91,7 +91,7 @@ export default function BaseTable({
               <tr
                 key={rowIndex}
                 data-odd={rowIndex % 2 !== 0}
-                className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${row.onClick ? "cursor-pointer" : ""} ${row.className || ""}`}
+                className={`bg-white data-[odd=false]:bg-blue-light/35 border-b border-blue-primary/10 text-gray-primary ${row.onClick ? "cursor-pointer" : ""} ${row.className || ""}`}
                 onClick={row.onClick}
               >
                 {row.cells.flat().map((cell, cellIndex) => (

@@ -15,6 +15,7 @@ import PartnerRequestChipGroup, {
   PartnerRequestChipData,
 } from "@/components/DonorOffers/PartnerRequestChipGroup";
 import toast from "react-hot-toast";
+import { CgChevronDown, CgChevronUp } from "react-icons/cg";
 
 // Types for stream chunks
 type StreamingChunk = {
@@ -122,7 +123,7 @@ export default function AdminDynamicDonorOfferScreen() {
       {
         id: "requestSummary",
         header: "Request Summary",
-        cell: (i) => {
+        cell: (i, _, isOpen) => {
           const totalQty = i.requests.reduce(
             (s, r) =>
               s +
@@ -131,7 +132,7 @@ export default function AdminDynamicDonorOfferScreen() {
           );
           return (
             <div className="flex items-center gap-2">
-              <span className="text-gray-600">↓</span>
+              <span className="text-gray-600">{isOpen ? <CgChevronUp /> : <CgChevronDown />}</span>
               <button className="px-2 py-1 border-black border rounded text-sm">
                 Total <span className="font-semibold">{totalQty}</span>
               </button>
@@ -358,9 +359,51 @@ export default function AdminDynamicDonorOfferScreen() {
     }
   }, [apiClient, currentItems]);
 
-  const handleRequestUpdated = useCallback(() => {
-    tableRef.current?.reload();
-  }, []);
+  const handleRequestUpdated = useCallback((itemId?: number, updatedRequests?: PartnerRequestChipData[]) => {
+    if (isLLMMode && itemId && updatedRequests) {
+      // In LLM mode, update the specific item without reloading
+      tableRef.current?.updateItemById(itemId, (currentItem) => {
+        return {
+          ...currentItem,
+          requests: currentItem.requests.map((req) => {
+            const updatedReq = updatedRequests.find((r) => r.id === req.id);
+            if (updatedReq) {
+              return {
+                ...req,
+                finalQuantity: updatedReq.finalQuantity,
+              };
+            }
+            return req;
+          }),
+        };
+      });
+      
+      // Also update currentItems state
+      setCurrentItems((prevItems) =>
+        prevItems.map((item) => {
+          if (item.id === itemId) {
+            return {
+              ...item,
+              requests: item.requests.map((req) => {
+                const updatedReq = updatedRequests.find((r) => r.id === req.id);
+                if (updatedReq) {
+                  return {
+                    ...req,
+                    finalQuantity: updatedReq.finalQuantity,
+                  };
+                }
+                return req;
+              }),
+            };
+          }
+          return item;
+        })
+      );
+    } else {
+      // Not in LLM mode, reload the table
+      tableRef.current?.reload();
+    }
+  }, [isLLMMode]);
 
   const rowBody = useCallback(
     (item: GeneralItemWithRequests) => {
@@ -375,10 +418,11 @@ export default function AdminDynamicDonorOfferScreen() {
           requests={chipData}
           generalItemId={item.id}
           onRequestUpdated={handleRequestUpdated}
+          isLLMMode={isLLMMode}
         />
       );
     },
-    [handleRequestUpdated]
+    [handleRequestUpdated, isLLMMode]
   );
 
   return (
