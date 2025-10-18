@@ -41,18 +41,23 @@ export default function AdminDonorOffersScreen() {
   const router = useRouter();
 
   const {
-    data: offers,
+    data: listResponse,
     isLoading,
     refetch: refetchOffers,
-  } = useFetch<AdminDonorOffer[]>("/api/donorOffers", {
-    cache: "no-store",
-    onError: (error) => {
-      toast.error("An error occurred while fetching data");
-      console.error("Fetch error:", error);
-    },
-  });
+  } = useFetch<{ donorOffers: AdminDonorOffer[]; total: number }>(
+    "/api/donorOffers",
+    {
+      cache: "no-store",
+      onError: (error) => {
+        toast.error("An error occurred while fetching data");
+        console.error("Fetch error:", error);
+      },
+    }
+  );
 
-  const filteredOffers = (offers || []).filter((offer) => {
+  const offers = listResponse?.donorOffers || [];
+
+  const filteredOffers = offers.filter((offer) => {
     if (activeTab === StatusFilterKey.UNFINALIZED) {
       return offer.state === DonorOfferState.UNFINALIZED;
     } else if (activeTab === StatusFilterKey.FINALIZED) {

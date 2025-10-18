@@ -6,3 +6,4 @@ export { PartnerSearch } from "./PartnerSearch";
 export type { Partner } from "./PartnerSearch";
 export { default as DonorOfferSuccessModal } from "./DonorOfferSuccessModal";
 export { default as DonorOfferErrorModal } from "./DonorOfferErrorModal";
+export { default as PartnerRequestChipGroup } from "./PartnerRequestChipGroup";

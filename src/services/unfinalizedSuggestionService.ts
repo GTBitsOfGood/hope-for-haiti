@@ -16,11 +16,6 @@ export type GeneralItemInput = {
   requests: PartnerRequest[];
 };
 
-export type AllocationSuggestion = {
-  items: { requests: { partnerId: number; quantity: number }[] }[];
-};
-
-
 type PartnerTotals = {
   normalizedTotal: number;
   requestedTotal: number;
@@ -46,9 +41,6 @@ type ModelRequestPayload = {
   }[];
 };
 
-type ModelResponse = {
-  items: { requests: { partnerId: number; quantity: number }[] }[];
-};
 
 const SYSTEM_PROMPT = `You are assisting Hope for Haiti staff with distributing limited items across partner requests.
 Return allocations that:
@@ -71,7 +63,9 @@ function distributeIntegers(total: number, weights: number[]): number[] {
   if (n === 0) return [];
   if (total <= 0) return Array(n).fill(0);
 
-  const safeWeights = weights.map((value) => (Number.isFinite(value) && value > 0 ? value : 0));
+  const safeWeights = weights.map((value) =>
+    Number.isFinite(value) && value > 0 ? value : 0
+  );
   const weightSum = safeWeights.reduce((sum, value) => sum + value, 0);
   const baseline = weightSum > 0 ? safeWeights : Array(n).fill(1);
   const baselineSum = weightSum > 0 ? weightSum : n;
@@ -109,7 +103,10 @@ function normalizeRequests(item: GeneralItemInput): number[] {
   return distributeIntegers(item.totalQuantity, weights);
 }
 
-function collectPartnerTotals(items: GeneralItemInput[], normalized: number[][]): Map<number, PartnerTotals> {
+function collectPartnerTotals(
+  items: GeneralItemInput[],
+  normalized: number[][]
+): Map<number, PartnerTotals> {
   const totals = new Map<number, PartnerTotals>();
 
   items.forEach((item, itemIndex) => {
@@ -129,7 +126,11 @@ function collectPartnerTotals(items: GeneralItemInput[], normalized: number[][])
   return totals;
 }
 
-function buildModelPayload(items: GeneralItemInput[], normalized: number[][], partnerTotals: Map<number, PartnerTotals>): ModelRequestPayload {
+function buildModelPayload(
+  items: GeneralItemInput[],
+  normalized: number[][],
+  partnerTotals: Map<number, PartnerTotals>
+): ModelRequestPayload {
   return {
     items: items.map((item, index) => ({
       index,
@@ -154,120 +155,156 @@ function buildModelPayload(items: GeneralItemInput[], normalized: number[][], pa
   };
 }
 
-function parseModelResponse(content: string | undefined): ModelResponse | null {
-  if (!content) return null;
-  try {
-    const parsed = JSON.parse(content);
-    if (parsed && Array.isArray(parsed.items)) return parsed as ModelResponse;
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function sanitizeAllocations(
-  item: GeneralItemInput,
-  normalized: number[],
-  candidate: { partnerId: number; quantity: number }[] | undefined
-): { partnerId: number; quantity: number }[] {
-  const candidateMap = new Map<number, number>();
-  candidate?.forEach((entry) => {
-    if (typeof entry?.partnerId === "number" && Number.isFinite(entry?.quantity)) {
-      candidateMap.set(entry.partnerId, Math.max(0, entry.quantity));
-    }
-  });
-
-  const raw = item.requests.map((request, index) => {
-    const candidateValue = candidateMap.get(request.partnerId);
-    if (typeof candidateValue === "number") return candidateValue;
-    return normalized[index] ?? 0;
-  });
-
-  const weights = raw.some((value) => value > 0) ? raw : normalized;
-  const finalQuantities = distributeIntegers(item.totalQuantity, weights);
-
-  return item.requests.map((request, index) => ({
-    partnerId: request.partnerId,
-    quantity: finalQuantities[index] ?? 0,
-  }));
-}
-
-
-function buildBasicResult(adjusted: { partnerId: number; quantity: number }[][]): AllocationSuggestion {
-  return {
-    items: adjusted.map((requests) => ({ requests })),
-  };
-}
-
 export class UnfinalizedSuggestionService {
-  static async suggestAllocations(
+  static async suggestAllocationsStream(
     generalItems: GeneralItemInput[],
-  ): Promise<AllocationSuggestion> {
+    onChunk: (chunk: {
+      itemIndex?: number;
+      requests?: { partnerId: number; finalQuantity: number }[];
+      done?: boolean;
+    }) => void
+  ): Promise<void> {
     if (generalItems.length === 0) {
-      return { items: [] };
+      onChunk({ done: true });
+      return;
     }
 
     const normalized = generalItems.map(normalizeRequests);
     const partnerTotals = collectPartnerTotals(generalItems, normalized);
 
     const { client } = getOpenAIClient();
-    let modelResponse: ModelResponse | null = null;
 
-    if (client) {
-      const payload = buildModelPayload(generalItems, normalized, partnerTotals);
-      const userInstruction = `Review the normalized suggestions and adjust only when the heuristics call for it. Respond with JSON matching the schema.`;
-
-      const response = await client.chat.completions.create({
-        model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: JSON.stringify({ instruction: userInstruction, data: payload }) },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "allocation_schema",
-            schema: {
-              type: "object",
-              properties: {
-                items: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      requests: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            partnerId: { type: "number" },
-                            quantity: { type: "number" },
-                          },
-                          required: ["partnerId", "quantity"],
-                          additionalProperties: false,
-                        },
-                      },
-                    },
-                    required: ["requests"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ["items"],
-              additionalProperties: false,
-            },
-            strict: true,
-          },
-        },
-      });
-
-      modelResponse = parseModelResponse(response.choices?.[0]?.message?.content ?? undefined);
+    if (!client) {
+      throw new Error("Azure OpenAI client is not available. Please configure AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY environment variables.");
     }
 
-    const adjusted = generalItems.map((item, index) =>
-      sanitizeAllocations(item, normalized[index], modelResponse?.items?.[index]?.requests)
+    const payload = buildModelPayload(
+      generalItems,
+      normalized,
+      partnerTotals
     );
+    const userInstruction = `Review the normalized suggestions and adjust only when the heuristics call for it. Respond with JSON matching the schema.`;
 
-    return buildBasicResult(adjusted);
+    const response = await client.chat.completions.create({
+      model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: JSON.stringify({
+            instruction: userInstruction,
+            data: payload,
+          }),
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "allocation_schema",
+          schema: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    requests: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          partnerId: { type: "number" },
+                          quantity: { type: "number" },
+                        },
+                        required: ["partnerId", "quantity"],
+                        additionalProperties: false,
+                      },
+                    },
+                  },
+                  required: ["requests"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["items"],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+      stream: true,
+    });
+
+    let buffer = "";
+    let braceDepth = 0;
+    let currentItemIndex = 0;
+    let inItemsArray = false;
+    let inRequestsArray = false;
+    let objStartIndex = 0;
+
+    for await (const chunk of response) {
+      const content = chunk.choices?.[0]?.delta?.content;
+      if (!content) continue;
+
+      buffer += content;
+
+      for (let i = 0; i < content.length; i++) {
+        const char = content[i];
+
+        // Track when inside items array
+        if (!inItemsArray) {
+          if (buffer.endsWith('"items":[') || buffer.endsWith('"items": [') || buffer.includes('"items":[') || buffer.includes('"items": [')) {
+            inItemsArray = true;
+          }
+        }
+
+        // Track when inside requests array of current item
+        if (inItemsArray && !inRequestsArray) {
+          if (buffer.endsWith('"requests":[') || buffer.endsWith('"requests": [') || buffer.includes('"requests":[') || buffer.includes('"requests": [')) {
+            inRequestsArray = true;
+          }
+        }
+
+        if (inRequestsArray) {
+          if (char === '{') {
+            if (braceDepth === 0) {
+              // start of a new object
+              objStartIndex = buffer.length - content.length + i;
+            }
+            braceDepth++;
+          } else if (char === '}') {
+            braceDepth--;
+            if (braceDepth === 0) {
+              // end of a full object
+              const objEndIndex = buffer.length - content.length + i + 1;
+              const objStr = buffer.slice(objStartIndex, objEndIndex);
+              try {
+                const parsed = JSON.parse(objStr);
+                if (parsed && typeof parsed === 'object' && 'partnerId' in parsed && 'quantity' in parsed) {
+                  onChunk({
+                    itemIndex: currentItemIndex,
+                    requests: [{ partnerId: parsed.partnerId, finalQuantity: parsed.quantity }],
+                  });
+                }
+              } catch {
+                // ignore parse errors for partial or invalid JSON
+              }
+            }
+          } else if (char === ']') {
+            // End of requests array for current item
+            inRequestsArray = false;
+            currentItemIndex++;
+          }
+        }
+
+        if (inItemsArray && char === ']') {
+          // End of items array
+          inItemsArray = false;
+        }
+      }
+    }
+
+    onChunk({ done: true });
   }
 }
