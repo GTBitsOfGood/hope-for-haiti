@@ -299,11 +299,14 @@ export class UnfinalizedSuggestionService {
         stream: true,
       });
 
+      let accumulatedContent = "";
+
       for await (const chunk of response) {
         const content = chunk.choices?.[0]?.delta?.content;
         console.log("LLM Stream Chunk:", content);
 
         if (content) {
+          accumulatedContent += content;
           try {
             const parsed = JSON.parse(content);
             console.log("LLM Parsed Chunk:", parsed);
@@ -329,95 +332,7 @@ export class UnfinalizedSuggestionService {
         }
       }
 
-      const finalContent = response.choices?.[0]?.message?.content ?? undefined;
-      modelResponse = parseModelResponse(finalContent);
-    }
-
-    const adjusted = generalItems.map((item, index) =>
-      sanitizeAllocations(
-        item,
-        normalized[index],
-        modelResponse?.items?.[index]?.requests
-      )
-    );
-
-    return buildBasicResult(adjusted);
-  }
-
-  static async suggestAllocations(
-    generalItems: GeneralItemInput[]
-  ): Promise<AllocationSuggestion> {
-    if (generalItems.length === 0) {
-      return { items: [] };
-    }
-
-    const normalized = generalItems.map(normalizeRequests);
-    const partnerTotals = collectPartnerTotals(generalItems, normalized);
-
-    const { client } = getOpenAIClient();
-    let modelResponse: ModelResponse | null = null;
-
-    if (client) {
-      const payload = buildModelPayload(
-        generalItems,
-        normalized,
-        partnerTotals
-      );
-      const userInstruction = `Review the normalized suggestions and adjust only when the heuristics call for it. Respond with JSON matching the schema.`;
-
-      const response = await client.chat.completions.create({
-        model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: JSON.stringify({
-              instruction: userInstruction,
-              data: payload,
-            }),
-          },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "allocation_schema",
-            schema: {
-              type: "object",
-              properties: {
-                items: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      requests: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            partnerId: { type: "number" },
-                            quantity: { type: "number" },
-                          },
-                          required: ["partnerId", "quantity"],
-                          additionalProperties: false,
-                        },
-                      },
-                    },
-                    required: ["requests"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ["items"],
-              additionalProperties: false,
-            },
-            strict: true,
-          },
-        },
-      });
-
-      modelResponse = parseModelResponse(
-        response.choices?.[0]?.message?.content ?? undefined
-      );
+      modelResponse = parseModelResponse(accumulatedContent);
     }
 
     const adjusted = generalItems.map((item, index) =>

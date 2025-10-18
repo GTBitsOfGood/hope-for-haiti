@@ -78,12 +78,24 @@ function PartnerRequestChip({
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(String(request.finalQuantity));
   const [isSaving, setIsSaving] = useState(false);
+  const [distToNavbar, setDistToNavbar] = useState(0);
   const popRef = useOnClickOutside<HTMLDivElement>(() => setOpen(false));
   const { apiClient } = useApiClient();
 
   useEffect(() => {
     setInputValue(String(request.finalQuantity));
   }, [request.finalQuantity]);
+
+  useEffect(() => {
+    const navbar = document.getElementById("navbar");
+    if (!navbar || !popRef.current || !open) return;
+
+    const navbarRect = navbar.getBoundingClientRect();
+    const dropdownRect = popRef.current.getBoundingClientRect();
+
+    console.log(dropdownRect.left - navbarRect.right);
+    setDistToNavbar(dropdownRect.left - navbarRect.right);
+  }, [popRef, open]);
 
   const different = request.finalQuantity !== request.quantity;
 
@@ -132,7 +144,7 @@ function PartnerRequestChip({
 
       <div
         ref={popRef}
-        className={`absolute left-0 top-full mt-1 z-50 w-56 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm ${
+        className={`absolute ${distToNavbar < 50 ? "left-0" : "right-0"} top-full mt-1 z-50 w-56 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm ${
           open ? "block" : "hidden"
         }`}
       >

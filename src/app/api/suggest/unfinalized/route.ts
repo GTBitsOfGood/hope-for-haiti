@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { RequestPriority } from "@prisma/client";
 import {
   errorResponse,
   AuthenticationError,
@@ -18,7 +19,6 @@ const bodySchema = z.object({
     .positive("Donor offer ID must be a positive integer"),
 });
 
-// Type definitions for the data structures
 type GeneralItemWithRequests = {
   id: number;
   title: string;
@@ -28,14 +28,17 @@ type GeneralItemWithRequests = {
   quantityPerUnit: number;
   initialQuantity: number;
   donorOfferId: number;
+  requestQuantity: number | null;
   requests: {
     id: number;
     quantity: number;
     finalQuantity: number;
     partnerId: number;
     generalItemId: number;
+    comments: string | null;
+    priority: RequestPriority | null;
+    createdAt: Date;
     partner: {
-      id: number;
       name: string;
     };
   }[];
@@ -90,7 +93,7 @@ export async function POST(req: NextRequest) {
         totalQuantity: item.initialQuantity,
         requests: item.requests.map(
           (req: GeneralItemWithRequests["requests"][0]) => ({
-            partnerId: req.partner.id,
+            partnerId: req.partnerId,
             quantity: req.quantity,
           })
         ),

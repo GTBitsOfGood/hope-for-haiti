@@ -16,6 +16,29 @@ import PartnerRequestChipGroup, {
 } from "@/components/DonorOffers/PartnerRequestChipGroup";
 import toast from "react-hot-toast";
 
+// Types for stream chunks
+type StreamingChunk = {
+  itemIndex: number;
+  requests: { partnerId: number; finalQuantity: number }[];
+};
+
+type FinalResultChunk = {
+  done: true;
+  result: {
+    items: { requests: { partnerId: number; quantity: number }[] }[];
+  };
+};
+
+type TestChunk = {
+  test: string;
+};
+
+type ErrorChunk = {
+  error: string;
+};
+
+type StreamChunk = StreamingChunk | FinalResultChunk | TestChunk | ErrorChunk;
+
 type GeneralItemWithRequests = {
   id: number;
   title: string;
@@ -43,12 +66,8 @@ export default function AdminDynamicDonorOfferScreen() {
   const tableRef =
     useRef<AdvancedBaseTableHandle<GeneralItemWithRequests>>(null);
   const { apiClient } = useApiClient();
-  const { isStreaming, streamClient } = useStreamClient<{
-    itemIndex: number;
-    requests: { partnerId: number; finalQuantity: number }[];
-  }>();
+  const { isStreaming, streamClient } = useStreamClient<StreamChunk>();
 
-  // LLM Interaction Mode state
   const [isLLMMode, setIsLLMMode] = useState(false);
   const [preStreamState, setPreStreamState] = useState<
     GeneralItemWithRequests[]
@@ -127,10 +146,52 @@ export default function AdminDynamicDonorOfferScreen() {
     []
   );
 
+  const updateItemRequests = useCallback(
+    (
+      itemId: number,
+      updatedRequests: {
+        partnerId: number;
+        finalQuantity?: number;
+        quantity?: number;
+      }[]
+    ) => {
+      tableRef.current?.updateItemById(itemId, (currentItem) => {
+        const updatedItem = {
+          ...currentItem,
+          requests: currentItem.requests.map((req) => {
+            const updatedReq = updatedRequests.find(
+              (r) => r.partnerId === req.partner.id
+            );
+            if (updatedReq) {
+              const newQuantity =
+                updatedReq.finalQuantity ??
+                updatedReq.quantity ??
+                req.finalQuantity;
+              console.log(
+                "Updating request:",
+                req.id,
+                "from",
+                req.finalQuantity,
+                "to",
+                newQuantity
+              );
+              return {
+                ...req,
+                finalQuantity: newQuantity,
+              };
+            }
+            return req;
+          }),
+        };
+        return updatedItem;
+      });
+    },
+    []
+  );
+
   const handleSuggestRevisions = useCallback(async () => {
     if (!donorOfferId) return;
 
-    // Save current state before streaming
     setPreStreamState(currentItems);
     setIsLLMMode(true);
     setIsStreamComplete(false);
@@ -142,9 +203,8 @@ export default function AdminDynamicDonorOfferScreen() {
         body: JSON.stringify({ donorOfferId: parseInt(String(donorOfferId)) }),
         parseChunk: (chunk) => {
           console.log("Raw chunk received:", chunk);
-          // Handle Server-Sent Events format
           if (chunk.startsWith("data: ")) {
-            const data = chunk.substring(6); // Remove 'data: ' prefix
+            const data = chunk.substring(6);
             try {
               return JSON.parse(data);
             } catch {
@@ -157,18 +217,24 @@ export default function AdminDynamicDonorOfferScreen() {
         onChunk: (chunk) => {
           console.log("Frontend received chunk:", chunk);
 
-          // Handle test chunk
-          if (chunk && chunk.test) {
+          if ("test" in chunk) {
             console.log("Test chunk received:", chunk.test);
             return;
           }
 
-          // Handle final result chunk
-          if (chunk && chunk.done && chunk.result) {
+          if ("error" in chunk) {
+            console.error("Error chunk received:", chunk.error);
+            toast.error(`Stream error: ${chunk.error}`);
+            return;
+          }
+
+          if ("done" in chunk && chunk.done && chunk.result) {
             console.log("Final result received:", chunk.result);
-            // Process the final result
             chunk.result.items.forEach(
-              (item: { requests: { partnerId: number }[] }, index: number) => {
+              (
+                item: { requests: { partnerId: number; quantity: number }[] },
+                index: number
+              ) => {
                 if (item.requests && item.requests.length > 0) {
                   console.log(
                     "Processing final result for item:",
@@ -176,39 +242,15 @@ export default function AdminDynamicDonorOfferScreen() {
                     item.requests
                   );
 
-                  // Find the corresponding item in currentItems by index
                   const currentItem = currentItems[index];
                   if (currentItem) {
                     console.log("Found current item:", currentItem.id);
-                    tableRef.current?.updateItemById(
-                      currentItem.id,
-                      (currentTableItem) => ({
-                        ...currentTableItem,
-                        requests: currentTableItem.requests.map((req) => {
-                          const updatedReq = item.requests.find(
-                            (r: { partnerId: number }) =>
-                              r.partnerId === req.partner.id
-                          );
-                          console.log(
-                            "Updating request:",
-                            req.id,
-                            "from",
-                            req.finalQuantity,
-                            "to",
-                            updatedReq?.quantity
-                          );
-                          return updatedReq
-                            ? { ...req, finalQuantity: updatedReq.quantity }
-                            : req;
-                        }),
-                      })
-                    );
+                    updateItemRequests(currentItem.id, item.requests);
                   }
                 }
               }
             );
 
-            // Also update the currentItems state
             setCurrentItems((prevItems) =>
               prevItems.map((prevItem, index) => {
                 const resultItem = chunk.result.items[index];
@@ -236,29 +278,13 @@ export default function AdminDynamicDonorOfferScreen() {
             return;
           }
 
-          // Handle streaming chunks
-          if (chunk && chunk.itemIndex !== undefined && chunk.requests) {
+          // Handle streaming chunk
+          if ("itemIndex" in chunk && "requests" in chunk) {
             console.log("Processing chunk for item:", chunk.itemIndex);
-            // Update the table with new quantities
-            tableRef.current?.updateItemById(chunk.itemIndex, (item) => ({
-              ...item,
-              requests: item.requests.map((req) => {
-                const updatedReq = chunk.requests.find(
-                  (r: { partnerId: number }) => r.partnerId === req.partner.id
-                );
-                console.log(
-                  "Updating request:",
-                  req.id,
-                  "from",
-                  req.finalQuantity,
-                  "to",
-                  updatedReq?.finalQuantity
-                );
-                return updatedReq
-                  ? { ...req, finalQuantity: updatedReq.finalQuantity }
-                  : req;
-              }),
-            }));
+            const currentItem = currentItems[chunk.itemIndex];
+            if (currentItem) {
+              updateItemRequests(currentItem.id, chunk.requests);
+            }
           }
         },
         onDone: () => {
@@ -275,7 +301,7 @@ export default function AdminDynamicDonorOfferScreen() {
       console.error("Error:", error);
       setIsLLMMode(false);
     }
-  }, [donorOfferId, streamClient]);
+  }, [donorOfferId, streamClient, currentItems, updateItemRequests]);
 
   const handleCancel = useCallback(() => {
     streamClient.cancel();
@@ -291,7 +317,6 @@ export default function AdminDynamicDonorOfferScreen() {
     setIsLLMMode(false);
     setIsStreamComplete(false);
 
-    // Revert to pre-stream state
     if (preStreamState.length > 0) {
       console.log("Reverting to pre-stream state");
       tableRef.current?.setItems(preStreamState);
@@ -301,10 +326,8 @@ export default function AdminDynamicDonorOfferScreen() {
 
   const handleKeep = useCallback(async () => {
     try {
-      // Use currentItems which should have the updated finalQuantity values
       console.log("Saving revisions for items:", currentItems.length);
 
-      // Collect all requests that need to be updated
       const requestsToUpdate: Array<{
         generalItemId: number;
         requestId: number;
@@ -325,7 +348,6 @@ export default function AdminDynamicDonorOfferScreen() {
 
       console.log("Requests to update:", requestsToUpdate);
 
-      // Update all requests in parallel
       await Promise.all(
         requestsToUpdate.map(({ generalItemId, requestId, finalQuantity }) =>
           apiClient.patch(
@@ -342,8 +364,6 @@ export default function AdminDynamicDonorOfferScreen() {
       );
       setIsLLMMode(false);
       setIsStreamComplete(false);
-
-      tableRef.current?.reload();
     } catch (error) {
       toast.error("Failed to save revisions");
       console.error("Save error:", error);
@@ -351,7 +371,6 @@ export default function AdminDynamicDonorOfferScreen() {
   }, [apiClient, currentItems]);
 
   const handleRequestUpdated = useCallback(() => {
-    // Refresh the table to update the request summary
     tableRef.current?.reload();
   }, []);
 
@@ -402,7 +421,7 @@ export default function AdminDynamicDonorOfferScreen() {
           !isLLMMode ? (
             <button
               onClick={handleSuggestRevisions}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-50"
               disabled={isStreaming}
             >
               Suggest Revisions
@@ -410,33 +429,33 @@ export default function AdminDynamicDonorOfferScreen() {
           ) : (
             <div className="flex items-center gap-2">
               {isStreaming && (
-                <span className="text-blue-600 text-sm mr-2">
+                <span className="text-blue-primary text-sm mr-2">
                   Streaming suggestions...
                 </span>
               )}
               {isStreamComplete && !isStreaming && (
-                <span className="text-green-600 text-sm mr-2">
+                <span className="text-green-primary text-sm mr-2">
                   Stream complete
                 </span>
               )}
               {isStreaming ? (
                 <button
                   onClick={handleCancel}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                  className="px-3 py-1 bg-red-primary text-white rounded hover:bg-red-600 disabled:opacity-50"
                 >
                   Cancel
                 </button>
               ) : isStreamComplete ? (
                 <button
                   onClick={handleUndo}
-                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                  className="px-3 py-1 bg-gray-primary text-white rounded hover:bg-gray-600 disabled:opacity-50"
                 >
                   Undo
                 </button>
               ) : null}
               <button
                 onClick={handleKeep}
-                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                className="px-3 py-1 bg-green-primary text-white rounded hover:bg-green-600 disabled:opacity-50"
                 disabled={isStreaming}
               >
                 Keep
