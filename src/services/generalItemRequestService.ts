@@ -106,6 +106,22 @@ export class GeneralItemRequestService {
     }
   }
 
+  static async bulkUpdateRequests(
+    updates: Array<{ requestId: number; finalQuantity: number }>
+  ) {
+    // Use transaction to ensure all updates succeed or fail together
+    const results = await db.$transaction(
+      updates.map(({ requestId, finalQuantity }) =>
+        db.generalItemRequest.update({
+          where: { id: requestId },
+          data: { finalQuantity },
+        })
+      )
+    );
+
+    return results;
+  }
+
   static async deleteRequest(id: number) {
     try {
       await db.generalItemRequest.delete({

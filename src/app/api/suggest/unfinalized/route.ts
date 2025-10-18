@@ -100,28 +100,19 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    console.log("API: Sending to LLM:", JSON.stringify(generalItems, null, 2));
-
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const result =
-            await UnfinalizedSuggestionService.suggestAllocationsStream(
-              generalItems,
-              (chunk) => {
-                console.log("API: Sending chunk to frontend:", chunk);
-                controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
-                );
-              }
-            );
-
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ done: true, result })}\n\n`
-            )
+          await UnfinalizedSuggestionService.suggestAllocationsStream(
+            generalItems,
+            (chunk) => {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
+              );
+            }
           );
+
           controller.close();
         } catch (error) {
           controller.enqueue(

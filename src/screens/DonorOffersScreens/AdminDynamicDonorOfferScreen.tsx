@@ -22,11 +22,8 @@ type StreamingChunk = {
   requests: { partnerId: number; finalQuantity: number }[];
 };
 
-type FinalResultChunk = {
+type DoneChunk = {
   done: true;
-  result: {
-    items: { requests: { partnerId: number; quantity: number }[] }[];
-  };
 };
 
 type TestChunk = {
@@ -37,7 +34,7 @@ type ErrorChunk = {
   error: string;
 };
 
-type StreamChunk = StreamingChunk | FinalResultChunk | TestChunk | ErrorChunk;
+type StreamChunk = StreamingChunk | DoneChunk | TestChunk | ErrorChunk;
 
 type GeneralItemWithRequests = {
   id: number;
@@ -155,6 +152,7 @@ export default function AdminDynamicDonorOfferScreen() {
         quantity?: number;
       }[]
     ) => {
+      // Update table
       tableRef.current?.updateItemById(itemId, (currentItem) => {
         const updatedItem = {
           ...currentItem,
@@ -167,14 +165,6 @@ export default function AdminDynamicDonorOfferScreen() {
                 updatedReq.finalQuantity ??
                 updatedReq.quantity ??
                 req.finalQuantity;
-              console.log(
-                "Updating request:",
-                req.id,
-                "from",
-                req.finalQuantity,
-                "to",
-                newQuantity
-              );
               return {
                 ...req,
                 finalQuantity: newQuantity,
@@ -185,6 +175,34 @@ export default function AdminDynamicDonorOfferScreen() {
         };
         return updatedItem;
       });
+
+      // Update currentItems state
+      setCurrentItems((prevItems) =>
+        prevItems.map((item) => {
+          if (item.id === itemId) {
+            return {
+              ...item,
+              requests: item.requests.map((req) => {
+                const updatedReq = updatedRequests.find(
+                  (r) => r.partnerId === req.partner.id
+                );
+                if (updatedReq) {
+                  const newQuantity =
+                    updatedReq.finalQuantity ??
+                    updatedReq.quantity ??
+                    req.finalQuantity;
+                  return {
+                    ...req,
+                    finalQuantity: newQuantity,
+                  };
+                }
+                return req;
+              }),
+            };
+          }
+          return item;
+        })
+      );
     },
     []
   );
@@ -196,96 +214,70 @@ export default function AdminDynamicDonorOfferScreen() {
     setIsLLMMode(true);
     setIsStreamComplete(false);
 
+    // Helper function to process a chunk
+    const processChunk = (chunk: StreamChunk) => {
+      if ("test" in chunk) {
+        return;
+      }
+
+      if ("error" in chunk) {
+        toast.error(`Stream error: ${chunk.error}`);
+        return;
+      }
+
+      if ("done" in chunk && chunk.done) {
+        return;
+      }
+
+      // Handle streaming chunk
+      if ("itemIndex" in chunk && "requests" in chunk) {
+        
+        const currentItem = currentItems[chunk.itemIndex];
+        if (currentItem) {
+          updateItemRequests(currentItem.id, chunk.requests);
+        }
+      }
+    };
+
+    let buffer = "";
+    const pendingMessages: StreamChunk[] = [];
+
     try {
       await streamClient.stream("/api/suggest/unfinalized", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ donorOfferId: parseInt(String(donorOfferId)) }),
-        parseChunk: (chunk) => {
-          console.log("Raw chunk received:", chunk);
-          if (chunk.startsWith("data: ")) {
-            const data = chunk.substring(6);
-            try {
-              return JSON.parse(data);
-            } catch {
-              console.log("Failed to parse SSE data:", data);
-              return null;
-            }
-          }
-          return null;
-        },
-        onChunk: (chunk) => {
-          console.log("Frontend received chunk:", chunk);
-
-          if ("test" in chunk) {
-            console.log("Test chunk received:", chunk.test);
-            return;
-          }
-
-          if ("error" in chunk) {
-            console.error("Error chunk received:", chunk.error);
-            toast.error(`Stream error: ${chunk.error}`);
-            return;
-          }
-
-          if ("done" in chunk && chunk.done && chunk.result) {
-            console.log("Final result received:", chunk.result);
-            chunk.result.items.forEach(
-              (
-                item: { requests: { partnerId: number; quantity: number }[] },
-                index: number
-              ) => {
-                if (item.requests && item.requests.length > 0) {
-                  console.log(
-                    "Processing final result for item:",
-                    index,
-                    item.requests
-                  );
-
-                  const currentItem = currentItems[index];
-                  if (currentItem) {
-                    console.log("Found current item:", currentItem.id);
-                    updateItemRequests(currentItem.id, item.requests);
-                  }
+        parseChunk: (rawChunk: string) => {
+          buffer += rawChunk;
+          
+          const parts = buffer.split("\n\n");
+          
+          buffer = parts.pop() || "";
+          
+          for (const part of parts) {
+            if (part.trim().startsWith("data: ")) {
+              const data = part.substring(part.indexOf("data: ") + 6).trim();
+              if (data) {
+                try {
+                  const parsed = JSON.parse(data) as StreamChunk;
+                  pendingMessages.push(parsed);
+                } catch (e) {
+                  console.error("Failed to parse SSE data:", data, e);
                 }
               }
-            );
-
-            setCurrentItems((prevItems) =>
-              prevItems.map((prevItem, index) => {
-                const resultItem = chunk.result.items[index];
-                if (
-                  resultItem &&
-                  resultItem.requests &&
-                  resultItem.requests.length > 0
-                ) {
-                  return {
-                    ...prevItem,
-                    requests: prevItem.requests.map((req) => {
-                      const updatedReq = resultItem.requests.find(
-                        (r: { partnerId: number }) =>
-                          r.partnerId === req.partner.id
-                      );
-                      return updatedReq
-                        ? { ...req, finalQuantity: updatedReq.quantity }
-                        : req;
-                    }),
-                  };
-                }
-                return prevItem;
-              })
-            );
-            return;
-          }
-
-          // Handle streaming chunk
-          if ("itemIndex" in chunk && "requests" in chunk) {
-            console.log("Processing chunk for item:", chunk.itemIndex);
-            const currentItem = currentItems[chunk.itemIndex];
-            if (currentItem) {
-              updateItemRequests(currentItem.id, chunk.requests);
             }
           }
+          
+          return pendingMessages.shift() || ({ test: "" } as StreamChunk);
+        },
+        onChunk: (chunk) => {
+          if (!chunk) return;
+          while (pendingMessages.length > 0) {
+            const pending = pendingMessages.shift()!;
+            processChunk(pending);
+          }
+
+          processChunk(chunk);
         },
         onDone: () => {
           setIsStreamComplete(true);
@@ -328,8 +320,7 @@ export default function AdminDynamicDonorOfferScreen() {
     try {
       console.log("Saving revisions for items:", currentItems.length);
 
-      const requestsToUpdate: Array<{
-        generalItemId: number;
+      const updates: Array<{
         requestId: number;
         finalQuantity: number;
       }> = [];
@@ -337,8 +328,7 @@ export default function AdminDynamicDonorOfferScreen() {
       for (const item of currentItems) {
         for (const request of item.requests) {
           if (request.finalQuantity !== request.quantity) {
-            requestsToUpdate.push({
-              generalItemId: item.id,
+            updates.push({
               requestId: request.id,
               finalQuantity: request.finalQuantity,
             });
@@ -346,21 +336,19 @@ export default function AdminDynamicDonorOfferScreen() {
         }
       }
 
-      console.log("Requests to update:", requestsToUpdate);
+      if (updates.length === 0) {
+        toast("No changes to save");
+        setIsLLMMode(false);
+        setIsStreamComplete(false);
+        return;
+      }
 
-      await Promise.all(
-        requestsToUpdate.map(({ generalItemId, requestId, finalQuantity }) =>
-          apiClient.patch(
-            `/api/generalItems/${generalItemId}/requests/${requestId}`,
-            {
-              body: JSON.stringify({ finalQuantity }),
-            }
-          )
-        )
-      );
+      await apiClient.patch(`/api/requests/bulk`, {
+        body: JSON.stringify({ updates }),
+      });
 
       toast.success(
-        `Revisions saved successfully (${requestsToUpdate.length} requests updated)`
+        `Revisions saved successfully (${updates.length} requests updated)`
       );
       setIsLLMMode(false);
       setIsStreamComplete(false);

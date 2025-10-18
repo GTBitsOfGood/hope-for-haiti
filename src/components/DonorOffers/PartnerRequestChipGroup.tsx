@@ -133,7 +133,7 @@ function PartnerRequestChip({
       >
         <span className="text-[#6193bb]">{request.partner.name}</span>
         <span className="flex items-center gap-1">
-          <span className="text-gray-600">{request.quantity}</span>
+          <span className={`text-gray-600 ${different ? "line-through" : ""}`}>{request.quantity}</span>
           {different && (
             <span className="rounded text-[#6193bb] bg-[#4d93c2]/30 font-bold px-1 py-0.5 text-xs">
               {request.finalQuantity}
