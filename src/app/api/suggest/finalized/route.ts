@@ -1,32 +1,21 @@
 import { auth } from "@/auth";
+import { db } from "@/db";
 import { errorResponse, InternalError } from "@/util/errors";
 import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import UserService from "@/services/userService";
+import DonorOfferService from "@/services/donorOfferService";
 import highsLoader from "highs";
 import path from "path";
 
 export const runtime = "nodejs";
 
 const finalizedAutomatedSuggestionSchema = z.object({
-  generalItems: z.array(
-    z.object({
-      totalQuantity: z.number(),
-      lineItems: z.array(
-        z.object({
-          lineItemId: z.number(),
-          quantity: z.number(),
-        })
-      ),
-      requests: z.array(
-        z.object({
-          partnerId: z.number(),
-          quantity: z.number(),
-        })
-      ),
-    })
-  ),
+  donorOfferId: z
+    .number()
+    .int()
+    .positive("Donor offer ID must be a positive integer"),
 });
 
 type Allocation = { lineItemId: number; quantity: number; partnerId: number };
@@ -42,17 +31,61 @@ export async function POST(request: NextRequest) {
       throw new AuthorizationError("Must be ADMIN, or SUPER_ADMIN");
     }
 
-    const reqBody = await request.json();
+    const reqBody = await request.json().catch(() => ({}));
     const parsed = finalizedAutomatedSuggestionSchema.safeParse(reqBody);
     
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
     }
 
+    const { itemsWithRequests } = await DonorOfferService.getAdminDonorOfferDetails(parsed.data.donorOfferId);
+    const generalItemIds = itemsWithRequests.map((item) => item.id);
+
+    const lineItems = generalItemIds.length
+      ? await db.lineItem.findMany({
+          where: {
+            generalItemId: { in: generalItemIds },
+          },
+          select: {
+            id: true,
+            generalItemId: true,
+            quantity: true,
+            allowAllocations: true,
+          },
+        })
+      : [];
+
+    const lineItemsByGeneralItemId = new Map<number, { lineItemId: number; quantity: number }[]>();
+    for (const lineItem of lineItems) {
+      if (!lineItem.generalItemId || !lineItem.allowAllocations || lineItem.quantity <= 0) {
+        continue;
+      }
+
+      const list = lineItemsByGeneralItemId.get(lineItem.generalItemId) ?? [];
+      list.push({ lineItemId: lineItem.id, quantity: lineItem.quantity });
+      lineItemsByGeneralItemId.set(lineItem.generalItemId, list);
+    }
+
     const allAllocations: Allocation[] = [];
 
-    for (const generalItem of parsed.data.generalItems) {
-      const { totalQuantity, lineItems, requests } = generalItem;
+    for (const generalItem of itemsWithRequests) {
+      const lineItemsForItem = lineItemsByGeneralItemId.get(generalItem.id) ?? [];
+      if (!lineItemsForItem.length) {
+        continue;
+      }
+
+      const requests = generalItem.requests
+        .filter((request) => request.quantity > 0)
+        .map((request) => ({
+          partnerId: request.partnerId,
+          quantity: request.quantity,
+        }));
+
+      if (!requests.length) {
+        continue;
+      }
+
+      const totalQuantity = lineItemsForItem.reduce((sum, item) => sum + item.quantity, 0);
 
       // Normalize partner requests to match totalQuantity
       // Creates a per-partner target (floating point) that sums to totalQuantity
@@ -73,12 +106,12 @@ export async function POST(request: NextRequest) {
       //    - For each item i: Σ_p x_i_p = 1 (assign to exactly one partner)
       //    - For each partner p: Σ_i (q_i * x_i_p) - dpos_p + dneg_p = target_p where q_i is the line item’s quantity
 
-      const itemCount = lineItems.length;
+      const itemCount = lineItemsForItem.length;
       const partnerCount = targets.length;
 
       // Map indices for stable variable names (use small integers instead of large ids)
       const itemIndex = new Map<number, number>();
-      lineItems.forEach((li, idx) => itemIndex.set(li.lineItemId, idx));
+      lineItemsForItem.forEach((li, idx) => itemIndex.set(li.lineItemId, idx));
       const partnerIndex = new Map<number, number>();
       targets.forEach((t, idx) => partnerIndex.set(t.partnerId, idx));
 
@@ -119,7 +152,7 @@ export async function POST(request: NextRequest) {
         const t = targets[partnerIdx];
         const terms: string[] = [];
         for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
-          const q = lineItems[itemIdx].quantity;
+          const q = lineItemsForItem[itemIdx].quantity;
           terms.push(`${q} ${variableX(itemIdx, partnerIdx)}`);
         }
         terms.push(`- ${variableDevPos(partnerIdx)}`);
@@ -192,9 +225,13 @@ export async function POST(request: NextRequest) {
           chosenPartnerIdx = maxIdx;
         }
 
-        const lineItem = lineItems[itemIdx];
+        const lineItem = lineItemsForItem[itemIdx];
         const partnerId = targets[chosenPartnerIdx].partnerId;
-        allAllocations.push({ lineItemId: lineItem.lineItemId, quantity: lineItem.quantity, partnerId });
+        allAllocations.push({
+          lineItemId: lineItem.lineItemId,
+          quantity: lineItem.quantity,
+          partnerId,
+        });
       }
     }
 
