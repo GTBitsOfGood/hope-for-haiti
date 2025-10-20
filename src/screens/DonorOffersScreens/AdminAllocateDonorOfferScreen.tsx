@@ -15,6 +15,8 @@ import LineItemChipGroup, {
 } from "@/components/LineItemChipGroup";
 import { useFetch } from "@/hooks/useFetch";
 import toast from "react-hot-toast";
+import Link from "next/link";
+import { formatTableValue } from "@/utils/format";
 
 export interface UnallocatedItemData {
   id: number;
@@ -608,7 +610,20 @@ export default function AdminAllocateDonorOfferScreen() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Allocate Donor Offer</h1>
+      <div className="flex flex-row justify-between items-center mb-4">
+        <div className="flex items-center gap-1">
+          <Link
+            href="/donorOffers"
+            className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1"
+          >
+            Donor Offers
+          </Link>
+          <span className="text-gray-500 text-sm flex items-center">/</span>
+          <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
+            {formatTableValue(String(donorOfferId))}
+          </span>
+        </div>
+      </div>
 
       <AdvancedBaseTable
         ref={tableRef}

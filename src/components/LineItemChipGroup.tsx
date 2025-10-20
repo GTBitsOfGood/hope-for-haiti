@@ -239,7 +239,7 @@ function LineItemChip({
           }
           setIsDropdownOpen(!isDropdownOpen);
         }}
-        className={`relative inline-flex items-center gap-2 px-3 py-1 text-sm rounded-lg border hover:shadow disabled:opacity-60 disabled:cursor-not-allowed m-2 ${
+        className={`relative w-80 rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${
           hasSuggestedChange
             ? "border-blue-primary"
             : "border-blue-primary/60"
@@ -251,14 +251,14 @@ function LineItemChip({
           {item.quantity}
         </span>
         <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
-          <span className="flex items-center gap-1 px-1 py-[1px] whitespace-nowrap">
+          <span className="flex items-center gap-1 px-1 py-[1px]">
             {hasSuggestedChange && (
-              <span className="flex items-center gap-1 px-1 py-[1px] rounded bg-gray-primary/10 text-gray-primary/60 line-through">
+              <span className="px-1 py-[1px] rounded bg-gray-primary/10 text-gray-primary/60 line-through">
                 {previousPartnerLabel}
               </span>
             )}
             <span
-              className={`flex items-center gap-1 px-1 py-[1px] rounded whitespace-nowrap ${
+              className={`px-1 py-[1px] rounded w-fit ${
                 hasSuggestedChange
                   ? "bg-blue-primary/20 text-blue-primary font-semibold"
                   : item.allocation
@@ -277,7 +277,7 @@ function LineItemChip({
         onClose={() => setIsDropdownOpen(false)}
         triggerRef={buttonRef}
         position="bottom-left"
-        className="w-48 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold"
+        className="w-80 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold"
       >
         <p className="text-gray-500 mb-1">Allocate to Partner</p>
         <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
