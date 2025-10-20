@@ -4,7 +4,7 @@ import { useRef, useCallback, useState } from "react";
 import { CgChevronDown, CgChevronRight, CgSpinner } from "react-icons/cg";
 import React from "react";
 import { $Enums } from "@prisma/client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   ColumnDefinition,
@@ -199,6 +199,7 @@ function buildPreviewAllocations(
 export default function AdminAllocateDonorOfferScreen() {
   const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
 
+  const router = useRouter();
   const { apiClient } = useApiClient();
   const params = useParams<{ donorOfferId: string }>();
   const donorOfferId = Number(params?.donorOfferId);
@@ -213,6 +214,7 @@ export default function AdminAllocateDonorOfferScreen() {
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [isStreamComplete, setIsStreamComplete] = useState(false);
   const [manualChanges, setManualChanges] = useState<Map<number, AllocationSuggestion>>(new Map());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { refetch: refetchDistributions } = useFetch<{
     distributions: Record<number, PartnerDistributionSummary>;
@@ -703,6 +705,39 @@ export default function AdminAllocateDonorOfferScreen() {
     manualChanges,
   ]);
 
+  const handleSubmitDonorOffer = useCallback(async () => {
+    if (!isValidDonorOfferId) {
+      toast.error("Invalid donor offer identifier");
+      return;
+    }
+
+    if (isInteractionMode || manualChanges.size > 0) {
+      toast.error("Apply or discard pending allocation changes before submitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiClient.post(`/api/donorOffers/${donorOfferId}/submit`);
+      toast.success("Donor offer submitted and archived.");
+      router.push("/donorOffers");
+    } catch (error) {
+      console.error("Failed to submit donor offer", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to submit donor offer"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    apiClient,
+    donorOfferId,
+    isInteractionMode,
+    isValidDonorOfferId,
+    manualChanges,
+    router,
+  ]);
+
   const statusMessage = isProcessingSuggestions
     ? isStreamComplete
       ? "Saving suggestions..."
@@ -772,15 +807,28 @@ export default function AdminAllocateDonorOfferScreen() {
         pageSize={20}
         toolBar={
           !isInteractionMode ? (
-            <button
-              onClick={handleSuggestAllocations}
-              className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={isProcessingSuggestions}
-            >
-              {isProcessingSuggestions
-                ? "Preparing suggestions..."
-                : "Suggest Allocations"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSuggestAllocations}
+                className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isProcessingSuggestions}
+              >
+                {isProcessingSuggestions
+                  ? "Preparing suggestions..."
+                  : "Suggest Allocations"}
+              </button>
+              <button
+                onClick={handleSubmitDonorOffer}
+                className="px-3 py-2 bg-green-primary text-white rounded hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={
+                  isProcessingSuggestions ||
+                  manualChanges.size > 0 ||
+                  isSubmitting
+                }
+              >
+                {isSubmitting ? "Submitting..." : "Submit Donor Offer"}
+              </button>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               {statusMessage && (
@@ -814,6 +862,18 @@ export default function AdminAllocateDonorOfferScreen() {
                   Cancel
                 </button>
               )}
+              <button
+                onClick={handleSubmitDonorOffer}
+                className="ml-2 px-3 py-2 bg-green-primary text-white rounded hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={
+                  isProcessingSuggestions ||
+                  isInteractionMode ||
+                  manualChanges.size > 0 ||
+                  isSubmitting
+                }
+              >
+                {isSubmitting ? "Submitting..." : "Submit Donor Offer"}
+              </button>
             </div>
           )
         }
@@ -823,13 +883,13 @@ export default function AdminAllocateDonorOfferScreen() {
             requests={item.requests}
             generalItemId={item.id}
             updateItem={updateItemById}
-          updateItemsAllocated={updateItemsAllocated}
-          ensureDistributionForPartner={ensureDistributionForPartner}
-          onDistributionRemoved={handleDistributionRemoved}
-          isInteractionMode={isInteractionMode}
-          onManualAllocationChange={handleManualAllocationChange}
-        />
-      )}
+            updateItemsAllocated={updateItemsAllocated}
+            ensureDistributionForPartner={ensureDistributionForPartner}
+            onDistributionRemoved={handleDistributionRemoved}
+            isInteractionMode={isInteractionMode}
+            onManualAllocationChange={handleManualAllocationChange}
+          />
+        )}
         emptyState={
           <div className="flex justify-center items-center mt-8">
             <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
