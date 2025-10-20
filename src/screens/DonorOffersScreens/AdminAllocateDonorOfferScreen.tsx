@@ -303,21 +303,13 @@ export default function AdminAllocateDonorOfferScreen() {
   );
 
   const fetchTableData = useCallback(
-    async (
-      _pageSize: number,
-      _page: number,
-      _filters: FilterList<UnallocatedItemData>
-    ) => {
+    async () => {
       if (!isValidDonorOfferId) {
         return {
           data: [],
           total: 0,
         };
       }
-
-      void _pageSize;
-      void _page;
-      void _filters;
 
       const res = await apiClient.get<{
         items: UnallocatedItemData[];
