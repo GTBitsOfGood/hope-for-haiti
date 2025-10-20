@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import useOnClickOutside from "@/hooks/useOnClickOutside";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import toast from "react-hot-toast";
+import Portal from "@/components/baseTable/Portal";
 
 type Partner = { name: string };
 
@@ -82,24 +82,12 @@ function PartnerRequestChip({
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(String(request.finalQuantity));
   const [isSaving, setIsSaving] = useState(false);
-  const [distToNavbar, setDistToNavbar] = useState(0);
-  const popRef = useOnClickOutside<HTMLDivElement>(() => setOpen(false));
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const { apiClient } = useApiClient();
 
   useEffect(() => {
     setInputValue(String(request.finalQuantity));
   }, [request.finalQuantity]);
-
-  useEffect(() => {
-    const navbar = document.getElementById("navbar");
-    if (!navbar || !popRef.current || !open) return;
-
-    const navbarRect = navbar.getBoundingClientRect();
-    const dropdownRect = popRef.current.getBoundingClientRect();
-
-    console.log(dropdownRect.left - navbarRect.right);
-    setDistToNavbar(dropdownRect.left - navbarRect.right);
-  }, [popRef, open]);
 
   const different = request.finalQuantity !== request.quantity;
 
@@ -132,6 +120,7 @@ function PartnerRequestChip({
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative rounded-lg border border-[#6193bb] px-3 py-1 text-sm flex items-center gap-2 hover:shadow bg-white"
@@ -147,11 +136,12 @@ function PartnerRequestChip({
         </span>
       </button>
 
-      <div
-        ref={popRef}
-        className={`absolute ${distToNavbar < 50 ? "left-0" : "right-0"} top-full mt-1 z-50 w-56 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm ${
-          open ? "block" : "hidden"
-        }`}
+      <Portal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        triggerRef={buttonRef}
+        position="bottom-left"
+        className="w-56 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm"
       >
         <div className="mb-2">
           <label className="block text-xs text-gray-primary/70 mb-1">
@@ -186,7 +176,7 @@ function PartnerRequestChip({
             {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
-      </div>
+      </Portal>
     </div>
   );
 }
