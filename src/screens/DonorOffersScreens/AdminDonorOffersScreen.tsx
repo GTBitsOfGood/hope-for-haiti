@@ -16,7 +16,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { useFetch } from "@/hooks/useFetch";
-import { AdminDonorOffer } from "@/types/api/donorOffer.types";
+import { AdminDonorOffersResponse } from "@/types/api/donorOffer.types";
 import BaseTable, {
   extendTableHeader,
   tableConditional,
@@ -41,22 +41,18 @@ export default function AdminDonorOffersScreen() {
   const router = useRouter();
 
   const {
-    data: listResponse,
+    data: response,
     isLoading,
     refetch: refetchOffers,
-  } = useFetch<{ donorOffers: AdminDonorOffer[]; total: number }>(
-    "/api/donorOffers",
-    {
-      cache: "no-store",
-      onError: (error) => {
-        toast.error("An error occurred while fetching data");
-        console.error("Fetch error:", error);
-      },
-    }
-  );
+  } = useFetch<AdminDonorOffersResponse>("/api/donorOffers", {
+    cache: "no-store",
+    onError: (error) => {
+      toast.error("An error occurred while fetching data");
+      console.error("Fetch error:", error);
+    },
+  });
 
-  const offers = listResponse?.donorOffers || [];
-
+  const offers = response?.donorOffers || [];
   const filteredOffers = offers.filter((offer) => {
     if (activeTab === StatusFilterKey.UNFINALIZED) {
       return offer.state === DonorOfferState.UNFINALIZED;

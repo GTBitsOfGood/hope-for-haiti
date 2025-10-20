@@ -1,615 +1,1377 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { exit } from "process";
-import { db } from "@/db";
 import { hash } from "argon2";
 import {
-  $Enums,
-  DonorOffer,
   DonorOfferState,
-  GeneralItem,
-  Prisma,
+  ItemCategory,
   RequestPriority,
+  ShipmentStatus,
   UserType,
 } from "@prisma/client";
-import { Partner } from "@/components/DonorOffers";
 
-const donorNames = ["Donor A", "Donor B", "Donor C", "Donor D"];
-const lots = ["Lot A", "Lot B", "Lot C", "Lot D"];
-const pallets = ["Pallet A", "Pallet B", "Pallet C", "Pallet D"];
-const boxes = ["Box A", "Box B", "Box C", "Box D"];
+import { db } from "@/db";
+import type { Prisma } from "@prisma/client";
 
-function dateOffset(offset: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  d.setHours(0);
-  d.setMinutes(0);
-  d.setMilliseconds(0);
-  return d;
-}
+type PartnerSeed = {
+  key: string;
+  name: string;
+  email: string;
+  tag: string;
+  pending?: boolean;
+  partnerDetails: Prisma.JsonObject;
+};
 
-function pick<T>(items: Array<T>): T {
-  return items[Math.floor(Math.random() * items.length)];
-}
+type GeneralItemRequestSeed = {
+  partnerKey: string;
+  quantity: number;
+  finalQuantity?: number;
+  comments?: string;
+  priority?: RequestPriority;
+};
 
-function sample<T>(count: number, items: Array<T>): T[] {
-  if (count > items.length) {
-    throw new Error("Cannot sample more items than are available");
-  }
+type LineItemSeed = {
+  category: ItemCategory;
+  donorName: string;
+  quantity: number;
+  lotNumber: string;
+  palletNumber: string;
+  boxNumber: string;
+  unitPrice: number;
+  allowAllocations: boolean;
+  visible: boolean;
+  gik: boolean;
+  maxRequestLimit?: string;
+  donorShippingNumber?: string;
+  hfhShippingNumber?: string;
+  ndc?: string;
+  notes?: string;
+};
 
-  const shuffled = [...items];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; // Swap
-  }
+type GeneralItemSeed = {
+  title: string;
+  type: string;
+  unitType: string;
+  quantityPerUnit: number;
+  expirationDate?: Date;
+  initialQuantity: number;
+  requestQuantity?: number;
+  requests: GeneralItemRequestSeed[];
+  lineItems?: LineItemSeed[];
+};
 
-  return shuffled.slice(0, count);
-}
+const addDays = (daysFromToday: number) => {
+  const base = new Date();
+  base.setHours(0, 0, 0, 0);
+  base.setDate(base.getDate() + daysFromToday);
+  return base;
+};
 
-function randInt(min: number, max: number) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-// Partner details template based on partnerDetails.ts schema
-const partnerDetailsTemplate = {
-  // General
-  siteName: "Hope Medical Center",
-  address: "123 Healthcare Avenue, Port-au-Prince, Haiti",
-  department: "Ouest",
-  gpsCoordinates: "18.5392° N, 72.3350° W",
-  website: "https://hopemedicine.ht",
-  socialMedia: "@hopemedicine",
-
-  // Contact
+const buildPartnerDetails = (
+  siteName: string,
+  department: string,
+  contactPrefix: string
+): Prisma.JsonObject =>
+  ({
+    siteName,
+    address: `${siteName}, ${department}, Haiti`,
+    department,
+    gpsCoordinates: "18.5392° N, 72.3350° W",
+  website: "https://hopeforhaiti.org",
+  socialMedia: `@${contactPrefix}`,
   regionalContact: {
     firstName: "Marie",
     lastName: "Joseph",
     orgTitle: "Regional Director",
     primaryTelephone: "+509 1234-5678",
-    secondaryTelephone: "+509 1234-5679",
-    email: "marie.joseph@hopemedicine.ht",
+    email: `${contactPrefix}.regional@test.com`,
   },
   medicalContact: {
     firstName: "Jean",
     lastName: "Baptiste",
     orgTitle: "Chief Medical Officer",
     primaryTelephone: "+509 2345-6789",
-    secondaryTelephone: "+509 2345-6790",
-    email: "jean.baptiste@hopemedicine.ht",
-  },
-  adminDirectorContact: {
-    firstName: "Pierre",
-    lastName: "Morel",
-    orgTitle: "Administrative Director",
-    primaryTelephone: "+509 3456-7890",
-    secondaryTelephone: "+509 3456-7891",
-    email: "pierre.morel@hopemedicine.ht",
+    email: `${contactPrefix}.medical@test.com`,
   },
   pharmacyContact: {
     firstName: "Claire",
     lastName: "Dumas",
-    orgTitle: "Chief Pharmacist",
-    primaryTelephone: "+509 4567-8901",
-    secondaryTelephone: "+509 4567-8902",
-    email: "claire.dumas@hopemedicine.ht",
+    orgTitle: "Pharmacy Lead",
+    primaryTelephone: "+509 3456-7890",
+    email: `${contactPrefix}.pharmacy@test.com`,
   },
-  contactWhatsAppName: "Dr. Marie Joseph",
-  contactWhatsAppNumber: "+509 1234-5678",
-
-  // Introduction
-  organizationHistory:
-    "Established to provide quality healthcare services to underserved communities in Haiti. Our mission is to improve health outcomes through accessible medical care and community outreach programs.",
-  supportRequested: "ongoing_support",
-  yearOrganizationEstablished: 2015,
-  registeredWithMssp: false,
-  programUpdatesSinceLastReport:
-    "Expanded maternal health services and added mobile clinic outreach program",
-
-  // Facility
-  facilityType: ["clinic", "primary_care", "health_center"],
+  facilityType: ["clinic", "primary_care"],
   organizationType: ["non_profit"],
-  governmentRun: false,
-  emergencyMedicalRecordsSystemPresent: true,
-  emergencyMedicalRecordsSystemName: "OpenMRS",
-  numberOfInpatientBeds: 25,
-  numberOfPatientsServedAnnually: 12000,
-  communityMobileOutreachOffered: true,
-  communityMobileOutreachDescription:
-    "Weekly mobile clinics to remote communities, providing basic healthcare and health education",
-
-  // Infrastructure and Services
-  facilityDescription:
-    "Modern healthcare facility with emergency care, maternal health, pediatrics, and pharmacy services",
   cleanWaterAccessible: true,
-  cleanWaterDescription: "Municipal water supply with backup well water system",
-  closestSourceOfCleanWater: "",
-  sanitationFacilitiesPresent: true,
-  sanitationFacilitiesLockableFromInside: true,
-  electricityAvailable: true,
-  accessibleByDisablePatients: true,
   medicationDisposalProcessDefined: true,
-  medicationDisposalProcessDescription:
-    "Proper pharmaceutical waste disposal following WHO guidelines with licensed waste management company",
-  pickupVehiclePresent: true,
-  pickupVehicleType: "Ambulance and supply truck",
-  pickupLocations: ["port_au_prince"],
-
-  // Programs and Services Provided
-  medicalServicesProvided: [
-    "pediatrics",
-    "maternal_care",
-    "lab_tests",
-    "immunizations",
-    "chronic_diseases",
+  programs: [
+    "maternal_health",
+    "chronic_disease_support",
+    "mobile_outreach",
+    "emergency_response",
   ],
-  otherMedicalServicesProvided:
-    "Health education, Community outreach, Vaccination programs",
+  }) as Prisma.JsonObject;
 
-  // Finances
-  patientsWhoCannotPay:
-    "Sliding scale fees and charity care program available for patients who cannot afford treatment",
-  percentageOfPatientsNeedingFinancialAid: 65,
-  percentageOfPatientsReceivingFreeTreatment: 30,
-  annualSpendingOnMedicationsAndMedicalSupplies: "50001_to_100000",
-  numberOfPrescriptionsPrescribedAnnuallyTracked: true,
-  numberOfTreatmentsPrescribedAnnually: 15000,
-  anyMenServedLastYear: true,
-  menServedLastYear: 2800,
-  anyWomenServedLastYear: true,
-  womenServedLastYear: 3200,
-  anyBoysServedLastYear: true,
-  boysServedLastYear: 2100,
-  anyGirlsServedLastYear: true,
-  girlsServedLastYear: 2000,
-  anyBabyBoysServedLastYear: true,
-  babyBoysServedLastYear: 700,
-  anyBabyGirlsServedLastYear: true,
-  babyGirlsServedLastYear: 700,
-  totalPatientsServedLastYear: 11500,
-
-  // Staff
-  numberOfDoctors: 4,
-  numberOfNurses: 12,
-  numberOfMidwives: 3,
-  numberOfAuxilaries: 6,
-  numberOfStatisticians: 1,
-  numberOfPharmacists: 2,
-  numberOfCHW: 8,
-  numberOfAdministrative: 5,
-  numberOfHealthOfficers: 2,
-  totalNumberOfStaff: 45,
-  other: "2 lab technicians, 1 social worker",
-
-  // Medical Supplies
-  mostNeededMedicalSupplies: [
-    "anti_infectives",
-    "cardiovascular",
-    "bandages",
-    "syringes_needles",
-    "vitamins_minerals",
-  ],
-  otherSpecialityItemsNeeded:
-    "Blood pressure monitors, glucometers, wound care supplies",
-};
-
-const generalItems: Array<Omit<GeneralItem, "id" | "donorOfferId">> = [
+const partnerSeeds: PartnerSeed[] = [
   {
-    title: "Advil",
-    type: "Pain Killer",
-    expirationDate: dateOffset(30),
-    unitType: "Bottle",
-    quantityPerUnit: 50,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    key: "hope_medical_center",
+    name: "Hope Medical Center",
+    email: "partner1@test.com",
+    tag: "internal",
+    partnerDetails: buildPartnerDetails(
+      "Hope Medical Center",
+      "Ouest",
+      "hopecenter"
+    ),
   },
   {
-    title: "Tylenol",
-    type: "Pain Killer",
-    expirationDate: dateOffset(4 * 30),
-    unitType: "Bottle",
-    quantityPerUnit: 20,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    key: "mobile_response_unit",
+    name: "HFH Mobile Response Unit",
+    email: "partner2@test.com",
+    tag: "internal",
+    partnerDetails: buildPartnerDetails(
+      "HFH Mobile Response Unit",
+      "Sud",
+      "hfhmobile"
+    ),
   },
   {
-    title: "Bandages",
-    type: "First Aid",
-    expirationDate: dateOffset(20 * 12 * 30),
-    unitType: "Box",
-    quantityPerUnit: 100,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    key: "les_cayes_hospital",
+    name: "Les Cayes Community Hospital",
+    email: "partner3@test.com",
+    tag: "external",
+    partnerDetails: buildPartnerDetails(
+      "Les Cayes Community Hospital",
+      "Sud",
+      "lescayes"
+    ),
   },
   {
-    title: "Apples",
-    type: "Fruit",
-    expirationDate: dateOffset(15),
-    unitType: "Box",
-    quantityPerUnit: 4,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    key: "jeremie_network",
+    name: "Jeremie Health Network",
+    email: "partner4@test.com",
+    tag: "external",
+    partnerDetails: buildPartnerDetails(
+      "Jeremie Health Network",
+      "Grand'Anse",
+      "jeremie"
+    ),
   },
   {
-    title: "Bananas",
-    type: "Fruit",
-    expirationDate: dateOffset(15),
-    unitType: "Bundle",
-    quantityPerUnit: 4,
-    initialQuantity: 100,
-    requestQuantity: 0,
-  },
-  {
-    title: "Advil",
-    type: "Pain Killer",
-    expirationDate: dateOffset(30),
-    unitType: "Bottle",
-    quantityPerUnit: 50,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    key: "cap_haitien_wellness",
+    name: "Cap Haitien Wellness Center",
+    email: "partner5@test.com",
+    tag: "external",
+    pending: true,
+    partnerDetails: buildPartnerDetails(
+      "Cap Haitien Wellness Center",
+      "Nord",
+      "caphaitien"
+    ),
   },
 ];
 
-const itemTemplates: Array<Omit<GeneralItem, "id" | "donorOfferId">> = [
+const unfinalizedGeneralItems: GeneralItemSeed[] = [
   {
-    title: "Advil",
-    type: "Pain Killer",
-    expirationDate: dateOffset(30),
+    title: "Amoxicillin 500mg Capsules",
+    type: "Medication",
     unitType: "Bottle",
-    quantityPerUnit: 50,
-    initialQuantity: 100,
-    requestQuantity: 0,
-  },
-  {
-    title: "Tylenol",
-    type: "Pain Killer",
-    expirationDate: dateOffset(4 * 30),
-    unitType: "Bottle",
-    quantityPerUnit: 20,
-    initialQuantity: 100,
-    requestQuantity: 0,
-  },
-  {
-    title: "Bandages",
-    type: "First Aid",
-    expirationDate: dateOffset(20 * 12 * 30),
-    unitType: "Box",
     quantityPerUnit: 100,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    expirationDate: new Date("2026-06-30"),
+    initialQuantity: 900,
+    requestQuantity: 790,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 220,
+        comments: "High volume of outpatient infections right now.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 180,
+        comments: "Supporting mobile clinics in remote areas.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 200,
+        comments: "Maintaining continuity of care post-storm.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 110,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 80,
+        comments: "Requested for chronic care patients.",
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
   },
   {
-    title: "Apples",
-    type: "Fruit",
-    expirationDate: dateOffset(15),
+    title: "Oral Rehydration Salt Packets",
+    type: "Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 50,
+    expirationDate: new Date("2025-12-31"),
+    initialQuantity: 500,
+    requestQuantity: 470,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 120,
+        comments: "Seasonal cholera prevention campaign.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 80,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 140,
+        comments: "Serving displaced families near the coast.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 70,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 60,
+        comments: "Needs for malnutrition program.",
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+  },
+  {
+    title: "Insulin Glargine 10ml Vials",
+    type: "Medication",
     unitType: "Box",
-    quantityPerUnit: 4,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    quantityPerUnit: 10,
+    expirationDate: new Date("2025-04-30"),
+    initialQuantity: 180,
+    requestQuantity: 205,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 60,
+        comments: "Diabetes clinic expansion.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 45,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 50,
+        comments: "Refilling cold-chain dependent supply.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 30,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 20,
+        comments: "Newly diagnosed patients.",
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
   },
   {
-    title: "Bananas",
-    type: "Fruit",
-    expirationDate: dateOffset(15),
-    unitType: "Bundle",
-    quantityPerUnit: 4,
-    initialQuantity: 100,
-    requestQuantity: 0,
+    title: "Disposable Syringes 5ml",
+    type: "Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 200,
+    expirationDate: new Date("2027-01-15"),
+    initialQuantity: 1200,
+    requestQuantity: 1090,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 280,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 220,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 260,
+        comments: "Supporting expanded vaccination drive.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 180,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 150,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+  },
+  {
+    title: "Sterile Surgical Gloves Size M",
+    type: "Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 100,
+    expirationDate: new Date("2026-11-20"),
+    initialQuantity: 800,
+    requestQuantity: 720,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 160,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 140,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 170,
+        comments: "Operating theater resupply.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 130,
+        comments: "Preparing for scheduled surgical caravan.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 120,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+  },
+  {
+    title: "Prenatal Vitamins 180ct Bottles",
+    type: "Medication",
+    unitType: "Bottle",
+    quantityPerUnit: 180,
+    expirationDate: new Date("2025-09-30"),
+    initialQuantity: 600,
+    requestQuantity: 550,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 140,
+        comments: "Maternal health clinic usage.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 110,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 120,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 90,
+        comments: "Community midwife program.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 90,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+  },
+  {
+    title: "Blood Pressure Monitors",
+    type: "Medical Equipment",
+    unitType: "Unit",
+    quantityPerUnit: 1,
+    expirationDate: new Date("2028-03-31"),
+    initialQuantity: 85,
+    requestQuantity: 82,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 22,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 18,
+        comments: "Mobile hypertension screening outreach.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 20,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 12,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 10,
+        comments: "Replacement units for rural clinics.",
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+  },
+  {
+    title: "Portable Nebulizer Kits",
+    type: "Medical Equipment",
+    unitType: "Kit",
+    quantityPerUnit: 1,
+    expirationDate: new Date("2027-08-15"),
+    initialQuantity: 150,
+    requestQuantity: 140,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 35,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 30,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 32,
+        comments: "Respiratory clinic increase.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 23,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 20,
+        comments: "Needs for pediatric asthma.",
+        priority: RequestPriority.HIGH,
+      },
+    ],
+  },
+  {
+    title: "Suture Removal Kits",
+    type: "Medical Supply",
+    unitType: "Box",
+    quantityPerUnit: 25,
+    expirationDate: new Date("2026-04-30"),
+    initialQuantity: 260,
+    requestQuantity: 240,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 60,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 45,
+        comments: "Follow-up for minor surgeries.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 55,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 45,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 35,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+  },
+  {
+    title: "Chlorhexidine Antiseptic Solution",
+    type: "Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 24,
+    expirationDate: new Date("2025-11-30"),
+    initialQuantity: 320,
+    requestQuantity: 300,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 75,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 65,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 72,
+        comments: "Operating rooms and wound care.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 48,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 40,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
   },
 ];
 
-function genItem(
-  donorOfferId: number,
-  props: Partial<GeneralItem> = {}
-): Omit<GeneralItem, "id"> {
-  const template = pick(itemTemplates);
-  return {
-    ...template,
-    donorOfferId,
-    expirationDate: dateOffset(randInt(15, 20 * 12 * 30)),
-    initialQuantity: randInt(1, 4) * 5,
-    requestQuantity: 0,
-    title: template.title,
-    type: template.type,
-    unitType: template.unitType,
-    quantityPerUnit: template.quantityPerUnit,
-    ...props,
-  };
-}
+const finalizedGeneralItems: GeneralItemSeed[] = [
+  {
+    title: "0.9% Sodium Chloride IV Bags",
+    type: "Medication",
+    unitType: "Case",
+    quantityPerUnit: 12,
+    expirationDate: new Date("2027-02-28"),
+    initialQuantity: 600,
+    requestQuantity: 600,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 160,
+        finalQuantity: 160,
+        comments: "Planning perioperative support.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 130,
+        finalQuantity: 130,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 150,
+        finalQuantity: 150,
+        comments: "Trauma ward resupply.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 90,
+        finalQuantity: 90,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 70,
+        finalQuantity: 70,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Global Health Trust",
+        quantity: 150,
+        lotNumber: "LOT-NA-2405",
+        palletNumber: "PAL-NA-01",
+        boxNumber: "BOX-001",
+        unitPrice: 12.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-001",
+        hfhShippingNumber: "HFH-2406-001",
+        ndc: "00409-0882-02",
+        notes: "Stored at depot Port-au-Prince.",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Global Health Trust",
+        quantity: 180,
+        lotNumber: "LOT-NA-2406",
+        palletNumber: "PAL-NA-02",
+        boxNumber: "BOX-002",
+        unitPrice: 12.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-002",
+        hfhShippingNumber: "HFH-2406-001",
+        ndc: "00409-0882-02",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Global Health Trust",
+        quantity: 120,
+        lotNumber: "LOT-NA-2407",
+        palletNumber: "PAL-NA-03",
+        boxNumber: "BOX-003",
+        unitPrice: 12.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-003",
+        hfhShippingNumber: "HFH-2406-002",
+        ndc: "00409-0882-02",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Global Health Trust",
+        quantity: 150,
+        lotNumber: "LOT-NA-2408",
+        palletNumber: "PAL-NA-04",
+        boxNumber: "BOX-004",
+        unitPrice: 12.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-004",
+        ndc: "00409-0882-02",
+        notes: "No HFH number assigned yet.",
+      },
+    ],
+  },
+  {
+    title: "Ceftriaxone 1g Injection Vials",
+    type: "Medication",
+    unitType: "Tray",
+    quantityPerUnit: 10,
+    expirationDate: new Date("2026-10-31"),
+    initialQuantity: 480,
+    requestQuantity: 480,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 120,
+        finalQuantity: 120,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 90,
+        finalQuantity: 90,
+        comments: "Ensuring mobile physician kits are stocked.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 110,
+        finalQuantity: 110,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 80,
+        finalQuantity: 80,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 80,
+        finalQuantity: 80,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Aid for All Foundation",
+        quantity: 200,
+        lotNumber: "LOT-CEF-1324",
+        palletNumber: "PAL-CEF-01",
+        boxNumber: "BOX-CEF-01",
+        unitPrice: 18.75,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-005",
+        hfhShippingNumber: "HFH-2406-003",
+        ndc: "00409-7331-01",
+        notes: "Cold-chain item.",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Aid for All Foundation",
+        quantity: 160,
+        lotNumber: "LOT-CEF-1325",
+        palletNumber: "PAL-CEF-02",
+        boxNumber: "BOX-CEF-02",
+        unitPrice: 18.75,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-006",
+        hfhShippingNumber: "HFH-2406-004",
+        ndc: "00409-7331-01",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Aid for All Foundation",
+        quantity: 120,
+        lotNumber: "LOT-CEF-1326",
+        palletNumber: "PAL-CEF-03",
+        boxNumber: "BOX-CEF-03",
+        unitPrice: 18.75,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-007",
+        ndc: "00409-7331-01",
+        maxRequestLimit: "Max 60 units per partner",
+      },
+    ],
+  },
+  {
+    title: "Vitamin A Capsules 200,000 IU",
+    type: "Medication",
+    unitType: "Bottle",
+    quantityPerUnit: 100,
+    expirationDate: new Date("2027-05-31"),
+    initialQuantity: 1000,
+    requestQuantity: 1000,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 260,
+        finalQuantity: 260,
+        comments: "Childhood supplementation week.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 210,
+        finalQuantity: 210,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 220,
+        finalQuantity: 220,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 170,
+        finalQuantity: 170,
+        comments: "Partnering with school health program.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 140,
+        finalQuantity: 140,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Health Lifeline",
+        quantity: 220,
+        lotNumber: "LOT-VA-881",
+        palletNumber: "PAL-VA-01",
+        boxNumber: "BOX-VA-01",
+        unitPrice: 4.5,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2405-008",
+        hfhShippingNumber: "HFH-2406-005",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Health Lifeline",
+        quantity: 180,
+        lotNumber: "LOT-VA-882",
+        palletNumber: "PAL-VA-01",
+        boxNumber: "BOX-VA-02",
+        unitPrice: 4.5,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2405-009",
+        hfhShippingNumber: "HFH-2406-005",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Health Lifeline",
+        quantity: 210,
+        lotNumber: "LOT-VA-883",
+        palletNumber: "PAL-VA-02",
+        boxNumber: "BOX-VA-03",
+        unitPrice: 4.5,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2405-010",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Health Lifeline",
+        quantity: 190,
+        lotNumber: "LOT-VA-884",
+        palletNumber: "PAL-VA-02",
+        boxNumber: "BOX-VA-04",
+        unitPrice: 4.5,
+        allowAllocations: false,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2405-011",
+        notes: "Reserved for QA inspection.",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Health Lifeline",
+        quantity: 200,
+        lotNumber: "LOT-VA-885",
+        palletNumber: "PAL-VA-03",
+        boxNumber: "BOX-VA-05",
+        unitPrice: 4.5,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2405-012",
+        hfhShippingNumber: "HFH-2406-006",
+      },
+    ],
+  },
+  {
+    title: "Surgical Procedure Masks",
+    type: "Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 500,
+    expirationDate: new Date("2026-03-31"),
+    initialQuantity: 1500,
+    requestQuantity: 1500,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 400,
+        finalQuantity: 400,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 320,
+        finalQuantity: 320,
+        comments: "Keeping mobile staff protected.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 360,
+        finalQuantity: 360,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 220,
+        finalQuantity: 220,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 200,
+        finalQuantity: 200,
+        comments: "Clinic reopening supply.",
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Better Future Supplies",
+        quantity: 250,
+        lotNumber: "LOT-MSK-503",
+        palletNumber: "PAL-MSK-01",
+        boxNumber: "BOX-MSK-01",
+        unitPrice: 2.1,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-013",
+        hfhShippingNumber: "HFH-2406-007",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Better Future Supplies",
+        quantity: 260,
+        lotNumber: "LOT-MSK-504",
+        palletNumber: "PAL-MSK-01",
+        boxNumber: "BOX-MSK-02",
+        unitPrice: 2.1,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-014",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Better Future Supplies",
+        quantity: 240,
+        lotNumber: "LOT-MSK-505",
+        palletNumber: "PAL-MSK-02",
+        boxNumber: "BOX-MSK-03",
+        unitPrice: 2.1,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-015",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Better Future Supplies",
+        quantity: 260,
+        lotNumber: "LOT-MSK-506",
+        palletNumber: "PAL-MSK-02",
+        boxNumber: "BOX-MSK-04",
+        unitPrice: 2.1,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-016",
+        hfhShippingNumber: "HFH-2406-008",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Better Future Supplies",
+        quantity: 245,
+        lotNumber: "LOT-MSK-507",
+        palletNumber: "PAL-MSK-03",
+        boxNumber: "BOX-MSK-05",
+        unitPrice: 2.1,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-017",
+        notes: "Outer cartons slightly dented.",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Better Future Supplies",
+        quantity: 245,
+        lotNumber: "LOT-MSK-508",
+        palletNumber: "PAL-MSK-03",
+        boxNumber: "BOX-MSK-06",
+        unitPrice: 2.1,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-018",
+        hfhShippingNumber: "HFH-2406-009",
+      },
+    ],
+  },
+  {
+    title: "Comprehensive Lab Reagent Panels",
+    type: "Medical Supply",
+    unitType: "Kit",
+    quantityPerUnit: 1,
+    expirationDate: new Date("2025-10-15"),
+    initialQuantity: 300,
+    requestQuantity: 300,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 80,
+        finalQuantity: 80,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 70,
+        finalQuantity: 70,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 60,
+        finalQuantity: 60,
+        comments: "Lab automation pilot.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 50,
+        finalQuantity: 50,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 40,
+        finalQuantity: 40,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Diagnostics Without Borders",
+        quantity: 160,
+        lotNumber: "LOT-LAB-210",
+        palletNumber: "PAL-LAB-01",
+        boxNumber: "BOX-LAB-01",
+        unitPrice: 55.0,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-019",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Diagnostics Without Borders",
+        quantity: 140,
+        lotNumber: "LOT-LAB-211",
+        palletNumber: "PAL-LAB-01",
+        boxNumber: "BOX-LAB-02",
+        unitPrice: 55.0,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-020",
+        hfhShippingNumber: "HFH-2406-010",
+        notes: "Requires temperature log review.",
+      },
+    ],
+  },
+  {
+    title: "Ultrasound Transmission Gel Cases",
+    type: "Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 20,
+    expirationDate: new Date("2026-12-31"),
+    initialQuantity: 400,
+    requestQuantity: 400,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 90,
+        finalQuantity: 90,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 85,
+        finalQuantity: 85,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 85,
+        finalQuantity: 85,
+        comments: "Maternity unit upgrade.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 70,
+        finalQuantity: 70,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 70,
+        finalQuantity: 70,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Imaging for Hope",
+        quantity: 150,
+        lotNumber: "LOT-GEL-701",
+        palletNumber: "PAL-GEL-01",
+        boxNumber: "BOX-GEL-01",
+        unitPrice: 6.75,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-021",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Imaging for Hope",
+        quantity: 130,
+        lotNumber: "LOT-GEL-702",
+        palletNumber: "PAL-GEL-01",
+        boxNumber: "BOX-GEL-02",
+        unitPrice: 6.75,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-022",
+        hfhShippingNumber: "HFH-2406-011",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Imaging for Hope",
+        quantity: 120,
+        lotNumber: "LOT-GEL-703",
+        palletNumber: "PAL-GEL-02",
+        boxNumber: "BOX-GEL-03",
+        unitPrice: 6.75,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2405-023",
+        hfhShippingNumber: "HFH-2406-012",
+        notes: "HFH number assigned after customs inspection.",
+      },
+    ],
+  },
+];
 
-async function run() {
+const shippingStatusSeeds = [
+  {
+    donorShippingNumber: "DN-2405-001",
+    hfhShippingNumber: "HFH-2406-001",
+    value: ShipmentStatus.LOAD_ON_SHIP_AIR,
+  },
+  {
+    donorShippingNumber: "DN-2405-003",
+    hfhShippingNumber: "HFH-2406-002",
+    value: ShipmentStatus.ARRIVED_IN_HAITI,
+  },
+  {
+    donorShippingNumber: "DN-2405-006",
+    hfhShippingNumber: "HFH-2406-004",
+    value: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
+  },
+  {
+    donorShippingNumber: "DN-2405-009",
+    hfhShippingNumber: "HFH-2406-005",
+    value: ShipmentStatus.ARRIVED_AT_DEPO,
+  },
+  {
+    donorShippingNumber: "DN-2405-018",
+    hfhShippingNumber: "HFH-2406-009",
+    value: ShipmentStatus.READY_FOR_DISTRIBUTION,
+  },
+  {
+    donorShippingNumber: "DN-2405-022",
+    hfhShippingNumber: "HFH-2406-011",
+    value: ShipmentStatus.CLEARED_CUSTOMS,
+  },
+  {
+    donorShippingNumber: "DN-2405-023",
+    hfhShippingNumber: "HFH-2406-012",
+    value: ShipmentStatus.INVENTORIES,
+  },
+];
+
+async function buildSeedData() {
   await db.$transaction(async (tx) => {
-    await tx.shippingStatus.deleteMany();
+    await tx.allocation.deleteMany();
+    await tx.generalItemRequest.deleteMany();
+    await tx.lineItem.deleteMany();
+    await tx.generalItem.deleteMany();
     await tx.donorOffer.deleteMany();
     await tx.distribution.deleteMany();
     await tx.signOff.deleteMany();
-    await tx.user.deleteMany();
-    await tx.userInvite.deleteMany();
-    await tx.generalItem.deleteMany();
-    await tx.lineItem.deleteMany();
     await tx.wishlist.deleteMany();
-    await tx.allocation.deleteMany();
-    await tx.generalItemRequest.deleteMany();
+    await tx.shippingStatus.deleteMany();
+    await tx.userInvite.deleteMany();
+    await tx.user.deleteMany();
 
-    const pwHash = await hash("root");
+    const passwordHash = await hash("root");
 
-    await tx.user.create({
-      data: {
-        email: "superadmin@test.com",
-        passwordHash: pwHash,
-        type: UserType.SUPER_ADMIN,
-        name: "Super Admin",
-      },
-    });
-    await tx.user.create({
-      data: {
-        email: "admin@test.com",
-        passwordHash: pwHash,
-        type: UserType.ADMIN,
-        name: "Admin",
-      },
-    });
-    await tx.user.create({
-      data: {
-        email: "staff@test.com",
-        passwordHash: pwHash,
-        type: UserType.STAFF,
-        name: "Staff",
-      },
-    });
-    await tx.user.createManyAndReturn({
-      data: Array.from({ length: 20 }, (_, i) => i).map((i: number) => ({
-        email: `partner${i + 1}@test.com`,
-        passwordHash: pwHash,
-        type: UserType.PARTNER,
-        name: `Partner ${i + 1}`,
-        partnerDetails: {
-          ...partnerDetailsTemplate,
-          siteName: `${partnerDetailsTemplate.siteName} ${i + 1}`,
-          // Update contact emails to be unique
-          regionalContact: {
-            ...partnerDetailsTemplate.regionalContact,
-            email: `regional.partner${i + 1}@test.com`,
-          },
-          medicalContact: {
-            ...partnerDetailsTemplate.medicalContact,
-            email: `medical.partner${i + 1}@test.com`,
-          },
-          adminDirectorContact: {
-            ...partnerDetailsTemplate.adminDirectorContact,
-            email: `admin.partner${i + 1}@test.com`,
-          },
-          pharmacyContact: {
-            ...partnerDetailsTemplate.pharmacyContact,
-            email: `pharmacy.partner${i + 1}@test.com`,
-          },
-          // Vary some details to make each partner unique
-          yearOrganizationEstablished: 2010 + (i % 10),
-          numberOfInpatientBeds: 15 + (i % 20),
-          numberOfPatientsServedAnnually: 8000 + i * 500,
-          numberOfDoctors: 2 + (i % 5),
-          numberOfNurses: 8 + (i % 10),
-          numberOfMidwives: 1 + (i % 4),
-          numberOfPharmacists: 1 + (i % 3),
-          totalNumberOfStaff: 30 + (i % 25),
-          totalPatientsServedLastYear: 7500 + i * 400,
-          menServedLastYear: 2000 + i * 100,
-          womenServedLastYear: 2500 + i * 120,
-          boysServedLastYear: 1500 + i * 80,
-          girlsServedLastYear: 1500 + i * 80,
+    await Promise.all([
+      tx.user.create({
+        data: {
+          email: "superadmin@test.com",
+          name: "Super Admin",
+          passwordHash,
+          type: UserType.SUPER_ADMIN,
+          enabled: true,
+          pending: false,
         },
-      })),
-    });
-
-    const pendingAdmin = await tx.user.create({
-      data: {
-        email: "new-admin@test.com",
-        passwordHash: pwHash,
-        type: UserType.ADMIN,
-        name: "New Admin",
-        enabled: true,
-      },
-    });
-
-    await tx.userInvite.create({
-      data: {
-        expiration: new Date("July 24, 3000"),
-        token: "1234",
-        user: {
-          connect: { id: pendingAdmin.id },
+      }),
+      tx.user.create({
+        data: {
+          email: "admin@test.com",
+          name: "Admin User",
+          passwordHash,
+          type: UserType.ADMIN,
+          enabled: true,
+          pending: false,
         },
-      },
-    });
-
-    const partners: Partner[] = await tx.user.findMany({
-      where: { type: UserType.PARTNER },
-    });
-
-    function getGenItemsToConnect(): Prisma.GeneralItemCreateWithoutDonorOfferInput[] {
-      return sample(randInt(1, 3), generalItems).map((item, index) => ({
-        ...item,
-        initialQuantity: randInt(1, 3) * 10,
-        title: `${item.title} ${index}`,
-        requests: {
-          create: [
-            {
-              partnerId: pick(partners).id,
-              quantity: randInt(1, 4) * 5,
-            },
-          ],
+      }),
+      tx.user.create({
+        data: {
+          email: "staff@test.com",
+          name: "Staff Member",
+          passwordHash,
+          type: UserType.STAFF,
+          enabled: true,
+          pending: false,
         },
-      }));
+      }),
+    ]);
+
+    const partnerRecords = [];
+    for (const seed of partnerSeeds) {
+      const partner = await tx.user.create({
+        data: {
+          email: seed.email,
+          name: seed.name,
+          passwordHash,
+          type: UserType.PARTNER,
+          tag: seed.tag,
+          enabled: seed.pending ? false : true,
+          pending: seed.pending ?? false,
+          partnerDetails: seed.partnerDetails,
+        },
+      });
+      partnerRecords.push({ seed, partner });
     }
 
-    const donorOffers: DonorOffer[] = await Promise.all(
-      [
-        {
-          state: DonorOfferState.UNFINALIZED,
-          offerName: "Offer A",
-          donorName: "Donor A",
-          partnerResponseDeadline: dateOffset(20),
-          donorResponseDeadline: dateOffset(30),
-          items: {
-            create: getGenItemsToConnect(),
-          },
-          partnerVisibilities: {
-            connect: partners.map((p) => ({ id: p.id })),
-          },
+    const pendingPartnerEntry = partnerRecords.find(
+      ({ seed }) => seed.pending
+    );
+    if (pendingPartnerEntry) {
+      await tx.userInvite.create({
+        data: {
+          userId: pendingPartnerEntry.partner.id,
+          token: "partner-onboarding-token",
+          expiration: addDays(30),
         },
-        {
-          state: DonorOfferState.UNFINALIZED,
-          offerName: "Offer B",
-          donorName: "Donor B",
-          partnerResponseDeadline: dateOffset(20),
-          donorResponseDeadline: dateOffset(30),
-          items: {
-            create: getGenItemsToConnect(),
-          },
-          partnerVisibilities: {
-            connect: partners.map((p) => ({ id: p.id })),
-          },
-        },
-        {
-          state: DonorOfferState.UNFINALIZED,
-          offerName: "Offer C",
-          donorName: "Donor C",
-          partnerResponseDeadline: dateOffset(20),
-          donorResponseDeadline: dateOffset(30),
-          items: {
-            create: getGenItemsToConnect(),
-          },
-          partnerVisibilities: {
-            connect: partners.map((p) => ({ id: p.id })),
-          },
-        },
-        {
-          state: DonorOfferState.FINALIZED,
-          offerName: "Offer D",
-          donorName: "Donor D",
-          partnerResponseDeadline: dateOffset(20),
-          donorResponseDeadline: dateOffset(30),
-          items: {
-            create: getGenItemsToConnect(),
-          },
-          partnerVisibilities: {
-            connect: partners.map((p) => ({ id: p.id })),
-          },
-        },
-      ].map((data) => tx.donorOffer.create({ data })) // Can't use createMany with relational data
+      });
+    }
+
+    const partnerMap = new Map(
+      partnerRecords.map(({ seed, partner }) => [seed.key, partner])
     );
 
-    const actualGeneralItems: GeneralItem[] =
-      await tx.generalItem.createManyAndReturn({
-        data: donorOffers.map((offer) => genItem(offer.id)),
-      });
+    const activePartners = partnerRecords
+      .filter(({ seed }) => !seed.pending)
+      .map(({ partner }) => partner);
 
-    await tx.generalItemRequest.createManyAndReturn({
-      data: actualGeneralItems.flatMap((genItem) =>
-        partners.map((partner) => {
+    const buildGeneralItemData = (item: GeneralItemSeed) => ({
+      title: item.title,
+      type: item.type,
+      unitType: item.unitType,
+      quantityPerUnit: item.quantityPerUnit,
+      expirationDate: item.expirationDate,
+      initialQuantity: item.initialQuantity,
+      requestQuantity:
+        item.requestQuantity ??
+        item.requests.reduce(
+          (total, req) => total + (req.finalQuantity ?? req.quantity),
+          0
+        ),
+      requests: {
+        create: item.requests.map((req) => {
+          const partner = partnerMap.get(req.partnerKey);
+          if (!partner) {
+            throw new Error(`Unknown partner key ${req.partnerKey}`);
+          }
+
           return {
             partnerId: partner.id,
-            generalItemId: genItem.id,
-            priority: pick(Object.values(RequestPriority)) as RequestPriority,
-            quantity: randInt(1, 4) * 5,
-            comments: "pls",
+            quantity: req.quantity,
+            finalQuantity: req.finalQuantity ?? req.quantity,
+            comments: req.comments ?? null,
+            priority: req.priority ?? null,
           };
-        })
-      ),
-    });
-
-    await tx.lineItem.createMany({
-      data: Array.from({ length: 50 }, () => ({
-        generalItemId: pick(actualGeneralItems).id,
-        category: $Enums.ItemCategory.MEDICAL_SUPPLY,
-        donorName: pick(donorNames),
-        quantity: randInt(1, 4) * 5,
-        lotNumber: pick(lots),
-        palletNumber: pick(pallets),
-        boxNumber: pick(boxes),
-        unitPrice: randInt(1, 4) * 5,
-        allowAllocations: true,
-        visible: false,
-        gik: false,
-      })),
-    });
-
-    await tx.wishlist.createManyAndReturn({
-      data: Array.from({ length: 20 }, () => {
-        const genItem = pick(actualGeneralItems);
-        return {
-          partnerId: pick(partners).id,
-          name: genItem.title,
-          unitSize: genItem.unitType,
-          priority: pick(Object.values(RequestPriority)) as RequestPriority,
-          quantity: randInt(1, 4) * 5,
-          comments: "pls",
-        };
-      }),
-    });
-
-    await Promise.all(
-      Array.from({ length: 10 }, (_, index) => ({
-        partnerId: partners[index % partners.length].id,
-        allocations: {
-          create: [
-            {
-              partner: {
-                connect: { id: partners[index % partners.length].id },
-              },
-              lineItem: {
-                create: {
-                  generalItem: {
-                    connect: { id: pick(actualGeneralItems).id },
-                  },
-                  category: $Enums.ItemCategory.MEDICAL_SUPPLY,
-                  donorName: pick(donorNames),
-                  quantity: randInt(1, 4) * 5,
-                  lotNumber: pick(lots),
-                  palletNumber: pick(pallets),
-                  boxNumber: pick(boxes),
-                  unitPrice: randInt(1, 4) * 5,
-                  allowAllocations: false,
-                  visible: false,
-                  gik: false,
-                },
-              },
-              signOff: {
-                create: {
-                  staffMemberName: "Staff Member",
-                  partnerId: partners[index % partners.length].id,
-                  partnerName: partners[index % partners.length].name,
-                  signatureUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                  date: new Date(),
-                },
-              },
+        }),
+      },
+      ...(item.lineItems
+        ? {
+            items: {
+              create: item.lineItems.map((lineItem) => ({
+                category: lineItem.category,
+                donorName: lineItem.donorName,
+                quantity: lineItem.quantity,
+                lotNumber: lineItem.lotNumber,
+                palletNumber: lineItem.palletNumber,
+                boxNumber: lineItem.boxNumber,
+                unitPrice: lineItem.unitPrice,
+                allowAllocations: lineItem.allowAllocations,
+                visible: lineItem.visible,
+                gik: lineItem.gik,
+                maxRequestLimit: lineItem.maxRequestLimit ?? null,
+                donorShippingNumber: lineItem.donorShippingNumber ?? null,
+                hfhShippingNumber: lineItem.hfhShippingNumber ?? null,
+                ndc: lineItem.ndc ?? null,
+                notes: lineItem.notes ?? null,
+              })),
             },
-          ],
-        },
-      })).map((data) => tx.distribution.create({ data }))
-    );
-  });
+          }
+        : {}),
+    });
 
-  await db.shippingStatus.createMany({
-    data: Array.from({ length: 10 }, (_, index) => ({
-      donorShippingNumber: `SH${index}`,
-      hfhShippingNumber: `HFH${index}`,
-      value: Object.values($Enums.ShipmentStatus)[
-        index % Object.values($Enums.ShipmentStatus).length
-      ],
-    })),
+    await tx.donorOffer.create({
+      data: {
+        state: DonorOfferState.UNFINALIZED,
+        offerName: "Q3 Medical Support (Draft)",
+        donorName: "Global Health Trust",
+        partnerResponseDeadline: addDays(14),
+        donorResponseDeadline: addDays(28),
+        partnerVisibilities: {
+          connect: activePartners.map((partner) => ({ id: partner.id })),
+        },
+        items: {
+          create: unfinalizedGeneralItems.map(buildGeneralItemData),
+        },
+      },
+    });
+
+    await tx.donorOffer.create({
+      data: {
+        state: DonorOfferState.FINALIZED,
+        offerName: "Q2 Emergency Allocation (Finalized)",
+        donorName: "Aid for All Foundation",
+        partnerResponseDeadline: addDays(-21),
+        donorResponseDeadline: addDays(-7),
+        partnerVisibilities: {
+          connect: activePartners.map((partner) => ({ id: partner.id })),
+        },
+        items: {
+          create: finalizedGeneralItems.map(buildGeneralItemData),
+        },
+      },
+    });
+
+    await tx.shippingStatus.createMany({ data: shippingStatusSeeds });
   });
 }
 
-run()
+buildSeedData()
   .then(() => {
-    console.info("DB seeded");
-
+    console.info("Database seeded with comprehensive demo data.");
     exit(0);
   })
-  .catch((err) => {
-    console.error("Error seeding DB");
-    console.error(err);
-
+  .catch((error) => {
+    console.error("Error seeding database", error);
     exit(1);
   });

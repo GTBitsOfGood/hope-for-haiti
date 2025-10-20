@@ -214,11 +214,9 @@ export default function AccountManagementPage() {
     },
     {
       id: "manage",
-      headerClassName: "w-1/12",
-      cellClassName: "w-1/12",
       cell: (item) => (
         <div
-          className="float-right"
+          className="flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
           <AccountDropdown

@@ -472,7 +472,10 @@ export default class DonorOfferService {
 
   static async getPartnerDonorOfferDetails(
     donorOfferId: number,
-    partnerId: string
+    partnerId: string,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number
   ): Promise<DonorOfferItemsRequestsResponse> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
@@ -482,14 +485,34 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const donorOfferItemsRequests = (
-      await db.generalItem.findMany({
-        where: { donorOfferId },
-        include: {
-          requests: { where: { partnerId: parseInt(partnerId) } },
-        },
-      })
-    ).map(
+    const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
+      Object.keys(Prisma.GeneralItemScalarFieldEnum),
+      filters
+    );
+
+    const where: Prisma.GeneralItemWhereInput = {
+      ...filterWhere,
+      donorOfferId,
+    };
+
+    const query = Prisma.validator<Prisma.GeneralItemFindManyArgs>()({
+      where,
+      include: {
+        requests: { where: { partnerId: parseInt(partnerId) } },
+      },
+      orderBy: {
+        title: "asc",
+      },
+    });
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.generalItem.findMany(query),
+      db.generalItem.count({ where }),
+    ]);
+
+    const donorOfferItemsRequests = items.map(
       (item) =>
         ({
           donorOfferItemId: item.id,
@@ -520,11 +543,13 @@ export default class DonorOfferService {
     return {
       donorOfferName: donorOffer.offerName,
       donorOfferItemsRequests,
-      total: donorOfferItemsRequests.length,
+      total,
     };
   }
 
-  static async getAdminDonorOfferDetails(donorOfferId: number): Promise<{
+  static async getAdminDonorOfferDetails(
+    donorOfferId: number,
+  ): Promise<{
     donorOffer: DonorOffer;
     itemsWithRequests: (GeneralItem & {
       requests: (GeneralItemRequest & { partner: { name: string } })[];
