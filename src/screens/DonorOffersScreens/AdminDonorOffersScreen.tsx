@@ -16,7 +16,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { useFetch } from "@/hooks/useFetch";
-import { AdminDonorOffer, AdminDonorOffersResponse } from "@/types/api/donorOffer.types";
+import { AdminDonorOffersResponse } from "@/types/api/donorOffer.types";
 import BaseTable, {
   extendTableHeader,
   tableConditional,

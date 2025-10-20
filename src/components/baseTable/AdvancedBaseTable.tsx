@@ -316,7 +316,7 @@ function AdvancedBaseTableInner<T extends object>(
   const showEmptyState = !isLoading && !items.length && !error;
 
   return (
-    <div>
+    <div className="w-full">
       <div className="my-2 space-x-4 flex justify-end">
         {toolBar}
         {filterableColumns.length > 0 && (
@@ -339,8 +339,8 @@ function AdvancedBaseTableInner<T extends object>(
           </div>
         )}
       </div>
-      <div className="overflow-visible">
-        <table className="mt-4 w-full">
+      <div className="overflow-x-auto overflow-y-visible">
+        <table className="mt-4 w-full min-w-max overflow-visible">
           <thead>
             <tr
               className={`text-left font-bold ${
@@ -359,7 +359,7 @@ function AdvancedBaseTableInner<T extends object>(
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="overflow-visible">
             {isLoading ? (
               <tr>
                 <td colSpan={normalizedColumns.length} className="py-10">
@@ -392,7 +392,7 @@ function AdvancedBaseTableInner<T extends object>(
                   <tr
                     key={String(resolveRowId(item))}
                     data-odd={rowIndex % 2 !== 0}
-                    className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary ${
+                    className={`bg-white data-[odd=false]:bg-sunken border-b border-gray-primary/10 text-gray-primary overflow-visible ${
                       onRowClick || rowBody ? "cursor-pointer" : ""
                     } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
                     onClick={() => {
@@ -420,7 +420,7 @@ function AdvancedBaseTableInner<T extends object>(
                       return (
                         <td
                           key={column.id}
-                          className={`px-4 py-4 ${
+                          className={`px-4 py-4 whitespace-nowrap overflow-visible ${
                             rowCellStyles ? rowCellStyles : ""
                           } ${column.cellClassName ? column.cellClassName : ""}`}
                         >

@@ -1,9 +1,9 @@
 import { useApiClient } from "@/hooks/useApiClient";
-import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { UnallocatedItemData } from "@/screens/AdminUnallocatedItemsScreen";
-import { useEffect, useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
+import Portal from "./baseTable/Portal";
 
 export default function LineItemChipGroup({
   items,
@@ -61,9 +61,7 @@ function LineItemChip({
   updateItemsAllocated: (partnerId: number) => void;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useOnClickOutside<HTMLDivElement>(() =>
-    setIsDropdownOpen(false)
-  );
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const { apiClient } = useApiClient();
 
@@ -138,22 +136,10 @@ function LineItemChip({
     updateItemsAllocated(request.partnerId);
   }
 
-  const [distToNavbar, setDistToNavbar] = useState(0);
-
-  useEffect(() => {
-    const navbar = document.getElementById("navbar");
-    if (!navbar || !dropdownRef.current || !isDropdownOpen) return;
-
-    const navbarRect = navbar.getBoundingClientRect();
-    const dropdownRect = dropdownRef.current.getBoundingClientRect();
-
-    console.log(dropdownRect.left - navbarRect.right);
-    setDistToNavbar(dropdownRect.left - navbarRect.right);
-  }, [dropdownRef, isDropdownOpen]);
-
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow"
       >
@@ -171,12 +157,12 @@ function LineItemChip({
         </span>
       </button>
 
-      {/* Allocation Dropdown */}
-      <div
-        ref={dropdownRef}
-        className={`absolute ${distToNavbar < 50 ? "left-0" : "right-0"} z-50 w-48 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold ${
-          isDropdownOpen ? "block" : "hidden"
-        }`}
+      <Portal
+        isOpen={isDropdownOpen}
+        onClose={() => setIsDropdownOpen(false)}
+        triggerRef={buttonRef}
+        position="bottom-left"
+        className="w-48 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold"
       >
         <p className="text-gray-500 mb-1">Allocate to Partner</p>
         <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
@@ -201,7 +187,7 @@ function LineItemChip({
             </button>
           ))}
         </div>
-      </div>
+      </Portal>
     </div>
   );
 }

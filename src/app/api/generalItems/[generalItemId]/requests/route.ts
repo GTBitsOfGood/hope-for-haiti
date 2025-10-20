@@ -94,7 +94,10 @@ export async function POST(
       parsedData.data
     );
 
-    return NextResponse.json(itemRequest, { status: 201 });
+    return NextResponse.json({ 
+      requestId: itemRequest.id,
+      ...itemRequest 
+    }, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }

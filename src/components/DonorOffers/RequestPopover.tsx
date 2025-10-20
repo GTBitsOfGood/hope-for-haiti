@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { RequestPriority } from "@prisma/client";
+import Portal from "@/components/baseTable/Portal";
 
 interface RequestPopoverProps {
   isOpen: boolean;
@@ -13,6 +14,10 @@ interface RequestPopoverProps {
     comments: string | null;
   };
   buttonRef: React.RefObject<HTMLButtonElement | null>;
+  item: {
+    requestId: number | null;
+    donorOfferItemId: number;
+  };
 }
 
 const getPriorityColor = (priority: RequestPriority | ""): string => {
@@ -34,6 +39,7 @@ export default function RequestPopover({
   onSave,
   initialData,
   buttonRef,
+  item,
 }: RequestPopoverProps) {
   const [quantity, setQuantity] = useState<string>(
     initialData?.quantity ? initialData.quantity.toString() : ""
@@ -42,90 +48,21 @@ export default function RequestPopover({
     initialData?.priority || ""
   );
   const [comments, setComments] = useState(initialData?.comments || "");
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Calculate position based on button position
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const buttonRect = buttonRef.current.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-      
-      const popoverWidth = 320; // 320px (w-80)
-      const popoverHeight = 300; // Approximate height
-      const horizontalGap = 8; // Gap between button and popover
-      const verticalOffset = 8; // Small vertical offset
-      
-      // Position popover to the left of the button with a gap
-      let top = buttonRect.bottom + scrollTop - popoverHeight + verticalOffset;
-      let left = buttonRect.left + scrollLeft - popoverWidth - horizontalGap;
-      
-      // Prevent popover from going off-screen
-      
-      // Check if popover goes off left edge
-      if (left < scrollLeft) {
-        // If it goes off the left, position it to the right of the button instead
-        left = buttonRect.right + scrollLeft + horizontalGap;
-      }
-      
-      // Check if popover goes off right edge (when positioned to the right)
-      if (left + popoverWidth > window.innerWidth + scrollLeft) {
-        // Position it back to the left but with minimum margin
-        left = scrollLeft + 8; // 8px margin from left edge
-      }
-      
-      // Check if popover goes off top edge
-      if (top < scrollTop) {
-        top = buttonRect.bottom + scrollTop + 4; // Show below button with small gap
-      }
-      
-      // Check if popover goes off bottom edge
-      if (top + popoverHeight > window.innerHeight + scrollTop) {
-        top = buttonRect.top + scrollTop - popoverHeight - 4; // Show above button
-      }
-      
-      setPosition({ top, left });
-    }
-  }, [isOpen, buttonRef]);
-
-  // Reset form when initialData changes
   useEffect(() => {
     setQuantity(initialData?.quantity ? initialData.quantity.toString() : "");
     setPriority(initialData?.priority || "");
     setComments(initialData?.comments || "");
   }, [initialData]);
 
-  // Close popover on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose, buttonRef]);
-
   const handleSave = () => {
     const quantityNum = parseInt(quantity) || 0;
     
     if (priority === "") {
-      return; // Don't save without priority
+      return;
     }
     if (quantityNum <= 0) {
-      return; // Don't save if quantity is 0 or invalid
+      return;
     }
     
     onSave({
@@ -136,19 +73,15 @@ export default function RequestPopover({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      ref={popoverRef}
-      className="fixed z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-80"
-      style={{
-        top: position.top,
-        left: position.left,
-      }}
+    <Portal
+      isOpen={isOpen}
+      onClose={onClose}
+      triggerRef={buttonRef}
+      position="right"
+      className="w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4"
     >
       <div className="space-y-4">
-        {/* Quantity Input */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Quantity
@@ -163,7 +96,6 @@ export default function RequestPopover({
           />
         </div>
 
-        {/* Priority Select */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Priority
@@ -183,7 +115,6 @@ export default function RequestPopover({
           </select>
         </div>
 
-        {/* Comments Textarea */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Comments
@@ -197,8 +128,13 @@ export default function RequestPopover({
           />
         </div>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 font-medium rounded border border-gray-300 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
           <button
             onClick={handleSave}
             disabled={priority === "" || (parseInt(quantity) || 0) <= 0}
@@ -208,10 +144,10 @@ export default function RequestPopover({
                 : "bg-red-500 hover:bg-red-600"
             }`}
           >
-            Save
+            {item.requestId ? "Update Request" : "Add Request"}
           </button>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }
