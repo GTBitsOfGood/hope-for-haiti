@@ -416,12 +416,9 @@ async function run() {
       data: {
         expiration: new Date("July 24, 3000"),
         token: "1234",
-        user: {
-          connect: { id: pendingAdmin.id },
-        },
+        user: { connect: { id: pendingAdmin.id } },
       },
     });
-
     const partners: Partner[] = await tx.user.findMany({
       where: { type: UserType.PARTNER },
     });

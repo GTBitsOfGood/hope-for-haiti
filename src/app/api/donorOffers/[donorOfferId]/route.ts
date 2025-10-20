@@ -13,6 +13,7 @@ import {
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
 import { formDataToObject } from "@/util/formData";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 /**
  * Schema for getting offer ID from URL params
@@ -51,7 +52,7 @@ const updateSchema = z.object({
 });
 
 export async function GET(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
   try {
@@ -67,16 +68,31 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
+    const parsedParams = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+    });
+
+    if (!parsedParams.success) {
+      throw new ArgumentError(parsedParams.error.message);
+    }
+
+    const { filters, page, pageSize } = parsedParams.data;
+
     let result;
 
     if (session.user.type === "PARTNER") {
       result = await DonorOfferService.getPartnerDonorOfferDetails(
         parsed.data.donorOfferId,
-        session.user.id
+        session.user.id,
+        filters ?? undefined,
+        page ?? undefined,
+        pageSize ?? undefined
       );
     } else if (UserService.isStaff(session.user.type)) {
       result = await DonorOfferService.getAdminDonorOfferDetails(
-        parsed.data.donorOfferId
+        parsed.data.donorOfferId,
       );
     } else {
       throw new AuthorizationError("Unauthorized user type");
