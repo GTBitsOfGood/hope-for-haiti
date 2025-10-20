@@ -8,6 +8,7 @@ import InviteUserForm from "@/components/InviteUserForm";
 import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
 import EditModal from "@/components/AccountManagement/EditModal";
 import { useApiClient } from "@/hooks/useApiClient";
+import { useFetch } from "@/hooks/useFetch";
 import { isStaff, formatUserType } from "@/lib/userUtils";
 import AccountDropdown from "@/components/AccountManagement/AccountDropdown";
 import AccountStatusTag from "@/components/tags/AccountStatusTag";
@@ -51,6 +52,9 @@ function getStatusLabel(user: AccountUserResponse) {
 export default function AccountManagementPage() {
   const tableRef = useRef<AdvancedBaseTableHandle<AccountRow>>(null);
   const { apiClient } = useApiClient();
+  const { data: tags, refetch: refetchTags } = useFetch<string[]>(
+    "/api/users/tags"
+  );
 
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
 
@@ -134,6 +138,7 @@ export default function AccountManagementPage() {
 
       tableRef.current?.upsertItem(nextUser);
       setSelectedUser(nextUser);
+      refetchTags();
     } catch (error) {
       console.error("Error updating user:", error);
     }
@@ -198,7 +203,8 @@ export default function AccountManagementPage() {
     },
     {
       id: "tag",
-      filterType: "string",
+      filterType: "enum",
+      filterOptions: tags ?? [],
       cell: (item) =>
         item.tag ? (
           <span className="px-3 py-1 bg-red-primary/70 text-white rounded-md text-sm">
@@ -334,6 +340,7 @@ This will restore the user's access to the system.`
         selectedUserId={
           selectedUser && !selectedUser.pending ? selectedUser.id : undefined
         }
+        existingTags={tags ?? []}
       />
     </>
   );

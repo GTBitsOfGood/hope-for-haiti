@@ -57,7 +57,7 @@ export function normalizeColumns<T>(
     const id = String(config.id ?? index);
     const header = resolveHeader(config, id);
 
-    const render: (item: T, index: number) => React.ReactNode = config.cell
+    const render: (item: T, index: number, isOpen: boolean) => React.ReactNode = config.cell
       ? config.cell
       : typeof config.id === "string"
         ? (item: T) =>
@@ -118,10 +118,6 @@ export function inferFilterTypeFromSample(
     if (isDateLikeString(sample)) {
       return "date";
     }
-    const uniqueValues = new Set(filtered as string[]);
-    if (uniqueValues.size > 0 && uniqueValues.size <= 10) {
-      return "enum";
-    }
     return "string";
   }
 
@@ -134,8 +130,7 @@ export function inferFilterTypeFromSample(
     }
     const stringified = String(sample);
     if (stringified !== "[object Object]") {
-      const uniqueValues = new Set(filtered.map((value) => String(value)));
-      return uniqueValues.size <= 10 ? "enum" : "string";
+      return "string";
     }
   }
 

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { UserType } from "@prisma/client";
 import Select from "react-select/creatable";
 import GeneralModal from "./GeneralModal";
-import { useFetch } from "@/hooks/useFetch";
 import { useUser } from "@/components/context/UserContext";
 import { isAdmin } from "@/lib/userUtils";
 
@@ -27,6 +26,7 @@ interface EditModalProps {
   cancelText?: string;
   isStaffAccount?: boolean;
   selectedUserId?: number;
+  existingTags?: string[];
 }
 
 export default function EditModal({
@@ -40,6 +40,7 @@ export default function EditModal({
   cancelText = "Cancel",
   isStaffAccount = true,
   selectedUserId,
+  existingTags = [],
 }: EditModalProps) {
   const { user: currentUser } = useUser();
   const [formData, setFormData] = useState({
@@ -47,10 +48,6 @@ export default function EditModal({
     email: "",
     role: "STAFF" as UserType,
     tag: "",
-  });
-
-  const { data: existingTags } = useFetch<string[]>("/api/users/tags", {
-    conditionalFetch: isOpen,
   });
 
   useEffect(() => {
@@ -207,12 +204,10 @@ export default function EditModal({
             onChange={(selectedOption) =>
               handleInputChange("tag", selectedOption?.value || "")
             }
-            options={
-              existingTags?.map((tag) => ({
-                value: tag,
-                label: tag,
-              })) || []
-            }
+            options={existingTags.map((tag) => ({
+              value: tag,
+              label: tag,
+            }))}
             isClearable
             placeholder="Select or create a tag..."
             className="react-select-container"

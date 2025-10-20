@@ -128,14 +128,17 @@ function AdvancedBaseTableInner<T extends object>(
 
         let options: string[] | undefined;
         if (type === "enum") {
-          const providedOptions = column.filterOptions ?? [];
-          const collectedOptions = collectEnumOptions([
-            ...providedOptions,
-            ...(previousMeta?.options ?? []),
-            ...values,
-          ]);
-          options =
-            collectedOptions.length > 0 ? collectedOptions : providedOptions;
+          // If filterOptions is explicitly provided, always use it
+          if (column.filterOptions) {
+            options = column.filterOptions;
+          } else {
+            // Otherwise, collect options from data
+            const collectedOptions = collectEnumOptions([
+              ...(previousMeta?.options ?? []),
+              ...values,
+            ]);
+            options = collectedOptions.length > 0 ? collectedOptions : undefined;
+          }
         }
 
         next.push({
