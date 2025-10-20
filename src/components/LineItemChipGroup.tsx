@@ -128,7 +128,7 @@ function LineItemChip({
         : `Item unallocated from ${item.allocation?.partner?.name} successfully.`
     );
 
-    updateLineItemInTable({ allocation: null });
+    updateLineItemInTable({ allocation: null, suggestedAllocation: undefined });
     updateItemsAllocated(item.allocation.partner!.id);
     if (response.deletedDistribution) {
       onDistributionRemoved?.(item.allocation.partner!.id);
@@ -212,9 +212,22 @@ function LineItemChip({
 
     toast.success(`Item allocated to ${request.partner.name} successfully!`);
 
-    updateLineItemInTable({ allocation });
+    updateLineItemInTable({ allocation, suggestedAllocation: undefined });
     updateItemsAllocated(request.partnerId);
   }
+
+  const suggestedAllocation = item.suggestedAllocation;
+  const previousPartner = suggestedAllocation?.previousPartner ?? null;
+  const nextPartner =
+    suggestedAllocation?.nextPartner ?? item.allocation?.partner ?? null;
+  const hasSuggestedChange =
+    !!suggestedAllocation &&
+    (previousPartner?.id ?? null) !== (nextPartner?.id ?? null);
+  const hasSuggestedRemoval =
+    hasSuggestedChange && nextPartner === null && previousPartner !== null;
+
+  const currentPartnerLabel = nextPartner?.name ?? "None";
+  const previousPartnerLabel = previousPartner?.name ?? "None";
 
   return (
     <div className="relative">
@@ -226,7 +239,11 @@ function LineItemChip({
           }
           setIsDropdownOpen(!isDropdownOpen);
         }}
-        className="relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
+        className={`relative inline-flex items-center gap-2 px-3 py-1 text-sm rounded-lg border hover:shadow disabled:opacity-60 disabled:cursor-not-allowed m-2 ${
+          hasSuggestedChange
+            ? "border-blue-primary"
+            : "border-blue-primary/60"
+        }`}
         disabled={isInteractionMode}
       >
         <span className="text-blue-primary">{item.palletNumber}</span>
@@ -234,11 +251,23 @@ function LineItemChip({
           {item.quantity}
         </span>
         <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
-          {/* Double span is because the background color is based off opacity, but should still be opaque */}
-          <span
-            className={`w-full h-full px-1 py-[1px] ${item.allocation ? "bg-red-primary/20 text-red-primary" : "bg-gray-primary/10 text-gray-primary/30"}`}
-          >
-            {item.allocation?.partner ? item.allocation.partner.name : "None"}
+          <span className="flex items-center gap-1 px-1 py-[1px] whitespace-nowrap">
+            {hasSuggestedChange && (
+              <span className="flex items-center gap-1 px-1 py-[1px] rounded bg-gray-primary/10 text-gray-primary/60 line-through">
+                {previousPartnerLabel}
+              </span>
+            )}
+            <span
+              className={`flex items-center gap-1 px-1 py-[1px] rounded whitespace-nowrap ${
+                hasSuggestedChange
+                  ? "bg-blue-primary/20 text-blue-primary font-semibold"
+                  : item.allocation
+                    ? "bg-blue-primary/10 text-blue-primary"
+                    : "bg-gray-primary/10 text-gray-primary/50"
+              }`}
+            >
+              {hasSuggestedRemoval ? "None" : currentPartnerLabel}
+            </span>
           </span>
         </span>
       </button>

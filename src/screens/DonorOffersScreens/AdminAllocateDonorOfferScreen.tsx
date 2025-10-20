@@ -54,6 +54,16 @@ export interface UnallocatedItemData {
         name: string;
       } | null;
     } | null;
+    suggestedAllocation?: {
+      previousPartner: {
+        id: number;
+        name: string;
+      } | null;
+      nextPartner: {
+        id: number;
+        name: string;
+      } | null;
+    };
   }[];
 }
 
@@ -80,6 +90,16 @@ function cloneItems(items: UnallocatedItemData[]): UnallocatedItemData[] {
               : null,
           }
         : null,
+      suggestedAllocation: lineItem.suggestedAllocation
+        ? {
+            previousPartner: lineItem.suggestedAllocation.previousPartner
+              ? { ...lineItem.suggestedAllocation.previousPartner }
+              : null,
+            nextPartner: lineItem.suggestedAllocation.nextPartner
+              ? { ...lineItem.suggestedAllocation.nextPartner }
+              : null,
+          }
+        : undefined,
     })),
   }));
 }
@@ -155,6 +175,10 @@ function buildPreviewAllocations(
         id: partnerId,
         name: partnerName,
       },
+    };
+    previewLine.suggestedAllocation = {
+      previousPartner: originalLine?.allocation?.partner ?? null,
+      nextPartner: previewLine.allocation.partner ?? null,
     };
 
     suggestions.push({
