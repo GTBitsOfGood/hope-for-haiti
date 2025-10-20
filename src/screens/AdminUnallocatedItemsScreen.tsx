@@ -48,6 +48,16 @@ export interface UnallocatedItemData {
         name: string;
       } | null;
     } | null;
+    suggestedAllocation?: {
+      previousPartner: {
+        id: number;
+        name: string;
+      } | null;
+      nextPartner: {
+        id: number;
+        name: string;
+      } | null;
+    };
   }[];
 }
 

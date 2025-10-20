@@ -94,6 +94,41 @@ export default class AllocationService {
     }
   }
 
+  static async createBatchAllocations(
+    distributionId: number,
+    allocations: { partnerId: number; lineItemId: number }[]
+  ) {
+    if (!allocations.length) {
+      throw new ArgumentError("Allocations payload must include at least one allocation");
+    }
+
+    try {
+      return await db.$transaction(
+        allocations.map((allocation) =>
+          db.allocation.create({
+            data: {
+              distributionId,
+              partnerId: allocation.partnerId,
+              lineItemId: allocation.lineItemId,
+            },
+            include: {
+              partner: {
+                select: { id: true, name: true },
+              },
+            },
+          })
+        )
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002" || error.code === "P2014") {
+          throw new ArgumentError("One or more items are already allocated.");
+        }
+      }
+      throw error;
+    }
+  }
+
   static async updateAllocation(
     id: number,
     data: {

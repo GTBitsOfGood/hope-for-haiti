@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import {
-  getDonorOfferAllocationItems,
-} from "@/services/donorOfferService";
 import UserService from "@/services/userService";
 import {
   ArgumentError,
@@ -12,6 +9,7 @@ import {
   AuthorizationError,
   errorResponse,
 } from "@/util/errors";
+import DonorOfferService from "@/services/donorOfferService";
 
 const paramSchema = z.object({
   donorOfferId: z
@@ -45,7 +43,7 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
-    const result = await getDonorOfferAllocationItems(
+    const result = await DonorOfferService.getAllocationItems(
       parsed.data.donorOfferId
     );
 

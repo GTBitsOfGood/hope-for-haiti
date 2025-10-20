@@ -69,8 +69,8 @@ export interface UnallocatedItemData {
 
 type AllocationSuggestion = {
   lineItemId: number;
-  partnerId: number;
-  partnerName: string;
+  partnerId: number | null;
+  partnerName: string | null;
 };
 
 function cloneItems(items: UnallocatedItemData[]): UnallocatedItemData[] {
@@ -212,8 +212,7 @@ export default function AdminAllocateDonorOfferScreen() {
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [isStreamComplete, setIsStreamComplete] = useState(false);
-  const [suggestedAllocations, setSuggestedAllocations] =
-    useState<AllocationSuggestion[]>([]);
+  const [manualChanges, setManualChanges] = useState<Map<number, AllocationSuggestion>>(new Map());
 
   const { refetch: refetchDistributions } = useFetch<{
     distributions: Record<number, PartnerDistributionSummary>;
@@ -400,6 +399,101 @@ export default function AdminAllocateDonorOfferScreen() {
     });
   }, []);
 
+  const handleManualAllocationChange = useCallback(
+    ({
+      generalItemId,
+      lineItemId,
+      nextPartner,
+    }: {
+      generalItemId: number;
+      lineItemId: number;
+      previousPartner: { id: number; name: string } | null;
+      nextPartner: { id: number; name: string } | null;
+    }) => {
+      if (!isInteractionMode) {
+        return;
+      }
+
+      const baselineItem = preInteractionItemsRef.current.find(
+        (item) => item.id === generalItemId
+      );
+      const baselineLine = baselineItem?.items.find(
+        (line) => line.id === lineItemId
+      );
+      if (!baselineLine) {
+        return;
+      }
+      const baselinePartner = baselineLine.allocation?.partner ?? null;
+
+      const normalizedNext = nextPartner ? { ...nextPartner } : null;
+
+      const shouldKeepSuggestion =
+        (baselinePartner?.id ?? null) !== (normalizedNext?.id ?? null);
+
+      const suggestionEntry: AllocationSuggestion | null = shouldKeepSuggestion
+        ? {
+            lineItemId,
+            partnerId: normalizedNext?.id ?? null,
+            partnerName: normalizedNext?.name ?? null,
+          }
+        : null;
+
+      setManualChanges((prev) => {
+        const next = new Map(prev);
+        if (suggestionEntry) {
+          next.set(lineItemId, suggestionEntry);
+        } else {
+          next.delete(lineItemId);
+        }
+        return next;
+      });
+
+      const baselineAllocation = baselineLine?.allocation
+        ? {
+            id: baselineLine.allocation.id,
+            partner: baselineLine.allocation.partner
+              ? { ...baselineLine.allocation.partner }
+              : null,
+          }
+        : null;
+
+      const applyUpdate = (source: UnallocatedItemData) => ({
+        ...source,
+        items: source.items.map((line) => {
+          if (line.id !== lineItemId) {
+            return line;
+          }
+
+          const allocation = suggestionEntry
+            ? normalizedNext
+              ? {
+                  id: line.allocation?.id ?? -lineItemId,
+                  partner: normalizedNext,
+                }
+              : null
+            : baselineAllocation;
+
+          return {
+            ...line,
+            allocation,
+            suggestedAllocation: suggestionEntry
+              ? {
+                  previousPartner: baselinePartner,
+                  nextPartner: normalizedNext,
+                }
+              : undefined,
+          };
+        }),
+      });
+
+      tableRef.current?.updateItemById(generalItemId, applyUpdate);
+      currentItemsRef.current = currentItemsRef.current.map((item) =>
+        item.id === generalItemId ? applyUpdate(item) : item
+      );
+    },
+    [isInteractionMode]
+  );
+
   const handleSuggestAllocations = useCallback(async () => {
     if (!isValidDonorOfferId) {
       toast.error("Invalid donor offer identifier");
@@ -418,7 +512,7 @@ export default function AdminAllocateDonorOfferScreen() {
     setIsInteractionMode(true);
     setIsProcessingSuggestions(true);
     setIsStreamComplete(false);
-    setSuggestedAllocations([]);
+    setManualChanges(new Map());
 
     preInteractionItemsRef.current = cloneItems(currentItemsRef.current);
 
@@ -439,11 +533,13 @@ export default function AdminAllocateDonorOfferScreen() {
         toast("No allocation changes suggested.");
         setIsInteractionMode(false);
         setIsStreamComplete(false);
-        setSuggestedAllocations([]);
+        setManualChanges(new Map());
         return;
       }
 
-      setSuggestedAllocations(suggestions);
+      setManualChanges(
+        new Map(suggestions.map((suggestion) => [suggestion.lineItemId, suggestion]))
+      );
       tableRef.current?.setItems(previewItems);
       currentItemsRef.current = previewItems;
       setIsStreamComplete(true);
@@ -455,7 +551,7 @@ export default function AdminAllocateDonorOfferScreen() {
       currentItemsRef.current = restored;
       setIsInteractionMode(false);
       setIsStreamComplete(false);
-      setSuggestedAllocations([]);
+      setManualChanges(new Map());
     } finally {
       setIsProcessingSuggestions(false);
     }
@@ -473,12 +569,14 @@ export default function AdminAllocateDonorOfferScreen() {
     currentItemsRef.current = restored;
     setIsInteractionMode(false);
     setIsStreamComplete(false);
-    setSuggestedAllocations([]);
+    setManualChanges(new Map());
     preInteractionItemsRef.current = [];
   }, []);
 
   const handleKeep = useCallback(async () => {
-    if (!suggestedAllocations.length) {
+    const pendingChanges = Array.from(manualChanges.values());
+
+    if (!pendingChanges.length) {
       toast("No suggested changes to keep.");
       setIsInteractionMode(false);
       setIsStreamComplete(false);
@@ -500,40 +598,81 @@ export default function AdminAllocateDonorOfferScreen() {
     try {
       let appliedCount = 0;
 
-      for (const suggestion of suggestedAllocations) {
-        const baselineLine = baselineLineMap.get(suggestion.lineItemId);
+      const removals: { lineItemId: number; partnerId: number }[] = [];
+      const additionsByDistribution = new Map<
+        number,
+        { partnerId: number; lineItemId: number }[]
+      >();
 
-        if (baselineLine?.allocation?.partner?.id === suggestion.partnerId) {
+      for (const suggestion of pendingChanges) {
+        const baselineLine = baselineLineMap.get(suggestion.lineItemId);
+        const baselinePartnerId =
+          baselineLine?.allocation?.partner?.id ?? null;
+        const nextPartnerId = suggestion.partnerId;
+
+        if (baselinePartnerId === nextPartnerId) {
           continue;
         }
 
-        if (baselineLine?.allocation?.id) {
-          const response = await apiClient.delete<{
-            deletedDistribution: boolean;
-          }>(`/api/allocations/${baselineLine.allocation.id}`);
-
-          if (response.deletedDistribution && baselineLine.allocation.partner) {
-            handleDistributionRemoved(baselineLine.allocation.partner.id);
-          }
+        if (baselineLine?.allocation?.id && baselinePartnerId !== null) {
+          removals.push({
+            lineItemId: suggestion.lineItemId,
+            partnerId: baselinePartnerId,
+          });
         }
 
+        if (nextPartnerId === null) {
+          appliedCount += 1;
+          continue;
+        }
+
+        const partnerName =
+          suggestion.partnerName ?? `Partner ${nextPartnerId}`;
+
         const distribution = await ensureDistributionForPartner(
-          suggestion.partnerId,
-          suggestion.partnerName
+          nextPartnerId,
+          partnerName
         );
 
-        const formData = new FormData();
-        formData.set("partnerId", suggestion.partnerId.toString());
-        formData.set("lineItemId", suggestion.lineItemId.toString());
+        const entry = additionsByDistribution.get(distribution.id) ?? [];
+        entry.push({
+          partnerId: nextPartnerId,
+          lineItemId: suggestion.lineItemId,
+        });
+        additionsByDistribution.set(distribution.id, entry);
+      }
+
+      for (const removal of removals) {
+        const baselineLine = baselineLineMap.get(removal.lineItemId);
+        const allocationId = baselineLine?.allocation?.id;
+        if (!allocationId) {
+          continue;
+        }
+
+        const response = await apiClient.delete<{
+          deletedDistribution: boolean;
+        }>(`/api/allocations/${allocationId}`);
+
+        if (response.deletedDistribution && baselineLine?.allocation?.partner) {
+          handleDistributionRemoved(baselineLine.allocation.partner.id);
+        }
+
+        appliedCount += 1;
+      }
+
+      for (const [distributionId, allocations] of additionsByDistribution) {
+        if (!allocations.length) {
+          continue;
+        }
 
         await apiClient.post(
-          `/api/distributions/${distribution.id}/allocations`,
+          `/api/distributions/${distributionId}/allocations/batch`,
           {
-            body: formData,
+            body: JSON.stringify({ allocations }),
           }
         );
 
-        appliedCount += 1;
+        appliedCount += allocations.length;
       }
 
       if (appliedCount > 0) {
@@ -546,7 +685,7 @@ export default function AdminAllocateDonorOfferScreen() {
 
       setIsInteractionMode(false);
       setIsStreamComplete(false);
-      setSuggestedAllocations([]);
+      setManualChanges(new Map());
       preInteractionItemsRef.current = [];
       refetchDistributions();
       tableRef.current?.reload();
@@ -561,7 +700,7 @@ export default function AdminAllocateDonorOfferScreen() {
     ensureDistributionForPartner,
     handleDistributionRemoved,
     refetchDistributions,
-    suggestedAllocations,
+    manualChanges,
   ]);
 
   const statusMessage = isProcessingSuggestions
@@ -684,12 +823,13 @@ export default function AdminAllocateDonorOfferScreen() {
             requests={item.requests}
             generalItemId={item.id}
             updateItem={updateItemById}
-            updateItemsAllocated={updateItemsAllocated}
-            ensureDistributionForPartner={ensureDistributionForPartner}
-            onDistributionRemoved={handleDistributionRemoved}
-            isInteractionMode={isInteractionMode}
-          />
-        )}
+          updateItemsAllocated={updateItemsAllocated}
+          ensureDistributionForPartner={ensureDistributionForPartner}
+          onDistributionRemoved={handleDistributionRemoved}
+          isInteractionMode={isInteractionMode}
+          onManualAllocationChange={handleManualAllocationChange}
+        />
+      )}
         emptyState={
           <div className="flex justify-center items-center mt-8">
             <CgSpinner className="w-16 h-16 animate-spin opacity-50" />

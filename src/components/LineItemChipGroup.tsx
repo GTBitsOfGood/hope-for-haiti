@@ -21,6 +21,7 @@ export default function LineItemChipGroup({
   ensureDistributionForPartner,
   onDistributionRemoved,
   isInteractionMode = false,
+  onManualAllocationChange,
 }: {
   items: UnallocatedItemData["items"];
   requests: UnallocatedItemData["requests"];
@@ -33,6 +34,12 @@ export default function LineItemChipGroup({
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
   isInteractionMode?: boolean;
+  onManualAllocationChange?: (change: {
+    generalItemId: number;
+    lineItemId: number;
+    previousPartner: { id: number; name: string } | null;
+    nextPartner: { id: number; name: string } | null;
+  }) => void;
 }) {
   const sortedItems = [...items].sort((a, b) =>
     (a.allocation === null) === (b.allocation === null)
@@ -60,6 +67,7 @@ export default function LineItemChipGroup({
           ensureDistributionForPartner={ensureDistributionForPartner}
           onDistributionRemoved={onDistributionRemoved}
           isInteractionMode={isInteractionMode}
+          onManualAllocationChange={onManualAllocationChange}
         />
       ))}
     </div>
@@ -75,6 +83,7 @@ function LineItemChip({
   ensureDistributionForPartner,
   onDistributionRemoved,
   isInteractionMode = false,
+  onManualAllocationChange,
 }: {
   item: UnallocatedItemData["items"][number];
   requests: UnallocatedItemData["requests"];
@@ -87,6 +96,12 @@ function LineItemChip({
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
   isInteractionMode?: boolean;
+  onManualAllocationChange?: (change: {
+    generalItemId: number;
+    lineItemId: number;
+    previousPartner: { id: number; name: string } | null;
+    nextPartner: { id: number; name: string } | null;
+  }) => void;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -103,9 +118,35 @@ function LineItemChip({
   }
 
   async function unallocateItem() {
+    const previousPartner = item.allocation?.partner ?? null;
+
     if (isInteractionMode) {
-      toast("Finish interaction mode before making manual changes.");
       setIsDropdownOpen(false);
+
+      const baselinePartner =
+        item.suggestedAllocation?.previousPartner ?? previousPartner ?? null;
+
+      updateLineItemInTable({
+        allocation: null,
+        suggestedAllocation: baselinePartner
+          ? {
+              previousPartner: baselinePartner,
+              nextPartner: null,
+            }
+          : undefined,
+      });
+
+      if (previousPartner) {
+        updateItemsAllocated(previousPartner.id);
+      }
+
+      onManualAllocationChange?.({
+        generalItemId,
+        lineItemId: item.id,
+        previousPartner: baselinePartner,
+        nextPartner: null,
+      });
+
       return;
     }
 
@@ -138,9 +179,50 @@ function LineItemChip({
   async function allocateItem(
     request: UnallocatedItemData["requests"][number]
   ) {
+    if (isInteractionMode && item.allocation?.partner?.id === request.partnerId) {
+      await unallocateItem();
+      return;
+    }
+
+    const previousPartner = item.allocation?.partner ?? null;
+
     if (isInteractionMode) {
-      toast("Finish interaction mode before making manual changes.");
       setIsDropdownOpen(false);
+
+      const baselinePartner =
+        item.suggestedAllocation?.previousPartner ?? previousPartner ?? null;
+
+      const nextPartner = {
+        id: request.partnerId,
+        name: request.partner.name,
+      };
+
+      updateLineItemInTable({
+        allocation: {
+          id: item.allocation?.id ?? -item.id,
+          partner: nextPartner,
+        },
+        suggestedAllocation:
+          baselinePartner && baselinePartner.id === nextPartner.id
+            ? undefined
+            : {
+                previousPartner: baselinePartner,
+                nextPartner,
+              },
+      });
+
+      if (previousPartner) {
+        updateItemsAllocated(previousPartner.id);
+      }
+      updateItemsAllocated(request.partnerId);
+
+      onManualAllocationChange?.({
+        generalItemId,
+        lineItemId: item.id,
+        previousPartner: baselinePartner,
+        nextPartner,
+      });
+
       return;
     }
 
@@ -234,17 +316,13 @@ function LineItemChip({
       <button
         ref={buttonRef}
         onClick={() => {
-          if (isInteractionMode) {
-            return;
-          }
           setIsDropdownOpen(!isDropdownOpen);
         }}
-        className={`relative w-80 rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={`relative rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${
           hasSuggestedChange
             ? "border-blue-primary"
             : "border-blue-primary/60"
         }`}
-        disabled={isInteractionMode}
       >
         <span className="text-blue-primary">{item.palletNumber}</span>
         <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
@@ -253,12 +331,12 @@ function LineItemChip({
         <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
           <span className="flex items-center gap-1 px-1 py-[1px]">
             {hasSuggestedChange && (
-              <span className="px-1 py-[1px] rounded bg-gray-primary/10 text-gray-primary/60 line-through">
+              <span className="px-1 py-[1px] rounded bg-gray-primary/10 text-gray-primary/60 line-through overflow-hidden text-ellipsis max-w-[2rem] whitespace-nowrap">
                 {previousPartnerLabel}
               </span>
             )}
             <span
-              className={`px-1 py-[1px] rounded w-fit ${
+              className={`px-1 py-[1px] rounded w-fit max-w-[5rem] overflow-hidden text-ellipsis whitespace-nowrap ${
                 hasSuggestedChange
                   ? "bg-blue-primary/20 text-blue-primary font-semibold"
                   : item.allocation

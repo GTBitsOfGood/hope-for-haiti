@@ -580,10 +580,6 @@ export default class DonorOfferService {
     };
   }
 
-  static async getAllocationItems(donorOfferId: number) {
-    return getDonorOfferAllocationItems(donorOfferId);
-  }
-
   static async createDonorOfferRequests(
     requests: DonorOfferItemsRequestsDTO[],
     partnerId: number
@@ -911,57 +907,53 @@ export default class DonorOfferService {
       throw error;
     }
   }
-}
 
-async function fetchAllocationItems(donorOfferId: number) {
-  const items = await db.generalItem.findMany({
-    where: { donorOfferId },
-    include: {
-      items: {
-        include: {
-          allocation: {
-            include: {
-              partner: {
-                select: {
-                  id: true,
-                  name: true,
+  static async getAllocationItems(donorOfferId: number) {
+    const items = await db.generalItem.findMany({
+      where: { donorOfferId },
+      include: {
+        items: {
+          include: {
+            allocation: {
+              include: {
+                partner: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy: {
-          id: "asc",
-        },
-      },
-      requests: {
-        include: {
-          partner: {
-            select: {
-              id: true,
-              name: true,
-            },
+          orderBy: {
+            id: "asc",
           },
         },
-        orderBy: {
-          id: "asc",
+        requests: {
+          include: {
+            partner: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            id: "asc",
+          },
         },
       },
-    },
-    orderBy: {
-      id: "asc",
-    },
-  });
+      orderBy: {
+        id: "asc",
+      },
+    });
 
-  return {
-    items: items.map((item) => ({
-      ...item,
-      quantity: item.initialQuantity,
-    })),
-    total: items.length,
-  };
-}
-
-export async function getDonorOfferAllocationItems(donorOfferId: number) {
-  return fetchAllocationItems(donorOfferId);
+    return {
+      items: items.map((item) => ({
+        ...item,
+        quantity: item.initialQuantity,
+      })),
+      total: items.length,
+    };
+  }
 }
