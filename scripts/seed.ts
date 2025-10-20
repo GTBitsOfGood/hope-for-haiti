@@ -484,7 +484,7 @@ async function run() {
           },
         },
         {
-          state: DonorOfferState.UNFINALIZED,
+          state: DonorOfferState.FINALIZED,
           offerName: "Offer D",
           donorName: "Donor D",
           partnerResponseDeadline: dateOffset(20),

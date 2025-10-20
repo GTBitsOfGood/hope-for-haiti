@@ -5,18 +5,34 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
 
+export interface PartnerDistributionSummary {
+  id: number;
+  partnerId: number;
+  partnerName: string;
+  pending: boolean;
+}
+
 export default function LineItemChipGroup({
   items,
   requests,
   generalItemId,
   updateItem,
   updateItemsAllocated,
+  ensureDistributionForPartner,
+  onDistributionRemoved,
+  isInteractionMode = false,
 }: {
   items: UnallocatedItemData["items"];
   requests: UnallocatedItemData["requests"];
   generalItemId: number;
   updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
   updateItemsAllocated: (itemId: number, partnerId: number) => void;
+  ensureDistributionForPartner?: (
+    partnerId: number,
+    partnerName: string
+  ) => Promise<PartnerDistributionSummary>;
+  onDistributionRemoved?: (partnerId: number) => void;
+  isInteractionMode?: boolean;
 }) {
   const sortedItems = [...items].sort((a, b) =>
     (a.allocation === null) === (b.allocation === null)
@@ -41,6 +57,9 @@ export default function LineItemChipGroup({
           updateItemsAllocated={(partnerId) =>
             updateItemsAllocated(generalItemId, partnerId)
           }
+          ensureDistributionForPartner={ensureDistributionForPartner}
+          onDistributionRemoved={onDistributionRemoved}
+          isInteractionMode={isInteractionMode}
         />
       ))}
     </div>
@@ -53,12 +72,21 @@ function LineItemChip({
   generalItemId,
   updateItem,
   updateItemsAllocated,
+  ensureDistributionForPartner,
+  onDistributionRemoved,
+  isInteractionMode = false,
 }: {
   item: UnallocatedItemData["items"][number];
   requests: UnallocatedItemData["requests"];
   generalItemId: number;
   updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
   updateItemsAllocated: (partnerId: number) => void;
+  ensureDistributionForPartner?: (
+    partnerId: number,
+    partnerName: string
+  ) => Promise<PartnerDistributionSummary>;
+  onDistributionRemoved?: (partnerId: number) => void;
+  isInteractionMode?: boolean;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useOnClickOutside<HTMLDivElement>(() =>
@@ -77,6 +105,12 @@ function LineItemChip({
   }
 
   async function unallocateItem() {
+    if (isInteractionMode) {
+      toast("Finish interaction mode before making manual changes.");
+      setIsDropdownOpen(false);
+      return;
+    }
+
     if (!item.allocation?.id) {
       toast("Item is not allocated to any organization.");
       setIsDropdownOpen(false);
@@ -98,11 +132,20 @@ function LineItemChip({
 
     updateLineItemInTable({ allocation: null });
     updateItemsAllocated(item.allocation.partner!.id);
+    if (response.deletedDistribution) {
+      onDistributionRemoved?.(item.allocation.partner!.id);
+    }
   }
 
   async function allocateItem(
     request: UnallocatedItemData["requests"][number]
   ) {
+    if (isInteractionMode) {
+      toast("Finish interaction mode before making manual changes.");
+      setIsDropdownOpen(false);
+      return;
+    }
+
     if (item.allocation?.partner?.id === request.partnerId) {
       unallocateItem();
       return;
@@ -115,26 +158,63 @@ function LineItemChip({
     // Handle allocation logic here
     setIsDropdownOpen(false);
 
-    const response = await apiClient.post<{
-      allocation: {
-        id: number;
-        itemId: number;
-        distributionId: number;
-        partner: {
+    let distributionId: number | undefined;
+
+    if (ensureDistributionForPartner) {
+      const distribution = await ensureDistributionForPartner(
+        request.partnerId,
+        request.partner.name
+      );
+      distributionId = distribution.id;
+    }
+
+    const formData = new FormData();
+    formData.set("partnerId", request.partnerId.toString());
+    formData.set("lineItemId", item.id.toString());
+
+    type AllocationResponse =
+      | {
+          allocation: {
+            id: number;
+            itemId: number;
+            distributionId: number;
+            partner: {
+              id: number;
+              name: string;
+            } | null;
+          };
+        }
+      | {
           id: number;
-          name: string;
-        } | null;
-      };
-    }>("/api/allocations", {
-      body: JSON.stringify({
-        partnerId: request.partnerId,
-        lineItem: item.id,
-      }),
-    });
+          itemId: number;
+          distributionId: number;
+          partner: {
+            id: number;
+            name: string;
+          } | null;
+        };
+
+    const response = await apiClient.post<AllocationResponse>(
+      distributionId
+        ? `/api/distributions/${distributionId}/allocations`
+        : "/api/allocations",
+      {
+        body:
+          distributionId !== undefined
+            ? formData
+            : JSON.stringify({
+                partnerId: request.partnerId,
+                lineItem: item.id,
+              }),
+      }
+    );
+
+    const allocation =
+      "allocation" in response ? response.allocation : response;
 
     toast.success(`Item allocated to ${request.partner.name} successfully!`);
 
-    updateLineItemInTable({ allocation: response.allocation });
+    updateLineItemInTable({ allocation });
     updateItemsAllocated(request.partnerId);
   }
 
@@ -154,8 +234,14 @@ function LineItemChip({
   return (
     <div className="relative">
       <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow"
+        onClick={() => {
+          if (isInteractionMode) {
+            return;
+          }
+          setIsDropdownOpen(!isDropdownOpen);
+        }}
+        className="relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
+        disabled={isInteractionMode}
       >
         <span className="text-blue-primary">{item.palletNumber}</span>
         <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
