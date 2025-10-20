@@ -195,7 +195,7 @@ export default function AdminDonorOffersScreen() {
                 </Menu>
               </div>,
             ],
-            onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
+            onClick: () => router.push(`/donorOffers/${offer.donorOfferId}${offer.state === DonorOfferState.FINALIZED ? "/allocate" : ""}`),
           }))}
         />
       )}
