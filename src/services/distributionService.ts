@@ -19,6 +19,65 @@ export default class DistributionService {
     return db.distribution.findMany();
   }
 
+  static async getDistributionsForDonorOffer(
+    donorOfferId: number
+  ): Promise<
+    Record<
+      number,
+      {
+        id: number;
+        partnerId: number;
+        partnerName: string;
+        pending: boolean;
+      }
+    >
+  > {
+    const distributions = await db.distribution.findMany({
+      where: {
+        allocations: {
+          some: {
+            lineItem: {
+              generalItem: {
+                donorOfferId,
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        partnerId: true,
+        pending: true,
+        partner: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    return distributions.reduce(
+      (acc, distribution) => {
+        acc[distribution.partnerId] = {
+          id: distribution.id,
+          partnerId: distribution.partnerId,
+          partnerName: distribution.partner.name,
+          pending: distribution.pending,
+        };
+        return acc;
+      },
+      {} as Record<
+        number,
+        {
+          id: number;
+          partnerId: number;
+          partnerName: string;
+          pending: boolean;
+        }
+      >
+    );
+  }
+
   static async getDistribution(id: number) {
     const distribution = await db.distribution.findUnique({
       where: { id },
