@@ -6,18 +6,14 @@ import toast from "react-hot-toast";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useState } from "react";
 
-export default function SignInPage() {
+export default function ResetPasswordPage() {
   const { apiClient } = useApiClient();
   const [submitted, setSubmitted] = useState(false);
   const handleSubmit = submitHandler(async (formData: FormData) => {
     try {
-      // Uncomment below when api route is finished
-      /*
       await apiClient.post("/api/reset-password", {
         body: formData,
       });
-      */
-      console.log(formData, apiClient);
       setSubmitted(true);
     } catch (e) {
       toast.error("Unknown error");
@@ -26,8 +22,13 @@ export default function SignInPage() {
   });
 
   return (
-    <main className="bg-gradient-to-tr from-[#4AA6EB] to-[#F0424E] w-screen h-screen flex flex-col justify-center items-center">
-      <div className="bg-white py-6 px-6 rounded-xl">
+    <main 
+      className="w-screen h-screen flex flex-col justify-center items-center"
+      style={{
+        background: 'linear-gradient(to top right, #4AA6EB, #F0424E)'
+      }}
+    >      
+    <div className="bg-white py-6 px-6 rounded-xl">
         <div className="flex flex-col justify-center items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="Hope for Haiti Logo" className="mb-4" />

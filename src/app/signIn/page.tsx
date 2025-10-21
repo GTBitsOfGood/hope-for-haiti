@@ -28,7 +28,12 @@ export default function SignInPage() {
   });
 
   return (
-    <main className="bg-gradient-to-tr from-[#4AA6EB] to-[#F0424E] w-screen h-screen flex flex-col justify-center items-center">
+    <main 
+      className="w-screen h-screen flex flex-col justify-center items-center"
+      style={{
+        background: 'linear-gradient(to top right, #4AA6EB, #F0424E)'
+      }}
+    >
       <div className="bg-white py-6 px-6 rounded-xl">
         <div className="flex flex-col justify-center items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}

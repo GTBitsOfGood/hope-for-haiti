@@ -1614,60 +1614,59 @@ const shippingStatusSeeds = [
 ];
 
 async function buildSeedData() {
-  await db.$transaction(async (tx) => {
-    await tx.allocation.deleteMany();
-    await tx.generalItemRequest.deleteMany();
-    await tx.lineItem.deleteMany();
-    await tx.generalItem.deleteMany();
-    await tx.donorOffer.deleteMany();
-    await tx.distribution.deleteMany();
-    await tx.signOff.deleteMany();
-    await tx.wishlist.deleteMany();
-    await tx.shippingStatus.deleteMany();
-    await tx.userInvite.deleteMany();
-    await tx.user.deleteMany();
-    await tx.allocation.deleteMany();
-    await tx.generalItemRequest.deleteMany();
-    await tx.descriptionLookup.deleteMany();
+  await db.allocation.deleteMany();
+  await db.generalItemRequest.deleteMany();
+  await db.lineItem.deleteMany();
+  await db.generalItem.deleteMany();
+  await db.donorOffer.deleteMany();
+  await db.distribution.deleteMany();
+  await db.signOff.deleteMany();
+  await db.wishlist.deleteMany();
+  await db.shippingStatus.deleteMany();
+  await db.userInvite.deleteMany();
+  await db.user.deleteMany();
+  await db.allocation.deleteMany();
+  await db.generalItemRequest.deleteMany();
+  await db.descriptionLookup.deleteMany();
 
-    const passwordHash = await hash("root");
+  const passwordHash = await hash("root");
 
-    await Promise.all([
-      tx.user.create({
+  await Promise.all([
+    db.user.create({
       data: {
         email: "superadmin@test.com",
         name: "Super Admin",
-          passwordHash,
-          type: UserType.SUPER_ADMIN,
-          enabled: true,
-          pending: false,
+        passwordHash,
+        type: UserType.SUPER_ADMIN,
+        enabled: true,
+        pending: false,
       },
-      }),
-      tx.user.create({
+    }),
+    db.user.create({
       data: {
         email: "admin@test.com",
-          name: "Admin User",
-          passwordHash,
+        name: "Admin User",
+        passwordHash,
         type: UserType.ADMIN,
-          enabled: true,
-          pending: false,
+        enabled: true,
+        pending: false,
       },
-      }),
-      tx.user.create({
+    }),
+    db.user.create({
       data: {
         email: "staff@test.com",
-          name: "Staff Member",
-          passwordHash,
+        name: "Staff Member",
+        passwordHash,
         type: UserType.STAFF,
-          enabled: true,
-          pending: false,
-        },
-      }),
-    ]);
+        enabled: true,
+        pending: false,
+      },
+    }),
+  ]);
 
     const partnerRecords = [];
     for (const seed of partnerSeeds) {
-      const partner = await tx.user.create({
+      const partner = await db.user.create({
       data: {
           email: seed.email,
           name: seed.name,
@@ -1686,7 +1685,7 @@ async function buildSeedData() {
       ({ seed }) => seed.pending
     );
     if (pendingPartnerEntry) {
-    await tx.userInvite.create({
+    await db.userInvite.create({
       data: {
           userId: pendingPartnerEntry.partner.id,
           token: "partner-onboarding-token",
@@ -1755,7 +1754,7 @@ async function buildSeedData() {
         : {}),
     });
 
-    await tx.donorOffer.create({
+    await db.donorOffer.create({
       data: {
           state: DonorOfferState.UNFINALIZED,
         offerName: "Q3 Medical Support (Draft)",
@@ -1771,7 +1770,7 @@ async function buildSeedData() {
       },
     });
 
-    await tx.donorOffer.create({
+    await db.donorOffer.create({
       data: {
         state: DonorOfferState.FINALIZED,
         offerName: "Q2 Emergency Allocation (Finalized)",
@@ -1787,7 +1786,7 @@ async function buildSeedData() {
       },
     });
 
-    const archivedDonorOffer = await tx.donorOffer.create({
+    const archivedDonorOffer = await db.donorOffer.create({
       data: {
         state: DonorOfferState.ARCHIVED,
         offerName: "Q1 Storm Recovery Allocation (Archived)",
@@ -1843,7 +1842,7 @@ async function buildSeedData() {
         );
       }
 
-      const distribution = await tx.distribution.create({
+      const distribution = await db.distribution.create({
         data: {
           partnerId: partner.id,
           pending: false,
@@ -1858,7 +1857,7 @@ async function buildSeedData() {
           );
         }
 
-        await tx.allocation.create({
+        await db.allocation.create({
           data: {
             lineItemId: lineItem.id,
             distributionId: distribution.id,
@@ -1866,10 +1865,9 @@ async function buildSeedData() {
           },
         });
       }
-    }
+  }
 
-    await tx.shippingStatus.createMany({ data: shippingStatusSeeds });
-  });
+  await db.shippingStatus.createMany({ data: shippingStatusSeeds });
 }
 
 buildSeedData()

@@ -3,36 +3,23 @@
 import submitHandler from "@/util/formAction";
 import toast from "react-hot-toast";
 import { useApiClient } from "@/hooks/useApiClient";
-// import { useFetch } from "@/hooks/useFetch";
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CgSpinner } from "react-icons/cg";
 import { validatePassword } from "@/util/util";
+import { useFetch } from "@/hooks/useFetch";
 
-export default function SignInPage() {
+export default function ResetPasswordChangePage() {
   const { apiClient } = useApiClient();
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token") || "";
-  const [isTokenValid, setIsTokenValid] = useState(false);
 
-  //DELETE THIS WHEN API ROUTE IS IMPLEMENTED
-  useEffect(() => {
-    setIsTokenValid(true);
-    console.log(token);
-  }, [setIsTokenValid, token]);
-
-  const isLoading = false; //DELETE THIS LINE WHEN API ROUTE IS IMPLEMENTED
-  /*
-  const { isLoading } = useFetch(`/api/reset-password/verify?token=${token}`, {
-    onSuccess: () => {
-      setIsTokenValid(true);
-    },
+  const { isLoading, error } = useFetch(`/api/reset-password/verify?token=${token}`, {
     onError: () => {
       toast.error("Error while validating token");
+      router.push("/signIn");
     },
   });
-  */
 
   const handleSubmit = submitHandler(async (formData: FormData) => {
     try {
@@ -50,27 +37,31 @@ export default function SignInPage() {
         return;
       }
 
-      // Uncomment when API route is implemented
-      /*
       await apiClient.post("/api/reset-password/change", {
         body: new URLSearchParams({
           password: password as string,
           token: token,
         }).toString(),
       });
-      */
 
-      console.log(formData, apiClient);
       toast.success("Password reset successfully!");
       router.push("/signIn");
     } catch (e) {
-      toast.error("Unknown error");
-      console.error(e);
+      if (e instanceof Error) {
+        toast.error(e.message);
+      } else {
+        toast.error("Unknown error");
+      }
     }
   });
 
   return (
-    <main className="bg-gradient-to-tr from-[#4AA6EB] to-[#F0424E] w-screen h-screen flex flex-col justify-center items-center">
+    <main 
+      className="w-screen h-screen flex flex-col justify-center items-center"
+      style={{
+        background: 'linear-gradient(to top right, #4AA6EB, #F0424E)'
+      }}
+    >     
       <div className="bg-white py-6 px-6 rounded-xl">
         <div className="flex flex-col justify-center items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -81,7 +72,7 @@ export default function SignInPage() {
           </h2>
         </div>
         {isLoading && <CgSpinner />}
-        {!isLoading && isTokenValid && (
+        {!isLoading && !error && (
           <form onSubmit={handleSubmit} className="w-64 sm:w-80">
             <div className="mb-4">
               <label

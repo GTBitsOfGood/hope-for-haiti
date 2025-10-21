@@ -56,8 +56,13 @@ export default function RegisterPage() {
 
   if (isLoading) {
     return (
-      <main className="bg-gradient-to-tr from-[#4AA6EB] to-[#F0424E] w-screen h-screen flex flex-col justify-center items-center">
-        <div className="bg-white py-6 px-6 rounded-xl w-96 sm:w-[580px]">
+      <main 
+      className="w-screen h-screen flex flex-col justify-center items-center"
+      style={{
+        background: 'linear-gradient(to top right, #4AA6EB, #F0424E)'
+      }}
+    >        
+      <div className="bg-white py-6 px-6 rounded-xl w-96 sm:w-[580px]">
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="ml-3 text-gray-600">Loading invite...</p>
@@ -68,7 +73,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="bg-gradient-to-tr from-[#4AA6EB] to-[#F0424E] w-screen h-screen flex flex-col justify-center items-center">
+    <main 
+      className="w-screen h-screen flex flex-col justify-center items-center"
+      style={{
+        background: 'linear-gradient(to top right, #4AA6EB, #F0424E)'
+      }}
+    >      
       <div className="bg-white py-6 px-6 rounded-xl w-96 sm:w-[580px]">
         {!error ? (
           <div>
