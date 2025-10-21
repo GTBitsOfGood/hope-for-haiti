@@ -67,7 +67,7 @@ export default function AdminDonorOffersScreen() {
   const handleArchive = (donorOfferId: number) => {
     (async () => {
       try {
-        const resp = await fetch(`/api/donorOffers/${donorOfferId}/archive`, {
+        const resp = await fetch(`/api/donorOffers/${donorOfferId}/submit`, {
           method: "POST",
         });
         if (!resp.ok) {
@@ -171,31 +171,44 @@ export default function AdminDonorOffersScreen() {
                       <PencilSimple className="inline-block mr-2" size={22} />
                       Edit Offer Details
                     </MenuItem>
-                    <MenuItem
-                      as="button"
-                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() =>
-                        router.push(
-                          `/donorOffers/${offer.donorOfferId}/finalize`
-                        )
-                      }
-                    >
-                      <Upload className="inline-block mr-2" size={22} />
-                      Upload Final Offer
-                    </MenuItem>
-                    <MenuItem
-                      as="button"
-                      className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => handleArchive(offer.donorOfferId)}
-                    >
-                      <Archive className="inline-block mr-2" size={22} />
-                      Archive Offer
-                    </MenuItem>
+                    {offer.state === DonorOfferState.UNFINALIZED && (
+                      <MenuItem
+                        as="button"
+                        className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() =>
+                          router.push(
+                            `/donorOffers/${offer.donorOfferId}/finalize`
+                          )
+                        }
+                      >
+                        <Upload className="inline-block mr-2" size={22} />
+                        Upload Final Offer
+                      </MenuItem>
+                    )}
+                    {offer.state === DonorOfferState.FINALIZED && (
+                      <MenuItem
+                        as="button"
+                        className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => handleArchive(offer.donorOfferId)}
+                      >
+                        <Archive className="inline-block mr-2" size={22} />
+                        Archive Offer
+                      </MenuItem>
+                    )}
                   </MenuItems>
                 </Menu>
               </div>,
             ],
-            onClick: () => router.push(`/donorOffers/${offer.donorOfferId}${offer.state === DonorOfferState.FINALIZED ? "/allocate" : ""}`)
+            onClick: () => {
+              if (
+                offer.state === DonorOfferState.FINALIZED ||
+                offer.state === DonorOfferState.ARCHIVED
+              ) {
+                router.push(`/donorOffers/${offer.donorOfferId}/allocate`);
+                return;
+              }
+              router.push(`/donorOffers/${offer.donorOfferId}`);
+            }
           }))}
         />
       )}

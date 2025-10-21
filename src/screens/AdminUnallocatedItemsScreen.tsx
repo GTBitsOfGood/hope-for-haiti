@@ -1,85 +1,35 @@
 "use client";
 
-import { useRef, useCallback } from "react";
-import { CgChevronDown, CgChevronRight, CgSpinner } from "react-icons/cg";
-import React from "react";
-import { $Enums } from "@prisma/client";
-import AdvancedBaseTable, {
-  AdvancedBaseTableHandle,
-  ColumnDefinition,
-  FilterList,
-} from "@/components/baseTable/AdvancedBaseTable";
+import { useCallback } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
-import LineItemChipGroup from "@/components/LineItemChipGroup";
+import AllocationTable from "@/components/allocationTable/AllocationTable";
+import {
+  AllocationChange,
+  AllocationTableItem,
+} from "@/components/allocationTable/types";
+import { FilterList } from "@/components/baseTable/AdvancedBaseTable";
 
-export interface UnallocatedItemData {
-  id: number;
-  title: string;
-  type: string;
-  quantity: number;
-  expirationDate: string | null;
-  unitType: string;
-  quantityPerUnit: number;
-  requests: {
-    id: number;
-    partnerId: number;
-    partner: {
-      id: number;
-      name: string;
-    };
-    createdAt: string;
-    quantity: number;
-    priority: $Enums.RequestPriority | null;
-    comments: string;
-    itemsAllocated: number;
-  }[];
-  items: {
-    id: number;
-    quantity: number;
-    datePosted: string | null;
-    donorName: string | null;
-    lotNumber: string | null;
-    palletNumber: string | null;
-    boxNumber: string | null;
-    allocation: {
-      id: number;
-      partner: {
-        id: number;
-        name: string;
-      } | null;
-    } | null;
-    suggestedAllocation?: {
-      previousPartner: {
-        id: number;
-        name: string;
-      } | null;
-      nextPartner: {
-        id: number;
-        name: string;
-      } | null;
-    };
-  }[];
+type SuggestionResponse = {
+  allocations: { lineItemId: number; partnerId: number | null }[];
+};
+
+function calculateItemsAllocated(
+  item: AllocationTableItem,
+  request: AllocationTableItem["requests"][number]
+) {
+  return item.items
+    .filter((line) => line.allocation?.partner?.id === request.partnerId)
+    .reduce((sum, line) => sum + line.quantity, 0);
 }
 
 export default function AdminUnallocatedItemsScreen() {
-  const tableRef = useRef<AdvancedBaseTableHandle<UnallocatedItemData>>(null);
-
   const { apiClient } = useApiClient();
-
-  function calculateItemsAllocated(
-    item: UnallocatedItemData,
-    request: UnallocatedItemData["requests"][number]
-  ) {
-    return item.items
-      .filter((it) => it.allocation?.partner?.id === request.partnerId)
-      .reduce((sum, it) => sum + it.quantity, 0);
-  }
 
   const fetchTableData = useCallback(
     async (
       pageSize: number,
       page: number,
-      filters: FilterList<UnallocatedItemData>
+      filters: FilterList<AllocationTableItem>
     ) => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -87,14 +37,14 @@ export default function AdminUnallocatedItemsScreen() {
         filters: JSON.stringify(filters),
       });
 
-      const res = await apiClient.get<{
-        items: UnallocatedItemData[];
+      const response = await apiClient.get<{
+        items: AllocationTableItem[];
         total: number;
       }>(`/api/generalItems/unallocated?${params}`, {
         cache: "no-store",
       });
 
-      const items = res.items.map((item) => ({
+      const items = response.items.map((item) => ({
         ...item,
         requests: item.requests.map((request) => ({
           ...request,
@@ -104,88 +54,78 @@ export default function AdminUnallocatedItemsScreen() {
 
       return {
         data: items,
-        total: items.length,
+        total: response.total,
       };
     },
     [apiClient]
   );
 
-  function updateItemsAllocated(itemId: number, partnerId: number) {
-    tableRef.current?.updateItemById(itemId, (prev) => ({
-      ...prev,
-      requests: prev.requests.map((request) =>
-        request.partnerId === partnerId
-          ? {
-              ...request,
-              itemsAllocated: calculateItemsAllocated(prev, request),
-            }
-          : request
-      ),
-    }));
-  }
+  const handleSuggest = useCallback(
+    async (items: AllocationTableItem[]) => {
+      const generalItemIds = items.map((item) => item.id);
+      if (!generalItemIds.length) {
+        return { allocations: [] };
+      }
 
-  const columns: ColumnDefinition<UnallocatedItemData>[] = [
-    {
-      id: "title",
-      header: "Title",
-      cell: (item, _, isOpen) => (
-        <span className="flex gap-2 items-center -ml-2">
-          {isOpen ? <CgChevronDown /> : <CgChevronRight />}
-          <p>{item.title || "N/A"}</p>
-        </span>
-      ),
+      return apiClient.post<SuggestionResponse>("/api/suggest/allocations", {
+        body: JSON.stringify({ generalItemIds }),
+      });
     },
-    "type",
-    "quantity",
-    {
-      id: "expirationDate",
-      header: "Expiration",
-      cell: (item) => {
-        return item.expirationDate
-          ? new Date(item.expirationDate).toLocaleDateString()
-          : "N/A";
-      },
+    [apiClient]
+  );
+
+  const handleApplySuggestions = useCallback(
+    async (changes: AllocationChange[]) => {
+      let appliedCount = 0;
+
+      const removals = changes.filter(
+        (change) =>
+          change.previousAllocationId &&
+          (change.previousPartner?.id ?? null) !==
+            (change.nextPartner?.id ?? null)
+      );
+
+      const additions = changes.filter(
+        (change) =>
+          change.nextPartner &&
+          (change.previousPartner?.id ?? null) !== change.nextPartner.id
+      );
+
+      await Promise.all(
+        removals.map(async (change) => {
+          await apiClient.delete<{ deletedDistribution: boolean }>(
+            `/api/allocations/${change.previousAllocationId}`
+          );
+          appliedCount += 1;
+        })
+      );
+
+      await Promise.all(
+        additions.map(async (change) => {
+          await apiClient.post("/api/allocations", {
+            body: JSON.stringify({
+              partnerId: change.nextPartner!.id,
+              lineItem: change.lineItemId,
+            }),
+          });
+          appliedCount += 1;
+        })
+      );
+
+      return appliedCount;
     },
-    "unitType",
-    "quantityPerUnit",
-    {
-      id: "requests",
-      header: "# of Requests",
-      cell: (item) => item.requests?.length,
-      filterable: false,
-    },
-    {
-      id: "items",
-      header: "# of Line Items",
-      cell: (item) => item.items?.length,
-      filterable: false,
-    },
-  ];
+    [apiClient]
+  );
 
   return (
     <>
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
-
-      <AdvancedBaseTable
-        ref={tableRef}
-        columns={columns}
+      <AllocationTable
         fetchFn={fetchTableData}
-        rowId="id"
-        pageSize={20}
-        rowBody={(item) => (
-          <LineItemChipGroup
-            items={item.items}
-            requests={item.requests}
-            generalItemId={item.id}
-            updateItem={tableRef.current!.updateItemById}
-            updateItemsAllocated={updateItemsAllocated}
-          />
-        )}
-        emptyState={
-          <div className="flex justify-center items-center mt-8">
-            <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-          </div>
-        }
+        suggestionConfig={{
+          onSuggest: handleSuggest,
+          onApply: handleApplySuggestions,
+        }}
       />
     </>
   );

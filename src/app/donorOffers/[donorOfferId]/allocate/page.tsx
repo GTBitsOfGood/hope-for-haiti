@@ -16,9 +16,5 @@ export default function DonorOffersAllocatePage() {
     return <AdminAllocateDonorOfferScreen />;
   }
 
-  if (session.user.type === "PARTNER") {
-    return <></>;
-  }
-
-  redirect("/signIn");
+  redirect("/");
 }

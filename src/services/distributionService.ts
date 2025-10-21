@@ -29,7 +29,7 @@ export default class DistributionService {
         partnerId: number;
         partnerName: string;
         pending: boolean;
-      }
+      }[]
     >
   > {
     const distributions = await db.distribution.findMany({
@@ -58,12 +58,14 @@ export default class DistributionService {
 
     return distributions.reduce(
       (acc, distribution) => {
-        acc[distribution.partnerId] = {
+        const bucket = acc[distribution.partnerId] ?? [];
+        bucket.push({
           id: distribution.id,
           partnerId: distribution.partnerId,
           partnerName: distribution.partner.name,
           pending: distribution.pending,
-        };
+        });
+        acc[distribution.partnerId] = bucket;
         return acc;
       },
       {} as Record<
@@ -73,7 +75,7 @@ export default class DistributionService {
           partnerId: number;
           partnerName: string;
           pending: boolean;
-        }
+        }[]
       >
     );
   }

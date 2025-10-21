@@ -1,9 +1,9 @@
 import { useApiClient } from "@/hooks/useApiClient";
-import { UnallocatedItemData } from "@/screens/AdminUnallocatedItemsScreen";
 import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
 import Portal from "./baseTable/Portal";
+import { AllocationTableItem } from "./allocationTable/types";
 
 export interface PartnerDistributionSummary {
   id: number;
@@ -21,12 +21,11 @@ export default function LineItemChipGroup({
   ensureDistributionForPartner,
   onDistributionRemoved,
   isInteractionMode = false,
-  onManualAllocationChange,
 }: {
-  items: UnallocatedItemData["items"];
-  requests: UnallocatedItemData["requests"];
+  items: AllocationTableItem["items"];
+  requests: AllocationTableItem["requests"];
   generalItemId: number;
-  updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
+  updateItem: AdvancedBaseTableHandle<AllocationTableItem>["updateItemById"];
   updateItemsAllocated: (itemId: number, partnerId: number) => void;
   ensureDistributionForPartner?: (
     partnerId: number,
@@ -34,12 +33,6 @@ export default function LineItemChipGroup({
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
   isInteractionMode?: boolean;
-  onManualAllocationChange?: (change: {
-    generalItemId: number;
-    lineItemId: number;
-    previousPartner: { id: number; name: string } | null;
-    nextPartner: { id: number; name: string } | null;
-  }) => void;
 }) {
   const sortedItems = [...items].sort((a, b) =>
     (a.allocation === null) === (b.allocation === null)
@@ -67,7 +60,6 @@ export default function LineItemChipGroup({
           ensureDistributionForPartner={ensureDistributionForPartner}
           onDistributionRemoved={onDistributionRemoved}
           isInteractionMode={isInteractionMode}
-          onManualAllocationChange={onManualAllocationChange}
         />
       ))}
     </div>
@@ -83,12 +75,11 @@ function LineItemChip({
   ensureDistributionForPartner,
   onDistributionRemoved,
   isInteractionMode = false,
-  onManualAllocationChange,
 }: {
-  item: UnallocatedItemData["items"][number];
-  requests: UnallocatedItemData["requests"];
+  item: AllocationTableItem["items"][number];
+  requests: AllocationTableItem["requests"];
   generalItemId: number;
-  updateItem: AdvancedBaseTableHandle<UnallocatedItemData>["updateItemById"];
+  updateItem: AdvancedBaseTableHandle<AllocationTableItem>["updateItemById"];
   updateItemsAllocated: (partnerId: number) => void;
   ensureDistributionForPartner?: (
     partnerId: number,
@@ -96,12 +87,6 @@ function LineItemChip({
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
   isInteractionMode?: boolean;
-  onManualAllocationChange?: (change: {
-    generalItemId: number;
-    lineItemId: number;
-    previousPartner: { id: number; name: string } | null;
-    nextPartner: { id: number; name: string } | null;
-  }) => void;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -118,34 +103,17 @@ function LineItemChip({
   }
 
   async function unallocateItem() {
-    const previousPartner = item.allocation?.partner ?? null;
-
     if (isInteractionMode) {
       setIsDropdownOpen(false);
 
-      const baselinePartner =
-        item.suggestedAllocation?.previousPartner ?? previousPartner ?? null;
-
       updateLineItemInTable({
         allocation: null,
-        suggestedAllocation: baselinePartner
-          ? {
-              previousPartner: baselinePartner,
-              nextPartner: null,
-            }
-          : undefined,
       });
 
+      const previousPartner = item.allocation?.partner ?? null;
       if (previousPartner) {
         updateItemsAllocated(previousPartner.id);
       }
-
-      onManualAllocationChange?.({
-        generalItemId,
-        lineItemId: item.id,
-        previousPartner: baselinePartner,
-        nextPartner: null,
-      });
 
       return;
     }
@@ -156,7 +124,6 @@ function LineItemChip({
       return;
     }
 
-    // Handle unallocation logic here
     setIsDropdownOpen(false);
 
     const response = await apiClient.delete<{
@@ -169,7 +136,7 @@ function LineItemChip({
         : `Item unallocated from ${item.allocation?.partner?.name} successfully.`
     );
 
-    updateLineItemInTable({ allocation: null, suggestedAllocation: undefined });
+    updateLineItemInTable({ allocation: null });
     updateItemsAllocated(item.allocation.partner!.id);
     if (response.deletedDistribution) {
       onDistributionRemoved?.(item.allocation.partner!.id);
@@ -177,51 +144,34 @@ function LineItemChip({
   }
 
   async function allocateItem(
-    request: UnallocatedItemData["requests"][number]
+    request: AllocationTableItem["requests"][number]
   ) {
     if (isInteractionMode && item.allocation?.partner?.id === request.partnerId) {
       await unallocateItem();
       return;
     }
 
-    const previousPartner = item.allocation?.partner ?? null;
-
     if (isInteractionMode) {
       setIsDropdownOpen(false);
-
-      const baselinePartner =
-        item.suggestedAllocation?.previousPartner ?? previousPartner ?? null;
 
       const nextPartner = {
         id: request.partnerId,
         name: request.partner.name,
       };
 
+      const previousPartner = item.allocation?.partner ?? null;
+
       updateLineItemInTable({
         allocation: {
           id: item.allocation?.id ?? -item.id,
           partner: nextPartner,
         },
-        suggestedAllocation:
-          baselinePartner && baselinePartner.id === nextPartner.id
-            ? undefined
-            : {
-                previousPartner: baselinePartner,
-                nextPartner,
-              },
       });
 
       if (previousPartner) {
         updateItemsAllocated(previousPartner.id);
       }
       updateItemsAllocated(request.partnerId);
-
-      onManualAllocationChange?.({
-        generalItemId,
-        lineItemId: item.id,
-        previousPartner: baselinePartner,
-        nextPartner,
-      });
 
       return;
     }
@@ -235,7 +185,6 @@ function LineItemChip({
       await unallocateItem();
     }
 
-    // Handle allocation logic here
     setIsDropdownOpen(false);
 
     let distributionId: number | undefined;
@@ -294,22 +243,9 @@ function LineItemChip({
 
     toast.success(`Item allocated to ${request.partner.name} successfully!`);
 
-    updateLineItemInTable({ allocation, suggestedAllocation: undefined });
+    updateLineItemInTable({ allocation });
     updateItemsAllocated(request.partnerId);
   }
-
-  const suggestedAllocation = item.suggestedAllocation;
-  const previousPartner = suggestedAllocation?.previousPartner ?? null;
-  const nextPartner =
-    suggestedAllocation?.nextPartner ?? item.allocation?.partner ?? null;
-  const hasSuggestedChange =
-    !!suggestedAllocation &&
-    (previousPartner?.id ?? null) !== (nextPartner?.id ?? null);
-  const hasSuggestedRemoval =
-    hasSuggestedChange && nextPartner === null && previousPartner !== null;
-
-  const currentPartnerLabel = nextPartner?.name ?? "None";
-  const previousPartnerLabel = previousPartner?.name ?? "None";
 
   return (
     <div className="relative">
@@ -319,9 +255,7 @@ function LineItemChip({
           setIsDropdownOpen(!isDropdownOpen);
         }}
         className={`relative rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${
-          hasSuggestedChange
-            ? "border-blue-primary"
-            : "border-blue-primary/60"
+          item.allocation ? "border-blue-primary" : "border-blue-primary/60"
         }`}
       >
         <span className="text-blue-primary">{item.palletNumber}</span>
@@ -329,23 +263,14 @@ function LineItemChip({
           {item.quantity}
         </span>
         <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
-          <span className="flex items-center gap-1 px-1 py-[1px]">
-            {hasSuggestedChange && (
-              <span className="px-1 py-[1px] rounded bg-gray-primary/10 text-gray-primary/60 line-through overflow-hidden text-ellipsis max-w-[2rem] whitespace-nowrap">
-                {previousPartnerLabel}
-              </span>
-            )}
-            <span
-              className={`px-1 py-[1px] rounded w-fit max-w-[5rem] overflow-hidden text-ellipsis whitespace-nowrap ${
-                hasSuggestedChange
-                  ? "bg-blue-primary/20 text-blue-primary font-semibold"
-                  : item.allocation
-                    ? "bg-blue-primary/10 text-blue-primary"
-                    : "bg-gray-primary/10 text-gray-primary/50"
-              }`}
-            >
-              {hasSuggestedRemoval ? "None" : currentPartnerLabel}
-            </span>
+          <span
+            className={`block max-w-[110px] h-full truncate px-1 py-[1px] ${
+              item.allocation
+                ? "bg-red-primary/20 text-red-primary"
+                : "bg-gray-primary/10 text-gray-primary/30"
+            }`}
+          >
+            {item.allocation?.partner ? item.allocation.partner.name : "None"}
           </span>
         </span>
       </button>

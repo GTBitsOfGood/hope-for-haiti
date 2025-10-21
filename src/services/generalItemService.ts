@@ -6,7 +6,8 @@ import {
 import { NotFoundError } from "@/util/errors";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Filters, FilterValue } from "@/types/api/filter.types";
-import { GeneralItem } from "@prisma/client";
+import { $Enums, GeneralItem, Prisma } from "@prisma/client";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export class GeneralItemService {
   static async createGeneralItem(item: CreateGeneralItemParams) {
@@ -51,18 +52,29 @@ export class GeneralItemService {
     page?: number,
     pageSize?: number
   ) {
-    const generalItems = await db.generalItem.findMany({
+
+    const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
+      Object.keys(Prisma.GeneralItemScalarFieldEnum),
+      filters
+    );
+    
+    const query: Prisma.GeneralItemFindManyArgs = {
+      where: {
+        ...filterWhere,
+        donorOffer: {
+          state: "ARCHIVED",
+        },
+        items: {
+          some: {
+            allocation: null,
+          }
+        }
+      },
       include: {
         items: {
-          include: {
-            allocation: {
-              include: {
-                partner: {
-                  select: { id: true, name: true },
-                },
-              },
-            },
-          },
+          where: {
+            allocation: null,
+          }
         },
         requests: {
           include: {
@@ -76,55 +88,30 @@ export class GeneralItemService {
       orderBy: {
         id: "asc",
       },
-    });
+      take: pageSize,
+      skip: (page && pageSize) ? (page - 1) * pageSize : undefined,
+    };
 
-    const unallocatedWithLineItems = generalItems
-      .map((item) => {
-        let totalQuantity = 0;
-        let allocatedQuantity = 0;
+    buildQueryWithPagination(query, page, pageSize);
 
-        item.items.forEach((lineItem) => {
-          totalQuantity += lineItem.quantity;
-          if (lineItem.allocation) {
-            allocatedQuantity += lineItem.quantity;
+    const [generalItems, total] = await Promise.all([
+      db.generalItem.findMany(query),
+      db.generalItem.count({ where: {
+        ...filterWhere,
+        donorOffer: {
+          state: $Enums.DonorOfferState.ARCHIVED,
+        },
+        items: {
+          some: {
+            allocation: null,
           }
-        });
-
-        return {
-          item,
-          quantity: item.initialQuantity,
-          unallocatedQuantity: totalQuantity - allocatedQuantity,
-        };
-      })
-      .filter(({ unallocatedQuantity }) => unallocatedQuantity > 0)
-      .map(({ item, quantity }) => ({ item, quantity }));
-
-    const filtered = filters
-      ? unallocatedWithLineItems.filter(({ item, quantity }) =>
-          this.matchesFilters({ ...item, quantity }, filters)
-        )
-      : unallocatedWithLineItems;
-
-    const total = filtered.length;
-
-    const paginated =
-      page && pageSize
-        ? filtered.slice(
-            (page - 1) * pageSize,
-            (page - 1) * pageSize + pageSize
-          )
-        : filtered;
-
-    const sanitize = paginated.map(({ item, quantity }) => {
-      return {
-        ...item,
-        quantity,
-      };
-    });
+        }
+      }, }),
+    ]);
 
     return {
-      items: sanitize,
-      total,
+      items: generalItems,
+      total: total,
     };
   }
 

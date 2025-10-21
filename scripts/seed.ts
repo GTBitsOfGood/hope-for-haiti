@@ -1151,6 +1151,454 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
   },
 ];
 
+const archivedGeneralItems: GeneralItemSeed[] = [
+  {
+    title: "Azithromycin 250mg Tablets",
+    type: "Medication",
+    unitType: "Bottle",
+    quantityPerUnit: 60,
+    expirationDate: new Date("2026-02-28"),
+    initialQuantity: 420,
+    requestQuantity: 455,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 110,
+        finalQuantity: 100,
+        comments: "Community pneumonia cases remain high.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 95,
+        finalQuantity: 85,
+        comments: "Mobile teams preparing for rainy season spikes.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 105,
+        finalQuantity: 95,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 80,
+        finalQuantity: 70,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 65,
+        finalQuantity: 60,
+        comments: "Covering satellite rural clinics.",
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Med Relief International",
+        quantity: 160,
+        lotNumber: "LOT-AZI-2401",
+        palletNumber: "PAL-AZI-01",
+        boxNumber: "BOX-AZI-01",
+        unitPrice: 14.8,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-101",
+        hfhShippingNumber: "HFH-2405-041",
+        ndc: "00378-3125-60",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Med Relief International",
+        quantity: 140,
+        lotNumber: "LOT-AZI-2402",
+        palletNumber: "PAL-AZI-01",
+        boxNumber: "BOX-AZI-02",
+        unitPrice: 14.8,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-102",
+        notes: "Packed with desiccant packets.",
+      },
+      {
+        category: ItemCategory.MEDICATION,
+        donorName: "Med Relief International",
+        quantity: 120,
+        lotNumber: "LOT-AZI-2403",
+        palletNumber: "PAL-AZI-02",
+        boxNumber: "BOX-AZI-03",
+        unitPrice: 14.8,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-103",
+        maxRequestLimit: "Limit 80 bottles per partner",
+      },
+    ],
+  },
+  {
+    title: "Disposable Surgical Gown Packs",
+    type: "Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 40,
+    expirationDate: new Date("2027-04-30"),
+    initialQuantity: 300,
+    requestQuantity: 325,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 85,
+        finalQuantity: 80,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 60,
+        finalQuantity: 55,
+        comments: "Covering surgical outreach rotations.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 75,
+        finalQuantity: 70,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 55,
+        finalQuantity: 45,
+        comments: "Supporting postpartum ward renovations.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 50,
+        finalQuantity: 45,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "CareWear Collective",
+        quantity: 120,
+        lotNumber: "LOT-GOWN-4201",
+        palletNumber: "PAL-GOWN-01",
+        boxNumber: "BOX-GOWN-01",
+        unitPrice: 9.25,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2404-104",
+        hfhShippingNumber: "HFH-2405-042",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "CareWear Collective",
+        quantity: 100,
+        lotNumber: "LOT-GOWN-4202",
+        palletNumber: "PAL-GOWN-02",
+        boxNumber: "BOX-GOWN-02",
+        unitPrice: 9.25,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2404-105",
+        notes: "Preferred sizes mix requested by partners.",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "CareWear Collective",
+        quantity: 80,
+        lotNumber: "LOT-GOWN-4203",
+        palletNumber: "PAL-GOWN-02",
+        boxNumber: "BOX-GOWN-03",
+        unitPrice: 9.25,
+        allowAllocations: false,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2404-106",
+        notes: "Held for quality review before release.",
+      },
+    ],
+  },
+  {
+    title: "IV Rehydration Starter Sets",
+    type: "Medical Supply",
+    unitType: "Kit",
+    quantityPerUnit: 1,
+    initialQuantity: 260,
+    requestQuantity: 290,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 70,
+        finalQuantity: 65,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 65,
+        finalQuantity: 60,
+        comments: "Preparedness for cholera flare-ups.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 60,
+        finalQuantity: 55,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 50,
+        finalQuantity: 45,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 45,
+        finalQuantity: 40,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Global Hydration Network",
+        quantity: 90,
+        lotNumber: "LOT-INF-3301",
+        palletNumber: "PAL-INF-01",
+        boxNumber: "BOX-INF-01",
+        unitPrice: 11.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-107",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Global Hydration Network",
+        quantity: 80,
+        lotNumber: "LOT-INF-3302",
+        palletNumber: "PAL-INF-01",
+        boxNumber: "BOX-INF-02",
+        unitPrice: 11.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-108",
+        maxRequestLimit: "Allocate in bundles of 20 kits.",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "Global Hydration Network",
+        quantity: 90,
+        lotNumber: "LOT-INF-3303",
+        palletNumber: "PAL-INF-02",
+        boxNumber: "BOX-INF-03",
+        unitPrice: 11.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-109",
+        notes: "Includes replacement tubing.",
+      },
+    ],
+  },
+  {
+    title: "Cold Chain Vaccine Carriers",
+    type: "Medical Equipment",
+    unitType: "Unit",
+    quantityPerUnit: 1,
+    initialQuantity: 140,
+    requestQuantity: 168,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 40,
+        finalQuantity: 38,
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 35,
+        finalQuantity: 32,
+        comments: "Supports cold chain on long deployments.",
+        priority: RequestPriority.HIGH,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 38,
+        finalQuantity: 36,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 28,
+        finalQuantity: 25,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 27,
+        finalQuantity: 24,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "CoolChain Alliance",
+        quantity: 50,
+        lotNumber: "LOT-COLD-2101",
+        palletNumber: "PAL-COLD-01",
+        boxNumber: "BOX-COLD-01",
+        unitPrice: 62.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-110",
+        hfhShippingNumber: "HFH-2405-043",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "CoolChain Alliance",
+        quantity: 45,
+        lotNumber: "LOT-COLD-2102",
+        palletNumber: "PAL-COLD-01",
+        boxNumber: "BOX-COLD-02",
+        unitPrice: 62.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-111",
+        notes: "Ice packs preconditioned on arrival.",
+      },
+      {
+        category: ItemCategory.MEDICAL_SUPPLY,
+        donorName: "CoolChain Alliance",
+        quantity: 45,
+        lotNumber: "LOT-COLD-2103",
+        palletNumber: "PAL-COLD-02",
+        boxNumber: "BOX-COLD-03",
+        unitPrice: 62.5,
+        allowAllocations: true,
+        visible: true,
+        gik: false,
+        donorShippingNumber: "DN-2404-112",
+        notes: "Additional shoulder straps included.",
+      },
+    ],
+  },
+  {
+    title: "High-Energy Nutrition Bars",
+    type: "Non-Medical Supply",
+    unitType: "Case",
+    quantityPerUnit: 12,
+    expirationDate: new Date("2026-12-31"),
+    initialQuantity: 540,
+    requestQuantity: 600,
+    requests: [
+      {
+        partnerKey: "hope_medical_center",
+        quantity: 150,
+        finalQuantity: 140,
+        comments: "Supplementing inpatient nutrition program.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        quantity: 130,
+        finalQuantity: 120,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        quantity: 140,
+        finalQuantity: 135,
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "jeremie_network",
+        quantity: 100,
+        finalQuantity: 90,
+        comments: "Support for hurricane-displaced families.",
+        priority: RequestPriority.MEDIUM,
+      },
+      {
+        partnerKey: "cap_haitien_wellness",
+        quantity: 80,
+        finalQuantity: 70,
+        priority: RequestPriority.MEDIUM,
+      },
+    ],
+    lineItems: [
+      {
+        category: ItemCategory.NON_MEDICAL,
+        donorName: "Resilience Relief",
+        quantity: 150,
+        lotNumber: "LOT-NUT-5501",
+        palletNumber: "PAL-NUT-01",
+        boxNumber: "BOX-NUT-01",
+        unitPrice: 3.6,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2404-113",
+        notes: "Variety pack flavors.",
+      },
+      {
+        category: ItemCategory.NON_MEDICAL,
+        donorName: "Resilience Relief",
+        quantity: 140,
+        lotNumber: "LOT-NUT-5502",
+        palletNumber: "PAL-NUT-01",
+        boxNumber: "BOX-NUT-02",
+        unitPrice: 3.6,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2404-114",
+        hfhShippingNumber: "HFH-2405-044",
+      },
+      {
+        category: ItemCategory.NON_MEDICAL,
+        donorName: "Resilience Relief",
+        quantity: 130,
+        lotNumber: "LOT-NUT-5503",
+        palletNumber: "PAL-NUT-02",
+        boxNumber: "BOX-NUT-03",
+        unitPrice: 3.6,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2404-115",
+      },
+      {
+        category: ItemCategory.NON_MEDICAL,
+        donorName: "Resilience Relief",
+        quantity: 120,
+        lotNumber: "LOT-NUT-5504",
+        palletNumber: "PAL-NUT-02",
+        boxNumber: "BOX-NUT-04",
+        unitPrice: 3.6,
+        allowAllocations: true,
+        visible: true,
+        gik: true,
+        donorShippingNumber: "DN-2404-116",
+        notes: "Short-dated but stable for six months.",
+      },
+    ],
+  },
+];
+
 const shippingStatusSeeds = [
   {
     donorShippingNumber: "DN-2405-001",
@@ -1186,6 +1634,26 @@ const shippingStatusSeeds = [
     donorShippingNumber: "DN-2405-023",
     hfhShippingNumber: "HFH-2406-012",
     value: ShipmentStatus.INVENTORIES,
+  },
+  {
+    donorShippingNumber: "DN-2404-101",
+    hfhShippingNumber: "HFH-2405-041",
+    value: ShipmentStatus.ARRIVED_IN_HAITI,
+  },
+  {
+    donorShippingNumber: "DN-2404-105",
+    hfhShippingNumber: "HFH-2405-042",
+    value: ShipmentStatus.READY_FOR_DISTRIBUTION,
+  },
+  {
+    donorShippingNumber: "DN-2404-110",
+    hfhShippingNumber: "HFH-2405-043",
+    value: ShipmentStatus.CLEARED_CUSTOMS,
+  },
+  {
+    donorShippingNumber: "DN-2404-114",
+    hfhShippingNumber: "HFH-2405-044",
+    value: ShipmentStatus.ARRIVED_AT_DEPO,
   },
 ];
 
@@ -1361,6 +1829,87 @@ async function buildSeedData() {
         },
       },
     });
+
+    const archivedDonorOffer = await tx.donorOffer.create({
+      data: {
+        state: DonorOfferState.ARCHIVED,
+        offerName: "Q1 Storm Recovery Allocation (Archived)",
+        donorName: "Med Relief International Coalition",
+        partnerResponseDeadline: addDays(-120),
+        donorResponseDeadline: addDays(-90),
+        partnerVisibilities: {
+          connect: activePartners.map((partner) => ({ id: partner.id })),
+        },
+        items: {
+          create: archivedGeneralItems.map(buildGeneralItemData),
+        },
+      },
+      include: {
+        items: {
+          include: {
+            items: true,
+          },
+        },
+      },
+    });
+
+    const archivedLineItemMap = new Map(
+      archivedDonorOffer.items.flatMap((generalItem) =>
+        generalItem.items.map((lineItem) => [lineItem.boxNumber, lineItem])
+      )
+    );
+
+    const archivedAllocationsPlan = [
+      {
+        partnerKey: "hope_medical_center",
+        lineItemBoxes: ["BOX-AZI-01", "BOX-INF-02"],
+      },
+      {
+        partnerKey: "mobile_response_unit",
+        lineItemBoxes: ["BOX-COLD-01"],
+      },
+      {
+        partnerKey: "les_cayes_hospital",
+        lineItemBoxes: ["BOX-GOWN-02"],
+      },
+      {
+        partnerKey: "jeremie_network",
+        lineItemBoxes: ["BOX-NUT-02"],
+      },
+    ] as const;
+
+    for (const allocationEntry of archivedAllocationsPlan) {
+      const partner = partnerMap.get(allocationEntry.partnerKey);
+      if (!partner) {
+        throw new Error(
+          `Unknown partner key ${allocationEntry.partnerKey} while creating archived allocations`
+        );
+      }
+
+      const distribution = await tx.distribution.create({
+        data: {
+          partnerId: partner.id,
+          pending: false,
+        },
+      });
+
+      for (const boxNumber of allocationEntry.lineItemBoxes) {
+        const lineItem = archivedLineItemMap.get(boxNumber);
+        if (!lineItem) {
+          throw new Error(
+            `Missing archived line item for box number ${boxNumber}`
+          );
+        }
+
+        await tx.allocation.create({
+          data: {
+            lineItemId: lineItem.id,
+            distributionId: distribution.id,
+            partnerId: partner.id,
+          },
+        });
+      }
+    }
 
     await tx.shippingStatus.createMany({ data: shippingStatusSeeds });
   });

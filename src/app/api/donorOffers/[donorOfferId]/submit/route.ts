@@ -9,6 +9,7 @@ import {
   ArgumentError,
   AuthenticationError,
   AuthorizationError,
+  NotFoundError,
   errorResponse,
 } from "@/util/errors";
 
@@ -40,6 +41,20 @@ export async function POST(
     }
 
     const donorOfferId = parsedParams.data.donorOfferId;
+
+    const donorOffer = await DonorOfferService.getDonorOfferForEdit(
+      donorOfferId
+    );
+
+    if (!donorOffer) {
+      throw new NotFoundError("Donor offer not found");
+    }
+
+    if (donorOffer.state !== DonorOfferState.FINALIZED) {
+      throw new ArgumentError(
+        "Only finalized donor offers can be submitted"
+      );
+    }
 
     await DonorOfferService.updateDonorOffer(donorOfferId, {
       state: DonorOfferState.ARCHIVED,
