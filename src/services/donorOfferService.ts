@@ -31,8 +31,7 @@ import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 const DonorOfferItemSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  type: z.string(),
+  title: z.string().trim().min(1, "Title is required"),
   initialQuantity: z
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
@@ -43,25 +42,23 @@ const DonorOfferItemSchema = z.object({
       z.string().transform((val) => (val.trim() === "" ? undefined : val)),
     ])
     .optional(),
-  unitType: z.string(),
-  quantityPerUnit: z
+  unitType: z.string().trim(),
+  description: z
     .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  description: z.string().optional(),
+    .transform((val) => val.trim())
+    .optional(),
 });
 
 const DonorOfferSchema = z.object({
-  offerName: z.string().min(1, "Offer name is required"),
-  donorName: z.string().min(1, "Donor name is required"),
+  offerName: z.string().trim().min(1, "Offer name is required"),
+  donorName: z.string().trim().min(1, "Donor name is required"),
   partnerResponseDeadline: z.coerce.date(),
   donorResponseDeadline: z.coerce.date(),
   state: z.nativeEnum(DonorOfferState).default(DonorOfferState.UNFINALIZED),
 });
 
 const FinalizeDonorOfferItemSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  type: z.string(),
+  title: z.string().trim().min(1, "Title is required"),
   expirationDate: z
     .union([
       z.coerce.date(),
@@ -75,10 +72,6 @@ const FinalizeDonorOfferItemSchema = z.object({
     })
     .optional(),
   unitType: z.string(),
-  quantityPerUnit: z
-    .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
   category: z.nativeEnum(ItemCategory),
   quantity: z
     .string()
@@ -131,6 +124,95 @@ const FinalizeDonorOfferSchema = z.object({
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
 
 export default class DonorOfferService {
+
+  private static normalizeExpirationDate(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      const normalized = new Date(value);
+      normalized.setUTCHours(0, 0, 0, 0);
+      return isNaN(normalized.getTime()) ? null : normalized;
+    }
+
+    if (typeof value === "string") {
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) {
+        parsed.setUTCHours(0, 0, 0, 0);
+        return parsed;
+      }
+    }
+
+    return null;
+  }
+
+  private static toGeneralItemCreateInputs(
+    items: (typeof DonorOfferItemSchema._type)[],
+    donorOfferId: number
+  ): Prisma.GeneralItemCreateManyInput[] {
+    return items.map((item) => ({
+      donorOfferId,
+      title: item.title,
+      expirationDate:
+        DonorOfferService.normalizeExpirationDate(item.expirationDate) ?? null,
+      unitType: item.unitType,
+      initialQuantity: item.initialQuantity,
+      description:
+        item.description && item.description.length > 0
+          ? item.description
+          : null,
+    }));
+  }
+
+  private static aggregateGeneralItems(
+    items: Prisma.GeneralItemCreateManyInput[]
+  ): Prisma.GeneralItemCreateManyInput[] {
+    const map = new Map<string, Prisma.GeneralItemCreateManyInput>();
+
+    for (const item of items) {
+      const keyParts = [
+        item.donorOfferId,
+        item.title,
+        item.expirationDate instanceof Date
+          ? item.expirationDate.toISOString().split("T")[0]
+          : item.expirationDate ?? "null",
+        item.unitType,
+      ];
+      const key = keyParts.join("|");
+
+      const existing = map.get(key);
+      if (existing) {
+        existing.initialQuantity += item.initialQuantity;
+
+        if (!existing.description && item.description) {
+          existing.description = item.description;
+        }
+        continue;
+      }
+
+      map.set(key, { ...item });
+    }
+
+    return Array.from(map.values());
+  }
+
+  private static aggregatePreviewItems(
+    items: (typeof DonorOfferItemSchema._type)[]
+  ): (typeof DonorOfferItemSchema._type)[] {
+    const aggregated = DonorOfferService.aggregateGeneralItems(
+      DonorOfferService.toGeneralItemCreateInputs(items, 0)
+    );
+
+    return aggregated.map((item) => ({
+      title: item.title,
+      expirationDate: item.expirationDate ?? undefined,
+      unitType: item.unitType,
+      initialQuantity: item.initialQuantity,
+      description: item.description ?? undefined,
+    }));
+  }
+
   static async getPartnerDonorOffers(
     partnerId: number,
     filters?: Filters,
@@ -446,9 +528,11 @@ export default class DonorOfferService {
     }
 
     if (preview) {
+      const previewItems =
+        DonorOfferService.aggregatePreviewItems(validDonorOfferItems);
       return {
         success: true,
-        donorOfferItems: validDonorOfferItems.slice(0, 8),
+        donorOfferItems: previewItems.slice(0, 8),
       };
     }
 
@@ -457,41 +541,18 @@ export default class DonorOfferService {
         data: donorOfferData,
       });
 
-      const itemsWithDonorOfferId = validDonorOfferItems.map((item) => ({
-        ...item,
-        donorOfferId: donorOffer.id,
-      }));
+      const normalizedItems =
+        DonorOfferService.toGeneralItemCreateInputs(
+          validDonorOfferItems,
+          donorOffer.id
+        );
 
-      for (const item of itemsWithDonorOfferId) {
-        await tx.generalItem.upsert({
-          where: {
-            donorOfferId_title_type_expirationDate_unitType_quantityPerUnit: {
-              donorOfferId: item.donorOfferId,
-              title: item.title,
-              type: item.type,
-              expirationDate: item.expirationDate as Date,
-              unitType: item.unitType,
-              quantityPerUnit: item.quantityPerUnit,
-            },
-          },
-          update: {
-            initialQuantity: { increment: item.initialQuantity },
-          },
-          create: {
-            ...item,
-          },
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            unitType: true,
-          },
-        });
+      const aggregatedItems =
+        DonorOfferService.aggregateGeneralItems(normalizedItems);
+
+      if (aggregatedItems.length > 0) {
+        await tx.generalItem.createMany({ data: aggregatedItems });
       }
-      /*
-      await tx.generalItem.createMany({
-        data: itemsWithDonorOfferId,
-      });*/
     });
 
     return { success: true };
@@ -521,13 +582,11 @@ export default class DonorOfferService {
         ({
           donorOfferItemId: item.id,
           title: item.title,
-          type: item.type,
           expiration:
             item.expirationDate === null
               ? null
               : format(item.expirationDate, "MM/dd/yyyy"),
           initialQuantity: item.initialQuantity,
-          unitSize: item.quantityPerUnit,
           ...(item.requests[0]
             ? {
                 requestId: item.requests[0].id,
@@ -632,7 +691,6 @@ export default class DonorOfferService {
             where: {
               donorOfferId: donorOfferId,
               title: itemRequest.title,
-              type: itemRequest.type,
               expirationDate: itemRequest.expirationDate,
               unitType: itemRequest.unitType,
             },
@@ -821,15 +879,26 @@ export default class DonorOfferService {
         const itemsWithDonorOfferItemId = validItems.map((item) => ({
           ...item,
           donorName: donorOffer.donorName,
-          donorOfferItemId: donorOffer.items.find(
-            (di) =>
-              item.title == di.title &&
-              item.type === di.type &&
-              (item.expirationDate as Date).getTime() ===
-                (di.expirationDate as Date).getTime() &&
-              item.unitType === di.unitType &&
-              item.quantityPerUnit == di.quantityPerUnit
-          )?.id,
+          donorOfferItemId: donorOffer.items.find((di) => {
+            const itemExpiration =
+              DonorOfferService.normalizeExpirationDate(
+                item.expirationDate
+              );
+            const diExpiration = di.expirationDate
+              ? DonorOfferService.normalizeExpirationDate(di.expirationDate)
+              : null;
+            const expirationMatches =
+              itemExpiration === null && diExpiration === null
+                ? true
+                : !!itemExpiration &&
+                  !!diExpiration &&
+                  itemExpiration.getTime() === diExpiration.getTime();
+            return (
+              item.title === di.title &&
+              expirationMatches &&
+              item.unitType === di.unitType
+            );
+          })?.id,
         }));
 
         await tx.lineItem.createMany({ data: itemsWithDonorOfferItemId });

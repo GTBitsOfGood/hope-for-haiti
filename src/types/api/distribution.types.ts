@@ -2,10 +2,8 @@ import { LineItem, ShipmentStatus } from "@prisma/client";
 
 export interface AllocatedItem {
   title: string;
-  type: string;
   expirationDate: Date | null;
   unitType: string;
-  quantityPerUnit: number;
   quantityAllocated: number;
   shipmentStatus: ShipmentStatus;
 }

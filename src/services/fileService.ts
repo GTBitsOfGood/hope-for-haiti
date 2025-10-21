@@ -22,8 +22,51 @@ const requiredKeys = new Map<string, string>([
   ["Unit UOM", "unitType"],
 ]);
 
+const requiredKeyList = Array.from(requiredKeys.keys());
+
 const containsRequiredKeys = (fields?: string[]) =>
-  fields ? requiredKeys.keys().every((key) => fields.includes(key)) : false;
+  fields ? requiredKeyList.every((key) => fields.includes(key)) : false;
+
+const hasValue = (value: unknown) => {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+  return true;
+};
+
+const filterEmptyRows = (rows: Record<string, unknown>[]) =>
+  rows.filter((row) => hasValue(row["Generic Description"]));
+
+const remapRequiredColumns = (
+  row: Record<string, unknown>
+): Record<string, unknown> => {
+  const updated: Record<string, unknown> = { ...row };
+  for (const [originalKey, newKey] of requiredKeys) {
+    if (Object.prototype.hasOwnProperty.call(updated, originalKey)) {
+      updated[newKey] = updated[originalKey];
+      delete updated[originalKey];
+    }
+  }
+  return updated;
+};
+
+const transformDonorOfferRow = (
+  row: Record<string, unknown>
+): Record<string, unknown> => {
+  const remapped = remapRequiredColumns(row);
+  const quantity = remapped["quantity"];
+  const transformed: Record<string, unknown> = {
+    ...remapped,
+  };
+
+  if (quantity !== undefined) {
+    transformed["initialQuantity"] = quantity;
+  }
+
+  delete transformed["quantity"];
+  return transformed;
+};
 
 const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME;
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -160,10 +203,6 @@ export default class FileService {
         const csvText = XLSX.utils.sheet_to_csv(sheet);
         const { data, meta } = Papa.parse(csvText, { header: true });
 
-        if (!meta.fields || !containsRequiredKeys(meta.fields)) {
-          throw new ArgumentError("XLSX does not contain required keys");
-        }
-
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields;
       } else if (fileExt === "csv") {
@@ -173,34 +212,18 @@ export default class FileService {
           skipEmptyLines: true,
         });
 
-        if (!meta.fields || !containsRequiredKeys(meta.fields)) {
-          throw new ArgumentError("CSV does not contain required keys");
-        }
-
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields;
       }
-      jsonData = jsonData.filter((row) => {
-        return (
-          row["Generic Description"] !== undefined &&
-          row["Generic Description"] !== null &&
-          row["Generic Description"] !== ""
-        ); //try to filter out invalid rows based on required field
-      });
+      jsonData = filterEmptyRows(jsonData);
 
-      for (const data of jsonData) {
-        for (const [originalKey, newKey] of requiredKeys) {
-          if (originalKey in data) {
-            data[newKey] = data[originalKey];
-            delete data[originalKey];
-          }
-        }
-        data["quantityPerUnit"] = "1";
-        data["type"] = "N/A -- to be updated";
-        data["initialQuantity"] = data["quantity"];
+      if (!fields || !containsRequiredKeys(fields)) {
+        throw new ArgumentError("File does not contain required keys");
       }
 
-      return { data: jsonData, fields };
+      const transformedData = jsonData.map(transformDonorOfferRow);
+
+      return { data: transformedData, fields };
     } catch (error) {
       if (error instanceof ArgumentError) {
         throw error;
@@ -227,10 +250,6 @@ export default class FileService {
         const csvText = XLSX.utils.sheet_to_csv(sheet);
         const { data, meta } = Papa.parse(csvText, { header: true });
 
-        if (!meta.fields || !containsRequiredKeys(meta.fields)) {
-          throw new ArgumentError("CSV does not contain required keys");
-        }
-
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields;
       } else {
@@ -240,12 +259,14 @@ export default class FileService {
           skipEmptyLines: true,
         });
 
-        if (!meta.fields || !containsRequiredKeys(meta.fields)) {
-          throw new ArgumentError("CSV does not contain required keys");
-        }
-
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields;
+      }
+
+      jsonData = filterEmptyRows(jsonData).map(remapRequiredColumns);
+
+      if (!fields || !containsRequiredKeys(fields)) {
+        throw new ArgumentError("File does not contain required keys");
       }
 
       return { data: jsonData, fields };

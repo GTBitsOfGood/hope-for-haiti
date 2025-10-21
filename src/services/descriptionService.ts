@@ -3,7 +3,6 @@ import { getOpenAIClient } from "@/lib/azureOpenAI";
 
 export type DescribeItemInput = {
   title: string;
-  type: string;
   unitType: string;
 };
 
@@ -14,7 +13,7 @@ type BilingualDescription = {
 
 export class DescriptionService {
   static makeCacheId(item: DescribeItemInput) {
-    return `${item.title} | ${item.type} | ${item.unitType}`;
+    return `${item.title} | ${item.unitType}`;
   }
 
   static async getOrGenerateDescriptions(
@@ -86,18 +85,29 @@ export class DescriptionService {
     const { client } = getOpenAIClient();
     if (!client) return items.map(DescriptionService.defaultDescription);
 
-    const system = `You write short, neutral product descriptions.
+    const system = `You write practical medical supply descriptions that explain what each item is used for.
+- Focus on what conditions/symptoms the item treats or what medical purposes it serves.
 - Produce one Haitian Creole sentence and one English sentence for each item.
-- Avoid medical claims, dosages, or promises of outcomes.
-- Keep language simple and suitable for a broad audience.`;
+- Keep language simple and direct - healthcare workers need to know what this helps with, not just what it is.
+- For medications: mention the conditions treated, symptoms relieved, or medical uses.
+- For supplies: mention the medical procedures or patient care situations where they're used.
+- Avoid complex medical jargon, but DO explain the practical medical use.`;
 
     const userLines = items
       .map(
         (item, index) =>
-          `${index + 1}. title="${item.title}", type="${item.type}", unitType="${item.unitType}"`
+          `${index + 1}. title="${item.title}", unitType="${item.unitType}"`
       )
       .join("\n");
-    const user = `Return a JSON object with an \'items\' array. Each element must include \'haitian\' and \'english\' string fields that describe the matching item. Haitian Creole should be natural and come from the Haitian perspective; English should be clear and simple.\n${userLines}`;
+    const user = `Return a JSON object with an 'items' array. Each element must include 'haitian' and 'english' string fields.
+
+IMPORTANT: Describe what each item DOES or what it's USED FOR medically, not just what it is. Healthcare workers need to know what conditions this treats or what medical purposes it serves.
+
+Examples:
+- Instead of "Ibuprofen is a pain medication in tablet form" → "Used to treat pain, fever, and inflammation from conditions like headaches, arthritis, and injuries"
+- Instead of "Bandages are wound covering supplies" → "Used to protect wounds, stop bleeding, and prevent infection after injuries or surgery"
+
+${userLines}`;
 
     const response = await client.chat.completions.create({
       model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
@@ -163,10 +173,9 @@ export class DescriptionService {
   private static defaultDescription(
     item: DescribeItemInput
   ): BilingualDescription {
-    const lowerType = item.type.toLowerCase();
     const lowerUnit = item.unitType.toLowerCase();
-    const english = `"${item.title}" is a ${lowerType} offered in ${lowerUnit} units.`;
-    const haitian = `"${item.title}" se yon ${lowerType} ki disponib nan inite ${lowerUnit}.`;
+    const english = `Medical supply: ${item.title}. Consult medical staff for proper use and indications. Supplied in ${lowerUnit} units.`;
+    const haitian = `Founiti medikal: ${item.title}. Konsилte pèsonèl medikal pou jan pou itilize l kòrèkteman. Disponib nan inite ${lowerUnit}.`;
     return { haitian, english };
   }
 

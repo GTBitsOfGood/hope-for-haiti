@@ -39,7 +39,7 @@ export interface AdminDonorOffersResponse {
 export type GeneralItemRequestWithDetails = GeneralItemRequest & {
   generalItem: Pick<
     GeneralItem,
-    "id" | "title" | "type" | "expirationDate" | "unitType" | "quantityPerUnit"
+    "id" | "title" | "expirationDate" | "unitType"
   >;
   partner: {
     name: string;
@@ -60,10 +60,8 @@ export interface CreateDonorOfferResult {
   errors?: string[];
   donorOfferItems?: {
     title: string;
-    type: string;
     initialQuantity: number;
     unitType: string;
-    quantityPerUnit: number;
     expirationDate?: Date | string;
   }[];
 }
@@ -71,10 +69,8 @@ export interface CreateDonorOfferResult {
 export interface DonorOfferItemsRequestsDTO {
   donorOfferItemId: number;
   title: string;
-  type: string;
   expiration: string | null;
   initialQuantity: number;
-  unitSize: number;
   requestId: number | null;
   quantityRequested: number;
   comments: string | null;
@@ -89,7 +85,6 @@ export interface DonorOfferItemsRequestsResponse {
 
 export interface UpdateRequestItem {
   title: string;
-  type: string;
   expirationDate: string;
   unitType: string;
   quantity?: number;

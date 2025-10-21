@@ -100,7 +100,6 @@ export default function AdminDynamicDonorOfferScreen() {
         cell: (i) => i.title,
         filterType: "string",
       },
-      { id: "type", header: "Type", cell: (i) => i.type, filterType: "string" },
       {
         id: "expirationDate",
         header: "Expiration",
@@ -111,11 +110,6 @@ export default function AdminDynamicDonorOfferScreen() {
         filterType: "date",
       },
       { id: "unitType", header: "Unit Type", cell: (i) => i.unitType },
-      {
-        id: "quantityPerUnit",
-        header: "Qty/Unit",
-        cell: (i) => i.quantityPerUnit,
-      },
       {
         id: "initialQuantity",
         header: "Quantity",

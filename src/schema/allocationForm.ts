@@ -6,10 +6,8 @@ export const editAllocationFormSchema = zfd.formData({
 
   // General item search fields
   title: zfd.text(),
-  type: zfd.text(),
   expirationDate: z.coerce.date(),
   unitType: zfd.text(),
-  quantityPerUnit: zfd.numeric(z.number().int().min(0)),
 
   // Line item search fields
   donorName: zfd.text(),

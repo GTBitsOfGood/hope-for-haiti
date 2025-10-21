@@ -16,10 +16,8 @@ export default class AllocationService {
     } else {
       if (
         !data.title ||
-        !data.type ||
         !data.expirationDate ||
         !data.unitType ||
-        !data.quantityPerUnit ||
         !data.donorName ||
         !data.lotNumber ||
         !data.palletNumber ||
@@ -32,10 +30,8 @@ export default class AllocationService {
         where: {
           generalItem: {
             title: data.title,
-            type: data.type,
             expirationDate: data.expirationDate,
             unitType: data.unitType,
-            quantityPerUnit: data.quantityPerUnit,
           },
           donorName: data.donorName,
           lotNumber: data.lotNumber,
@@ -170,10 +166,8 @@ export default class AllocationService {
       where: {
         generalItem: {
           title: data.title,
-          type: data.type,
           expirationDate: data.expirationDate,
           unitType: data.unitType,
-          quantityPerUnit: data.quantityPerUnit,
         },
         donorName: data.donorName,
         lotNumber: data.lotNumber,
@@ -202,10 +196,8 @@ export default class AllocationService {
     const whereClause: Partial<Prisma.LineItemFindUniqueArgs["where"]> = {
       generalItem: {
         title: params.title,
-        type: params.type,
         expirationDate: params.expirationDate,
         unitType: params.unitType,
-        quantityPerUnit: params.quantityPerUnit,
       },
     };
 

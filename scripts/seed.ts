@@ -197,105 +197,94 @@ const partnerDetailsTemplate = {
 const generalItems: Array<Omit<GeneralItem, "id" | "donorOfferId">> = [
   {
     title: "Advil",
-    type: "Pain Killer",
     expirationDate: dateOffset(30),
     unitType: "Bottle",
-    quantityPerUnit: 50,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Tylenol",
-    type: "Pain Killer",
     expirationDate: dateOffset(4 * 30),
     unitType: "Bottle",
-    quantityPerUnit: 20,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Bandages",
-    type: "First Aid",
     expirationDate: dateOffset(20 * 12 * 30),
     unitType: "Box",
-    quantityPerUnit: 100,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Apples",
-    type: "Fruit",
     expirationDate: dateOffset(15),
     unitType: "Box",
-    quantityPerUnit: 4,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Bananas",
-    type: "Fruit",
     expirationDate: dateOffset(15),
     unitType: "Bundle",
-    quantityPerUnit: 4,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Advil",
-    type: "Pain Killer",
     expirationDate: dateOffset(30),
     unitType: "Bottle",
-    quantityPerUnit: 50,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
 ];
 
 const itemTemplates: Array<Omit<GeneralItem, "id" | "donorOfferId">> = [
   {
     title: "Advil",
-    type: "Pain Killer",
     expirationDate: dateOffset(30),
     unitType: "Bottle",
-    quantityPerUnit: 50,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Tylenol",
-    type: "Pain Killer",
     expirationDate: dateOffset(4 * 30),
     unitType: "Bottle",
-    quantityPerUnit: 20,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Bandages",
-    type: "First Aid",
     expirationDate: dateOffset(20 * 12 * 30),
     unitType: "Box",
-    quantityPerUnit: 100,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Apples",
-    type: "Fruit",
     expirationDate: dateOffset(15),
     unitType: "Box",
-    quantityPerUnit: 4,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
   {
     title: "Bananas",
-    type: "Fruit",
     expirationDate: dateOffset(15),
     unitType: "Bundle",
-    quantityPerUnit: 4,
     initialQuantity: 100,
     requestQuantity: 0,
+    description: null,
   },
 ];
 
@@ -311,9 +300,8 @@ function genItem(
     initialQuantity: randInt(1, 4) * 5,
     requestQuantity: 0,
     title: template.title,
-    type: template.type,
     unitType: template.unitType,
-    quantityPerUnit: template.quantityPerUnit,
+    description: null,
     ...props,
   };
 }
@@ -331,6 +319,7 @@ async function run() {
     await tx.wishlist.deleteMany();
     await tx.allocation.deleteMany();
     await tx.generalItemRequest.deleteMany();
+    await tx.descriptionLookup.deleteMany();
 
     const pwHash = await hash("root");
 

@@ -10,10 +10,8 @@ export interface CreateAllocationData extends Partial<ItemSearchParams> {
 export interface UpdateAllocationData {
   allocationId: number;
   title: string;
-  type: string;
   expirationDate: Date;
   unitType: string;
-  quantityPerUnit: number;
   donorName: string;
   lotNumber: string;
   palletNumber: string;
@@ -22,10 +20,8 @@ export interface UpdateAllocationData {
 
 export interface ItemSearchParams {
   title: string;
-  type: string;
   expirationDate: Date;
   unitType: string;
-  quantityPerUnit: number;
   donorName?: string;
   lotNumber?: string;
   palletNumber?: string;

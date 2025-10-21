@@ -3,11 +3,10 @@ import BaseTable, { tableConditional } from "../baseTable/BaseTable";
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {
   title: string;
-  type: string;
-  expirationDate: Date;
+  expirationDate?: Date | string | null;
   unitType: string;
-  quantityPerUnit: string;
-  quantity: number;
+  quantity?: number;
+  initialQuantity?: number;
 
   unitPrice?: number;
   lotNumber?: string;
@@ -31,10 +30,8 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
     <BaseTable
       headers={[
         "Title",
-        "Type",
         "Quantity",
         "Unit Type",
-        "Quantity Per Unit",
         "Expiration",
         tableConditional(final, [
           "Unit Price",
@@ -47,32 +44,33 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
           "Visibility",
           "Comment",
         ]),
-        "Description",
       ]}
-      rows={data.map((item) => ({
-        cells: [
-          item.title,
-          item.type,
-          item.quantity,
-          item.unitType,
-          item.quantityPerUnit,
-          item.expirationDate
-            ? new Date(item.expirationDate).toLocaleDateString()
-            : "N/A",
-          tableConditional(final, [
-            item.unitPrice,
-            item.lotNumber,
-            item.palletNumber,
-            item.boxNumber,
-            item.maxRequestLimit,
-            item.donorShippingNumber,
-            item.hfhShippingNumber,
-            item.visible ? "Visible" : "Hidden",
-            item.notes,
-          ]),
-          item.description,
-        ],
-      }))}
+      rows={data.map((item) => {
+        const displayQuantity =
+          item.quantity ?? item.initialQuantity ?? 0;
+
+        return {
+          cells: [
+            item.title,
+            displayQuantity,
+            item.unitType,
+            item.expirationDate
+              ? new Date(item.expirationDate).toLocaleDateString()
+              : "N/A",
+            tableConditional(final, [
+              item.unitPrice,
+              item.lotNumber,
+              item.palletNumber,
+              item.boxNumber,
+              item.maxRequestLimit,
+              item.donorShippingNumber,
+              item.hfhShippingNumber,
+              item.visible ? "Visible" : "Hidden",
+              item.notes,
+            ]),
+          ],
+        };
+      })}
     />
   </div>
 );
