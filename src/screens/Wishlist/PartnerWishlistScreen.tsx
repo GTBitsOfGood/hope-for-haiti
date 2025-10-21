@@ -259,8 +259,8 @@ export default function PartnerWishlistScreen({
         }}
       />
       <div className="flex items-start justify-between">
-        <h1 className="text-xl font-semibold text-gray-primary mb-2">
-          Wish list
+        <h1 className="text-2xl font-semibold text-gray-primary mb-2">
+          Wishlist
         </h1>
         {!readOnly && (
           <button

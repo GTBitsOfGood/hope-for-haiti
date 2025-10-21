@@ -239,7 +239,7 @@ export default function AccountManagementPage() {
 
   return (
     <>
-      <h1 className="text-3xl text-gray-primary font-bold">
+      <h1 className="text-2xl font-semibold text-gray-primary">
         Account Management
       </h1>
 
