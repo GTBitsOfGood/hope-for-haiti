@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { Item } from "@prisma/client";
+import { LineItem } from "@prisma/client";
 import { useParams, useRouter } from "next/navigation";
 import { ChatTeardropText, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -23,7 +23,7 @@ export default function AddItemToDistributionPage() {
   const router = useRouter();
   const { apiClient } = useApiClient();
 
-  const [selectedItem, setSelectedItem] = useState<Item>();
+  const [selectedItem, setSelectedItem] = useState<LineItem>();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: partner, isLoading: partnerLoading } = useFetch<Partner>(
@@ -40,13 +40,13 @@ export default function AddItemToDistributionPage() {
   );
 
   const fetchFn = useCallback(
-    async (pageSize: number, page: number, filters: FilterList<Item>) => {
+    async (pageSize: number, page: number, filters: FilterList<LineItem>) => {
       const params = new URLSearchParams({
         pageSize: pageSize.toString(),
         page: page.toString(),
         filters: JSON.stringify(filters),
       });
-      const items = await apiClient.get<Item[]>(
+      const items = await apiClient.get<LineItem[]>(
         `/api/items?${params.toString()}`
       );
       return { data: items, total: items.length };
@@ -54,17 +54,27 @@ export default function AddItemToDistributionPage() {
     [apiClient]
   );
 
-  const columns: ColumnDefinition<Item>[] = [
+  const columns: ColumnDefinition<LineItem>[] = [
     {
       id: "title",
-      header: "Name",
+      header: "Name"
     },
     "quantity",
     {
       id: "donorName",
       header: "Donor name",
+      cell: (item) => item.donorName,
     },
-    "palletNumber",
+    {
+      id: "palletNumber",
+      header: "Pallet number",
+      cell: (item) => item.palletNumber,
+    },
+    {
+      id: "boxNumber",
+      header: "Box number",
+      cell: (item) => item.boxNumber,
+    },
     "boxNumber",
     "lotNumber",
     {
@@ -212,7 +222,7 @@ export default function AddItemToDistributionPage() {
         <AddToDistributionModal
           partnerName={partner.name}
           maxQuantity={selectedItem.quantity}
-          unitType={selectedItem.unitType || ""}
+          unitType={selectedItem.unitPrice?.toString?.() ?? ""}
           onClose={(success) => {
             setIsModalOpen(false);
             setSelectedItem(undefined);

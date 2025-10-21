@@ -3,7 +3,6 @@
 import React from "react";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import PartnerDistributionsScreen from "@/screens/PartnerDistributionsScreen";
 import AdminDistributionsScreen from "@/screens/AdminDistributionsScreen";
 
 export default function DistributionsPage() {
@@ -15,7 +14,7 @@ export default function DistributionsPage() {
 
   switch (session.user.type) {
     case "PARTNER":
-      return <PartnerDistributionsScreen />;
+      return redirect("/");
     case "STAFF":
     case "ADMIN":
     case "SUPER_ADMIN":

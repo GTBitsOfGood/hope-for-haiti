@@ -1,4 +1,4 @@
-import { ShippingStatus, Item, ShipmentStatus } from "@prisma/client";
+import { ShippingStatus, LineItem, ShipmentStatus } from "@prisma/client";
 import { CgChevronRight, CgSpinner } from "react-icons/cg";
 import React, { useCallback } from "react";
 import { ItemEntry } from "@/screens/AdminDistributionsScreen/ShippingStatus";
@@ -52,7 +52,7 @@ const statusOptions = [
 
 interface ShippingStatusData {
   shippingStatuses: ShippingStatus[];
-  items: Item[][];
+  items: LineItem[][];
 }
 
 export default function ShippingStatusTable({
@@ -117,10 +117,10 @@ export default function ShippingStatusTable({
   }
 
   const shippingStatuses = data.shippingStatuses;
-  const items = data.items.map((itemRow: Item[]) =>
-    itemRow.map((item: Item): ItemEntry => {
+  const items = data.items.map((itemRow: LineItem[]) =>
+    itemRow.map((item: LineItem): ItemEntry => {
       return {
-        title: item.title,
+        title: "",
         quantityAllocated: 0,
         quantityAvailable: 0,
         quantityTotal: 0,

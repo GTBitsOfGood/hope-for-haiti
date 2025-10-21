@@ -22,13 +22,12 @@ const bodySchema = z.object({
 type GeneralItemWithRequests = {
   id: number;
   title: string;
-  type: string;
   expirationDate: Date | null;
   unitType: string;
-  quantityPerUnit: number;
   initialQuantity: number;
   donorOfferId: number;
   requestQuantity: number | null;
+  description: string | null;
   requests: {
     id: number;
     quantity: number;
@@ -46,11 +45,9 @@ type GeneralItemWithRequests = {
 
 type GeneralItemForLLM = {
   title: string;
-  type: string;
   description: string;
   expirationDate: string;
   unitType: string;
-  quantityPerUnit: number;
   totalQuantity: number;
   requests: {
     partnerId: number;
@@ -83,13 +80,11 @@ export async function POST(req: NextRequest) {
     const generalItems: GeneralItemForLLM[] = itemsWithRequests.map(
       (item: GeneralItemWithRequests) => ({
         title: item.title,
-        type: item.type,
-        description: `${item.title} - ${item.type}`,
+        description: item.description || item.title,
         expirationDate: item.expirationDate
           ? new Date(item.expirationDate).toISOString()
           : new Date().toISOString(),
         unitType: item.unitType,
-        quantityPerUnit: item.quantityPerUnit,
         totalQuantity: item.initialQuantity,
         requests: item.requests.map(
           (req: GeneralItemWithRequests["requests"][0]) => ({

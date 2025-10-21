@@ -245,11 +245,6 @@ export default function PartnerDynamicDonorOfferScreen() {
       filterType: "string",
     },
     {
-      id: "type",
-      header: "Type",
-      filterType: "enum",
-    },
-    {
       id: "expiration",
       header: "Expiration",
       cell: (item) => item.expiration || "N/A",
@@ -262,12 +257,7 @@ export default function PartnerDynamicDonorOfferScreen() {
     {
       id: "unitType",
       header: "Unit Type",
-      cell: () => "Bottle", // Hardcoded for now
-    },
-    {
-      id: "unitSize",
-      header: "Qty/Unit",
-      cell: (item) => item.unitSize.toString(),
+      cell: (item) => item.unitType,
     },
     {
       id: "quantityRequested",

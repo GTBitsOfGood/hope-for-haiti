@@ -1,12 +1,22 @@
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
-import type { Item } from '@prisma/client';
+
+type VisibleItem = {
+  id: number;
+  title: string;
+  type: string;
+  quantity: number;
+  unitType: string;
+  quantityPerUnit: number;
+  expirationDate?: Date | string | null;
+  ndc?: string | null;
+};
 
 export interface ItemsVisibleNotificationProps {
   partnerName?: string;
   distributionUrl: string;
-  items: Item[];
+  items: VisibleItem[];
 }
 
 const formatDate = (d?: string | Date | null) => {

@@ -71,6 +71,7 @@ export interface DonorOfferItemsRequestsDTO {
   title: string;
   expiration: string | null;
   initialQuantity: number;
+  unitType: string;
   requestId: number | null;
   quantityRequested: number;
   comments: string | null;

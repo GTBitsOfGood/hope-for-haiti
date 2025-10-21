@@ -204,7 +204,7 @@ export default class FileService {
         const { data, meta } = Papa.parse(csvText, { header: true });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields;
+        fields = meta.fields || [];
       } else if (fileExt === "csv") {
         const text = await file.text();
         const { data, meta } = Papa.parse(text, {
@@ -213,7 +213,7 @@ export default class FileService {
         });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields;
+        fields = meta.fields || [];
       }
       jsonData = filterEmptyRows(jsonData);
 
@@ -251,7 +251,7 @@ export default class FileService {
         const { data, meta } = Papa.parse(csvText, { header: true });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields;
+        fields = meta.fields || [];
       } else {
         const text = await file.text();
         const { data, meta } = Papa.parse(text, {
@@ -260,7 +260,7 @@ export default class FileService {
         });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields;
+        fields = meta.fields || [];
       }
 
       jsonData = filterEmptyRows(jsonData).map(remapRequiredColumns);

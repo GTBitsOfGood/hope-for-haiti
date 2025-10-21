@@ -1,11 +1,16 @@
 import { Body, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
-import { Item } from '@prisma/client';
 
+type ExpiringItem = {
+  id: number;
+  title: string;
+  expirationDate: Date | string | null;
+  quantity: number;
+};
 
 export interface ExpiringItemsProps {
-  items: Item[];
+  items: ExpiringItem[];
   month: string;
 }
 

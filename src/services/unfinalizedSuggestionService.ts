@@ -7,11 +7,9 @@ export type PartnerRequest = {
 
 export type GeneralItemInput = {
   title: string;
-  type: string;
   description: string;
   expirationDate: string;
   unitType: string;
-  quantityPerUnit: number;
   totalQuantity: number;
   requests: PartnerRequest[];
 };
@@ -26,11 +24,9 @@ type ModelRequestPayload = {
   items: {
     index: number;
     title: string;
-    type: string;
     description: string;
     expirationDate: string;
     unitType: string;
-    quantityPerUnit: number;
     totalQuantity: number;
     requests: {
       partnerId: number;
@@ -135,11 +131,9 @@ function buildModelPayload(
     items: items.map((item, index) => ({
       index,
       title: item.title,
-      type: item.type,
       description: item.description,
       expirationDate: item.expirationDate,
       unitType: item.unitType,
-      quantityPerUnit: item.quantityPerUnit,
       totalQuantity: item.totalQuantity,
       requests: item.requests.map((request, requestIndex) => ({
         partnerId: request.partnerId,

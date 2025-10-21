@@ -1,7 +1,7 @@
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
-import type { DonorOfferItem } from '@prisma/client';
+import type { GeneralItem } from '@prisma/client';
 
 export interface DonorOfferCreatedProps {
   partnerName?: string;
@@ -12,8 +12,8 @@ export interface DonorOfferCreatedProps {
   offerUrl: string; // link for the partner to view the donor offer details
   items: Array<
     Pick<
-      DonorOfferItem,
-      'title' | 'type' | 'expirationDate' | 'unitType' | 'quantityPerUnit' | 'quantity'
+      GeneralItem,
+      'title' | 'description' | 'expirationDate' | 'unitType' | 'initialQuantity' | 'requestQuantity'
     >
   >;
 }
@@ -92,10 +92,10 @@ export const DonorOfferCreated = ({
                     {items.map((it, idx) => (
                       <tr key={`${it.title}-${idx}`}>
                         <td className="p-2 border border-blue-dark text-sm">{it.title}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{it.type}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{it.quantity}</td>
+                        <td className="p-2 border border-blue-dark text-sm">{it.description}</td>
+                        <td className="p-2 border border-blue-dark text-sm">{it.initialQuantity}</td>
                         <td className="p-2 border border-blue-dark text-sm">{it.unitType}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{it.quantityPerUnit}</td>
+                        <td className="p-2 border border-blue-dark text-sm">{it.initialQuantity}</td>
                         <td className="p-2 border border-blue-dark text-sm">{formatDate(it.expirationDate as unknown as string | Date | null)}</td>
                       </tr>
                     ))}
@@ -126,18 +126,18 @@ DonorOfferCreated.PreviewProps = {
   items: [
     {
       title: 'Acetaminophen 500mg',
-      type: 'Medication',
-      quantity: 200,
+      description: 'Medication',
       unitType: 'Bottle',
-      quantityPerUnit: 100,
+      initialQuantity: 200,
+      requestQuantity: null,
       expirationDate: '2026-10-01',
     },
     {
       title: 'Surgical Gloves (M)',
-      type: 'Medical Supply',
-      quantity: 1000,
+      description: 'Surgical Gloves (M)',
       unitType: 'Box',
-      quantityPerUnit: 100,
+      initialQuantity: 150,
+      requestQuantity: null,
       expirationDate: null,
     },
   ],

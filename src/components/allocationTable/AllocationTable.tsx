@@ -61,7 +61,6 @@ function buildDefaultColumns(): ColumnDefinition<AllocationTableItem>[] {
         </span>
       ),
     },
-    "type",
     "quantity",
     {
       id: "expirationDate",
@@ -72,7 +71,6 @@ function buildDefaultColumns(): ColumnDefinition<AllocationTableItem>[] {
           : "N/A",
     },
     "unitType",
-    "quantityPerUnit",
     {
       id: "requests",
       header: "# of Requests",
