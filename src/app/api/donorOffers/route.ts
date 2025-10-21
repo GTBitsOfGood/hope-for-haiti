@@ -7,10 +7,12 @@ import {
   ArgumentError,
   AuthenticationError,
   AuthorizationError,
+  InternalError,
   errorResponse,
 } from "@/util/errors";
 import FileService from "@/services/fileService";
 import { tableParamsSchema } from "@/schema/tableParams";
+import { DescriptionService } from "@/services/descriptionService";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,19 +26,63 @@ export async function POST(req: NextRequest) {
         "You are not allowed to create donor offers"
       );
     }
-
+    const params = req.nextUrl.searchParams;
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const preview = formData.get("preview") === "true";
+    const preview = params.get("preview") === "true";
 
     if (!file) {
       throw new ArgumentError("File is required");
     }
 
+    const toSafeString = (value: unknown) =>
+      typeof value === "string" ? value : value == null ? "" : String(value);
+
     const parsedFileData = await FileService.parseDonorOfferFile(file);
+    const parsedItems = parsedFileData.data;
+    if (parsedItems.length === 0) {
+      throw new ArgumentError("Uploaded file contains no valid rows");
+    }
+
+    const needsDescriptions = !preview;
+    const donorOfferInput = async () => {
+      if (!needsDescriptions) {
+        return parsedFileData;
+      }
+
+      const itemDescriptionInput = parsedItems.map((item) => ({
+        title: toSafeString(item["title"]).trim(),
+        type: toSafeString(item["type"]).trim(),
+        unitType: toSafeString(item["unitType"]).trim(),
+      }));
+
+      let descriptions: string[] = [];
+      try {
+        descriptions = await DescriptionService.getOrGenerateDescriptions(
+          itemDescriptionInput
+        );
+      } catch {
+        throw new InternalError("Failed to generate item descriptions");
+      }
+
+      if (descriptions.length !== parsedItems.length) {
+        throw new InternalError(
+          "Description generation returned unexpected result"
+        );
+      }
+
+      return {
+        ...parsedFileData,
+        data: parsedItems.map((item, index) => ({
+          ...item,
+          description: descriptions[index] ?? null,
+        })),
+      };
+    };
+
     const result = await DonorOfferService.createDonorOffer(
       formData,
-      parsedFileData,
+      await donorOfferInput(),
       preview
     );
     return NextResponse.json(result);

@@ -48,9 +48,7 @@ type LineItemSeed = {
 
 type GeneralItemSeed = {
   title: string;
-  type: string;
   unitType: string;
-  quantityPerUnit: number;
   expirationDate?: Date;
   initialQuantity: number;
   requestQuantity?: number;
@@ -74,7 +72,7 @@ const buildPartnerDetails = (
     siteName,
     address: `${siteName}, ${department}, Haiti`,
     department,
-    gpsCoordinates: "18.5392° N, 72.3350° W",
+  gpsCoordinates: "18.5392° N, 72.3350° W",
   website: "https://hopeforhaiti.org",
   socialMedia: `@${contactPrefix}`,
   regionalContact: {
@@ -172,9 +170,7 @@ const partnerSeeds: PartnerSeed[] = [
 const unfinalizedGeneralItems: GeneralItemSeed[] = [
   {
     title: "Amoxicillin 500mg Capsules",
-    type: "Medication",
     unitType: "Bottle",
-    quantityPerUnit: 100,
     expirationDate: new Date("2026-06-30"),
     initialQuantity: 900,
     requestQuantity: 790,
@@ -212,9 +208,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Oral Rehydration Salt Packets",
-    type: "Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 50,
     expirationDate: new Date("2025-12-31"),
     initialQuantity: 500,
     requestQuantity: 470,
@@ -251,9 +245,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Insulin Glargine 10ml Vials",
-    type: "Medication",
     unitType: "Box",
-    quantityPerUnit: 10,
     expirationDate: new Date("2025-04-30"),
     initialQuantity: 180,
     requestQuantity: 205,
@@ -290,9 +282,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Disposable Syringes 5ml",
-    type: "Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 200,
     expirationDate: new Date("2027-01-15"),
     initialQuantity: 1200,
     requestQuantity: 1090,
@@ -327,9 +317,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Sterile Surgical Gloves Size M",
-    type: "Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 100,
     expirationDate: new Date("2026-11-20"),
     initialQuantity: 800,
     requestQuantity: 720,
@@ -365,9 +353,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Prenatal Vitamins 180ct Bottles",
-    type: "Medication",
     unitType: "Bottle",
-    quantityPerUnit: 180,
     expirationDate: new Date("2025-09-30"),
     initialQuantity: 600,
     requestQuantity: 550,
@@ -403,9 +389,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Blood Pressure Monitors",
-    type: "Medical Equipment",
     unitType: "Unit",
-    quantityPerUnit: 1,
     expirationDate: new Date("2028-03-31"),
     initialQuantity: 85,
     requestQuantity: 82,
@@ -441,9 +425,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Portable Nebulizer Kits",
-    type: "Medical Equipment",
     unitType: "Kit",
-    quantityPerUnit: 1,
     expirationDate: new Date("2027-08-15"),
     initialQuantity: 150,
     requestQuantity: 140,
@@ -479,9 +461,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Suture Removal Kits",
-    type: "Medical Supply",
     unitType: "Box",
-    quantityPerUnit: 25,
     expirationDate: new Date("2026-04-30"),
     initialQuantity: 260,
     requestQuantity: 240,
@@ -516,9 +496,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Chlorhexidine Antiseptic Solution",
-    type: "Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 24,
     expirationDate: new Date("2025-11-30"),
     initialQuantity: 320,
     requestQuantity: 300,
@@ -556,9 +534,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
 const finalizedGeneralItems: GeneralItemSeed[] = [
   {
     title: "0.9% Sodium Chloride IV Bags",
-    type: "Medication",
     unitType: "Case",
-    quantityPerUnit: 12,
     expirationDate: new Date("2027-02-28"),
     initialQuantity: 600,
     requestQuantity: 600,
@@ -662,9 +638,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Ceftriaxone 1g Injection Vials",
-    type: "Medication",
     unitType: "Tray",
-    quantityPerUnit: 10,
     expirationDate: new Date("2026-10-31"),
     initialQuantity: 480,
     requestQuantity: 480,
@@ -752,9 +726,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Vitamin A Capsules 200,000 IU",
-    type: "Medication",
     unitType: "Bottle",
-    quantityPerUnit: 100,
     expirationDate: new Date("2027-05-31"),
     initialQuantity: 1000,
     requestQuantity: 1000,
@@ -866,9 +838,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Surgical Procedure Masks",
-    type: "Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 500,
     expirationDate: new Date("2026-03-31"),
     initialQuantity: 1500,
     requestQuantity: 1500,
@@ -993,9 +963,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Comprehensive Lab Reagent Panels",
-    type: "Medical Supply",
     unitType: "Kit",
-    quantityPerUnit: 1,
     expirationDate: new Date("2025-10-15"),
     initialQuantity: 300,
     requestQuantity: 300,
@@ -1065,9 +1033,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Ultrasound Transmission Gel Cases",
-    type: "Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 20,
     expirationDate: new Date("2026-12-31"),
     initialQuantity: 400,
     requestQuantity: 400,
@@ -1154,9 +1120,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
 const archivedGeneralItems: GeneralItemSeed[] = [
   {
     title: "Azithromycin 250mg Tablets",
-    type: "Medication",
     unitType: "Bottle",
-    quantityPerUnit: 60,
     expirationDate: new Date("2026-02-28"),
     initialQuantity: 420,
     requestQuantity: 455,
@@ -1243,9 +1207,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Disposable Surgical Gown Packs",
-    type: "Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 40,
     expirationDate: new Date("2027-04-30"),
     initialQuantity: 300,
     requestQuantity: 325,
@@ -1330,9 +1292,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "IV Rehydration Starter Sets",
-    type: "Medical Supply",
     unitType: "Kit",
-    quantityPerUnit: 1,
     initialQuantity: 260,
     requestQuantity: 290,
     requests: [
@@ -1414,9 +1374,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "Cold Chain Vaccine Carriers",
-    type: "Medical Equipment",
     unitType: "Unit",
-    quantityPerUnit: 1,
     initialQuantity: 140,
     requestQuantity: 168,
     requests: [
@@ -1499,9 +1457,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
   },
   {
     title: "High-Energy Nutrition Bars",
-    type: "Non-Medical Supply",
     unitType: "Case",
-    quantityPerUnit: 12,
     expirationDate: new Date("2026-12-31"),
     initialQuantity: 540,
     requestQuantity: 600,
@@ -1670,36 +1626,39 @@ async function buildSeedData() {
     await tx.shippingStatus.deleteMany();
     await tx.userInvite.deleteMany();
     await tx.user.deleteMany();
+    await tx.allocation.deleteMany();
+    await tx.generalItemRequest.deleteMany();
+    await tx.descriptionLookup.deleteMany();
 
     const passwordHash = await hash("root");
 
     await Promise.all([
       tx.user.create({
-        data: {
-          email: "superadmin@test.com",
-          name: "Super Admin",
+      data: {
+        email: "superadmin@test.com",
+        name: "Super Admin",
           passwordHash,
           type: UserType.SUPER_ADMIN,
           enabled: true,
           pending: false,
-        },
+      },
       }),
       tx.user.create({
-        data: {
-          email: "admin@test.com",
+      data: {
+        email: "admin@test.com",
           name: "Admin User",
           passwordHash,
-          type: UserType.ADMIN,
+        type: UserType.ADMIN,
           enabled: true,
           pending: false,
-        },
+      },
       }),
       tx.user.create({
-        data: {
-          email: "staff@test.com",
+      data: {
+        email: "staff@test.com",
           name: "Staff Member",
           passwordHash,
-          type: UserType.STAFF,
+        type: UserType.STAFF,
           enabled: true,
           pending: false,
         },
@@ -1709,7 +1668,7 @@ async function buildSeedData() {
     const partnerRecords = [];
     for (const seed of partnerSeeds) {
       const partner = await tx.user.create({
-        data: {
+      data: {
           email: seed.email,
           name: seed.name,
           passwordHash,
@@ -1718,8 +1677,8 @@ async function buildSeedData() {
           enabled: seed.pending ? false : true,
           pending: seed.pending ?? false,
           partnerDetails: seed.partnerDetails,
-        },
-      });
+      },
+    });
       partnerRecords.push({ seed, partner });
     }
 
@@ -1727,13 +1686,13 @@ async function buildSeedData() {
       ({ seed }) => seed.pending
     );
     if (pendingPartnerEntry) {
-      await tx.userInvite.create({
-        data: {
+    await tx.userInvite.create({
+      data: {
           userId: pendingPartnerEntry.partner.id,
           token: "partner-onboarding-token",
           expiration: addDays(30),
-        },
-      });
+      },
+    });
     }
 
     const partnerMap = new Map(
@@ -1746,9 +1705,7 @@ async function buildSeedData() {
 
     const buildGeneralItemData = (item: GeneralItemSeed) => ({
       title: item.title,
-      type: item.type,
       unitType: item.unitType,
-      quantityPerUnit: item.quantityPerUnit,
       expirationDate: item.expirationDate,
       initialQuantity: item.initialQuantity,
       requestQuantity:
@@ -1757,7 +1714,7 @@ async function buildSeedData() {
           (total, req) => total + (req.finalQuantity ?? req.quantity),
           0
         ),
-      requests: {
+        requests: {
         create: item.requests.map((req) => {
           const partner = partnerMap.get(req.partnerKey);
           if (!partner) {
@@ -1800,15 +1757,15 @@ async function buildSeedData() {
 
     await tx.donorOffer.create({
       data: {
-        state: DonorOfferState.UNFINALIZED,
+          state: DonorOfferState.UNFINALIZED,
         offerName: "Q3 Medical Support (Draft)",
         donorName: "Global Health Trust",
         partnerResponseDeadline: addDays(14),
         donorResponseDeadline: addDays(28),
-        partnerVisibilities: {
+          partnerVisibilities: {
           connect: activePartners.map((partner) => ({ id: partner.id })),
         },
-        items: {
+          items: {
           create: unfinalizedGeneralItems.map(buildGeneralItemData),
         },
       },
@@ -1821,10 +1778,10 @@ async function buildSeedData() {
         donorName: "Aid for All Foundation",
         partnerResponseDeadline: addDays(-21),
         donorResponseDeadline: addDays(-7),
-        partnerVisibilities: {
+          partnerVisibilities: {
           connect: activePartners.map((partner) => ({ id: partner.id })),
         },
-        items: {
+          items: {
           create: finalizedGeneralItems.map(buildGeneralItemData),
         },
       },
@@ -1837,7 +1794,7 @@ async function buildSeedData() {
         donorName: "Med Relief International Coalition",
         partnerResponseDeadline: addDays(-120),
         donorResponseDeadline: addDays(-90),
-        partnerVisibilities: {
+          partnerVisibilities: {
           connect: activePartners.map((partner) => ({ id: partner.id })),
         },
         items: {
@@ -1845,7 +1802,7 @@ async function buildSeedData() {
         },
       },
       include: {
-        items: {
+          items: {
           include: {
             items: true,
           },

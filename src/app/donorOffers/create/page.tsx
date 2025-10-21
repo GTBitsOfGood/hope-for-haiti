@@ -15,12 +15,13 @@ import {
 } from "@/components/DonorOffers";
 import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useApiClient } from "@/hooks/useApiClient";
 
 export default function CreateDonorOfferPage() {
   const { data: session } = useSession();
+  const router = useRouter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +48,7 @@ export default function CreateDonorOfferPage() {
     handleFileChange,
     resetUpload: resetFileUpload,
   } = useFileUpload<{ donorOfferItems: DonorOfferItem[] }>({
-    previewEndpoint: "/api/donorOffers/create?preview=true",
+    previewEndpoint: "/api/donorOffers?preview=true",
     onSuccess: (result) => {
       setData(result.donorOfferItems);
     },
@@ -93,7 +94,7 @@ export default function CreateDonorOfferPage() {
 
   const resetUpload = () => {
     resetFileUpload();
-    
+
     setPreview(false);
     setIsSuccess(false);
     setIsError(false);
@@ -119,7 +120,7 @@ export default function CreateDonorOfferPage() {
     });
 
     try {
-      await apiClient.post("/api/donorOffers/create", {
+      await apiClient.post("/api/donorOffers", {
         body: formData,
       });
       setIsSuccess(true);
@@ -217,7 +218,7 @@ export default function CreateDonorOfferPage() {
 
       <div className="flex justify-end mt-4">
         <button
-          onClick={resetUpload}
+          onClick={() => router.push("/donorOffers")}
           className="bg-white hover:bg-gray-100 w-48 text-red-500 border border-red-500 py-1 px-4 mt-1 mb-6 rounded text-sm"
         >
           Cancel Upload
@@ -227,7 +228,7 @@ export default function CreateDonorOfferPage() {
             onClick={handleSubmit}
             className="bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
           >
-            Submit Offer
+            Create Offer
           </button>
         ) : (
           <button
@@ -264,7 +265,9 @@ export default function CreateDonorOfferPage() {
         <DonorOfferErrorModal
           setErrorOpen={setIsError}
           resetUpload={resetUpload}
-          errors={["An error occurred while creating the donor offer. Please try again."]}
+          errors={[
+            "An error occurred while creating the donor offer. Please try again.",
+          ]}
         />
       )}
     </div>

@@ -126,18 +126,18 @@ model GeneralItem {
   donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
 
   title           String
-  type            String
   expirationDate  DateTime? @db.Date
   unitType        String
-  quantityPerUnit Int
 
   initialQuantity Int
   requestQuantity Int?
+  
+  description String?
 
   requests GeneralItemRequest[]
   items    LineItem[]
 
-  @@unique([donorOfferId, title, type, expirationDate, unitType, quantityPerUnit])
+  @@unique([donorOfferId, title, expirationDate, unitType])
 }
 
 model GeneralItemRequest {
@@ -229,7 +229,7 @@ model PasswordResetToken {
 }
 
 model DescriptionLookup {
-  // Composite identity constructed as `${title} | ${type} | ${unitType}`
+  // Composite identity constructed as `${title} | ${unitType}`
   id          String @id
   description String
 }

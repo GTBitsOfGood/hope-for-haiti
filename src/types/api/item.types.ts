@@ -5,10 +5,8 @@ export type CreateItemData = ItemForm;
 
 export interface BulkItemData {
   title: string;
-  type: string;
   expirationDate?: Date | string;
   unitType: string;
-  quantityPerUnit: number;
   donorName: string;
   category: ItemCategory;
   quantity: number;

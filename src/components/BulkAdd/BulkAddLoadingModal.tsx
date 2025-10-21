@@ -2,7 +2,9 @@ export default function BulkAddLoadingModal() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-84 relative">
-        <h2 className="text-lg font-semibold">Uploading...</h2>
+        <h2 className="text-lg font-semibold">
+          Processing donor offer and generating descriptions...
+        </h2>
         <div className="flex justify-center mt-4">
           <svg
             aria-hidden="true"
@@ -22,7 +24,7 @@ export default function BulkAddLoadingModal() {
           </svg>
         </div>
         <p className="text-gray-500 text-lg mt-3">
-          Supported Formats: xlsx, csv
+          This may take a moment while we prepare the items.
         </p>
       </div>
     </div>
