@@ -48,6 +48,7 @@ const DonorOfferItemSchema = z.object({
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().int().min(0, "Quantity must be non-negative")),
+  description: z.string().optional(),
 });
 
 const DonorOfferSchema = z.object({
@@ -403,7 +404,6 @@ export default class DonorOfferService {
     const { data: jsonData } = parsedFileData;
     const validDonorOfferItems: (typeof DonorOfferItemSchema._type)[] = [];
     const errors: string[] = [];
-
     jsonData.forEach((row, index) => {
       const parsed = DonorOfferItemSchema.safeParse(row);
       if (!parsed.success) {
@@ -462,9 +462,36 @@ export default class DonorOfferService {
         donorOfferId: donorOffer.id,
       }));
 
+      for (const item of itemsWithDonorOfferId) {
+        await tx.generalItem.upsert({
+          where: {
+            donorOfferId_title_type_expirationDate_unitType_quantityPerUnit: {
+              donorOfferId: item.donorOfferId,
+              title: item.title,
+              type: item.type,
+              expirationDate: item.expirationDate as Date,
+              unitType: item.unitType,
+              quantityPerUnit: item.quantityPerUnit,
+            },
+          },
+          update: {
+            initialQuantity: { increment: item.initialQuantity },
+          },
+          create: {
+            ...item,
+          },
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            unitType: true,
+          },
+        });
+      }
+      /*
       await tx.generalItem.createMany({
         data: itemsWithDonorOfferId,
-      });
+      });*/
     });
 
     return { success: true };

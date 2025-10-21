@@ -47,8 +47,9 @@ export default function CreateDonorOfferPage() {
     handleFileChange,
     resetUpload: resetFileUpload,
   } = useFileUpload<{ donorOfferItems: DonorOfferItem[] }>({
-    previewEndpoint: "/api/donorOffers/create?preview=true",
+    previewEndpoint: "/api/donorOffers?preview=true",
     onSuccess: (result) => {
+      console.log(result);
       setData(result.donorOfferItems);
     },
     validateBeforeUpload: () => {
@@ -93,7 +94,7 @@ export default function CreateDonorOfferPage() {
 
   const resetUpload = () => {
     resetFileUpload();
-    
+
     setPreview(false);
     setIsSuccess(false);
     setIsError(false);
@@ -119,7 +120,7 @@ export default function CreateDonorOfferPage() {
     });
 
     try {
-      await apiClient.post("/api/donorOffers/create", {
+      await apiClient.post("/api/donorOffers", {
         body: formData,
       });
       setIsSuccess(true);
@@ -264,7 +265,9 @@ export default function CreateDonorOfferPage() {
         <DonorOfferErrorModal
           setErrorOpen={setIsError}
           resetUpload={resetUpload}
-          errors={["An error occurred while creating the donor offer. Please try again."]}
+          errors={[
+            "An error occurred while creating the donor offer. Please try again.",
+          ]}
         />
       )}
     </div>

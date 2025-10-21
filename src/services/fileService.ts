@@ -12,20 +12,18 @@ import {
   UploadUrlResult,
   RecentFileResult,
   ReadUrlResult,
-  ParsedFileData
+  ParsedFileData,
 } from "@/types/api/file.types";
 
-const requiredKeys = [
-  "title",
-  "type",
-  "quantity",
-  "expirationDate",
-  "unitType",
-  "quantityPerUnit",
-];
+const requiredKeys = new Map<string, string>([
+  ["Generic Description", "title"],
+  ["Quantity", "quantity"],
+  ["Expiration Date", "expirationDate"],
+  ["Unit UOM", "unitType"],
+]);
 
 const containsRequiredKeys = (fields?: string[]) =>
-  fields ? requiredKeys.every((key) => fields.includes(key)) : false;
+  fields ? requiredKeys.keys().every((key) => fields.includes(key)) : false;
 
 const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME;
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -145,7 +143,9 @@ export default class FileService {
   static async parseDonorOfferFile(file: File): Promise<ParsedFileData> {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
     if (!["csv", "xlsx"].includes(fileExt || "")) {
-      throw new ArgumentError(`Error opening ${file.name}: must be a valid CSV or XLSX file`);
+      throw new ArgumentError(
+        `Error opening ${file.name}: must be a valid CSV or XLSX file`
+      );
     }
 
     try {
@@ -161,7 +161,7 @@ export default class FileService {
         const { data, meta } = Papa.parse(csvText, { header: true });
 
         if (!meta.fields || !containsRequiredKeys(meta.fields)) {
-          throw new ArgumentError("CSV does not contain required keys");
+          throw new ArgumentError("XLSX does not contain required keys");
         }
 
         jsonData = data as Record<string, unknown>[];
@@ -179,6 +179,25 @@ export default class FileService {
 
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields;
+      }
+      jsonData = jsonData.filter((row) => {
+        return (
+          row["Generic Description"] !== undefined &&
+          row["Generic Description"] !== null &&
+          row["Generic Description"] !== ""
+        ); //try to filter out invalid rows based on required field
+      });
+
+      for (const data of jsonData) {
+        for (const [originalKey, newKey] of requiredKeys) {
+          if (originalKey in data) {
+            data[newKey] = data[originalKey];
+            delete data[originalKey];
+          }
+        }
+        data["quantityPerUnit"] = "1";
+        data["type"] = "N/A -- to be updated";
+        data["initialQuantity"] = data["quantity"];
       }
 
       return { data: jsonData, fields };
@@ -216,7 +235,10 @@ export default class FileService {
         fields = meta.fields;
       } else {
         const text = await file.text();
-        const { data, meta } = Papa.parse(text, { header: true, skipEmptyLines: true });
+        const { data, meta } = Papa.parse(text, {
+          header: true,
+          skipEmptyLines: true,
+        });
 
         if (!meta.fields || !containsRequiredKeys(meta.fields)) {
           throw new ArgumentError("CSV does not contain required keys");

@@ -18,6 +18,7 @@ export type DonorOfferItem = {
   hfhShippingNumber?: string;
   visible?: boolean;
   notes?: string;
+  description?: string;
 };
 
 interface PreviewTableProps {
@@ -46,6 +47,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
           "Visibility",
           "Comment",
         ]),
+        "Description",
       ]}
       rows={data.map((item) => ({
         cells: [
@@ -68,6 +70,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
             item.visible ? "Visible" : "Hidden",
             item.notes,
           ]),
+          item.description,
         ],
       }))}
     />

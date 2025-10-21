@@ -46,6 +46,7 @@ type GeneralItemWithRequests = {
   quantityPerUnit: number;
   initialQuantity: number;
   requestQuantity: number | null;
+  description?: string;
   requests: {
     id: number;
     quantity: number;
@@ -121,6 +122,11 @@ export default function AdminDynamicDonorOfferScreen() {
         cell: (i) => i.initialQuantity,
       },
       {
+        id: "description",
+        header: "Description",
+        cell: (i) => i.description || "N/A",
+      },
+      {
         id: "requestSummary",
         header: "Request Summary",
         cell: (i, _, isOpen) => {
@@ -132,7 +138,9 @@ export default function AdminDynamicDonorOfferScreen() {
           );
           return (
             <div className="flex items-center gap-2">
-              <span className="text-gray-600">{isOpen ? <CgChevronUp /> : <CgChevronDown />}</span>
+              <span className="text-gray-600">
+                {isOpen ? <CgChevronUp /> : <CgChevronDown />}
+              </span>
               <button className="px-2 py-1 border-black border rounded text-sm">
                 Total <span className="font-semibold">{totalQty}</span>
               </button>
@@ -232,7 +240,6 @@ export default function AdminDynamicDonorOfferScreen() {
 
       // Handle streaming chunk
       if ("itemIndex" in chunk && "requests" in chunk) {
-        
         const currentItem = currentItems[chunk.itemIndex];
         if (currentItem) {
           updateItemRequests(currentItem.id, chunk.requests);
@@ -250,11 +257,11 @@ export default function AdminDynamicDonorOfferScreen() {
         body: JSON.stringify({ donorOfferId: parseInt(String(donorOfferId)) }),
         parseChunk: (rawChunk: string) => {
           buffer += rawChunk;
-          
+
           const parts = buffer.split("\n\n");
-          
+
           buffer = parts.pop() || "";
-          
+
           for (const part of parts) {
             if (part.trim().startsWith("data: ")) {
               const data = part.substring(part.indexOf("data: ") + 6).trim();
@@ -268,7 +275,7 @@ export default function AdminDynamicDonorOfferScreen() {
               }
             }
           }
-          
+
           return pendingMessages.shift() || ({ test: "" } as StreamChunk);
         },
         onChunk: (chunk) => {
@@ -359,51 +366,56 @@ export default function AdminDynamicDonorOfferScreen() {
     }
   }, [apiClient, currentItems]);
 
-  const handleRequestUpdated = useCallback((itemId?: number, updatedRequests?: PartnerRequestChipData[]) => {
-    if (isLLMMode && itemId && updatedRequests) {
-      // In LLM mode, update the specific item without reloading
-      tableRef.current?.updateItemById(itemId, (currentItem) => {
-        return {
-          ...currentItem,
-          requests: currentItem.requests.map((req) => {
-            const updatedReq = updatedRequests.find((r) => r.id === req.id);
-            if (updatedReq) {
+  const handleRequestUpdated = useCallback(
+    (itemId?: number, updatedRequests?: PartnerRequestChipData[]) => {
+      if (isLLMMode && itemId && updatedRequests) {
+        // In LLM mode, update the specific item without reloading
+        tableRef.current?.updateItemById(itemId, (currentItem) => {
+          return {
+            ...currentItem,
+            requests: currentItem.requests.map((req) => {
+              const updatedReq = updatedRequests.find((r) => r.id === req.id);
+              if (updatedReq) {
+                return {
+                  ...req,
+                  finalQuantity: updatedReq.finalQuantity,
+                };
+              }
+              return req;
+            }),
+          };
+        });
+
+        // Also update currentItems state
+        setCurrentItems((prevItems) =>
+          prevItems.map((item) => {
+            if (item.id === itemId) {
               return {
-                ...req,
-                finalQuantity: updatedReq.finalQuantity,
+                ...item,
+                requests: item.requests.map((req) => {
+                  const updatedReq = updatedRequests.find(
+                    (r) => r.id === req.id
+                  );
+                  if (updatedReq) {
+                    return {
+                      ...req,
+                      finalQuantity: updatedReq.finalQuantity,
+                    };
+                  }
+                  return req;
+                }),
               };
             }
-            return req;
-          }),
-        };
-      });
-      
-      // Also update currentItems state
-      setCurrentItems((prevItems) =>
-        prevItems.map((item) => {
-          if (item.id === itemId) {
-            return {
-              ...item,
-              requests: item.requests.map((req) => {
-                const updatedReq = updatedRequests.find((r) => r.id === req.id);
-                if (updatedReq) {
-                  return {
-                    ...req,
-                    finalQuantity: updatedReq.finalQuantity,
-                  };
-                }
-                return req;
-              }),
-            };
-          }
-          return item;
-        })
-      );
-    } else {
-      // Not in LLM mode, reload the table
-      tableRef.current?.reload();
-    }
-  }, [isLLMMode]);
+            return item;
+          })
+        );
+      } else {
+        // Not in LLM mode, reload the table
+        tableRef.current?.reload();
+      }
+    },
+    [isLLMMode]
+  );
 
   const rowBody = useCallback(
     (item: GeneralItemWithRequests) => {

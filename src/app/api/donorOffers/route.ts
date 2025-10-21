@@ -11,6 +11,7 @@ import {
 } from "@/util/errors";
 import FileService from "@/services/fileService";
 import { tableParamsSchema } from "@/schema/tableParams";
+import { DescriptionService } from "@/services/descriptionService";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,16 +25,29 @@ export async function POST(req: NextRequest) {
         "You are not allowed to create donor offers"
       );
     }
-
+    const params = req.nextUrl.searchParams;
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const preview = formData.get("preview") === "true";
+    const preview = params.get("preview") === "true";
 
     if (!file) {
       throw new ArgumentError("File is required");
     }
 
     const parsedFileData = await FileService.parseDonorOfferFile(file);
+    const itemDescriptionInput = parsedFileData.data.map((item) => ({
+      title: item["title"] as string,
+      type: item["type"] as string,
+      unitType: item["unitType"] as string,
+    }));
+
+    const descriptions =
+      await DescriptionService.getOrGenerateDescriptions(itemDescriptionInput);
+
+    parsedFileData.data.forEach((item, index) => {
+      item.description = descriptions[index];
+    });
+
     const result = await DonorOfferService.createDonorOffer(
       formData,
       parsedFileData,

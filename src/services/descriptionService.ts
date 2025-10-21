@@ -17,24 +17,39 @@ export class DescriptionService {
     return `${item.title} | ${item.type} | ${item.unitType}`;
   }
 
-  static async getOrGenerateDescriptions(items: DescribeItemInput[]): Promise<string[]> {
+  static async getOrGenerateDescriptions(
+    items: DescribeItemInput[]
+  ): Promise<string[]> {
     if (items.length === 0) return [];
 
     const ids = items.map(DescriptionService.makeCacheId);
     const existing = await db.descriptionLookup.findMany({
       where: { id: { in: ids } },
     });
-    const existingMap = new Map(existing.map((entry: { id: string; description: string }) => [entry.id, entry.description]));
+    const existingMap = new Map(
+      existing.map((entry: { id: string; description: string }) => [
+        entry.id,
+        entry.description,
+      ])
+    );
 
     const missing: { id: string; item: DescribeItemInput }[] = [];
+    const missingIds = new Set<string>();
     ids.forEach((id, index) => {
-      if (!existingMap.has(id)) missing.push({ id, item: items[index] });
+      if (!existingMap.has(id) && !missingIds.has(id)) {
+        missing.push({ id, item: items[index] });
+        missingIds.add(id);
+      }
     });
 
-    const generated = await DescriptionService.generateDescriptions(missing.map((entry) => entry.item));
+    const generated = await DescriptionService.generateDescriptions(
+      missing.map((entry) => entry.item)
+    );
     const generatedMap = new Map<string, string>();
     missing.forEach((entry, index) => {
-      const combined = DescriptionService.combineDescriptions(generated[index] ?? DescriptionService.defaultDescription(entry.item));
+      const combined = DescriptionService.combineDescriptions(
+        generated[index] ?? DescriptionService.defaultDescription(entry.item)
+      );
       generatedMap.set(entry.id, combined);
     });
 
@@ -50,11 +65,22 @@ export class DescriptionService {
       );
     }
 
-    const finalMap = new Map([...existingMap, ...generatedMap]) as Map<string, string>;
-    return ids.map((id, index) => finalMap.get(id) || DescriptionService.combineDescriptions(DescriptionService.defaultDescription(items[index])));
+    const finalMap = new Map([...existingMap, ...generatedMap]) as Map<
+      string,
+      string
+    >;
+    return ids.map(
+      (id, index) =>
+        finalMap.get(id) ||
+        DescriptionService.combineDescriptions(
+          DescriptionService.defaultDescription(items[index])
+        )
+    );
   }
 
-  private static async generateDescriptions(items: DescribeItemInput[]): Promise<BilingualDescription[]> {
+  private static async generateDescriptions(
+    items: DescribeItemInput[]
+  ): Promise<BilingualDescription[]> {
     if (items.length === 0) return [];
 
     const { client } = getOpenAIClient();
@@ -66,7 +92,10 @@ export class DescriptionService {
 - Keep language simple and suitable for a broad audience.`;
 
     const userLines = items
-      .map((item, index) => `${index + 1}. title="${item.title}", type="${item.type}", unitType="${item.unitType}"`)
+      .map(
+        (item, index) =>
+          `${index + 1}. title="${item.title}", type="${item.type}", unitType="${item.unitType}"`
+      )
       .join("\n");
     const user = `Return a JSON object with an \'items\' array. Each element must include \'haitian\' and \'english\' string fields that describe the matching item. Haitian Creole should be natural and come from the Haitian perspective; English should be clear and simple.\n${userLines}`;
 
@@ -119,14 +148,21 @@ export class DescriptionService {
     return items.map(DescriptionService.defaultDescription);
   }
 
-  private static normalizeDescription(value: Partial<BilingualDescription> | undefined, item: DescribeItemInput): BilingualDescription {
+  private static normalizeDescription(
+    value: Partial<BilingualDescription> | undefined,
+    item: DescribeItemInput
+  ): BilingualDescription {
     const fallback = DescriptionService.defaultDescription(item);
-    const haitian = DescriptionService.cleanText(value?.haitian) || fallback.haitian;
-    const english = DescriptionService.cleanText(value?.english) || fallback.english;
+    const haitian =
+      DescriptionService.cleanText(value?.haitian) || fallback.haitian;
+    const english =
+      DescriptionService.cleanText(value?.english) || fallback.english;
     return { haitian, english };
   }
 
-  private static defaultDescription(item: DescribeItemInput): BilingualDescription {
+  private static defaultDescription(
+    item: DescribeItemInput
+  ): BilingualDescription {
     const lowerType = item.type.toLowerCase();
     const lowerUnit = item.unitType.toLowerCase();
     const english = `"${item.title}" is a ${lowerType} offered in ${lowerUnit} units.`;
@@ -141,6 +177,9 @@ export class DescriptionService {
   }
 
   private static cleanText(value: string | undefined): string {
-    return (value ?? "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+    return (value ?? "")
+      .replace(/[\r\n]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 }
