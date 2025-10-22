@@ -290,20 +290,21 @@ export class LineItemService {
       FROM "LineItem" li
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
-      WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate}
+      WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate} 
+        AND a."signOffId" IS NOT NULL
     `;
 
-    type QueryResult = { sum: number }[];
+    type QueryResult = { sum: number | null }[];
     // If no tags to exclude, run the base query directly to avoid Prisma.join([]) error
     if (excludePartnerTags.length === 0) {
       const result = await db.$queryRaw<QueryResult>(baseQuery);
-      return result[0].sum;
+      return result[0].sum || 0;
     }
 
     // Otherwise include the NOT IN clause with the provided tags
     const result = await db.$queryRaw<QueryResult>(
       Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})` // Can't do join with empty array
     );
-    return result[0].sum;
+    return result[0].sum || 0;
   }
 }
