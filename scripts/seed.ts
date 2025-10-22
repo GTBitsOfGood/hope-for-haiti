@@ -1640,6 +1640,8 @@ async function buildSeedData() {
         type: UserType.SUPER_ADMIN,
         enabled: true,
         pending: false,
+        latitude: 40.7128,
+        longitude: -74.006,
         notifications: {
           createMany: {
             data: [
@@ -1664,6 +1666,8 @@ async function buildSeedData() {
         type: UserType.ADMIN,
         enabled: true,
         pending: false,
+        latitude: -40.7128,
+        longitude: 74.006,
         notifications: {
           createMany: {
             data: [

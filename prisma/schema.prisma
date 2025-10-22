@@ -46,6 +46,9 @@ model User {
   wishlists     Wishlist[]
   invite        UserInvite?
   notifications Notification[]
+
+  latitude Decimal?
+  longitude Decimal?
 }
 
 model UserInvite {
