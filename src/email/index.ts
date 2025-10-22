@@ -21,15 +21,11 @@ import ResetPassword, { ResetPasswordProps } from "./templates/ResetPassword";
 const apiKey = process.env.SENDGRID_API_KEY as string;
 const fromEmail = process.env.SENDGRID_SENDER as string;
 
-// SendGrid setup is only required in production
-if (process.env.NODE_ENV === "production") {
-  if (apiKey === undefined) throw "Must set SENDGRID_API_KEY";
-  if (fromEmail === undefined) throw "Must set SENDGRID_SENDER";
-}
+
 if (apiKey) SendGrid.setApiKey(apiKey);
 
 // If in dev environment with no API key, we'll open emails locally
-const openLocally = process.env.NODE_ENV !== "production" && !apiKey;
+const openLocally = !apiKey;
 
 /**
  * Wrapper around SendGrid that opens the email locally if no API key
