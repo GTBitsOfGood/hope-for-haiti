@@ -12,10 +12,7 @@ import {
 } from "@/types/api/user.types";
 import { validatePassword } from "@/util/util";
 import { Filters } from "@/types/api/filter.types";
-import {
-  buildQueryWithPagination,
-  buildWhereFromFilters,
-} from "@/util/table";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 function parsePartnerDetails(raw?: string) {
   if (!raw) return undefined;
@@ -367,6 +364,24 @@ export default class UserService {
     });
 
     return results.map((r) => r.tag as string);
+  }
+
+  static async getPartnerLocations() {
+    const partners = await db.user.findMany({
+      where: {
+        type: UserType.PARTNER,
+        latitude: { not: null },
+        longitude: { not: null },
+      },
+      select: {
+        id: true,
+        name: true,
+        latitude: true,
+        longitude: true,
+      },
+    });
+
+    return partners;
   }
 
   static isAdmin(userType: UserType): boolean {

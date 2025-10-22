@@ -18,6 +18,8 @@ type PartnerSeed = {
   tag: string;
   pending?: boolean;
   partnerDetails: Prisma.JsonObject;
+  latitude?: number;
+  longitude?: number;
 };
 
 type GeneralItemRequestSeed = {
@@ -119,6 +121,8 @@ const partnerSeeds: PartnerSeed[] = [
       "Ouest",
       "hopecenter"
     ),
+    latitude: 18.5392,
+    longitude: -72.335,
   },
   {
     key: "mobile_response_unit",
@@ -130,6 +134,8 @@ const partnerSeeds: PartnerSeed[] = [
       "Sud",
       "hfhmobile"
     ),
+    latitude: 18.4275,
+    longitude: -72.2,
   },
   {
     key: "les_cayes_hospital",
@@ -141,6 +147,8 @@ const partnerSeeds: PartnerSeed[] = [
       "Sud",
       "lescayes"
     ),
+    latitude: 18.2,
+    longitude: -73.75,
   },
   {
     key: "jeremie_network",
@@ -1640,8 +1648,6 @@ async function buildSeedData() {
         type: UserType.SUPER_ADMIN,
         enabled: true,
         pending: false,
-        latitude: 40.7128,
-        longitude: -74.006,
         notifications: {
           createMany: {
             data: [
@@ -1666,8 +1672,6 @@ async function buildSeedData() {
         type: UserType.ADMIN,
         enabled: true,
         pending: false,
-        latitude: -40.7128,
-        longitude: 74.006,
         notifications: {
           createMany: {
             data: [
@@ -1722,6 +1726,8 @@ async function buildSeedData() {
         enabled: seed.pending ? false : true,
         pending: seed.pending ?? false,
         partnerDetails: seed.partnerDetails,
+        latitude: seed.latitude,
+        longitude: seed.longitude,
       },
     });
     partnerRecords.push({ seed, partner });
