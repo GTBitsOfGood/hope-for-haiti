@@ -278,4 +278,32 @@ export class LineItemService {
       createdCount: validItems.length,
     };
   }
+
+  static async getTotalImports(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<number> {
+    // Build base SQL fragment for the date range and joins
+    const baseQuery = Prisma.sql`
+      SELECT SUM(li.quantity * li."unitPrice")
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate}
+    `;
+
+    type QueryResult = { sum: number }[];
+    // If no tags to exclude, run the base query directly to avoid Prisma.join([]) error
+    if (excludePartnerTags.length === 0) {
+      const result = await db.$queryRaw<QueryResult>(baseQuery);
+      return result[0].sum;
+    }
+
+    // Otherwise include the NOT IN clause with the provided tags
+    const result = await db.$queryRaw<QueryResult>(
+      Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})` // Can't do join with empty array
+    );
+    return result[0].sum;
+  }
 }
