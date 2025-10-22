@@ -43,13 +43,26 @@ export async function GET(request: Request) {
       throw new ArgumentError(parsedQuery.error.message);
     }
 
-    const totalImports = await LineItemService.getTotalImports(
+    const totalImports = LineItemService.getTotalImports(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    return NextResponse.json({ totalImports });
+    const totalShipments = LineItemService.getShipmentCount(
+      parsedQuery.data.startDate,
+      parsedQuery.data.endDate,
+      parsedQuery.data.excludePartnerTags
+    );
+
+    const result = {
+      totalImports: await totalImports,
+      totalShipments: await totalShipments,
+    };
+
+    console.log("Analytics result:", result);
+
+    return NextResponse.json(result);
   } catch (error) {
     return errorResponse(error);
   }

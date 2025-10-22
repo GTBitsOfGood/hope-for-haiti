@@ -298,13 +298,49 @@ export class LineItemService {
     // If no tags to exclude, run the base query directly to avoid Prisma.join([]) error
     if (excludePartnerTags.length === 0) {
       const result = await db.$queryRaw<QueryResult>(baseQuery);
-      return result[0].sum || 0;
+      return Number(result[0].sum) || 0;
     }
 
     // Otherwise include the NOT IN clause with the provided tags
     const result = await db.$queryRaw<QueryResult>(
       Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})` // Can't do join with empty array
     );
-    return result[0].sum || 0;
+    return Number(result[0].sum) || 0;
+  }
+
+  /**
+   * Counts shipments where at least one line item (based on shipping numbers) has been allocated and signed off.
+   * Note: Will be inaccurate if the number of relevant shipments exceeds the maximum size for numbers
+   */
+  static async getShipmentCount(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<number> {
+    const baseQuery = Prisma.sql`
+      SELECT COUNT(DISTINCT s.id)
+      FROM "ShippingStatus" s
+      JOIN "LineItem" li ON 
+        s."hfhShippingNumber" = li."hfhShippingNumber" OR
+        s."donorShippingNumber" = li."donorShippingNumber"
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate}
+        AND a."signOffId" IS NOT NULL
+    `;
+
+    type QueryResult = { count: bigint }[];
+    if (excludePartnerTags.length === 0) {
+      const result = await db.$queryRaw<QueryResult>(baseQuery);
+      console.log("Shipment count result:", result);
+      return Number(result[0].count) || 0;
+    }
+
+    const result = await db.$queryRaw<QueryResult>(
+      Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(
+        excludePartnerTags
+      )})`
+    );
+    return Number(result[0].count) || 0;
   }
 }

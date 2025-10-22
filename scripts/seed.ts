@@ -1907,11 +1907,21 @@ async function buildSeedData() {
         );
       }
 
+      const signOff = await db.signOff.create({
+        data: {
+          staffMemberName: "Staff Member",
+          partnerId: partner.id,
+          partnerName: partner.name,
+          date: addDays(-30),
+        },
+      });
+
       await db.allocation.create({
         data: {
           lineItemId: lineItem.id,
           distributionId: distribution.id,
           partnerId: partner.id,
+          signOffId: signOff.id,
         },
       });
     }
