@@ -72,40 +72,40 @@ const buildPartnerDetails = (
     siteName,
     address: `${siteName}, ${department}, Haiti`,
     department,
-  gpsCoordinates: "18.5392° N, 72.3350° W",
-  website: "https://hopeforhaiti.org",
-  socialMedia: `@${contactPrefix}`,
-  regionalContact: {
-    firstName: "Marie",
-    lastName: "Joseph",
-    orgTitle: "Regional Director",
-    primaryTelephone: "+509 1234-5678",
-    email: `${contactPrefix}.regional@test.com`,
-  },
-  medicalContact: {
-    firstName: "Jean",
-    lastName: "Baptiste",
-    orgTitle: "Chief Medical Officer",
-    primaryTelephone: "+509 2345-6789",
-    email: `${contactPrefix}.medical@test.com`,
-  },
-  pharmacyContact: {
-    firstName: "Claire",
-    lastName: "Dumas",
-    orgTitle: "Pharmacy Lead",
-    primaryTelephone: "+509 3456-7890",
-    email: `${contactPrefix}.pharmacy@test.com`,
-  },
-  facilityType: ["clinic", "primary_care"],
-  organizationType: ["non_profit"],
-  cleanWaterAccessible: true,
-  medicationDisposalProcessDefined: true,
-  programs: [
-    "maternal_health",
-    "chronic_disease_support",
-    "mobile_outreach",
-    "emergency_response",
-  ],
+    gpsCoordinates: "18.5392° N, 72.3350° W",
+    website: "https://hopeforhaiti.org",
+    socialMedia: `@${contactPrefix}`,
+    regionalContact: {
+      firstName: "Marie",
+      lastName: "Joseph",
+      orgTitle: "Regional Director",
+      primaryTelephone: "+509 1234-5678",
+      email: `${contactPrefix}.regional@test.com`,
+    },
+    medicalContact: {
+      firstName: "Jean",
+      lastName: "Baptiste",
+      orgTitle: "Chief Medical Officer",
+      primaryTelephone: "+509 2345-6789",
+      email: `${contactPrefix}.medical@test.com`,
+    },
+    pharmacyContact: {
+      firstName: "Claire",
+      lastName: "Dumas",
+      orgTitle: "Pharmacy Lead",
+      primaryTelephone: "+509 3456-7890",
+      email: `${contactPrefix}.pharmacy@test.com`,
+    },
+    facilityType: ["clinic", "primary_care"],
+    organizationType: ["non_profit"],
+    cleanWaterAccessible: true,
+    medicationDisposalProcessDefined: true,
+    programs: [
+      "maternal_health",
+      "chronic_disease_support",
+      "mobile_outreach",
+      "emergency_response",
+    ],
   }) as Prisma.JsonObject;
 
 const partnerSeeds: PartnerSeed[] = [
@@ -1640,6 +1640,20 @@ async function buildSeedData() {
         type: UserType.SUPER_ADMIN,
         enabled: true,
         pending: false,
+        notifications: {
+          createMany: {
+            data: [
+              {
+                title: "Welcome to the System",
+                dateCreated: new Date(),
+              },
+              {
+                title: "New Features Available",
+                dateCreated: new Date(),
+              },
+            ],
+          },
+        },
       },
     }),
     db.user.create({
@@ -1650,6 +1664,20 @@ async function buildSeedData() {
         type: UserType.ADMIN,
         enabled: true,
         pending: false,
+        notifications: {
+          createMany: {
+            data: [
+              {
+                title: "Welcome to the System",
+                dateCreated: new Date(),
+              },
+              {
+                title: "New Features Available",
+                dateCreated: new Date(),
+              },
+            ],
+          },
+        },
       },
     }),
     db.user.create({
@@ -1660,211 +1688,223 @@ async function buildSeedData() {
         type: UserType.STAFF,
         enabled: true,
         pending: false,
+        notifications: {
+          createMany: {
+            data: [
+              {
+                title: "Welcome to the System",
+                dateCreated: new Date(),
+              },
+              {
+                title: "New Features Available",
+                dateCreated: new Date(),
+              },
+            ],
+          },
+        },
       },
     }),
   ]);
 
-    const partnerRecords = [];
-    for (const seed of partnerSeeds) {
-      const partner = await db.user.create({
+  const partnerRecords = [];
+  for (const seed of partnerSeeds) {
+    const partner = await db.user.create({
       data: {
-          email: seed.email,
-          name: seed.name,
-          passwordHash,
-          type: UserType.PARTNER,
-          tag: seed.tag,
-          enabled: seed.pending ? false : true,
-          pending: seed.pending ?? false,
-          partnerDetails: seed.partnerDetails,
+        email: seed.email,
+        name: seed.name,
+        passwordHash,
+        type: UserType.PARTNER,
+        tag: seed.tag,
+        enabled: seed.pending ? false : true,
+        pending: seed.pending ?? false,
+        partnerDetails: seed.partnerDetails,
       },
     });
-      partnerRecords.push({ seed, partner });
-    }
+    partnerRecords.push({ seed, partner });
+  }
 
-    const pendingPartnerEntry = partnerRecords.find(
-      ({ seed }) => seed.pending
-    );
-    if (pendingPartnerEntry) {
+  const pendingPartnerEntry = partnerRecords.find(({ seed }) => seed.pending);
+  if (pendingPartnerEntry) {
     await db.userInvite.create({
       data: {
-          userId: pendingPartnerEntry.partner.id,
-          token: "partner-onboarding-token",
-          expiration: addDays(30),
+        userId: pendingPartnerEntry.partner.id,
+        token: "partner-onboarding-token",
+        expiration: addDays(30),
       },
     });
+  }
+
+  const partnerMap = new Map(
+    partnerRecords.map(({ seed, partner }) => [seed.key, partner])
+  );
+
+  const activePartners = partnerRecords
+    .filter(({ seed }) => !seed.pending)
+    .map(({ partner }) => partner);
+
+  const buildGeneralItemData = (item: GeneralItemSeed) => ({
+    title: item.title,
+    unitType: item.unitType,
+    expirationDate: item.expirationDate,
+    initialQuantity: item.initialQuantity,
+    requestQuantity:
+      item.requestQuantity ??
+      item.requests.reduce(
+        (total, req) => total + (req.finalQuantity ?? req.quantity),
+        0
+      ),
+    requests: {
+      create: item.requests.map((req) => {
+        const partner = partnerMap.get(req.partnerKey);
+        if (!partner) {
+          throw new Error(`Unknown partner key ${req.partnerKey}`);
+        }
+
+        return {
+          partnerId: partner.id,
+          quantity: req.quantity,
+          finalQuantity: req.finalQuantity ?? req.quantity,
+          comments: req.comments ?? null,
+          priority: req.priority ?? null,
+        };
+      }),
+    },
+    ...(item.lineItems
+      ? {
+          items: {
+            create: item.lineItems.map((lineItem) => ({
+              category: lineItem.category,
+              donorName: lineItem.donorName,
+              quantity: lineItem.quantity,
+              lotNumber: lineItem.lotNumber,
+              palletNumber: lineItem.palletNumber,
+              boxNumber: lineItem.boxNumber,
+              unitPrice: lineItem.unitPrice,
+              allowAllocations: lineItem.allowAllocations,
+              visible: lineItem.visible,
+              gik: lineItem.gik,
+              maxRequestLimit: lineItem.maxRequestLimit ?? null,
+              donorShippingNumber: lineItem.donorShippingNumber ?? null,
+              hfhShippingNumber: lineItem.hfhShippingNumber ?? null,
+              ndc: lineItem.ndc ?? null,
+              notes: lineItem.notes ?? null,
+            })),
+          },
+        }
+      : {}),
+  });
+
+  await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.UNFINALIZED,
+      offerName: "Q3 Medical Support (Draft)",
+      donorName: "Global Health Trust",
+      partnerResponseDeadline: addDays(14),
+      donorResponseDeadline: addDays(28),
+      partnerVisibilities: {
+        connect: activePartners.map((partner) => ({ id: partner.id })),
+      },
+      items: {
+        create: unfinalizedGeneralItems.map(buildGeneralItemData),
+      },
+    },
+  });
+
+  await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.FINALIZED,
+      offerName: "Q2 Emergency Allocation (Finalized)",
+      donorName: "Aid for All Foundation",
+      partnerResponseDeadline: addDays(-21),
+      donorResponseDeadline: addDays(-7),
+      partnerVisibilities: {
+        connect: activePartners.map((partner) => ({ id: partner.id })),
+      },
+      items: {
+        create: finalizedGeneralItems.map(buildGeneralItemData),
+      },
+    },
+  });
+
+  const archivedDonorOffer = await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.ARCHIVED,
+      offerName: "Q1 Storm Recovery Allocation (Archived)",
+      donorName: "Med Relief International Coalition",
+      partnerResponseDeadline: addDays(-120),
+      donorResponseDeadline: addDays(-90),
+      partnerVisibilities: {
+        connect: activePartners.map((partner) => ({ id: partner.id })),
+      },
+      items: {
+        create: archivedGeneralItems.map(buildGeneralItemData),
+      },
+    },
+    include: {
+      items: {
+        include: {
+          items: true,
+        },
+      },
+    },
+  });
+
+  const archivedLineItemMap = new Map(
+    archivedDonorOffer.items.flatMap((generalItem) =>
+      generalItem.items.map((lineItem) => [lineItem.boxNumber, lineItem])
+    )
+  );
+
+  const archivedAllocationsPlan = [
+    {
+      partnerKey: "hope_medical_center",
+      lineItemBoxes: ["BOX-AZI-01", "BOX-INF-02"],
+    },
+    {
+      partnerKey: "mobile_response_unit",
+      lineItemBoxes: ["BOX-COLD-01"],
+    },
+    {
+      partnerKey: "les_cayes_hospital",
+      lineItemBoxes: ["BOX-GOWN-02"],
+    },
+    {
+      partnerKey: "jeremie_network",
+      lineItemBoxes: ["BOX-NUT-02"],
+    },
+  ] as const;
+
+  for (const allocationEntry of archivedAllocationsPlan) {
+    const partner = partnerMap.get(allocationEntry.partnerKey);
+    if (!partner) {
+      throw new Error(
+        `Unknown partner key ${allocationEntry.partnerKey} while creating archived allocations`
+      );
     }
 
-    const partnerMap = new Map(
-      partnerRecords.map(({ seed, partner }) => [seed.key, partner])
-    );
-
-    const activePartners = partnerRecords
-      .filter(({ seed }) => !seed.pending)
-      .map(({ partner }) => partner);
-
-    const buildGeneralItemData = (item: GeneralItemSeed) => ({
-      title: item.title,
-      unitType: item.unitType,
-      expirationDate: item.expirationDate,
-      initialQuantity: item.initialQuantity,
-      requestQuantity:
-        item.requestQuantity ??
-        item.requests.reduce(
-          (total, req) => total + (req.finalQuantity ?? req.quantity),
-          0
-        ),
-        requests: {
-        create: item.requests.map((req) => {
-          const partner = partnerMap.get(req.partnerKey);
-          if (!partner) {
-            throw new Error(`Unknown partner key ${req.partnerKey}`);
-          }
-
-          return {
-            partnerId: partner.id,
-            quantity: req.quantity,
-            finalQuantity: req.finalQuantity ?? req.quantity,
-            comments: req.comments ?? null,
-            priority: req.priority ?? null,
-          };
-        }),
-      },
-      ...(item.lineItems
-        ? {
-            items: {
-              create: item.lineItems.map((lineItem) => ({
-                category: lineItem.category,
-                donorName: lineItem.donorName,
-                quantity: lineItem.quantity,
-                lotNumber: lineItem.lotNumber,
-                palletNumber: lineItem.palletNumber,
-                boxNumber: lineItem.boxNumber,
-                unitPrice: lineItem.unitPrice,
-                allowAllocations: lineItem.allowAllocations,
-                visible: lineItem.visible,
-                gik: lineItem.gik,
-                maxRequestLimit: lineItem.maxRequestLimit ?? null,
-                donorShippingNumber: lineItem.donorShippingNumber ?? null,
-                hfhShippingNumber: lineItem.hfhShippingNumber ?? null,
-                ndc: lineItem.ndc ?? null,
-                notes: lineItem.notes ?? null,
-              })),
-            },
-          }
-        : {}),
-    });
-
-    await db.donorOffer.create({
+    const distribution = await db.distribution.create({
       data: {
-          state: DonorOfferState.UNFINALIZED,
-        offerName: "Q3 Medical Support (Draft)",
-        donorName: "Global Health Trust",
-        partnerResponseDeadline: addDays(14),
-        donorResponseDeadline: addDays(28),
-          partnerVisibilities: {
-          connect: activePartners.map((partner) => ({ id: partner.id })),
-        },
-          items: {
-          create: unfinalizedGeneralItems.map(buildGeneralItemData),
-        },
+        partnerId: partner.id,
+        pending: false,
       },
     });
 
-    await db.donorOffer.create({
-      data: {
-        state: DonorOfferState.FINALIZED,
-        offerName: "Q2 Emergency Allocation (Finalized)",
-        donorName: "Aid for All Foundation",
-        partnerResponseDeadline: addDays(-21),
-        donorResponseDeadline: addDays(-7),
-          partnerVisibilities: {
-          connect: activePartners.map((partner) => ({ id: partner.id })),
-        },
-          items: {
-          create: finalizedGeneralItems.map(buildGeneralItemData),
-        },
-      },
-    });
-
-    const archivedDonorOffer = await db.donorOffer.create({
-      data: {
-        state: DonorOfferState.ARCHIVED,
-        offerName: "Q1 Storm Recovery Allocation (Archived)",
-        donorName: "Med Relief International Coalition",
-        partnerResponseDeadline: addDays(-120),
-        donorResponseDeadline: addDays(-90),
-          partnerVisibilities: {
-          connect: activePartners.map((partner) => ({ id: partner.id })),
-        },
-        items: {
-          create: archivedGeneralItems.map(buildGeneralItemData),
-        },
-      },
-      include: {
-          items: {
-          include: {
-            items: true,
-          },
-        },
-      },
-    });
-
-    const archivedLineItemMap = new Map(
-      archivedDonorOffer.items.flatMap((generalItem) =>
-        generalItem.items.map((lineItem) => [lineItem.boxNumber, lineItem])
-      )
-    );
-
-    const archivedAllocationsPlan = [
-      {
-        partnerKey: "hope_medical_center",
-        lineItemBoxes: ["BOX-AZI-01", "BOX-INF-02"],
-      },
-      {
-        partnerKey: "mobile_response_unit",
-        lineItemBoxes: ["BOX-COLD-01"],
-      },
-      {
-        partnerKey: "les_cayes_hospital",
-        lineItemBoxes: ["BOX-GOWN-02"],
-      },
-      {
-        partnerKey: "jeremie_network",
-        lineItemBoxes: ["BOX-NUT-02"],
-      },
-    ] as const;
-
-    for (const allocationEntry of archivedAllocationsPlan) {
-      const partner = partnerMap.get(allocationEntry.partnerKey);
-      if (!partner) {
+    for (const boxNumber of allocationEntry.lineItemBoxes) {
+      const lineItem = archivedLineItemMap.get(boxNumber);
+      if (!lineItem) {
         throw new Error(
-          `Unknown partner key ${allocationEntry.partnerKey} while creating archived allocations`
+          `Missing archived line item for box number ${boxNumber}`
         );
       }
 
-      const distribution = await db.distribution.create({
+      await db.allocation.create({
         data: {
+          lineItemId: lineItem.id,
+          distributionId: distribution.id,
           partnerId: partner.id,
-          pending: false,
         },
       });
-
-      for (const boxNumber of allocationEntry.lineItemBoxes) {
-        const lineItem = archivedLineItemMap.get(boxNumber);
-        if (!lineItem) {
-          throw new Error(
-            `Missing archived line item for box number ${boxNumber}`
-          );
-        }
-
-        await db.allocation.create({
-          data: {
-            lineItemId: lineItem.id,
-            distributionId: distribution.id,
-            partnerId: partner.id,
-          },
-        });
-      }
+    }
   }
 
   await db.shippingStatus.createMany({ data: shippingStatusSeeds });

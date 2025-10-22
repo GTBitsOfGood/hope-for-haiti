@@ -45,6 +45,7 @@ model User {
   distributions Distribution[]
   wishlists     Wishlist[]
   invite        UserInvite?
+  notifications Notification[]
 }
 
 model UserInvite {
@@ -232,4 +233,15 @@ model DescriptionLookup {
   // Composite identity constructed as `${title} | ${unitType}`
   id          String @id
   description String
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  title       String
+  action      String?
+  actionText  String?
+  dateCreated DateTime @default(now())
+  dateViewed  DateTime?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
