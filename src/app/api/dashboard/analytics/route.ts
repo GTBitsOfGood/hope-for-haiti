@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/userUtils";
 import { LineItemService } from "@/services/lineItemService";
+import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
@@ -61,12 +62,15 @@ export async function GET(request: Request) {
       parsedQuery.data.excludePartnerTags
     );
 
+    const partnerCount = UserService.countPartners();
+
     const result = {
       totalImports: (await imports).total,
       monthlyImportTotals: (await imports).monthlyTotals,
       totalShipments: (await shipmentStats).shipmentCount,
       totalPallets: (await shipmentStats).palletCount,
       topMedications: await topMedications,
+      partnerCount: await partnerCount,
     };
 
     return NextResponse.json(result);

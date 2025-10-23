@@ -384,6 +384,12 @@ export default class UserService {
     return partners;
   }
 
+  static async countPartners() {
+    return db.user.count({
+      where: { type: UserType.PARTNER },
+    });
+  }
+
   static isAdmin(userType: UserType): boolean {
     return userType === UserType.ADMIN || userType === UserType.SUPER_ADMIN;
   }
