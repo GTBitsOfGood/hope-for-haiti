@@ -399,4 +399,30 @@ export class LineItemService {
       totalValue: Number(row.totalValue),
     }));
   }
+
+  /*
+   * WARNING: Weight is not yet implemented. This just returns quantity!
+   */
+  static async getTotalImportWeight(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ) {
+    let baseQuery = Prisma.sql`
+      SELECT SUM(li.quantity) as "totalWeight"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate}
+        AND a."signOffId" IS NOT NULL
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    const result =
+      await db.$queryRaw<{ totalWeight: number | null }[]>(baseQuery);
+    return Number(result[0].totalWeight) || 0;
+  }
 }

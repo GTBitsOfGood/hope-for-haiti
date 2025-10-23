@@ -64,6 +64,12 @@ export async function GET(request: Request) {
 
     const partnerCount = UserService.countPartners();
 
+    const importWeight = LineItemService.getTotalImportWeight(
+      parsedQuery.data.startDate,
+      parsedQuery.data.endDate,
+      parsedQuery.data.excludePartnerTags
+    );
+
     const result = {
       totalImports: (await imports).total,
       monthlyImportTotals: (await imports).monthlyTotals,
@@ -71,6 +77,7 @@ export async function GET(request: Request) {
       totalPallets: (await shipmentStats).palletCount,
       topMedications: await topMedications,
       partnerCount: await partnerCount,
+      importWeight: await importWeight,
     };
 
     return NextResponse.json(result);
