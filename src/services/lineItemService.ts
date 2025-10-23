@@ -339,8 +339,6 @@ export class LineItemService {
       JOIN (
         SELECT DISTINCT li.*
         FROM "LineItem" li
-        JOIN "Allocation" a ON li.id = a."lineItemId"
-        JOIN "User" p ON a."partnerId" = p.id
       ) li ON s."hfhShippingNumber" = li."hfhShippingNumber" OR
         s."donorShippingNumber" = li."donorShippingNumber"
       JOIN "Allocation" a ON li.id = a."lineItemId"
