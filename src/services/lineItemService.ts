@@ -340,9 +340,9 @@ export class LineItemService {
         SELECT DISTINCT li.*
         FROM "LineItem" li
         JOIN "Allocation" a ON li.id = a."lineItemId"
-        JOIN "SignOff" s ON a."signOffId" = s.id
-        WHERE s."date" BETWEEN ${startDate} AND ${endDate}
+        JOIN "User" p ON a."partnerId" = p.id
       ) li ON s."hfhShippingNumber" = li."hfhShippingNumber" OR
+        s."donorShippingNumber" = li."donorShippingNumber"
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
       WHERE s."date" BETWEEN ${startDate} AND ${endDate}
