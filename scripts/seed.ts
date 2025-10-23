@@ -1530,7 +1530,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         visible: true,
         gik: true,
         donorShippingNumber: "DN-2404-114",
-        hfhShippingNumber: "HFH-2405-044",
       },
       {
         category: ItemCategory.NON_MEDICAL,
@@ -1566,59 +1565,70 @@ const archivedGeneralItems: GeneralItemSeed[] = [
 const shippingStatusSeeds = [
   {
     donorShippingNumber: "DN-2405-001",
-    hfhShippingNumber: "HFH-2406-001",
+    hfhShippingNumber: "HFH-2406-001-B",
     value: ShipmentStatus.LOAD_ON_SHIP_AIR,
   },
   {
     donorShippingNumber: "DN-2405-003",
-    hfhShippingNumber: "HFH-2406-002",
+    hfhShippingNumber: "HFH-2406-002-B",
     value: ShipmentStatus.ARRIVED_IN_HAITI,
   },
   {
     donorShippingNumber: "DN-2405-006",
-    hfhShippingNumber: "HFH-2406-004",
+    hfhShippingNumber: "HFH-2406-004-B",
     value: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
   },
   {
     donorShippingNumber: "DN-2405-009",
-    hfhShippingNumber: "HFH-2406-005",
+    hfhShippingNumber: "HFH-2406-005-B",
     value: ShipmentStatus.ARRIVED_AT_DEPO,
   },
   {
     donorShippingNumber: "DN-2405-018",
-    hfhShippingNumber: "HFH-2406-009",
+    hfhShippingNumber: "HFH-2406-009-B",
     value: ShipmentStatus.READY_FOR_DISTRIBUTION,
   },
   {
     donorShippingNumber: "DN-2405-022",
-    hfhShippingNumber: "HFH-2406-011",
+    hfhShippingNumber: "HFH-2406-011-B",
     value: ShipmentStatus.CLEARED_CUSTOMS,
   },
   {
     donorShippingNumber: "DN-2405-023",
-    hfhShippingNumber: "HFH-2406-012",
+    hfhShippingNumber: "HFH-2406-012-B",
     value: ShipmentStatus.INVENTORIES,
   },
   {
     donorShippingNumber: "DN-2404-101",
-    hfhShippingNumber: "HFH-2405-041",
+    hfhShippingNumber: "HFH-2405-041-B",
     value: ShipmentStatus.ARRIVED_IN_HAITI,
   },
   {
     donorShippingNumber: "DN-2404-105",
-    hfhShippingNumber: "HFH-2405-042",
+    hfhShippingNumber: "HFH-2405-042-B",
     value: ShipmentStatus.READY_FOR_DISTRIBUTION,
   },
   {
     donorShippingNumber: "DN-2404-110",
-    hfhShippingNumber: "HFH-2405-043",
+    hfhShippingNumber: "HFH-2405-043-B",
     value: ShipmentStatus.CLEARED_CUSTOMS,
   },
   {
     donorShippingNumber: "DN-2404-114",
-    hfhShippingNumber: "HFH-2405-044",
+    hfhShippingNumber: "HFH-2405-044-B",
     value: ShipmentStatus.ARRIVED_AT_DEPO,
   },
+  ...archivedGeneralItems
+    .filter((item) => item.lineItems && item.lineItems.length > 0)
+    .flatMap((item) => item.lineItems!)
+    .filter(
+      (lineItem) => lineItem.donorShippingNumber && lineItem.hfhShippingNumber
+    )
+    .map((lineItem) => ({
+      donorShippingNumber: lineItem.donorShippingNumber!,
+      hfhShippingNumber: lineItem.hfhShippingNumber!,
+      value: ShipmentStatus.ARRIVED_AT_DEPO,
+    })),
 ];
 
 async function buildSeedData() {

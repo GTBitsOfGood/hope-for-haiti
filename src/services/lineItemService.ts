@@ -312,13 +312,16 @@ export class LineItemService {
    * Counts shipments where at least one line item (based on shipping numbers) has been allocated and signed off.
    * Note: Will be inaccurate if the number of relevant shipments exceeds the maximum size for numbers
    */
-  static async getShipmentCount(
+  static async getShipmentStats(
     startDate: Date = new Date(0),
     endDate: Date = new Date(),
     excludePartnerTags: string[] = []
-  ): Promise<number> {
+  ): Promise<{
+    shipmentCount: number;
+    palletCount: number;
+  }> {
     const baseQuery = Prisma.sql`
-      SELECT COUNT(DISTINCT s.id)
+      SELECT COUNT(DISTINCT s.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
       FROM "ShippingStatus" s
       JOIN "LineItem" li ON 
         s."hfhShippingNumber" = li."hfhShippingNumber" OR
@@ -329,11 +332,14 @@ export class LineItemService {
         AND a."signOffId" IS NOT NULL
     `;
 
-    type QueryResult = { count: bigint }[];
+    type QueryResult = { shipmentCount: bigint; palletCount: bigint }[];
     if (excludePartnerTags.length === 0) {
       const result = await db.$queryRaw<QueryResult>(baseQuery);
       console.log("Shipment count result:", result);
-      return Number(result[0].count) || 0;
+      return {
+        shipmentCount: Number(result[0].shipmentCount) || 0,
+        palletCount: Number(result[0].palletCount) || 0,
+      };
     }
 
     const result = await db.$queryRaw<QueryResult>(
@@ -341,6 +347,9 @@ export class LineItemService {
         excludePartnerTags
       )})`
     );
-    return Number(result[0].count) || 0;
+    return {
+      shipmentCount: Number(result[0].shipmentCount) || 0,
+      palletCount: Number(result[0].palletCount) || 0,
+    };
   }
 }

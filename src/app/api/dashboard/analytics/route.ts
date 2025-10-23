@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       parsedQuery.data.excludePartnerTags
     );
 
-    const totalShipments = LineItemService.getShipmentCount(
+    const shipmentStats = await LineItemService.getShipmentStats(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
@@ -57,10 +57,9 @@ export async function GET(request: Request) {
 
     const result = {
       totalImports: await totalImports,
-      totalShipments: await totalShipments,
+      totalShipments: shipmentStats.shipmentCount,
+      totalPallets: shipmentStats.palletCount,
     };
-
-    console.log("Analytics result:", result);
 
     return NextResponse.json(result);
   } catch (error) {
