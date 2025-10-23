@@ -336,9 +336,6 @@ export class LineItemService {
     let baseQuery = Prisma.sql`
       SELECT COUNT(DISTINCT s.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
       FROM "ShippingStatus" s
-      JOIN "LineItem" li ON 
-      SELECT COUNT(DISTINCT s.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
-      FROM "ShippingStatus" s
       JOIN (
         SELECT DISTINCT li.*
         FROM "LineItem" li
