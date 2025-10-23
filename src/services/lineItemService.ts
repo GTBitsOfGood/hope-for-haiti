@@ -285,7 +285,7 @@ export class LineItemService {
     excludePartnerTags: string[] = []
   ): Promise<number> {
     // Build base SQL fragment for the date range and joins
-    const baseQuery = Prisma.sql`
+    let baseQuery = Prisma.sql`
       SELECT SUM(li.quantity * li."unitPrice")
       FROM "LineItem" li
       JOIN "Allocation" a ON li.id = a."lineItemId"
@@ -294,17 +294,12 @@ export class LineItemService {
         AND a."signOffId" IS NOT NULL
     `;
 
-    type QueryResult = { sum: number | null }[];
-    // If no tags to exclude, run the base query directly to avoid Prisma.join([]) error
-    if (excludePartnerTags.length === 0) {
-      const result = await db.$queryRaw<QueryResult>(baseQuery);
-      return Number(result[0].sum) || 0;
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
     }
 
-    // Otherwise include the NOT IN clause with the provided tags
-    const result = await db.$queryRaw<QueryResult>(
-      Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})` // Can't do join with empty array
-    );
+    type QueryResult = { sum: number | null }[];
+    const result = await db.$queryRaw<QueryResult>(baseQuery);
     return Number(result[0].sum) || 0;
   }
 
@@ -320,7 +315,7 @@ export class LineItemService {
     shipmentCount: number;
     palletCount: number;
   }> {
-    const baseQuery = Prisma.sql`
+    let baseQuery = Prisma.sql`
       SELECT COUNT(DISTINCT s.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
       FROM "ShippingStatus" s
       JOIN "LineItem" li ON 
@@ -332,24 +327,58 @@ export class LineItemService {
         AND a."signOffId" IS NOT NULL
     `;
 
-    type QueryResult = { shipmentCount: bigint; palletCount: bigint }[];
-    if (excludePartnerTags.length === 0) {
-      const result = await db.$queryRaw<QueryResult>(baseQuery);
-      console.log("Shipment count result:", result);
-      return {
-        shipmentCount: Number(result[0].shipmentCount) || 0,
-        palletCount: Number(result[0].palletCount) || 0,
-      };
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
     }
 
-    const result = await db.$queryRaw<QueryResult>(
-      Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(
-        excludePartnerTags
-      )})`
-    );
+    type QueryResult = { shipmentCount: bigint; palletCount: bigint }[];
+
+    const result = await db.$queryRaw<QueryResult>(baseQuery);
     return {
       shipmentCount: Number(result[0].shipmentCount) || 0,
       palletCount: Number(result[0].palletCount) || 0,
     };
+  }
+
+  /**
+   * @returns The top 5 medication imports by value
+   */
+  static async getTopMedicationImports(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<
+    {
+      title: string;
+      totalValue: number;
+    }[]
+  > {
+    let baseQuery = Prisma.sql`
+      SELECT g.title, SUM(li.quantity * li."unitPrice") as "totalValue"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "GeneralItem" g ON li."generalItemId" = g.id
+      WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate}
+        AND a."signOffId" IS NOT NULL
+        AND li."category" = 'MEDICATION'
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY g.title
+      ORDER BY "totalValue" DESC
+      LIMIT 5
+    `;
+
+    const result =
+      await db.$queryRaw<{ title: string; totalValue: number }[]>(baseQuery);
+    return result.map((row) => ({
+      title: row.title,
+      totalValue: Number(row.totalValue),
+    }));
   }
 }

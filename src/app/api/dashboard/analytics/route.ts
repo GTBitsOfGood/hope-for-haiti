@@ -49,6 +49,12 @@ export async function GET(request: Request) {
       parsedQuery.data.excludePartnerTags
     );
 
+    const topMedications = LineItemService.getTopMedicationImports(
+      parsedQuery.data.startDate,
+      parsedQuery.data.endDate,
+      parsedQuery.data.excludePartnerTags
+    );
+
     const shipmentStats = await LineItemService.getShipmentStats(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
@@ -59,6 +65,7 @@ export async function GET(request: Request) {
       totalImports: await totalImports,
       totalShipments: shipmentStats.shipmentCount,
       totalPallets: shipmentStats.palletCount,
+      topMedications: await topMedications,
     };
 
     return NextResponse.json(result);
