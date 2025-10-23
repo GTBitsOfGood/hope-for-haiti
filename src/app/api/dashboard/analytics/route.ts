@@ -47,47 +47,63 @@ export async function GET(request: Request) {
       throw new ArgumentError(parsedQuery.error.message);
     }
 
-    const imports = LineItemService.getTotalImportsByMonth(
+    const importsPromise = LineItemService.getTotalImportsByMonth(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const topMedications = LineItemService.getTopMedicationImports(
+    const topMedicationsPromise = LineItemService.getTopMedicationImports(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const shipmentStats = LineItemService.getShipmentStats(
+    const shipmentStatsPromise = LineItemService.getShipmentStats(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const partnerCount = UserService.countPartners();
+    const partnerCountPromise = UserService.countPartners();
 
-    const importWeight = LineItemService.getTotalImportWeight(
+    const importWeightPromise = LineItemService.getTotalImportWeight(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const topDonors = LineItemService.getTopDonors(
+    const topDonorsPromise = LineItemService.getTopDonors(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
+
+    const [
+      imports,
+      topMedications,
+      shipmentStats,
+      partnerCount,
+      importWeight,
+      topDonors,
+    ] = await Promise.all([
+      importsPromise,
+      topMedicationsPromise,
+      shipmentStatsPromise,
+      partnerCountPromise,
+      importWeightPromise,
+      topDonorsPromise,
+    ]);
 
     const result = {
-      totalImports: (await imports).total,
-      monthlyImportTotals: (await imports).monthlyTotals,
-      totalShipments: (await shipmentStats).shipmentCount,
-      totalPallets: (await shipmentStats).palletCount,
-      topMedications: await topMedications,
-      partnerCount: await partnerCount,
-      importWeight: await importWeight,
-      topDonors: await topDonors,
+      totalImports: imports.total,
+      monthlyImportTotals: imports.monthlyTotals,
+      totalShipments: shipmentStats.shipmentCount,
+      totalPallets: shipmentStats.palletCount,
+      topMedications: topMedications,
+      partnerCount: partnerCount,
+      importWeight: importWeight,
+      topDonors: topDonors,
     };
 
     return NextResponse.json(result);
