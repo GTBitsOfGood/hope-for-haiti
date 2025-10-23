@@ -40,6 +40,11 @@ export async function PATCH(
       throw new ArgumentError("Notification not found");
     }
 
+    if (existingNotification.dateViewed) {
+      // Notification already viewed, no update needed
+      return NextResponse.json({ notification: existingNotification });
+    }
+
     const updatedNotification =
       await NotificationService.markNotificationAsViewed(notificationIdNum);
 
