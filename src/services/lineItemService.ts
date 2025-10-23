@@ -337,7 +337,14 @@ export class LineItemService {
       SELECT COUNT(DISTINCT s.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
       FROM "ShippingStatus" s
       JOIN "LineItem" li ON 
-        s."hfhShippingNumber" = li."hfhShippingNumber" OR
+      SELECT COUNT(DISTINCT s.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
+      FROM "ShippingStatus" s
+      JOIN (
+        SELECT DISTINCT li.*
+        FROM "LineItem" li
+        JOIN "Allocation" a ON li.id = a."lineItemId"
+        JOIN "User" p ON a."partnerId" = p.id
+      ) li ON s."hfhShippingNumber" = li."hfhShippingNumber" OR
         s."donorShippingNumber" = li."donorShippingNumber"
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
