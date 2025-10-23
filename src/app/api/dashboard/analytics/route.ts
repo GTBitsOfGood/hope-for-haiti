@@ -19,7 +19,7 @@ const querySchema = z.object({
   endDate: z
     .string()
     .optional()
-    .transform((val) => (val ? new Date(val!) : undefined)),
+    .transform((val) => (val ? new Date(val) : undefined)),
   excludePartnerTags: z
     .string()
     .optional()
