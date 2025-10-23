@@ -6,10 +6,15 @@ import {
   errorResponse,
 } from "@/util/errors";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+
+const idSchema = z.object({
+  notificationId: z.coerce.number().int().positive(),
+});
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ notificationid: string }> }
+  { params }: { params: Promise<{ notificationId: string }> }
 ) {
   try {
     const session = await auth();
@@ -18,11 +23,21 @@ export async function PATCH(
       throw new AuthenticationError("User not authenticated");
     }
 
-    const { notificationid } = await params;
+    const parsed = idSchema.safeParse(await params);
+    if (!parsed.success) {
+      throw new ArgumentError(parsed.error.message);
+    }
 
-    const notificationIdNum = Number(notificationid);
-    if (isNaN(notificationIdNum)) {
-      throw new ArgumentError("Invalid notification ID");
+    const notificationIdNum = parsed.data.notificationId;
+
+    const existingNotification =
+      await NotificationService.getNotificationById(notificationIdNum);
+
+    if (
+      !existingNotification ||
+      existingNotification.userId !== Number(session.user.id)
+    ) {
+      throw new ArgumentError("Notification not found");
     }
 
     const updatedNotification =

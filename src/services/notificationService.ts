@@ -8,6 +8,12 @@ export class NotificationService {
     });
   }
 
+  static async getNotificationById(notificationId: number) {
+    return await db.notification.findUnique({
+      where: { id: notificationId },
+    });
+  }
+
   static async getUnreadNotificationsForUser(userId: number) {
     return await db.notification.findMany({
       where: {
