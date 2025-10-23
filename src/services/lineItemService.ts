@@ -400,19 +400,17 @@ export class LineItemService {
     }));
   }
 
-  /*
-   * WARNING: Weight is not yet implemented. This just returns quantity!
-   */
   static async getTotalImportWeight(
     startDate: Date = new Date(0),
     endDate: Date = new Date(),
     excludePartnerTags: string[] = []
   ) {
     let baseQuery = Prisma.sql`
-      SELECT SUM(li.quantity) as "totalWeight"
+      SELECT SUM(g.weight * li.quantity) as "totalWeight"
       FROM "LineItem" li
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
+      JOIN "GeneralItem" g ON li."generalItemId" = g.id
       WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate}
         AND a."signOffId" IS NOT NULL
     `;

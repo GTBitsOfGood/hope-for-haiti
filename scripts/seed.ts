@@ -54,6 +54,7 @@ type GeneralItemSeed = {
   expirationDate?: Date;
   initialQuantity: number;
   requestQuantity?: number;
+  weight?: number;
   requests: GeneralItemRequestSeed[];
   lineItems?: LineItemSeed[];
 };
@@ -1132,6 +1133,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-02-28"),
     initialQuantity: 420,
     requestQuantity: 455,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1219,6 +1221,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-04-30"),
     initialQuantity: 300,
     requestQuantity: 325,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1303,6 +1306,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     unitType: "Kit",
     initialQuantity: 260,
     requestQuantity: 290,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",

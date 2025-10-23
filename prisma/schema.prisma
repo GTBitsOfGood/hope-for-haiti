@@ -138,6 +138,8 @@ model GeneralItem {
   
   description String?
 
+  weight Decimal @db.Decimal(10, 2)
+
   requests GeneralItemRequest[]
   items    LineItem[]
 
