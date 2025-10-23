@@ -279,28 +279,46 @@ export class LineItemService {
     };
   }
 
-  static async getTotalImports(
+  static async getTotalImportsByMonth(
     startDate: Date = new Date(0),
     endDate: Date = new Date(),
     excludePartnerTags: string[] = []
-  ): Promise<number> {
+  ): Promise<{
+    total: number;
+    monthlyTotals: { month: number; year: number; total: number }[];
+  }> {
     // Build base SQL fragment for the date range and joins
     let baseQuery = Prisma.sql`
-      SELECT SUM(li.quantity * li."unitPrice")
+      SELECT EXTRACT(MONTH FROM s.date) AS month, EXTRACT(YEAR FROM s.date) AS year, SUM(li.quantity * li."unitPrice")
       FROM "LineItem" li
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
       WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate} 
-        AND a."signOffId" IS NOT NULL
     `;
 
     if (excludePartnerTags.length > 0) {
       baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
     }
 
-    type QueryResult = { sum: number | null }[];
-    const result = await db.$queryRaw<QueryResult>(baseQuery);
-    return Number(result[0].sum) || 0;
+    // Group by month and year on the sign off, preserving the total
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY month, year
+      ORDER BY year, month
+    `;
+
+    const result =
+      await db.$queryRaw<{ month: number; year: number; sum: number | null }[]>(
+        baseQuery
+      );
+
+    const monthlyTotals = result.map((row) => ({
+      month: Number(row.month),
+      year: Number(row.year),
+      total: Number(row.sum) || 0,
+    }));
+    const total = monthlyTotals.reduce((acc, curr) => acc + curr.total, 0);
+    return { total, monthlyTotals };
   }
 
   /**

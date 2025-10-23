@@ -1909,6 +1909,7 @@ async function buildSeedData() {
       },
     });
 
+    let signOffDays = 0;
     for (const boxNumber of allocationEntry.lineItemBoxes) {
       const lineItem = archivedLineItemMap.get(boxNumber);
       if (!lineItem) {
@@ -1922,9 +1923,11 @@ async function buildSeedData() {
           staffMemberName: "Staff Member",
           partnerId: partner.id,
           partnerName: partner.name,
-          date: addDays(-30),
+          date: addDays(signOffDays),
         },
       });
+
+      signOffDays -= 7;
 
       await db.allocation.create({
         data: {

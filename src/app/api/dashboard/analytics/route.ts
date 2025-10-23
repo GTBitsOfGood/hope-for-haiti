@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       throw new ArgumentError(parsedQuery.error.message);
     }
 
-    const totalImports = LineItemService.getTotalImports(
+    const imports = LineItemService.getTotalImportsByMonth(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
@@ -55,16 +55,17 @@ export async function GET(request: Request) {
       parsedQuery.data.excludePartnerTags
     );
 
-    const shipmentStats = await LineItemService.getShipmentStats(
+    const shipmentStats = LineItemService.getShipmentStats(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
     const result = {
-      totalImports: await totalImports,
-      totalShipments: shipmentStats.shipmentCount,
-      totalPallets: shipmentStats.palletCount,
+      totalImports: (await imports).total,
+      monthlyImportTotals: (await imports).monthlyTotals,
+      totalShipments: (await shipmentStats).shipmentCount,
+      totalPallets: (await shipmentStats).palletCount,
       topMedications: await topMedications,
     };
 
