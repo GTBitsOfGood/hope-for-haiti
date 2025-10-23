@@ -65,7 +65,9 @@ export async function GET(request: Request) {
       parsedQuery.data.excludePartnerTags
     );
 
-    const partnerCountPromise = UserService.countPartners();
+    const partnerCountPromise = UserService.countPartners(
+      parsedQuery.data.excludePartnerTags
+    );
 
     const importWeightPromise = LineItemService.getTotalImportWeight(
       parsedQuery.data.startDate,
