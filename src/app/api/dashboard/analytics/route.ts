@@ -70,6 +70,12 @@ export async function GET(request: Request) {
       parsedQuery.data.excludePartnerTags
     );
 
+    const topDonors = LineItemService.getTopDonors(
+      parsedQuery.data.startDate,
+      parsedQuery.data.endDate,
+      parsedQuery.data.excludePartnerTags
+    );
+
     const result = {
       totalImports: (await imports).total,
       monthlyImportTotals: (await imports).monthlyTotals,
@@ -78,6 +84,7 @@ export async function GET(request: Request) {
       topMedications: await topMedications,
       partnerCount: await partnerCount,
       importWeight: await importWeight,
+      topDonors: await topDonors,
     };
 
     return NextResponse.json(result);

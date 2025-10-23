@@ -425,4 +425,44 @@ export class LineItemService {
       await db.$queryRaw<{ totalWeight: number | null }[]>(baseQuery);
     return Number(result[0].totalWeight) || 0;
   }
+
+  /**
+   * Calculates donated value with the same method as getTotalImportsByMonth and returns the top 3 donors
+   */
+  static async getTopDonors(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<
+    {
+      donorName: string;
+      value: number;
+    }[]
+  > {
+    let baseQuery = Prisma.sql`
+      SELECT li."donorName", SUM(li.quantity * li."unitPrice") as "value"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      WHERE li."datePosted" BETWEEN ${startDate} AND ${endDate}
+        AND a."signOffId" IS NOT NULL
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY li."donorName"
+      ORDER BY "value" DESC
+      LIMIT 3
+    `;
+
+    const result =
+      await db.$queryRaw<{ donorName: string; value: number }[]>(baseQuery);
+    return result.map((row) => ({
+      donorName: row.donorName,
+      value: Number(row.value),
+    }));
+  }
 }
