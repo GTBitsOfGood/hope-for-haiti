@@ -289,12 +289,12 @@ export class LineItemService {
   }> {
     // Build base SQL fragment for the date range and joins
     let baseQuery = Prisma.sql`
-      SELECT EXTRACT(MONTH FROM s.date) AS month, EXTRACT(YEAR FROM s.date) AS year, SUM(li.quantity * li."unitPrice")
+      SELECT EXTRACT(MONTH FROM s."date") AS month, EXTRACT(YEAR FROM s."date") AS year, SUM(li.quantity * li."unitPrice")
       FROM "LineItem" li
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s.date BETWEEN ${startDate} AND ${endDate} 
+      WHERE s."date" BETWEEN ${startDate} AND ${endDate} 
     `;
 
     if (excludePartnerTags.length > 0) {
@@ -341,7 +341,7 @@ export class LineItemService {
         s."donorShippingNumber" = li."donorShippingNumber"
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
-      WHERE s.date BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
     `;
 
     if (excludePartnerTags.length > 0) {
@@ -377,7 +377,7 @@ export class LineItemService {
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "GeneralItem" g ON li."generalItemId" = g.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s.date BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
         AND li."category" = 'MEDICATION'
     `;
 
@@ -411,7 +411,7 @@ export class LineItemService {
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "GeneralItem" g ON li."generalItemId" = g.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s.date BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
     `;
 
     if (excludePartnerTags.length > 0) {
@@ -442,7 +442,7 @@ export class LineItemService {
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s.date BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
     `;
 
     if (excludePartnerTags.length > 0) {
