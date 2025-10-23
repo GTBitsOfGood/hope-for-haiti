@@ -249,4 +249,6 @@ model Notification {
   dateViewed  DateTime?
   userId      Int
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
