@@ -384,9 +384,15 @@ export default class UserService {
     return partners;
   }
 
-  static async countPartners() {
+  static async countPartners(excludePartnerTags?: string[]) {
+    const whereClause: Prisma.UserWhereInput = { type: UserType.PARTNER };
+
+    if (excludePartnerTags && excludePartnerTags.length > 0) {
+      whereClause.tag = { notIn: excludePartnerTags };
+    }
+
     return db.user.count({
-      where: { type: UserType.PARTNER },
+      where: whereClause,
     });
   }
 
