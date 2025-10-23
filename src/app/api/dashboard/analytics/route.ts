@@ -20,7 +20,10 @@ const querySchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? new Date(val!) : undefined)),
-  excludePartnerTags: z.array(z.string()).optional(),
+  excludePartnerTags: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(",") : [])),
 });
 
 export async function GET(request: Request) {
