@@ -294,7 +294,7 @@ export class LineItemService {
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s."date" BETWEEN ${startDate} AND ${endDate} 
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate} 
     `;
 
     if (excludePartnerTags.length > 0) {
@@ -343,7 +343,7 @@ export class LineItemService {
         s."donorShippingNumber" = li."donorShippingNumber"
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
-      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
     `;
 
     if (excludePartnerTags.length > 0) {
@@ -379,7 +379,7 @@ export class LineItemService {
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "GeneralItem" g ON li."generalItemId" = g.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
         AND li."category" = 'MEDICATION'
     `;
 
@@ -413,7 +413,7 @@ export class LineItemService {
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "GeneralItem" g ON li."generalItemId" = g.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
     `;
 
     if (excludePartnerTags.length > 0) {
@@ -444,7 +444,7 @@ export class LineItemService {
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "SignOff" s ON a."signOffId" = s.id
-      WHERE s."date" BETWEEN ${startDate} AND ${endDate}
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
     `;
 
     if (excludePartnerTags.length > 0) {
