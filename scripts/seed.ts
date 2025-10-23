@@ -18,8 +18,6 @@ type PartnerSeed = {
   tag: string;
   pending?: boolean;
   partnerDetails: Prisma.JsonObject;
-  latitude?: number;
-  longitude?: number;
 };
 
 type GeneralItemRequestSeed = {
@@ -54,7 +52,7 @@ type GeneralItemSeed = {
   expirationDate?: Date;
   initialQuantity: number;
   requestQuantity?: number;
-  weight?: number;
+  weight: number;
   requests: GeneralItemRequestSeed[];
   lineItems?: LineItemSeed[];
 };
@@ -69,13 +67,16 @@ const addDays = (daysFromToday: number) => {
 const buildPartnerDetails = (
   siteName: string,
   department: string,
-  contactPrefix: string
+  contactPrefix: string,
+  latitude: number,
+  longitude: number
 ): Prisma.JsonObject =>
   ({
     siteName,
     address: `${siteName}, ${department}, Haiti`,
     department,
-    gpsCoordinates: "18.5392° N, 72.3350° W",
+    latitude,
+    longitude,
     website: "https://hopeforhaiti.org",
     socialMedia: `@${contactPrefix}`,
     regionalContact: {
@@ -120,10 +121,10 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Hope Medical Center",
       "Ouest",
-      "hopecenter"
+      "hopecenter",
+      18.5392,
+      -72.335
     ),
-    latitude: 18.5392,
-    longitude: -72.335,
   },
   {
     key: "mobile_response_unit",
@@ -133,10 +134,10 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "HFH Mobile Response Unit",
       "Sud",
-      "hfhmobile"
+      "hfhmobile",
+      18.2,
+      -73.75
     ),
-    latitude: 18.4275,
-    longitude: -72.2,
   },
   {
     key: "les_cayes_hospital",
@@ -146,10 +147,10 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Les Cayes Community Hospital",
       "Sud",
-      "lescayes"
+      "lescayes",
+      18.25,
+      -73.75
     ),
-    latitude: 18.2,
-    longitude: -73.75,
   },
   {
     key: "jeremie_network",
@@ -159,7 +160,9 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Jeremie Health Network",
       "Grand'Anse",
-      "jeremie"
+      "jeremie",
+      18.65,
+      -74.1
     ),
   },
   {
@@ -171,7 +174,9 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Cap Haitien Wellness Center",
       "Nord",
-      "caphaitien"
+      "caphaitien",
+      19.75,
+      -72.2
     ),
   },
 ];
@@ -183,6 +188,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-06-30"),
     initialQuantity: 900,
     requestQuantity: 790,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -221,6 +227,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-12-31"),
     initialQuantity: 500,
     requestQuantity: 470,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -258,6 +265,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-04-30"),
     initialQuantity: 180,
     requestQuantity: 205,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -295,6 +303,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-01-15"),
     initialQuantity: 1200,
     requestQuantity: 1090,
+    weight: 8,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -330,6 +339,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-11-20"),
     initialQuantity: 800,
     requestQuantity: 720,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -366,6 +376,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-09-30"),
     initialQuantity: 600,
     requestQuantity: 550,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -402,6 +413,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2028-03-31"),
     initialQuantity: 85,
     requestQuantity: 82,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -438,6 +450,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-08-15"),
     initialQuantity: 150,
     requestQuantity: 140,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -474,6 +487,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-04-30"),
     initialQuantity: 260,
     requestQuantity: 240,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -509,6 +523,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-11-30"),
     initialQuantity: 320,
     requestQuantity: 300,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -547,6 +562,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-02-28"),
     initialQuantity: 600,
     requestQuantity: 600,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -651,6 +667,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-10-31"),
     initialQuantity: 480,
     requestQuantity: 480,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -739,6 +756,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-05-31"),
     initialQuantity: 1000,
     requestQuantity: 1000,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -851,6 +869,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-03-31"),
     initialQuantity: 1500,
     requestQuantity: 1500,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -976,6 +995,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-10-15"),
     initialQuantity: 300,
     requestQuantity: 300,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1046,6 +1066,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-12-31"),
     initialQuantity: 400,
     requestQuantity: 400,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1389,6 +1410,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     unitType: "Unit",
     initialQuantity: 140,
     requestQuantity: 168,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1473,6 +1495,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-12-31"),
     initialQuantity: 540,
     requestQuantity: 600,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1740,8 +1763,6 @@ async function buildSeedData() {
         enabled: seed.pending ? false : true,
         pending: seed.pending ?? false,
         partnerDetails: seed.partnerDetails,
-        latitude: seed.latitude,
-        longitude: seed.longitude,
       },
     });
     partnerRecords.push({ seed, partner });
@@ -1771,6 +1792,7 @@ async function buildSeedData() {
     unitType: item.unitType,
     expirationDate: item.expirationDate,
     initialQuantity: item.initialQuantity,
+    weight: item.weight,
     requestQuantity:
       item.requestQuantity ??
       item.requests.reduce(

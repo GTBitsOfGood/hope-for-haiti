@@ -370,18 +370,34 @@ export default class UserService {
     const partners = await db.user.findMany({
       where: {
         type: UserType.PARTNER,
-        latitude: { not: null },
-        longitude: { not: null },
+        AND: [
+          {
+            partnerDetails: {
+              path: ["latitude"],
+              not: Prisma.DbNull,
+            },
+          },
+          {
+            partnerDetails: {
+              path: ["longitude"],
+              not: Prisma.DbNull,
+            },
+          },
+        ],
       },
       select: {
         id: true,
         name: true,
-        latitude: true,
-        longitude: true,
+        partnerDetails: true,
       },
     });
 
-    return partners;
+    return partners.map((partner) => ({
+      id: partner.id,
+      name: partner.name,
+      latitude: (partner.partnerDetails as Prisma.JsonObject).latitude,
+      longitude: (partner.partnerDetails as Prisma.JsonObject).longitude,
+    }));
   }
 
   static async countPartners(excludePartnerTags?: string[]) {
