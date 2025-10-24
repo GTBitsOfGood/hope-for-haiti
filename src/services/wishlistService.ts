@@ -83,14 +83,13 @@ export class WishlistService {
         ORDER BY u.id
     `;
 
-    return stats.map(stat => ({
-        partnerId: stat.partnerId,
-        partnerName: stat.partnerName,
-        totalCount: Number(stat.totalCount),
-        lowCount: Number(stat.lowCount),
-        mediumCount: Number(stat.mediumCount),
-        highCount: Number(stat.highCount),
+    return stats.map((stat) => ({
+      partnerId: stat.partnerId,
+      partnerName: stat.partnerName,
+      totalCount: Number(stat.totalCount),
+      lowCount: Number(stat.lowCount),
+      mediumCount: Number(stat.mediumCount),
+      highCount: Number(stat.highCount),
     }));
-
   }
 }

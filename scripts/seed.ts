@@ -52,6 +52,7 @@ type GeneralItemSeed = {
   expirationDate?: Date;
   initialQuantity: number;
   requestQuantity?: number;
+  weight: number;
   requests: GeneralItemRequestSeed[];
   lineItems?: LineItemSeed[];
 };
@@ -66,46 +67,49 @@ const addDays = (daysFromToday: number) => {
 const buildPartnerDetails = (
   siteName: string,
   department: string,
-  contactPrefix: string
+  contactPrefix: string,
+  latitude: number,
+  longitude: number
 ): Prisma.JsonObject =>
   ({
     siteName,
     address: `${siteName}, ${department}, Haiti`,
     department,
-  gpsCoordinates: "18.5392° N, 72.3350° W",
-  website: "https://hopeforhaiti.org",
-  socialMedia: `@${contactPrefix}`,
-  regionalContact: {
-    firstName: "Marie",
-    lastName: "Joseph",
-    orgTitle: "Regional Director",
-    primaryTelephone: "+509 1234-5678",
-    email: `${contactPrefix}.regional@test.com`,
-  },
-  medicalContact: {
-    firstName: "Jean",
-    lastName: "Baptiste",
-    orgTitle: "Chief Medical Officer",
-    primaryTelephone: "+509 2345-6789",
-    email: `${contactPrefix}.medical@test.com`,
-  },
-  pharmacyContact: {
-    firstName: "Claire",
-    lastName: "Dumas",
-    orgTitle: "Pharmacy Lead",
-    primaryTelephone: "+509 3456-7890",
-    email: `${contactPrefix}.pharmacy@test.com`,
-  },
-  facilityType: ["clinic", "primary_care"],
-  organizationType: ["non_profit"],
-  cleanWaterAccessible: true,
-  medicationDisposalProcessDefined: true,
-  programs: [
-    "maternal_health",
-    "chronic_disease_support",
-    "mobile_outreach",
-    "emergency_response",
-  ],
+    latitude,
+    longitude,
+    website: "https://hopeforhaiti.org",
+    socialMedia: `@${contactPrefix}`,
+    regionalContact: {
+      firstName: "Marie",
+      lastName: "Joseph",
+      orgTitle: "Regional Director",
+      primaryTelephone: "+509 1234-5678",
+      email: `${contactPrefix}.regional@test.com`,
+    },
+    medicalContact: {
+      firstName: "Jean",
+      lastName: "Baptiste",
+      orgTitle: "Chief Medical Officer",
+      primaryTelephone: "+509 2345-6789",
+      email: `${contactPrefix}.medical@test.com`,
+    },
+    pharmacyContact: {
+      firstName: "Claire",
+      lastName: "Dumas",
+      orgTitle: "Pharmacy Lead",
+      primaryTelephone: "+509 3456-7890",
+      email: `${contactPrefix}.pharmacy@test.com`,
+    },
+    facilityType: ["clinic", "primary_care"],
+    organizationType: ["non_profit"],
+    cleanWaterAccessible: true,
+    medicationDisposalProcessDefined: true,
+    programs: [
+      "maternal_health",
+      "chronic_disease_support",
+      "mobile_outreach",
+      "emergency_response",
+    ],
   }) as Prisma.JsonObject;
 
 const partnerSeeds: PartnerSeed[] = [
@@ -117,7 +121,9 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Hope Medical Center",
       "Ouest",
-      "hopecenter"
+      "hopecenter",
+      18.5392,
+      -72.335
     ),
   },
   {
@@ -128,7 +134,9 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "HFH Mobile Response Unit",
       "Sud",
-      "hfhmobile"
+      "hfhmobile",
+      18.2,
+      -73.75
     ),
   },
   {
@@ -139,7 +147,9 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Les Cayes Community Hospital",
       "Sud",
-      "lescayes"
+      "lescayes",
+      18.25,
+      -73.75
     ),
   },
   {
@@ -150,7 +160,9 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Jeremie Health Network",
       "Grand'Anse",
-      "jeremie"
+      "jeremie",
+      18.65,
+      -74.1
     ),
   },
   {
@@ -162,7 +174,9 @@ const partnerSeeds: PartnerSeed[] = [
     partnerDetails: buildPartnerDetails(
       "Cap Haitien Wellness Center",
       "Nord",
-      "caphaitien"
+      "caphaitien",
+      19.75,
+      -72.2
     ),
   },
 ];
@@ -174,6 +188,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-06-30"),
     initialQuantity: 900,
     requestQuantity: 790,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -212,6 +227,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-12-31"),
     initialQuantity: 500,
     requestQuantity: 470,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -249,6 +265,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-04-30"),
     initialQuantity: 180,
     requestQuantity: 205,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -286,6 +303,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-01-15"),
     initialQuantity: 1200,
     requestQuantity: 1090,
+    weight: 8,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -321,6 +339,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-11-20"),
     initialQuantity: 800,
     requestQuantity: 720,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -357,6 +376,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-09-30"),
     initialQuantity: 600,
     requestQuantity: 550,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -393,6 +413,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2028-03-31"),
     initialQuantity: 85,
     requestQuantity: 82,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -429,6 +450,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-08-15"),
     initialQuantity: 150,
     requestQuantity: 140,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -465,6 +487,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-04-30"),
     initialQuantity: 260,
     requestQuantity: 240,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -500,6 +523,7 @@ const unfinalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-11-30"),
     initialQuantity: 320,
     requestQuantity: 300,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -538,6 +562,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-02-28"),
     initialQuantity: 600,
     requestQuantity: 600,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -642,6 +667,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-10-31"),
     initialQuantity: 480,
     requestQuantity: 480,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -730,6 +756,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-05-31"),
     initialQuantity: 1000,
     requestQuantity: 1000,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -842,6 +869,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-03-31"),
     initialQuantity: 1500,
     requestQuantity: 1500,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -967,6 +995,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2025-10-15"),
     initialQuantity: 300,
     requestQuantity: 300,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1037,6 +1066,7 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-12-31"),
     initialQuantity: 400,
     requestQuantity: 400,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1124,6 +1154,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-02-28"),
     initialQuantity: 420,
     requestQuantity: 455,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1211,6 +1242,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2027-04-30"),
     initialQuantity: 300,
     requestQuantity: 325,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1295,6 +1327,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     unitType: "Kit",
     initialQuantity: 260,
     requestQuantity: 290,
+    weight: 12,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1377,6 +1410,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     unitType: "Unit",
     initialQuantity: 140,
     requestQuantity: 168,
+    weight: 10,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1461,6 +1495,7 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     expirationDate: new Date("2026-12-31"),
     initialQuantity: 540,
     requestQuantity: 600,
+    weight: 15,
     requests: [
       {
         partnerKey: "hope_medical_center",
@@ -1522,7 +1557,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         visible: true,
         gik: true,
         donorShippingNumber: "DN-2404-114",
-        hfhShippingNumber: "HFH-2405-044",
       },
       {
         category: ItemCategory.NON_MEDICAL,
@@ -1558,59 +1592,70 @@ const archivedGeneralItems: GeneralItemSeed[] = [
 const shippingStatusSeeds = [
   {
     donorShippingNumber: "DN-2405-001",
-    hfhShippingNumber: "HFH-2406-001",
+    hfhShippingNumber: "HFH-2406-001-B",
     value: ShipmentStatus.LOAD_ON_SHIP_AIR,
   },
   {
     donorShippingNumber: "DN-2405-003",
-    hfhShippingNumber: "HFH-2406-002",
+    hfhShippingNumber: "HFH-2406-002-B",
     value: ShipmentStatus.ARRIVED_IN_HAITI,
   },
   {
     donorShippingNumber: "DN-2405-006",
-    hfhShippingNumber: "HFH-2406-004",
+    hfhShippingNumber: "HFH-2406-004-B",
     value: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
   },
   {
     donorShippingNumber: "DN-2405-009",
-    hfhShippingNumber: "HFH-2406-005",
+    hfhShippingNumber: "HFH-2406-005-B",
     value: ShipmentStatus.ARRIVED_AT_DEPO,
   },
   {
     donorShippingNumber: "DN-2405-018",
-    hfhShippingNumber: "HFH-2406-009",
+    hfhShippingNumber: "HFH-2406-009-B",
     value: ShipmentStatus.READY_FOR_DISTRIBUTION,
   },
   {
     donorShippingNumber: "DN-2405-022",
-    hfhShippingNumber: "HFH-2406-011",
+    hfhShippingNumber: "HFH-2406-011-B",
     value: ShipmentStatus.CLEARED_CUSTOMS,
   },
   {
     donorShippingNumber: "DN-2405-023",
-    hfhShippingNumber: "HFH-2406-012",
+    hfhShippingNumber: "HFH-2406-012-B",
     value: ShipmentStatus.INVENTORIES,
   },
   {
     donorShippingNumber: "DN-2404-101",
-    hfhShippingNumber: "HFH-2405-041",
+    hfhShippingNumber: "HFH-2405-041-B",
     value: ShipmentStatus.ARRIVED_IN_HAITI,
   },
   {
     donorShippingNumber: "DN-2404-105",
-    hfhShippingNumber: "HFH-2405-042",
+    hfhShippingNumber: "HFH-2405-042-B",
     value: ShipmentStatus.READY_FOR_DISTRIBUTION,
   },
   {
     donorShippingNumber: "DN-2404-110",
-    hfhShippingNumber: "HFH-2405-043",
+    hfhShippingNumber: "HFH-2405-043-B",
     value: ShipmentStatus.CLEARED_CUSTOMS,
   },
   {
     donorShippingNumber: "DN-2404-114",
-    hfhShippingNumber: "HFH-2405-044",
+    hfhShippingNumber: "HFH-2405-044-B",
     value: ShipmentStatus.ARRIVED_AT_DEPO,
   },
+  ...archivedGeneralItems
+    .filter((item) => item.lineItems && item.lineItems.length > 0)
+    .flatMap((item) => item.lineItems!)
+    .filter(
+      (lineItem) => lineItem.donorShippingNumber && lineItem.hfhShippingNumber
+    )
+    .map((lineItem) => ({
+      donorShippingNumber: lineItem.donorShippingNumber!,
+      hfhShippingNumber: lineItem.hfhShippingNumber!,
+      value: ShipmentStatus.ARRIVED_AT_DEPO,
+    })),
 ];
 
 async function buildSeedData() {
@@ -1640,6 +1685,20 @@ async function buildSeedData() {
         type: UserType.SUPER_ADMIN,
         enabled: true,
         pending: false,
+        notifications: {
+          createMany: {
+            data: [
+              {
+                title: "Welcome to the System",
+                dateCreated: new Date(),
+              },
+              {
+                title: "New Features Available",
+                dateCreated: new Date(),
+              },
+            ],
+          },
+        },
       },
     }),
     db.user.create({
@@ -1650,6 +1709,20 @@ async function buildSeedData() {
         type: UserType.ADMIN,
         enabled: true,
         pending: false,
+        notifications: {
+          createMany: {
+            data: [
+              {
+                title: "Welcome to the System",
+                dateCreated: new Date(),
+              },
+              {
+                title: "New Features Available",
+                dateCreated: new Date(),
+              },
+            ],
+          },
+        },
       },
     }),
     db.user.create({
@@ -1660,211 +1733,237 @@ async function buildSeedData() {
         type: UserType.STAFF,
         enabled: true,
         pending: false,
+        notifications: {
+          createMany: {
+            data: [
+              {
+                title: "Welcome to the System",
+                dateCreated: new Date(),
+              },
+              {
+                title: "New Features Available",
+                dateCreated: new Date(),
+              },
+            ],
+          },
+        },
       },
     }),
   ]);
 
-    const partnerRecords = [];
-    for (const seed of partnerSeeds) {
-      const partner = await db.user.create({
+  const partnerRecords = [];
+  for (const seed of partnerSeeds) {
+    const partner = await db.user.create({
       data: {
-          email: seed.email,
-          name: seed.name,
-          passwordHash,
-          type: UserType.PARTNER,
-          tag: seed.tag,
-          enabled: seed.pending ? false : true,
-          pending: seed.pending ?? false,
-          partnerDetails: seed.partnerDetails,
+        email: seed.email,
+        name: seed.name,
+        passwordHash,
+        type: UserType.PARTNER,
+        tag: seed.tag,
+        enabled: seed.pending ? false : true,
+        pending: seed.pending ?? false,
+        partnerDetails: seed.partnerDetails,
       },
     });
-      partnerRecords.push({ seed, partner });
-    }
+    partnerRecords.push({ seed, partner });
+  }
 
-    const pendingPartnerEntry = partnerRecords.find(
-      ({ seed }) => seed.pending
-    );
-    if (pendingPartnerEntry) {
+  const pendingPartnerEntry = partnerRecords.find(({ seed }) => seed.pending);
+  if (pendingPartnerEntry) {
     await db.userInvite.create({
       data: {
-          userId: pendingPartnerEntry.partner.id,
-          token: "partner-onboarding-token",
-          expiration: addDays(30),
+        userId: pendingPartnerEntry.partner.id,
+        token: "partner-onboarding-token",
+        expiration: addDays(30),
       },
     });
+  }
+
+  const partnerMap = new Map(
+    partnerRecords.map(({ seed, partner }) => [seed.key, partner])
+  );
+
+  const activePartners = partnerRecords
+    .filter(({ seed }) => !seed.pending)
+    .map(({ partner }) => partner);
+
+  const buildGeneralItemData = (item: GeneralItemSeed) => ({
+    title: item.title,
+    unitType: item.unitType,
+    expirationDate: item.expirationDate,
+    initialQuantity: item.initialQuantity,
+    weight: item.weight,
+    requestQuantity:
+      item.requestQuantity ??
+      item.requests.reduce(
+        (total, req) => total + (req.finalQuantity ?? req.quantity),
+        0
+      ),
+    requests: {
+      create: item.requests.map((req) => {
+        const partner = partnerMap.get(req.partnerKey);
+        if (!partner) {
+          throw new Error(`Unknown partner key ${req.partnerKey}`);
+        }
+
+        return {
+          partnerId: partner.id,
+          quantity: req.quantity,
+          finalQuantity: req.finalQuantity ?? req.quantity,
+          comments: req.comments ?? null,
+          priority: req.priority ?? null,
+        };
+      }),
+    },
+    ...(item.lineItems
+      ? {
+          items: {
+            create: item.lineItems.map((lineItem) => ({
+              category: lineItem.category,
+              donorName: lineItem.donorName,
+              quantity: lineItem.quantity,
+              lotNumber: lineItem.lotNumber,
+              palletNumber: lineItem.palletNumber,
+              boxNumber: lineItem.boxNumber,
+              unitPrice: lineItem.unitPrice,
+              allowAllocations: lineItem.allowAllocations,
+              visible: lineItem.visible,
+              gik: lineItem.gik,
+              maxRequestLimit: lineItem.maxRequestLimit ?? null,
+              donorShippingNumber: lineItem.donorShippingNumber ?? null,
+              hfhShippingNumber: lineItem.hfhShippingNumber ?? null,
+              ndc: lineItem.ndc ?? null,
+              notes: lineItem.notes ?? null,
+            })),
+          },
+        }
+      : {}),
+  });
+
+  await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.UNFINALIZED,
+      offerName: "Q3 Medical Support (Draft)",
+      donorName: "Global Health Trust",
+      partnerResponseDeadline: addDays(14),
+      donorResponseDeadline: addDays(28),
+      partnerVisibilities: {
+        connect: activePartners.map((partner) => ({ id: partner.id })),
+      },
+      items: {
+        create: unfinalizedGeneralItems.map(buildGeneralItemData),
+      },
+    },
+  });
+
+  await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.FINALIZED,
+      offerName: "Q2 Emergency Allocation (Finalized)",
+      donorName: "Aid for All Foundation",
+      partnerResponseDeadline: addDays(-21),
+      donorResponseDeadline: addDays(-7),
+      partnerVisibilities: {
+        connect: activePartners.map((partner) => ({ id: partner.id })),
+      },
+      items: {
+        create: finalizedGeneralItems.map(buildGeneralItemData),
+      },
+    },
+  });
+
+  const archivedDonorOffer = await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.ARCHIVED,
+      offerName: "Q1 Storm Recovery Allocation (Archived)",
+      donorName: "Med Relief International Coalition",
+      partnerResponseDeadline: addDays(-120),
+      donorResponseDeadline: addDays(-90),
+      partnerVisibilities: {
+        connect: activePartners.map((partner) => ({ id: partner.id })),
+      },
+      items: {
+        create: archivedGeneralItems.map(buildGeneralItemData),
+      },
+    },
+    include: {
+      items: {
+        include: {
+          items: true,
+        },
+      },
+    },
+  });
+
+  const archivedLineItemMap = new Map(
+    archivedDonorOffer.items.flatMap((generalItem) =>
+      generalItem.items.map((lineItem) => [lineItem.boxNumber, lineItem])
+    )
+  );
+
+  const archivedAllocationsPlan = [
+    {
+      partnerKey: "hope_medical_center",
+      lineItemBoxes: ["BOX-AZI-01", "BOX-INF-02"],
+    },
+    {
+      partnerKey: "mobile_response_unit",
+      lineItemBoxes: ["BOX-COLD-01"],
+    },
+    {
+      partnerKey: "les_cayes_hospital",
+      lineItemBoxes: ["BOX-GOWN-02"],
+    },
+    {
+      partnerKey: "jeremie_network",
+      lineItemBoxes: ["BOX-NUT-02"],
+    },
+  ] as const;
+
+  for (const allocationEntry of archivedAllocationsPlan) {
+    const partner = partnerMap.get(allocationEntry.partnerKey);
+    if (!partner) {
+      throw new Error(
+        `Unknown partner key ${allocationEntry.partnerKey} while creating archived allocations`
+      );
     }
 
-    const partnerMap = new Map(
-      partnerRecords.map(({ seed, partner }) => [seed.key, partner])
-    );
-
-    const activePartners = partnerRecords
-      .filter(({ seed }) => !seed.pending)
-      .map(({ partner }) => partner);
-
-    const buildGeneralItemData = (item: GeneralItemSeed) => ({
-      title: item.title,
-      unitType: item.unitType,
-      expirationDate: item.expirationDate,
-      initialQuantity: item.initialQuantity,
-      requestQuantity:
-        item.requestQuantity ??
-        item.requests.reduce(
-          (total, req) => total + (req.finalQuantity ?? req.quantity),
-          0
-        ),
-        requests: {
-        create: item.requests.map((req) => {
-          const partner = partnerMap.get(req.partnerKey);
-          if (!partner) {
-            throw new Error(`Unknown partner key ${req.partnerKey}`);
-          }
-
-          return {
-            partnerId: partner.id,
-            quantity: req.quantity,
-            finalQuantity: req.finalQuantity ?? req.quantity,
-            comments: req.comments ?? null,
-            priority: req.priority ?? null,
-          };
-        }),
-      },
-      ...(item.lineItems
-        ? {
-            items: {
-              create: item.lineItems.map((lineItem) => ({
-                category: lineItem.category,
-                donorName: lineItem.donorName,
-                quantity: lineItem.quantity,
-                lotNumber: lineItem.lotNumber,
-                palletNumber: lineItem.palletNumber,
-                boxNumber: lineItem.boxNumber,
-                unitPrice: lineItem.unitPrice,
-                allowAllocations: lineItem.allowAllocations,
-                visible: lineItem.visible,
-                gik: lineItem.gik,
-                maxRequestLimit: lineItem.maxRequestLimit ?? null,
-                donorShippingNumber: lineItem.donorShippingNumber ?? null,
-                hfhShippingNumber: lineItem.hfhShippingNumber ?? null,
-                ndc: lineItem.ndc ?? null,
-                notes: lineItem.notes ?? null,
-              })),
-            },
-          }
-        : {}),
-    });
-
-    await db.donorOffer.create({
+    const distribution = await db.distribution.create({
       data: {
-          state: DonorOfferState.UNFINALIZED,
-        offerName: "Q3 Medical Support (Draft)",
-        donorName: "Global Health Trust",
-        partnerResponseDeadline: addDays(14),
-        donorResponseDeadline: addDays(28),
-          partnerVisibilities: {
-          connect: activePartners.map((partner) => ({ id: partner.id })),
-        },
-          items: {
-          create: unfinalizedGeneralItems.map(buildGeneralItemData),
-        },
+        partnerId: partner.id,
+        pending: false,
       },
     });
 
-    await db.donorOffer.create({
-      data: {
-        state: DonorOfferState.FINALIZED,
-        offerName: "Q2 Emergency Allocation (Finalized)",
-        donorName: "Aid for All Foundation",
-        partnerResponseDeadline: addDays(-21),
-        donorResponseDeadline: addDays(-7),
-          partnerVisibilities: {
-          connect: activePartners.map((partner) => ({ id: partner.id })),
-        },
-          items: {
-          create: finalizedGeneralItems.map(buildGeneralItemData),
-        },
-      },
-    });
-
-    const archivedDonorOffer = await db.donorOffer.create({
-      data: {
-        state: DonorOfferState.ARCHIVED,
-        offerName: "Q1 Storm Recovery Allocation (Archived)",
-        donorName: "Med Relief International Coalition",
-        partnerResponseDeadline: addDays(-120),
-        donorResponseDeadline: addDays(-90),
-          partnerVisibilities: {
-          connect: activePartners.map((partner) => ({ id: partner.id })),
-        },
-        items: {
-          create: archivedGeneralItems.map(buildGeneralItemData),
-        },
-      },
-      include: {
-          items: {
-          include: {
-            items: true,
-          },
-        },
-      },
-    });
-
-    const archivedLineItemMap = new Map(
-      archivedDonorOffer.items.flatMap((generalItem) =>
-        generalItem.items.map((lineItem) => [lineItem.boxNumber, lineItem])
-      )
-    );
-
-    const archivedAllocationsPlan = [
-      {
-        partnerKey: "hope_medical_center",
-        lineItemBoxes: ["BOX-AZI-01", "BOX-INF-02"],
-      },
-      {
-        partnerKey: "mobile_response_unit",
-        lineItemBoxes: ["BOX-COLD-01"],
-      },
-      {
-        partnerKey: "les_cayes_hospital",
-        lineItemBoxes: ["BOX-GOWN-02"],
-      },
-      {
-        partnerKey: "jeremie_network",
-        lineItemBoxes: ["BOX-NUT-02"],
-      },
-    ] as const;
-
-    for (const allocationEntry of archivedAllocationsPlan) {
-      const partner = partnerMap.get(allocationEntry.partnerKey);
-      if (!partner) {
+    let signOffDays = 0;
+    for (const boxNumber of allocationEntry.lineItemBoxes) {
+      const lineItem = archivedLineItemMap.get(boxNumber);
+      if (!lineItem) {
         throw new Error(
-          `Unknown partner key ${allocationEntry.partnerKey} while creating archived allocations`
+          `Missing archived line item for box number ${boxNumber}`
         );
       }
 
-      const distribution = await db.distribution.create({
+      const signOff = await db.signOff.create({
         data: {
+          staffMemberName: "Staff Member",
           partnerId: partner.id,
-          pending: false,
+          partnerName: partner.name,
+          date: addDays(signOffDays),
         },
       });
 
-      for (const boxNumber of allocationEntry.lineItemBoxes) {
-        const lineItem = archivedLineItemMap.get(boxNumber);
-        if (!lineItem) {
-          throw new Error(
-            `Missing archived line item for box number ${boxNumber}`
-          );
-        }
+      signOffDays -= 7;
 
-        await db.allocation.create({
-          data: {
-            lineItemId: lineItem.id,
-            distributionId: distribution.id,
-            partnerId: partner.id,
-          },
-        });
-      }
+      await db.allocation.create({
+        data: {
+          lineItemId: lineItem.id,
+          distributionId: distribution.id,
+          partnerId: partner.id,
+          signOffId: signOff.id,
+        },
+      });
+    }
   }
 
   await db.shippingStatus.createMany({ data: shippingStatusSeeds });
