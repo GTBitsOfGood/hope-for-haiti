@@ -334,15 +334,16 @@ export class LineItemService {
     palletCount: number;
   }> {
     let baseQuery = Prisma.sql`
-      SELECT COUNT(DISTINCT s.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
-      FROM "ShippingStatus" s
+      SELECT COUNT(DISTINCT ss.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
+      FROM "ShippingStatus" ss
       JOIN (
         SELECT DISTINCT li.*
         FROM "LineItem" li
-      ) li ON s."hfhShippingNumber" = li."hfhShippingNumber" OR
-        s."donorShippingNumber" = li."donorShippingNumber"
+      ) li ON ss."hfhShippingNumber" = li."hfhShippingNumber" OR
+        ss."donorShippingNumber" = li."donorShippingNumber"
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
       WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
     `;
 
