@@ -2,6 +2,8 @@ import { db } from "@/db";
 import DonorOfferService from "@/services/donorOfferService";
 import { InternalError } from "@/util/errors";
 import highsLoader from "highs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 type AllocationResult = { lineItemId: number; partnerId: number };
 
@@ -34,7 +36,11 @@ export class AllocationSuggestionService {
     }
 
     const highs_settings = {
-        locateFile: (file: string) => "https://lovasoa.github.io/highs-js/" + file
+      locateFile: () => {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        return path.join(__dirname, "..", "lib", "assets", "highs.wasm");
+      }
     };
 
     const highs = await highsLoader(highs_settings);
@@ -147,8 +153,6 @@ export class AllocationSuggestionService {
         },
       },
     });
-
-    console.log(generalItems);
 
     return generalItems.reduce<NormalizedItem[]>((acc, item) => {
       if (!item.items.length) {
