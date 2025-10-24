@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { DonorOffer } from "@prisma/client";
-import { formatTableValue } from "@/utils/format";
+import { formatTableValue } from "@/util/format";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useStreamClient } from "@/hooks/useStreamClient";
 import AdvancedBaseTable, {

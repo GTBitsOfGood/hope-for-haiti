@@ -1,7 +1,7 @@
 import ModalDropDown from "@/components/ModalDropDown";
 import ModalTextField from "@/components/ModalTextField";
 import PriorityTag from "@/components/tags/PriorityTag";
-import { formatTableValue } from "@/utils/format";
+import { formatTableValue } from "@/util/format";
 import {
   ChatTeardropText,
   Check,

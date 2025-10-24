@@ -1,4 +1,4 @@
-import { formatTableValue } from "@/utils/format";
+import { formatTableValue } from "@/util/format";
 import React, { useState } from "react";
 import { CgChevronLeft, CgChevronRight } from "react-icons/cg";
 

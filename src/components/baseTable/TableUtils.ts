@@ -1,5 +1,5 @@
 import React from "react";
-import { formatTableValue } from "@/utils/format";
+import { formatTableValue } from "@/util/format";
 import {
   ColumnConfig,
   ColumnDefinition,

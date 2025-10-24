@@ -1,11 +1,6 @@
 import { db } from "@/db";
 import DonorOfferService from "@/services/donorOfferService";
-import { InternalError } from "@/util/errors";
-import highsLoader from "highs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-type AllocationResult = { lineItemId: number; partnerId: number };
+import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 
 type NormalizedItem = {
   id: number;
@@ -16,42 +11,34 @@ type NormalizedItem = {
 export class AllocationSuggestionService {
   static async suggestForDonorOffer(
     donorOfferId: number
-  ): Promise<AllocationResult[]> {
+  ): Promise<AllocationSuggestionProgram[]> {
     const items = await this.fetchItemsForDonorOffer(donorOfferId);
-    return this.solveForItems(items);
+    return this.buildProgramsForItems(items);
   }
 
   static async suggestForGeneralItems(
     generalItemIds: number[]
-  ): Promise<AllocationResult[]> {
+  ): Promise<AllocationSuggestionProgram[]> {
     const items = await this.fetchItemsForGeneralItems(generalItemIds);
-    return this.solveForItems(items);
+    return this.buildProgramsForItems(items);
   }
 
-  private static async solveForItems(
+  private static async buildProgramsForItems(
     items: NormalizedItem[]
-  ): Promise<AllocationResult[]> {
+  ): Promise<AllocationSuggestionProgram[]> {
     if (!items.length) {
       return [];
     }
 
-    const highs_settings = {
-      locateFile: () => {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        return path.join(__dirname, "..", "lib", "assets", "highs.wasm");
-      }
-    };
-
-    const highs = await highsLoader(highs_settings);
-
-    const allocations: AllocationResult[] = [];
+    const programs: AllocationSuggestionProgram[] = [];
     for (const item of items) {
-      const solved = await this.solveAllocationsForItem(highs, item);
-      allocations.push(...solved);
+      const program = this.buildProgramForItem(item);
+      if (program) {
+        programs.push(program);
+      }
     }
 
-    return allocations;
+    return programs;
   }
 
   private static async fetchItemsForDonorOffer(
@@ -246,23 +233,25 @@ export class AllocationSuggestionService {
     return lines.join("\n");
   }
 
-  private static async solveAllocationsForItem(
-    highs: Awaited<ReturnType<typeof highsLoader>>,
+  private static buildProgramForItem(
     item: NormalizedItem
-  ): Promise<AllocationResult[]> {
-    const lineItems = item.lineItems;
-    const requests = item.requests;
+  ): AllocationSuggestionProgram | null {
+    const usableLineItems = item.lineItems.filter(
+      (lineItem) => lineItem.quantity > 0
+    );
+    const requests = item.requests.filter((request) => request.quantity > 0);
 
-    if (!lineItems.length || !requests.length) {
-      return [];
+    if (!usableLineItems.length || !requests.length) {
+      return null;
     }
 
-    const totalQuantity = lineItems.reduce(
+    const totalQuantity = usableLineItems.reduce(
       (sum, entry) => sum + entry.quantity,
       0
     );
+
     if (totalQuantity <= 0) {
-      return [];
+      return null;
     }
 
     const totalRequested = requests.reduce(
@@ -279,60 +268,23 @@ export class AllocationSuggestionService {
     }));
 
     if (!targets.length) {
-      return [];
+      return null;
     }
 
-    const lp = this.buildLinearProgram(lineItems, targets);
+    const lp = this.buildLinearProgram(usableLineItems, targets);
 
-    const solution = highs.solve(lp, {
-      presolve: "on",
-      threads: 0,
-      time_limit: 10,
-    });
-
-    if (!solution || solution.Status !== "Optimal") {
-      throw new InternalError("Unable to solve problem optimally");
-    }
-
-    const columns = solution.Columns as Record<string, { Primal: number }>;
-    const allocations: AllocationResult[] = [];
-
-    const partnerCount = targets.length;
-    const itemCount = lineItems.length;
-
-    const variableX = (iIdx: number, pIdx: number) => `x_i${iIdx}_p${pIdx}`;
-
-    for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
-      let chosenPartnerIdx: number | null = null;
-      for (let partnerIdx = 0; partnerIdx < partnerCount; partnerIdx++) {
-        const varName = variableX(itemIdx, partnerIdx);
-        const value = columns[varName]?.Primal ?? 0;
-        if (value > 0.5) {
-          chosenPartnerIdx = partnerIdx;
-          break;
-        }
-      }
-
-      if (chosenPartnerIdx === null) {
-        let maxVal = -Infinity;
-        let maxIdx = 0;
-        for (let partnerIdx = 0; partnerIdx < partnerCount; partnerIdx++) {
-          const varName = variableX(itemIdx, partnerIdx);
-          const value = columns[varName]?.Primal ?? 0;
-          if (value > maxVal) {
-            maxVal = value;
-            maxIdx = partnerIdx;
-          }
-        }
-        chosenPartnerIdx = maxIdx;
-      }
-
-      const partnerId = targets[chosenPartnerIdx].partnerId;
-      const lineItemId = lineItems[itemIdx].lineItemId;
-      allocations.push({ lineItemId, partnerId });
-    }
-
-    return allocations;
+    return {
+      itemId: item.id,
+      lp,
+      lineItems: usableLineItems.map((lineItem) => ({
+        lineItemId: lineItem.lineItemId,
+        quantity: lineItem.quantity,
+      })),
+      partners: targets.map((target) => ({
+        partnerId: target.partnerId,
+        target: target.target,
+      })),
+    };
   }
 }
 

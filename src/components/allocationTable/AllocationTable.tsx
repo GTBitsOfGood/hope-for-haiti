@@ -17,9 +17,11 @@ import {
   cloneAllocationItems,
   recomputeItemsAllocated,
 } from "./utils";
+import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
+import { solveAllocationPrograms } from "@/util/solveAllocationPrograms";
 
 type SuggestionResponse = {
-  allocations: { lineItemId: number; partnerId: number | null }[];
+  programs: AllocationSuggestionProgram[];
 };
 
 type SuggestionConfig = {
@@ -104,7 +106,7 @@ export default function AllocationTable({
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] =
     useState(false);
-  const [isStreamComplete, setIsStreamComplete] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const resolvedColumns = useMemo(
     () => columns ?? buildDefaultColumns(),
@@ -217,7 +219,7 @@ export default function AllocationTable({
 
     setIsInteractionMode(true);
     setIsProcessingSuggestions(true);
-    setIsStreamComplete(false);
+    setStatusMessage("Generating allocation suggestions...");
     preInteractionItemsRef.current = cloneAllocationItems(
       currentItemsRef.current
     );
@@ -226,7 +228,21 @@ export default function AllocationTable({
       const response = await suggestionConfig.onSuggest(
         currentItemsRef.current
       );
-      const allocationData = response.allocations ?? [];
+      const programs = response.programs ?? [];
+
+      if (!programs.length) {
+        toast("No allocation changes suggested.");
+        const recomputed = recomputeItemsAllocated(
+          currentItemsRef.current
+        );
+        tableRef.current?.setItems(recomputed);
+        currentItemsRef.current = recomputed;
+        setIsInteractionMode(false);
+        preInteractionItemsRef.current = [];
+        return;
+      }
+
+      const allocationData = await solveAllocationPrograms(programs);
 
       const { previewItems, suggestions } = buildPreviewAllocations(
         currentItemsRef.current,
@@ -236,18 +252,17 @@ export default function AllocationTable({
       if (!suggestions.length) {
         toast("No allocation changes suggested.");
         setIsInteractionMode(false);
-        setIsStreamComplete(false);
         const recomputed = recomputeItemsAllocated(
           currentItemsRef.current
         );
         tableRef.current?.setItems(recomputed);
         currentItemsRef.current = recomputed;
+        preInteractionItemsRef.current = [];
         return;
       }
 
       tableRef.current?.setItems(previewItems);
       currentItemsRef.current = previewItems;
-      setIsStreamComplete(true);
     } catch (error) {
       console.error("Failed to suggest allocations", error);
       toast.error("Failed to suggest allocations");
@@ -255,9 +270,10 @@ export default function AllocationTable({
       tableRef.current?.setItems(restored);
       currentItemsRef.current = restored;
       setIsInteractionMode(false);
-      setIsStreamComplete(false);
+      preInteractionItemsRef.current = [];
     } finally {
       setIsProcessingSuggestions(false);
+      setStatusMessage(null);
     }
   }, [suggestionConfig, isProcessingSuggestions]);
 
@@ -266,7 +282,7 @@ export default function AllocationTable({
     tableRef.current?.setItems(restored);
     currentItemsRef.current = restored;
     setIsInteractionMode(false);
-    setIsStreamComplete(false);
+    setStatusMessage(null);
     preInteractionItemsRef.current = [];
   }, []);
 
@@ -320,11 +336,13 @@ export default function AllocationTable({
     if (!pendingChanges.length) {
       toast("No suggested changes to keep.");
       setIsInteractionMode(false);
-      setIsStreamComplete(false);
+      setStatusMessage(null);
+      preInteractionItemsRef.current = [];
       return;
     }
 
     setIsProcessingSuggestions(true);
+    setStatusMessage("Saving suggestions...");
 
     try {
       const appliedCount = await suggestionConfig.onApply(pendingChanges);
@@ -340,25 +358,17 @@ export default function AllocationTable({
       }
 
       setIsInteractionMode(false);
-      setIsStreamComplete(false);
+      setStatusMessage(null);
       preInteractionItemsRef.current = [];
       suggestionConfig.onAfterApply?.();
-      tableRef.current?.reload();
     } catch (error) {
       console.error("Failed to keep suggested allocations", error);
       toast.error("Failed to save suggested allocations");
     } finally {
       setIsProcessingSuggestions(false);
+      setStatusMessage(null);
     }
   }, [collectPendingChanges, suggestionConfig]);
-
-  const statusMessage = suggestionConfig
-    ? isProcessingSuggestions
-      ? isStreamComplete
-        ? "Saving suggestions..."
-        : "Generating allocation suggestions..."
-      : null
-    : null;
 
   const toolbarContent = suggestionConfig ? (
     !isInteractionMode ? (
@@ -379,7 +389,7 @@ export default function AllocationTable({
         {statusMessage && (
           <span className="text-blue-primary text-sm">{statusMessage}</span>
         )}
-        {isStreamComplete ? (
+        {!isProcessingSuggestions ? (
           <>
             <button
               onClick={handleUndo}

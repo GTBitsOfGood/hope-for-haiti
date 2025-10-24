@@ -13,7 +13,8 @@ import type { FilterList } from "@/components/baseTable/AdvancedBaseTable";
 import type { PartnerDistributionSummary } from "@/components/LineItemChipGroup";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useFetch } from "@/hooks/useFetch";
-import { formatTableValue } from "@/utils/format";
+import { formatTableValue } from "@/util/format";
+import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 
 type AllocationResponse = {
   items: AllocationTableItem[];
@@ -21,7 +22,7 @@ type AllocationResponse = {
 };
 
 type SuggestionResponse = {
-  allocations: { lineItemId: number; partnerId: number | null }[];
+  programs: AllocationSuggestionProgram[];
 };
 
 function calculateItemsAllocated(

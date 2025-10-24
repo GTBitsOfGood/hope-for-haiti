@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     const { donorOfferId, generalItemIds } = parsed.data;
 
-    const allocations = donorOfferId
+    const programs = donorOfferId
       ? await AllocationSuggestionService.suggestForDonorOffer(donorOfferId)
       : await AllocationSuggestionService.suggestForGeneralItems(
           generalItemIds ?? []
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        allocations,
+        programs,
       },
       { status: 200 }
     );

@@ -8,9 +8,10 @@ import {
   AllocationTableItem,
 } from "@/components/allocationTable/types";
 import { FilterList } from "@/components/baseTable/AdvancedBaseTable";
+import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 
 type SuggestionResponse = {
-  allocations: { lineItemId: number; partnerId: number | null }[];
+  programs: AllocationSuggestionProgram[];
 };
 
 function calculateItemsAllocated(
@@ -64,7 +65,7 @@ export default function AdminUnallocatedItemsScreen() {
     async (items: AllocationTableItem[]) => {
       const generalItemIds = items.map((item) => item.id);
       if (!generalItemIds.length) {
-        return { allocations: [] };
+        return { programs: [] };
       }
 
       return apiClient.post<SuggestionResponse>("/api/suggest/allocations", {
