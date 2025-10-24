@@ -15,13 +15,24 @@ import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export default class DistributionService {
-  static async getAllDistributions() {
-    return db.distribution.findMany();
+  static async getAllDistributions(
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
+  ) {
+    const whereClause = buildWhereFromFilters<Prisma.DistributionWhereInput>(
+      Object.keys(Prisma.DistributionScalarFieldEnum),
+      filters
+    );
+
+    return db.distribution.findMany({
+      where: whereClause,
+      take: pageSize,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
+    });
   }
 
-  static async getDistributionsForDonorOffer(
-    donorOfferId: number
-  ): Promise<
+  static async getDistributionsForDonorOffer(donorOfferId: number): Promise<
     Record<
       number,
       {
@@ -94,11 +105,21 @@ export default class DistributionService {
   }
 
   static async getSignedDistributions(
-    partnerId?: number
+    partnerId?: number,
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
   ): Promise<SignedDistribution[]> {
+    const whereClause = buildWhereFromFilters<Prisma.SignOffWhereInput>(
+      Object.keys(Prisma.SignOffScalarFieldEnum),
+      filters
+    );
+
     const signOffs = await db.signOff.findMany({
-      where: partnerId ? { partnerId } : {},
+      where: partnerId ? { partnerId, ...whereClause } : whereClause,
       include: { allocations: true },
+      take: pageSize,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
     });
 
     return signOffs.map((signOff) => ({
@@ -109,13 +130,26 @@ export default class DistributionService {
   }
 
   static async getPartnerDistributionItems(
-    partnerId?: number
+    partnerId?: number,
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
   ): Promise<DistributionItem[]> {
+    const whereClause = buildWhereFromFilters<Prisma.DistributionWhereInput>(
+      Object.keys(Prisma.DistributionScalarFieldEnum),
+      filters
+    );
+
     const distributions = await db.distribution.findMany({
-      where: partnerId ? { partner: { id: partnerId } } : {},
+      where: {
+        ...whereClause,
+        ...(partnerId ? { partner: { id: partnerId } } : {}),
+      },
       include: {
         allocations: true,
       },
+      take: pageSize,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
     });
 
     const items: DistributionItem[] = [];
@@ -165,10 +199,23 @@ export default class DistributionService {
   }
 
   static async getPartnerDistributions(
-    partnerId: number
+    partnerId: number,
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
   ): Promise<PartnerDistributionsResult> {
-    const distributionItemPromise = this.getPartnerDistributionItems(partnerId);
-    const signedDistributionPromise = this.getSignedDistributions(partnerId);
+    const distributionItemPromise = this.getPartnerDistributionItems(
+      partnerId,
+      page,
+      pageSize,
+      filters
+    );
+    const signedDistributionPromise = this.getSignedDistributions(
+      partnerId,
+      page,
+      pageSize,
+      filters
+    );
 
     return {
       distributionItems: await distributionItemPromise,

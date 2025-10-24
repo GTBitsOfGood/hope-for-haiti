@@ -1,97 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { CgSpinner } from "react-icons/cg";
-import { useRouter } from "next/navigation";
-import BaseTable from "@/components/baseTable/BaseTable";
+import DistributionTable from "@/components/distributionTable/DistributionTable";
 
 // Define the tab options
 enum DistributionTab {
-  IN_PROGRESS = "In Progress",
-  COMPLETE = "Complete",
-}
-
-// Define the SignOff type
-interface SignOff {
-  partnerName: string;
-  staffMemberName: string;
-  date: string;
-  createdAt: string;
-  _count: {
-    distributions: number;
-  };
-}
-
-// Define the PartnerAllocation type
-interface PartnerAllocation {
-  partnerId: number;
-  partnerName: string;
-  visibleAllocationsCount: number;
-  hiddenAllocationsCount: number;
-  pendingSignOffCount: number;
+  DISTRIBUTIONS = "Distributions",
+  SHIPMENTS = "Shipments",
 }
 
 export default function AdminDistributionsScreen() {
-  const router = useRouter();
-
   // State for active tab
   const [activeTab, setActiveTab] = useState<string>(
-    DistributionTab.IN_PROGRESS
+    DistributionTab.DISTRIBUTIONS
   );
-  // State for signoffs data
-  const [signoffs, setSignoffs] = useState<SignOff[]>([]);
-  // State for partner allocations data
-  const [partnerAllocations, setPartnerAllocations] = useState<
-    PartnerAllocation[]
-  >([]);
-  // State for loading
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // Fetch data based on active tab
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        if (activeTab === DistributionTab.COMPLETE) {
-          const response = await fetch(
-            "/api/distributions/admin?completed=true"
-          );
-          if (response.ok) {
-            const data = await response.json();
-            setSignoffs(data.signoffs || []);
-          } else {
-            console.error("Failed to fetch signoffs:", response.statusText);
-          }
-        } else {
-          // Fetch in-progress data
-          const response = await fetch("/api/distributions/admin", {
-            cache: "no-store",
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setPartnerAllocations(data.data || []);
-          } else {
-            console.error(
-              "Failed to fetch partner allocations:",
-              response.statusText
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [activeTab]);
-
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
 
   return (
     <>
@@ -132,74 +55,7 @@ export default function AdminDistributionsScreen() {
         })}
       </div>
 
-      {/* Content area */}
-      <div className="mt-6">
-        {isLoading ? (
-          <div className="flex justify-center items-center mt-8">
-            <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-          </div>
-        ) : activeTab === DistributionTab.IN_PROGRESS ? (
-          <>
-            {partnerAllocations.length === 0 ? (
-              <p className="text-gray-500">
-                No in-progress distributions to display.
-              </p>
-            ) : (
-              <BaseTable
-                headers={[
-                  "Partner Name",
-                  "Visible Allocations",
-                  "Hidden Allocations",
-                  "Pending Sign Offs",
-                ]}
-                rows={partnerAllocations.map((partner) => ({
-                  cells: [
-                    <span
-                      className="hover:underline cursor-pointer"
-                      key={1}
-                      onClick={() =>
-                        router.push(`/distributions/${partner.partnerId}`)
-                      }
-                    >
-                      {partner.partnerName}
-                    </span>,
-                    partner.visibleAllocationsCount,
-                    partner.hiddenAllocationsCount,
-                    partner.pendingSignOffCount,
-                  ],
-                }))}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            {signoffs.length === 0 ? (
-              <p className="text-gray-500">
-                No completed distributions to display.
-              </p>
-            ) : (
-              <BaseTable
-                headers={[
-                  "Partner Name",
-                  "Staff Member",
-                  "Date",
-                  "Created At",
-                  "Distributions",
-                ]}
-                rows={signoffs.map((signoff) => ({
-                  cells: [
-                    signoff.partnerName,
-                    signoff.staffMemberName,
-                    formatDate(signoff.date),
-                    formatDate(signoff.createdAt),
-                    signoff._count?.distributions,
-                  ],
-                }))}
-              />
-            )}
-          </>
-        )}
-      </div>
+      {activeTab === DistributionTab.DISTRIBUTIONS && <DistributionTable />}
     </>
   );
 }
