@@ -10,14 +10,16 @@ type Distribution = {
   partner: {
     name: string;
   };
-  allocations: {
-    lineItem: {
-      generalItem: {
-        donorOffer: {
-          donorName: string;
-        };
-      };
+  generalItems: {
+    donorOffer: {
+      donorName: string;
     };
+    lineItems: {
+      id: number;
+      quantity: number;
+      hfhShippingNumber: string | null;
+      donorShippingNumber: string | null;
+    }[];
   }[];
 };
 
@@ -64,9 +66,8 @@ export default function DistributionTable() {
             <div className="flex">
               {Array.from(
                 new Set(
-                  row.allocations.map(
-                    (allocation) =>
-                      allocation.lineItem.generalItem.donorOffer.donorName
+                  row.generalItems.map(
+                    (generalItem) => generalItem.donorOffer.donorName
                   )
                 )
               ).map((name) => (

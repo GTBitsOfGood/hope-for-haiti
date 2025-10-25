@@ -12,11 +12,7 @@ import {
 } from "@/types/api/distribution.types";
 import { Prisma } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
-import {
-  buildQueryWithPagination,
-  buildWhereFromFilters,
-  buildWhereFromFiltersSql,
-} from "@/util/table";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export default class DistributionService {
   static async getAllDistributions(
@@ -24,63 +20,99 @@ export default class DistributionService {
     pageSize?: number,
     filters?: Filters
   ) {
-    const whereClause = buildWhereFromFiltersSql(
+    const whereClause = buildWhereFromFilters(
       Object.keys(Prisma.DistributionScalarFieldEnum),
       filters
     );
 
-    console.log("Query:", page, pageSize, filters);
-    console.log("WHERE", whereClause?.text ?? "(no where clause)");
+    const distributions = await db.distribution.findMany({
+      where: whereClause,
+      include: {
+        partner: true,
+        allocations: {
+          include: {
+            lineItem: {
+              include: {
+                generalItem: {
+                  include: {
+                    donorOffer: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      take: pageSize,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
+    });
 
-    const query = Prisma.sql` 
-      WITH "GeneralItemWithLineItems" AS (
-        SELECT * FROM "GeneralItem" groupGi
-        JOIN "LineItem" innerLi ON groupGi."id" = innerLi."generalItemId"
-        GROUP BY groupGi."id"
-      )
+    // I tried doing the below with SQL, to no avail. No luck with Prisma either. There's no complex analytics here, so it should be fine.
 
-      SELECT * FROM "Distribution" di
+    // Generate map of general items by their ID
+    const generalItemsById: Record<
+      number,
+      (typeof distributions)[0]["allocations"][0]["lineItem"]["generalItem"]
+    > = {};
 
-      JOIN "User" pa ON di."partnerId" = pa."id"
-      JOIN "Allocation" al ON di."id" = al."distributionId"
-      JOIN "LineItem" li ON al."lineItemId" = li."id"
-      JOIN "GeneralItemWithLineItems" gi ON li."generalItemId" = gi."id"
-      JOIN "DonorOffer" d ON gi."donorOfferId" = d."id"
+    for (const distribution of distributions) {
+      for (const allocation of distribution.allocations) {
+        const generalItem = allocation.lineItem.generalItem;
+        if (generalItem) {
+          generalItemsById[generalItem.id] = generalItem;
+        }
+      }
+    }
 
-      ${whereClause ? Prisma.sql`WHERE ${whereClause}` : Prisma.sql``}
-      ${page && pageSize ? Prisma.sql`LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}` : Prisma.sql``}
-    `;
+    // Group line items by their general item within each distribution
+    const distributionsWithGroupedItems = distributions.map((distribution) => {
+      const lineItems = distribution.allocations.map(
+        (allocation) => allocation.lineItem
+      );
 
-    console.log("SQL Query:", query.text);
-    console.log("Values:", query.values);
+      const generalItemsById: Record<
+        number,
+        (typeof distributions)[0]["allocations"][0]["lineItem"]["generalItem"] & {
+          lineItems: Omit<
+            (typeof distributions)[0]["allocations"][0]["lineItem"],
+            "generalItem"
+          >[];
+        }
+      > = {};
 
-    const result = await db.$queryRaw(query);
+      // Add line items to their respective general items
+      for (const lineItem of lineItems) {
+        if (!lineItem.generalItem) continue;
 
-    console.log(result);
+        if (!generalItemsById[lineItem.generalItem.id]) {
+          generalItemsById[lineItem.generalItem.id] = {
+            ...lineItem.generalItem,
+            lineItems: [],
+          };
+        }
 
-    return result;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { generalItem, ...lineItemWithoutGeneralItem } = lineItem;
 
-    // return db.distribution.findMany({
-    //   where: whereClause,
-    //   include: {
-    //     partner: true,
-    //     allocations: {
-    //       include: {
-    //         lineItem: {
-    //           include: {
-    //             generalItem: {
-    //               include: {
-    //                 donorOffer: true,
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //   },
-    //   take: pageSize,
-    //   skip: page && pageSize ? (page - 1) * pageSize : undefined,
-    // });
+        generalItemsById[lineItem.generalItem.id].lineItems.push(
+          lineItemWithoutGeneralItem
+        );
+      }
+
+      // Remove lineItem from allocations to avoid duplicating the data
+      const allocationsWithoutLineItems = distribution.allocations.map(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        ({ lineItem, ...allocation }) => allocation
+      );
+
+      return {
+        ...distribution,
+        allocations: allocationsWithoutLineItems,
+        generalItems: Object.values(generalItemsById),
+      };
+    });
+
+    return distributionsWithGroupedItems;
   }
 
   static async getDistributionsForDonorOffer(donorOfferId: number): Promise<
