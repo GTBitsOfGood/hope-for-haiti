@@ -143,3 +143,9 @@ function OptionsButton({ distribution }: { distribution: Distribution }) {
     </div>
   );
 }
+
+// function GeneralItemChipList({
+//   generalItems,
+// }: {
+//   generalItems: Distribution["allocations"][number]["lineItem"]["generalItem"][];
+// }) {}

@@ -12,7 +12,11 @@ import {
 } from "@/types/api/distribution.types";
 import { Prisma } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
-import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import {
+  buildQueryWithPagination,
+  buildWhereFromFilters,
+  buildWhereFromFiltersSql,
+} from "@/util/table";
 
 export default class DistributionService {
   static async getAllDistributions(
@@ -20,32 +24,63 @@ export default class DistributionService {
     pageSize?: number,
     filters?: Filters
   ) {
-    const whereClause = buildWhereFromFilters<Prisma.DistributionWhereInput>(
+    const whereClause = buildWhereFromFiltersSql(
       Object.keys(Prisma.DistributionScalarFieldEnum),
       filters
     );
 
-    return db.distribution.findMany({
-      where: whereClause,
-      include: {
-        partner: true,
-        allocations: {
-          include: {
-            lineItem: {
-              include: {
-                generalItem: {
-                  include: {
-                    donorOffer: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      take: pageSize,
-      skip: page && pageSize ? (page - 1) * pageSize : undefined,
-    });
+    console.log("Query:", page, pageSize, filters);
+    console.log("WHERE", whereClause?.text ?? "(no where clause)");
+
+    const query = Prisma.sql` 
+      WITH "GeneralItemWithLineItems" AS (
+        SELECT * FROM "GeneralItem" groupGi
+        JOIN "LineItem" innerLi ON groupGi."id" = innerLi."generalItemId"
+        GROUP BY groupGi."id"
+      )
+
+      SELECT * FROM "Distribution" di
+
+      JOIN "User" pa ON di."partnerId" = pa."id"
+      JOIN "Allocation" al ON di."id" = al."distributionId"
+      JOIN "LineItem" li ON al."lineItemId" = li."id"
+      JOIN "GeneralItemWithLineItems" gi ON li."generalItemId" = gi."id"
+      JOIN "DonorOffer" d ON gi."donorOfferId" = d."id"
+
+      ${whereClause ? Prisma.sql`WHERE ${whereClause}` : Prisma.sql``}
+      ${page && pageSize ? Prisma.sql`LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}` : Prisma.sql``}
+    `;
+
+    console.log("SQL Query:", query.text);
+    console.log("Values:", query.values);
+
+    const result = await db.$queryRaw(query);
+
+    console.log(result);
+
+    return result;
+
+    // return db.distribution.findMany({
+    //   where: whereClause,
+    //   include: {
+    //     partner: true,
+    //     allocations: {
+    //       include: {
+    //         lineItem: {
+    //           include: {
+    //             generalItem: {
+    //               include: {
+    //                 donorOffer: true,
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    //   take: pageSize,
+    //   skip: page && pageSize ? (page - 1) * pageSize : undefined,
+    // });
   }
 
   static async getDistributionsForDonorOffer(donorOfferId: number): Promise<
