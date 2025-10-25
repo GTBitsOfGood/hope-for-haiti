@@ -1,6 +1,8 @@
 import AdvancedBaseTable, { FilterList } from "../baseTable/AdvancedBaseTable";
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
+import Portal from "../baseTable/Portal";
+import toast from "react-hot-toast";
 
 type Distribution = {
   id: number;
@@ -78,9 +80,66 @@ export default function DistributionTable() {
             </div>
           ),
         },
+        {
+          id: "options",
+          header: "",
+          cell: (distribution) => <OptionsButton distribution={distribution} />,
+        },
       ]}
       fetchFn={fetchTableData}
       rowId={"id"}
     />
+  );
+}
+
+function OptionsButton({ distribution }: { distribution: Distribution }) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const { apiClient } = useApiClient();
+
+  async function approveDistribution() {
+    const formData = new FormData();
+    formData.append("pending", "false");
+
+    const promise = apiClient.patch(`/api/distributions/${distribution.id}`, {
+      body: formData,
+    });
+
+    toast.promise(promise, {
+      loading: "Approving distribution...",
+      success: "Distribution approved!",
+      error: "Failed to approve distribution.",
+    });
+
+    await promise;
+
+    setIsDropdownOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        className="border border-gray-primary px-2 py-1 rounded hover:bg-gray-100"
+      >
+        Options
+      </button>
+      <Portal
+        isOpen={isDropdownOpen}
+        onClose={() => setIsDropdownOpen(false)}
+        triggerRef={buttonRef}
+        position="bottom-left"
+        className="bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold"
+      >
+        <button
+          onClick={approveDistribution}
+          className="border border-gray-primary px-2 py-1 rounded hover:bg-gray-100"
+        >
+          Approve
+        </button>
+      </Portal>
+    </div>
   );
 }
