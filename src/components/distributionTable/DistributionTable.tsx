@@ -89,6 +89,9 @@ export default function DistributionTable() {
       ]}
       fetchFn={fetchTableData}
       rowId={"id"}
+      rowBody={(distribution) => (
+        <GeneralItemChipList generalItems={distribution.generalItems} />
+      )}
     />
   );
 }
@@ -145,8 +148,12 @@ function OptionsButton({ distribution }: { distribution: Distribution }) {
   );
 }
 
-// function GeneralItemChipList({
-//   generalItems,
-// }: {
-//   generalItems: Distribution["allocations"][number]["lineItem"]["generalItem"][];
-// }) {}
+function GeneralItemChipList(
+  {
+    // generalItems,
+  }: {
+    generalItems: Distribution["generalItems"];
+  }
+) {
+  return <div></div>;
+}

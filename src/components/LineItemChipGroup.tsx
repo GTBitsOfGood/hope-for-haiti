@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
 import Portal from "./baseTable/Portal";
 import { AllocationTableItem } from "./allocationTable/types";
+import Chip from "./Chip";
 
 export interface PartnerDistributionSummary {
   id: number;
@@ -146,7 +147,10 @@ function LineItemChip({
   async function allocateItem(
     request: AllocationTableItem["requests"][number]
   ) {
-    if (isInteractionMode && item.allocation?.partner?.id === request.partnerId) {
+    if (
+      isInteractionMode &&
+      item.allocation?.partner?.id === request.partnerId
+    ) {
       await unallocateItem();
       return;
     }
@@ -249,20 +253,15 @@ function LineItemChip({
 
   return (
     <div className="relative">
-      <button
+      <Chip
         ref={buttonRef}
         onClick={() => {
           setIsDropdownOpen(!isDropdownOpen);
         }}
-        className={`relative rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${
+        className={
           item.allocation ? "border-blue-primary" : "border-blue-primary/60"
-        }`}
-      >
-        <span className="text-blue-primary">{item.palletNumber}</span>
-        <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
-          {item.quantity}
-        </span>
-        <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
+        }
+        popover={
           <span
             className={`block max-w-[110px] h-full truncate px-1 py-[1px] ${
               item.allocation
@@ -272,8 +271,13 @@ function LineItemChip({
           >
             {item.allocation?.partner ? item.allocation.partner.name : "None"}
           </span>
+        }
+      >
+        <span className="text-blue-primary">{item.palletNumber}</span>
+        <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
+          {item.quantity}
         </span>
-      </button>
+      </Chip>
 
       <Portal
         isOpen={isDropdownOpen}
