@@ -162,7 +162,7 @@ export default function AdminAllocateDonorOfferScreen() {
 
       if (!isValidDonorOfferId) {
         toast.error("Invalid donor offer identifier");
-        return { allocations: [] };
+        return { programs: [] };
       }
 
       return apiClient.post<SuggestionResponse>("/api/suggest/allocations", {
