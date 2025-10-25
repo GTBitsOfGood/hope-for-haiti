@@ -4,7 +4,19 @@ import { useApiClient } from "@/hooks/useApiClient";
 
 type Distribution = {
   id: number;
-  partnerName: string;
+  pending: boolean;
+  partner: {
+    name: string;
+  };
+  allocations: {
+    lineItem: {
+      generalItem: {
+        donorOffer: {
+          donorName: string;
+        };
+      };
+    };
+  }[];
 };
 
 export default function DistributionTable() {
@@ -36,7 +48,37 @@ export default function DistributionTable() {
 
   return (
     <AdvancedBaseTable
-      columns={["partnerName"]}
+      columns={[
+        {
+          id: "partnerName",
+          header: "Partner Name",
+          cell: (row) => row.partner.name,
+        },
+        "pending",
+        {
+          id: "donors",
+          header: "Donors",
+          cell: (row) => (
+            <div className="flex">
+              {Array.from(
+                new Set(
+                  row.allocations.map(
+                    (allocation) =>
+                      allocation.lineItem.generalItem.donorOffer.donorName
+                  )
+                )
+              ).map((name) => (
+                <span
+                  key={name}
+                  className="rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 border-blue-primary text-blue-primary"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          ),
+        },
+      ]}
       fetchFn={fetchTableData}
       rowId={"id"}
     />

@@ -27,6 +27,22 @@ export default class DistributionService {
 
     return db.distribution.findMany({
       where: whereClause,
+      include: {
+        partner: true,
+        allocations: {
+          include: {
+            lineItem: {
+              include: {
+                generalItem: {
+                  include: {
+                    donorOffer: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       take: pageSize,
       skip: page && pageSize ? (page - 1) * pageSize : undefined,
     });
