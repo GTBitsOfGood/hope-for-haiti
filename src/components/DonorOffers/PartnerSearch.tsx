@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X } from "@phosphor-icons/react";
 
 export type Partner = {
@@ -20,58 +20,46 @@ export const PartnerSearch = ({
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialFetchRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Debounced search function
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-
-    // Clear previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // Set new timeout for debounced search
-    searchTimeoutRef.current = setTimeout(async () => {
+  const fetchPartners = useCallback(
+    async (term?: string) => {
+      setIsSearching(true);
       try {
-        const response = await fetch(
-          `/api/partners?term=${encodeURIComponent(searchTerm)}`,
-          {
-            cache: "no-store",
-          }
-        );
-        if (response.ok) {
-          const responseData = await response.json();
+        const query = term && term.trim().length
+          ? `/api/partners?term=${encodeURIComponent(term.trim())}`
+          : "/api/partners";
 
-          // Handle the specific API response format {"partners":[...]}
-          let data: Partner[] = [];
-          if (responseData.partners && Array.isArray(responseData.partners)) {
-            data = responseData.partners;
-          } else if (Array.isArray(responseData)) {
-            data = responseData;
-          } else if (responseData.data && Array.isArray(responseData.data)) {
-            data = responseData.data;
-          }
+        const response = await fetch(query, {
+          cache: "no-store",
+        });
 
-          // Filter out already selected partners
-          const filteredData = data.filter(
-            (partner: Partner) =>
-              !selectedPartners.some((selected) => selected.id === partner.id)
-          );
-          setSearchResults(filteredData);
-
-          // Show results if we have any
-          if (filteredData.length > 0) {
-            setShowResults(true);
-          }
-        } else {
+        if (!response.ok) {
           console.error("Failed to fetch partners");
           setSearchResults([]);
+          return;
+        }
+
+        const responseData = await response.json();
+
+        let data: Partner[] = [];
+        if (responseData.partners && Array.isArray(responseData.partners)) {
+          data = responseData.partners;
+        } else if (Array.isArray(responseData)) {
+          data = responseData;
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          data = responseData.data;
+        }
+
+        const filteredData = data.filter(
+          (partner: Partner) =>
+            !selectedPartners.some((selected) => selected.id === partner.id)
+        );
+
+        setSearchResults(filteredData);
+        if (filteredData.length > 0) {
+          setShowResults(true);
         }
       } catch (error) {
         console.error("Error searching partners:", error);
@@ -79,14 +67,37 @@ export const PartnerSearch = ({
       } finally {
         setIsSearching(false);
       }
-    }, 300); // 300ms debounce
+    },
+    [selectedPartners]
+  );
+
+  // Debounced search function
+  useEffect(() => {
+    const trimmedTerm = searchTerm.trim();
+
+    if (trimmedTerm === "") {
+      if (initialFetchRef.current) {
+        fetchPartners();
+      } else {
+        setSearchResults([]);
+      }
+      return;
+    }
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchPartners(trimmedTerm);
+    }, 300);
 
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchTerm, selectedPartners]);
+  }, [searchTerm, fetchPartners]);
 
   const handleAddPartner = (partner: Partner) => {
     onPartnersChange([...selectedPartners, partner]);
@@ -102,7 +113,10 @@ export const PartnerSearch = ({
   };
 
   const handleInputFocus = () => {
-    if (searchTerm.trim() !== "") {
+    if (!initialFetchRef.current || searchTerm.trim() === "") {
+      initialFetchRef.current = true;
+      fetchPartners();
+    } else if (searchResults.length > 0) {
       setShowResults(true);
     }
   };

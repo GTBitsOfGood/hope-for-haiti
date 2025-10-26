@@ -38,10 +38,10 @@ export default function ResetPasswordChangePage() {
       }
 
       await apiClient.post("/api/reset-password/change", {
-        body: new URLSearchParams({
+        body: JSON.stringify({
           password: password as string,
           token: token,
-        }).toString(),
+        }),
       });
 
       toast.success("Password reset successfully!");

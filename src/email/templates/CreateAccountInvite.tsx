@@ -1,23 +1,21 @@
-
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
 
-
 export interface CreateAccountInviteProps {
-    userRole: string;
-    token: string;
+  userRole: string;
+  token: string;
 }
 
 export const CreateAccountInvite = ({
   userRole,
   token,
 }: CreateAccountInviteProps) => {
-    const inviteLink = `/register?token=${token}`;
+  const inviteLink = `${process.env.URL}/register?token=${token}`;
   return (
     <Html>
       <Head />
-  <Tailwind config={{ theme: tailwindConfig.theme }}>
+      <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
           <Preview>You&apos;re invited to create a {userRole} account</Preview>
           <Container className="w-[600px] mx-auto text-left">

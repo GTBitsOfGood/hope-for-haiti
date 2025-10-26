@@ -1,3 +1,4 @@
+import React from "react";
 import { Body, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
@@ -6,7 +7,8 @@ type ExpiringItem = {
   id: number;
   title: string;
   expirationDate: Date | string | null;
-  quantity: number;
+  unallocatedQuantity: number;
+  distributedQuantity: number;
 };
 
 export interface ExpiringItemsProps {
@@ -18,7 +20,7 @@ export const ExpiringItems = ({ items, month }: ExpiringItemsProps) => {
   return (
     <Html>
       <Head />
-  <Tailwind config={{ theme: tailwindConfig.theme }}>
+      <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
           <Preview>Expiring Items Report for {month}</Preview>
           <Container className="w-[600px] mx-auto text-left">
@@ -31,19 +33,19 @@ export const ExpiringItems = ({ items, month }: ExpiringItemsProps) => {
               <table className="w-full border-collapse mt-4 mb-5">
                 <thead>
                   <tr>
-                    <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">ID</td>
                     <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Title</td>
                     <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Expiration Date</td>
-                    <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Quantity</td>
+                    <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Unallocated Qty</td>
+                    <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Distributed Qty</td>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => (
                     <tr key={item.id}>
-                      <td className="p-2 border border-blue-dark text-sm">{item.id}</td>
                       <td className="p-2 border border-blue-dark text-sm">{item.title}</td>
                       <td className="p-2 border border-blue-dark text-sm">{item.expirationDate ? item.expirationDate.toString().slice(0, 10) : '-'}</td>
-                      <td className="p-2 border border-blue-dark text-sm">{item.quantity}</td>
+                      <td className="p-2 border border-blue-dark text-sm">{item.unallocatedQuantity}</td>
+                      <td className="p-2 border border-blue-dark text-sm">{item.distributedQuantity}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -65,13 +67,15 @@ ExpiringItems.PreviewProps = {
       id: 1,
       title: 'Amoxicillin',
       expirationDate: new Date('2025-09-15'),
-      quantity: 50,
+      unallocatedQuantity: 50,
+      distributedQuantity: 25,
     },
     {
       id: 999,
       title: 'Tylenol',
       expirationDate: new Date('2025-09-22'),
-      quantity: 100,
+      unallocatedQuantity: 100,
+      distributedQuantity: 10,
     },
     // Add more sample items as needed
   ],
