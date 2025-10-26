@@ -7,8 +7,20 @@ import {
   ArgumentError,
   AuthorizationError,
   errorResponse,
+  ok,
 } from "@/util/errors";
+import { $Enums } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+
+const patchParamSchema = z.object({
+  donorShippingNumber: z.string(),
+  hfhShippingNumber: z.string(),
+});
+
+const patchBodySchema = z.object({
+  status: z.nativeEnum($Enums.ShipmentStatus),
+});
 
 export async function GET(request: Request) {
   try {
@@ -44,6 +56,47 @@ export async function GET(request: Request) {
       filters
     );
     return NextResponse.json(result);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError(
+        "Must be an admin to update shipping statuses"
+      );
+    }
+
+    const params = new URL(request.url).searchParams;
+    const paramsResolved = {
+      donorShippingNumber: params.get("donorShippingNumber"),
+      hfhShippingNumber: params.get("hfhShippingNumber"),
+    };
+    const parsedParams = patchParamSchema.safeParse(paramsResolved);
+    if (!parsedParams.success) {
+      throw new ArgumentError(parsedParams.error.message);
+    }
+
+    const body = await request.json();
+    const parsedBody = patchBodySchema.safeParse(body);
+    if (!parsedBody.success) {
+      throw new ArgumentError(parsedBody.error.message);
+    }
+
+    await ShippingStatusService.updateShippingStatus({
+      donorShippingNumber: parsedParams.data.donorShippingNumber,
+      hfhShippingNumber: parsedParams.data.hfhShippingNumber,
+      value: parsedBody.data.status,
+    });
+
+    return ok();
   } catch (error) {
     return errorResponse(error);
   }
