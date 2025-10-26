@@ -25,27 +25,32 @@ export default class DistributionService {
       filters
     );
 
-    const distributions = await db.distribution.findMany({
-      where: whereClause,
-      include: {
-        partner: true,
-        allocations: {
-          include: {
-            lineItem: {
-              include: {
-                generalItem: {
-                  include: {
-                    donorOffer: true,
+    const [distributions, totalCount] = await Promise.all([
+      db.distribution.findMany({
+        where: whereClause,
+        include: {
+          partner: true,
+          allocations: {
+            include: {
+              lineItem: {
+                include: {
+                  generalItem: {
+                    include: {
+                      donorOffer: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-      take: pageSize,
-      skip: page && pageSize ? (page - 1) * pageSize : undefined,
-    });
+        take: pageSize,
+        skip: page && pageSize ? (page - 1) * pageSize : undefined,
+      }),
+      db.distribution.count({
+        where: whereClause,
+      }),
+    ]);
 
     // I tried doing the below with SQL, to no avail. No luck with Prisma either. There's no complex analytics here, so it should be fine.
 
@@ -112,7 +117,10 @@ export default class DistributionService {
       };
     });
 
-    return distributionsWithGroupedItems;
+    return {
+      data: distributionsWithGroupedItems,
+      total: totalCount,
+    };
   }
 
   static async getDistributionsForDonorOffer(donorOfferId: number): Promise<

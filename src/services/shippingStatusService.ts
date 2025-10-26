@@ -13,17 +13,20 @@ export class ShippingStatusService {
     page?: number,
     pageSize?: number,
     filters?: Filters
-  ): Promise<Shipment[]> {
+  ): Promise<{ data: Shipment[]; total: number }> {
     const where = buildWhereFromFilters<Prisma.ShippingStatusWhereInput>(
       Object.keys(Prisma.ShippingStatusScalarFieldEnum),
       filters
     );
 
-    const statuses = await db.shippingStatus.findMany({
-      where,
-      skip: page && pageSize ? (page - 1) * pageSize : undefined,
-      take: pageSize,
-    });
+    const [statuses, totalCount] = await Promise.all([
+      db.shippingStatus.findMany({
+        where,
+        skip: page && pageSize ? (page - 1) * pageSize : undefined,
+        take: pageSize,
+      }),
+      db.shippingStatus.count({ where }),
+    ]);
 
     const lineItems = await db.lineItem.findMany({
       where: {
@@ -88,7 +91,10 @@ export class ShippingStatusService {
       }
     }
 
-    return shipments;
+    return {
+      data: shipments,
+      total: totalCount,
+    };
   }
 
   static async getShippingStatuses(

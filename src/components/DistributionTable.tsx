@@ -55,14 +55,14 @@ export default function DistributionTable() {
         pageSize: pageSize.toString(),
         filters: JSON.stringify(filters),
       });
-      const res = await apiClient.get<Distribution[]>(
+      const res = await apiClient.get<{ data: Distribution[]; total: number }>(
         `/api/distributions?${searchParams.toString()}`
       );
 
-      setDistributions(res);
+      setDistributions(res.data);
       return {
-        data: res,
-        total: res.length,
+        data: res.data,
+        total: res.total,
       };
     },
     [apiClient]

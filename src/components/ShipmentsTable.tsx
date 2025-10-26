@@ -24,13 +24,13 @@ export default function ShipmentsTable() {
         pageSize: pageSize.toString(),
         filters: JSON.stringify(filters),
       });
-      const res = await apiClient.get<Shipment[]>(
+      const res = await apiClient.get<{ data: Shipment[]; total: number }>(
         `/api/shipments?${searchParams.toString()}`
       );
 
       return {
-        data: res,
-        total: res.length,
+        data: res.data,
+        total: res.total,
       };
     },
     [apiClient]
