@@ -21,7 +21,6 @@ import ResetPassword, { ResetPasswordProps } from "./templates/ResetPassword";
 const apiKey = process.env.SENDGRID_API_KEY as string;
 const fromEmail = process.env.SENDGRID_SENDER as string;
 
-
 if (apiKey) SendGrid.setApiKey(apiKey);
 
 // If in dev environment with no API key, we'll open emails locally
