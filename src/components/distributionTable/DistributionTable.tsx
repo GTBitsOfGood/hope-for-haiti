@@ -1,4 +1,7 @@
-import AdvancedBaseTable, { FilterList } from "../baseTable/AdvancedBaseTable";
+import AdvancedBaseTable, {
+  AdvancedBaseTableHandle,
+  FilterList,
+} from "../baseTable/AdvancedBaseTable";
 import { useCallback, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import Portal from "../baseTable/Portal";
@@ -38,6 +41,8 @@ export default function DistributionTable() {
   const { apiClient } = useApiClient();
   const [distributions, setDistributions] = useState<Distribution[]>([]);
 
+  const tableRef = useRef<AdvancedBaseTableHandle<Distribution>>(null);
+
   const fetchTableData = useCallback(
     async (
       pageSize: number,
@@ -64,6 +69,7 @@ export default function DistributionTable() {
 
   return (
     <AdvancedBaseTable
+      ref={tableRef}
       columns={[
         {
           id: "partnerName",
@@ -108,6 +114,7 @@ export default function DistributionTable() {
             (d) => d.id !== distribution.id
           )}
           allocations={distribution.allocations}
+          fetchTableData={tableRef.current?.reload ?? (() => {})}
         />
       )}
     />
@@ -170,10 +177,12 @@ function GeneralItemChipList({
   generalItems,
   otherDistributions,
   allocations,
+  fetchTableData,
 }: {
   generalItems: Distribution["generalItems"];
   otherDistributions: Distribution[];
   allocations: Allocation[];
+  fetchTableData: () => void;
 }) {
   return (
     <div className="w-full bg-sunken flex flex-wrap p-2">
@@ -188,6 +197,7 @@ function GeneralItemChipList({
           generalItem={item}
           otherDistributions={otherDistributions}
           allocations={allocations}
+          fetchTableData={fetchTableData}
         />
       ))}
     </div>
@@ -198,10 +208,12 @@ function GeneralItemChip({
   generalItem,
   otherDistributions,
   allocations,
+  fetchTableData,
 }: {
   generalItem: Distribution["generalItems"][number];
   otherDistributions: Distribution[];
   allocations: Allocation[];
+  fetchTableData: () => void;
 }) {
   const [selectedDistribution, setSelectedDistribution] = useState<number>();
   const [selectedLineItems, setSelectedLineItems] = useState<number[]>([]);
@@ -252,6 +264,8 @@ function GeneralItemChip({
 
     setSelectedDistribution(undefined);
     setSelectedLineItems([]);
+
+    fetchTableData();
   }
 
   return (
