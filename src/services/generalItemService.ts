@@ -115,9 +115,7 @@ export class GeneralItemService {
     };
   }
 
-  static async getExpiringItems(window: Date) {
-    const cutoff = new Date(new Date().getTime() + window.getTime());
-
+  static async getExpiringItems(cutoff: Date) {
     const generalItems = await db.generalItem.findMany({
       where: {
         expirationDate: {
