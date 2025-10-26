@@ -76,7 +76,17 @@ export default function DistributionTable() {
           header: "Partner Name",
           cell: (row) => row.partner.name,
         },
-        "pending",
+        {
+          id: "pending",
+          header: "Status",
+          cell: (row) => (
+            <span
+              className={`px-3 py-1 rounded ${row.pending ? "bg-yellow-primary/60 text-orange-primary" : "bg-green-primary/60 text-green-dark"}`}
+            >
+              {row.pending ? "Pending" : "Approved"}
+            </span>
+          ),
+        },
         {
           id: "donors",
           header: "Donors",
