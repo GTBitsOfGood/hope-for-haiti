@@ -1,4 +1,9 @@
-import { LineItem, ShippingStatus, ShipmentStatus } from "@prisma/client";
+import {
+  LineItem,
+  ShippingStatus,
+  ShipmentStatus,
+  $Enums,
+} from "@prisma/client";
 
 export interface ShippingStatusWithItems {
   shippingStatuses: ShippingStatus[];
@@ -19,7 +24,7 @@ export type Shipment = {
   /**
    * Status
    */
-  value: string;
+  value: $Enums.ShipmentStatus;
   generalItems: {
     id: number;
     partner: {
