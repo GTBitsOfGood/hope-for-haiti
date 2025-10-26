@@ -8,6 +8,7 @@ import Portal from "../baseTable/Portal";
 import toast from "react-hot-toast";
 import Chip from "../Chip";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
+import { CheckCircle } from "@phosphor-icons/react";
 
 type Allocation = {
   id: number;
@@ -112,7 +113,12 @@ export default function DistributionTable() {
         {
           id: "options",
           header: "",
-          cell: (distribution) => <OptionsButton distribution={distribution} />,
+          cell: (distribution) => (
+            <OptionsButton
+              distribution={distribution}
+              fetchTableData={tableRef.current!.reload}
+            />
+          ),
         },
       ]}
       fetchFn={fetchTableData}
@@ -124,14 +130,20 @@ export default function DistributionTable() {
             (d) => d.id !== distribution.id
           )}
           allocations={distribution.allocations}
-          fetchTableData={tableRef.current?.reload ?? (() => {})}
+          fetchTableData={tableRef.current!.reload}
         />
       )}
     />
   );
 }
 
-function OptionsButton({ distribution }: { distribution: Distribution }) {
+function OptionsButton({
+  distribution,
+  fetchTableData,
+}: {
+  distribution: Distribution;
+  fetchTableData: () => void;
+}) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -154,6 +166,7 @@ function OptionsButton({ distribution }: { distribution: Distribution }) {
     await promise;
 
     setIsDropdownOpen(false);
+    fetchTableData();
   }
 
   return (
@@ -174,9 +187,10 @@ function OptionsButton({ distribution }: { distribution: Distribution }) {
       >
         <button
           onClick={approveDistribution}
-          className="border border-gray-primary px-2 py-1 rounded hover:bg-gray-100"
+          className="px-2 py-1 rounded hover:bg-gray-100 flex items-center gap-1"
         >
-          Approve
+          <CheckCircle size={16} />
+          <p>Approve</p>
         </button>
       </Portal>
     </div>
