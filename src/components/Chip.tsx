@@ -30,7 +30,8 @@ export default function Chip({
       <button
         ref={buttonRef}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className={`relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
+        disabled={!popover}
+        className={`relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow ${className}`}
       >
         <span className="text-blue-primary">{title}</span>
         {amount && (
