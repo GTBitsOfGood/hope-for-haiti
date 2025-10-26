@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import DistributionTable from "@/components/distributionTable/DistributionTable";
+import DistributionTable from "@/components/DistributionTable";
+import ShipmentsTable from "@/components/ShipmentsTable";
 
 // Define the tab options
 enum DistributionTab {
@@ -56,6 +57,7 @@ export default function AdminDistributionsScreen() {
       </div>
 
       {activeTab === DistributionTab.DISTRIBUTIONS && <DistributionTable />}
+      {activeTab === DistributionTab.SHIPMENTS && <ShipmentsTable />}
     </>
   );
 }

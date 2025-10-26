@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       throw new AuthorizationError("You are not allowed to view this");
     }
 
-    const result = await ShippingStatusService.getShippingStatuses(
+    const result = await ShippingStatusService.getShipments(
       page,
       pageSize,
       filters

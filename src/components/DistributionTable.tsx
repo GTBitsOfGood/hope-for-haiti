@@ -1,12 +1,12 @@
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
-} from "../baseTable/AdvancedBaseTable";
+} from "./baseTable/AdvancedBaseTable";
 import { useCallback, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
-import Portal from "../baseTable/Portal";
+import Portal from "./baseTable/Portal";
 import toast from "react-hot-toast";
-import Chip from "../Chip";
+import Chip from "./Chip";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { CheckCircle, DotsThreeVertical } from "@phosphor-icons/react";
 

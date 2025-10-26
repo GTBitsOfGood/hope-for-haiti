@@ -8,6 +8,42 @@ import { Filters, FilterValue } from "@/types/api/filter.types";
 import { buildWhereFromFilters } from "@/util/table";
 
 export class ShippingStatusService {
+  static async getShipments(
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
+  ) {
+    const where = buildWhereFromFilters<Prisma.ShippingStatusWhereInput>(
+      Object.keys(Prisma.ShippingStatusScalarFieldEnum),
+      filters
+    );
+
+    const statuses = await db.shippingStatus.findMany({
+      where,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
+      take: pageSize,
+    });
+
+    // const lineItems = await db.$queryRaw`
+    //   SELECT *
+    //   FROM "LineItem"
+
+    //   JOIN "Allocation" ON "LineItem".id = "Allocation"."lineItemId"
+    //   JOIN "User" ON "Allocation"."partnerId" = "User".id
+    //   JOIN "GeneralItem" ON "LineItem"."generalItemId" = "GeneralItem".id
+
+    //   WHERE "donorShippingNumber" IN (${Prisma.join(statuses.map((s) => s.donorShippingNumber))})
+    //      OR "hfhShippingNumber" IN (${Prisma.join(statuses.map((s) => s.hfhShippingNumber))})
+
+    //   GROUP BY "User".id, "GeneralItem".id
+    // `;
+
+    // console.log(statuses);
+    // console.log(lineItems);
+
+    return statuses;
+  }
+
   static async getShippingStatuses(
     page?: number,
     pageSize?: number,
