@@ -9,16 +9,18 @@ import { buildWhereFromFilters } from "@/util/table";
 
 export class ShippingStatusService {
   static async getShippingStatuses(
-    filters?: Filters,
     page?: number,
-    pageSize?: number
+    pageSize?: number,
+    filters?: Filters
   ): Promise<ShippingStatusWithItems> {
-    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
+    const { lineItemFilters, statusFilters } =
+      this.splitShippingFilters(filters);
 
-    const lineItemWhereFilters = buildWhereFromFilters<Prisma.LineItemWhereInput>(
-      Object.keys(Prisma.LineItemScalarFieldEnum),
-      lineItemFilters
-    );
+    const lineItemWhereFilters =
+      buildWhereFromFilters<Prisma.LineItemWhereInput>(
+        Object.keys(Prisma.LineItemScalarFieldEnum),
+        lineItemFilters
+      );
 
     const clauses: Prisma.LineItemWhereInput[] = [
       {
@@ -45,12 +47,14 @@ export class ShippingStatusService {
     page?: number,
     pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
+    const { lineItemFilters, statusFilters } =
+      this.splitShippingFilters(filters);
 
-    const lineItemWhereFilters = buildWhereFromFilters<Prisma.LineItemWhereInput>(
-      Object.keys(Prisma.LineItemScalarFieldEnum),
-      lineItemFilters
-    );
+    const lineItemWhereFilters =
+      buildWhereFromFilters<Prisma.LineItemWhereInput>(
+        Object.keys(Prisma.LineItemScalarFieldEnum),
+        lineItemFilters
+      );
 
     const clauses: Prisma.LineItemWhereInput[] = [
       {
@@ -116,7 +120,10 @@ export class ShippingStatusService {
     };
   }
 
-  private static matchesFilterValue(value: unknown, filter: FilterValue): boolean {
+  private static matchesFilterValue(
+    value: unknown,
+    filter: FilterValue
+  ): boolean {
     if (value === null || value === undefined) {
       return false;
     }
