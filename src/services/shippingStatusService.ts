@@ -76,7 +76,7 @@ export class ShippingStatusService {
 
       if (!generalItem) {
         shipment.generalItems.push({
-          id: lineItem.generalItemId!,
+          ...lineItem.generalItem!,
           partner: {
             id: lineItem.allocation.partner.id,
             name: lineItem.allocation.partner.name,

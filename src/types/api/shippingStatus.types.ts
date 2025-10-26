@@ -27,6 +27,7 @@ export type Shipment = {
   value: $Enums.ShipmentStatus;
   generalItems: {
     id: number;
+    title: string;
     partner: {
       id: number;
       name: string;
