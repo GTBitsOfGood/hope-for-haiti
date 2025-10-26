@@ -6,9 +6,9 @@ import { exec } from "child_process";
 import CreateAccountInvite, {
   CreateAccountInviteProps,
 } from "./templates/CreateAccountInvite";
-import ItemsVisibleNotification, {
-  ItemsVisibleNotificationProps,
-} from "./templates/ItemsVisibleNotification";
+import NewDistribution, {
+  NewDistributionProps,
+} from "./templates/NewDistribution";
 import DonorOfferCreated, {
   DonorOfferCreatedProps,
 } from "./templates/DonorOfferCreated";
@@ -112,12 +112,12 @@ export class EmailClient {
     return sendEmail(to, `Items Expiring in ${props.month}`, html);
   }
 
-  static async sendItemsVisible(
+  static async sendNewDistribution(
     to: string,
-    props: ItemsVisibleNotificationProps
+    props: NewDistributionProps
   ) {
-    const html = await render(ItemsVisibleNotification(props));
-    return sendEmail(to, "New Items Visible", html);
+    const html = await render(NewDistribution(props));
+    return sendEmail(to, "New Distribution", html);
   }
 
   static async sendDonorOfferCreated(
