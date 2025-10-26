@@ -1,7 +1,6 @@
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
-import type { GeneralItem } from '@prisma/client';
 
 export interface DonorOfferCreatedProps {
   partnerName?: string;
@@ -10,12 +9,6 @@ export interface DonorOfferCreatedProps {
   partnerResponseDeadline: string | Date;
   donorResponseDeadline: string | Date;
   offerUrl: string; // link for the partner to view the donor offer details
-  items: Array<
-    Pick<
-      GeneralItem,
-      'title' | 'description' | 'expirationDate' | 'unitType' | 'initialQuantity' | 'requestQuantity'
-    >
-  >;
 }
 
 const formatDate = (d: string | Date | null | undefined) => {
@@ -32,13 +25,12 @@ export const DonorOfferCreated = ({
   partnerResponseDeadline,
   donorResponseDeadline,
   offerUrl,
-  items,
 }: DonorOfferCreatedProps) => {
   const previewText = `New donor offer: ${offerName} (respond by ${formatDate(partnerResponseDeadline)})`;
   return (
     <Html>
       <Head />
-  <Tailwind config={{ theme: tailwindConfig.theme }}>
+        <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
           <Preview>{previewText}</Preview>
           <Container className="w-[600px] mx-auto text-left">
@@ -66,43 +58,9 @@ export const DonorOfferCreated = ({
                     <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Donor Response Deadline</td>
                     <td className="p-2 border border-blue-dark text-sm">{formatDate(donorResponseDeadline)}</td>
                 </tr>
-                <tr>
-                    <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Status</td>
-                    <td className="p-2 border border-blue-dark text-sm">Unfinalized</td>
-                </tr>
               </tbody>
               </table>
 
-            {/* Items summary */}
-            {items && items.length > 0 && (
-              <>
-                <Text className="text-base font-light text-gray-primary leading-[26px] mt-2">Included items:</Text>
-                <table className="w-full border-collapse mt-4 mb-5">
-                  <thead>
-                    <tr>
-                      <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Title</td>
-                      <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Type</td>
-                      <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Qty</td>
-                      <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Unit</td>
-                      <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Qty/Unit</td>
-                      <td className="p-2 border border-blue-dark font-semibold text-sm bg-blue-light">Expiration</td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((it, idx) => (
-                      <tr key={`${it.title}-${idx}`}>
-                        <td className="p-2 border border-blue-dark text-sm">{it.title}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{it.description}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{it.initialQuantity}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{it.unitType}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{it.initialQuantity}</td>
-                        <td className="p-2 border border-blue-dark text-sm">{formatDate(it.expirationDate as unknown as string | Date | null)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
             <Button href={offerUrl} className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3">View Donor Offer</Button>
             <Text className="text-[13px] text-[#555] mt-3">
               Please submit your requests before the deadline. If you have questions, contact yvette@hopeforhaiti.com.
@@ -123,24 +81,6 @@ DonorOfferCreated.PreviewProps = {
   partnerResponseDeadline: '2026-03-31',
   donorResponseDeadline: '2026-04-15',
   offerUrl: '/donorOffers',
-  items: [
-    {
-      title: 'Acetaminophen 500mg',
-      description: 'Medication',
-      unitType: 'Bottle',
-      initialQuantity: 200,
-      requestQuantity: null,
-      expirationDate: '2026-10-01',
-    },
-    {
-      title: 'Surgical Gloves (M)',
-      description: 'Surgical Gloves (M)',
-      unitType: 'Box',
-      initialQuantity: 150,
-      requestQuantity: null,
-      expirationDate: null,
-    },
-  ],
 } as DonorOfferCreatedProps;
 
 export default DonorOfferCreated;

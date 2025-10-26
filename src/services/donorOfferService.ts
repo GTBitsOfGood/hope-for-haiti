@@ -29,6 +29,7 @@ import {
 } from "@/types/api/donorOffer.types";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import { EmailClient } from "@/email";
 
 const DonorOfferItemSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -452,22 +453,21 @@ export default class DonorOfferService {
       .map((id) => parseInt(id, 10))
       .filter((id) => !isNaN(id));
 
-    if (partnerIds.length > 0) {
-      const partners = await db.user.findMany({
-        where: {
-          id: {
-            in: partnerIds,
-          },
-          type: UserType.PARTNER,
+    const partners = partnerIds.length > 0 ? await db.user.findMany({
+      where: {
+        id: {
+          in: partnerIds,
         },
-        select: {
-          id: true,
-        },
-      });
+        type: UserType.PARTNER,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    }) : [];
 
-      if (partners.length !== partnerIds.length) {
-        throw new ArgumentError("One or more partner IDs are invalid");
-      }
+    if (partners.length !== partnerIds.length) {
+      throw new ArgumentError("One or more partner IDs are invalid");
     }
 
     if (
@@ -536,11 +536,11 @@ export default class DonorOfferService {
       };
     }
 
-    await db.$transaction(async (tx) => {
-      const donorOffer = await tx.donorOffer.create({
-        data: donorOfferData,
-      });
+    const donorOffer = await db.donorOffer.create({
+      data: donorOfferData,
+    });
 
+    await db.$transaction(async (tx) => {
       const normalizedItems =
         DonorOfferService.toGeneralItemCreateInputs(
           validDonorOfferItems,
@@ -553,6 +553,14 @@ export default class DonorOfferService {
       if (aggregatedItems.length > 0) {
         await tx.generalItem.createMany({ data: aggregatedItems });
       }
+    });
+
+    EmailClient.sendDonorOfferCreated(partners.map(p => p.email), {
+      offerName,
+      donorName,
+      partnerResponseDeadline: donorOfferData.partnerResponseDeadline,
+      donorResponseDeadline: donorOfferData.donorResponseDeadline,
+      offerUrl: `${process.env.URL}/donorOffers/${donorOffer.id}`
     });
 
     return { success: true };
