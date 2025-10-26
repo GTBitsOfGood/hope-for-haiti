@@ -6,12 +6,19 @@ import toast from "react-hot-toast";
 import Chip from "../Chip";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 
+type Allocation = {
+  id: number;
+  lineItemId: number;
+};
+
 type Distribution = {
   id: number;
   pending: boolean;
   partner: {
+    id: number;
     name: string;
   };
+  allocations: Allocation[];
   generalItems: {
     id: number;
     title: string;
@@ -97,7 +104,10 @@ export default function DistributionTable() {
       rowBody={(distribution) => (
         <GeneralItemChipList
           generalItems={distribution.generalItems}
-          distributions={distributions}
+          otherDistributions={distributions.filter(
+            (d) => d.id !== distribution.id
+          )}
+          allocations={distribution.allocations}
         />
       )}
     />
@@ -158,10 +168,12 @@ function OptionsButton({ distribution }: { distribution: Distribution }) {
 
 function GeneralItemChipList({
   generalItems,
-  distributions,
+  otherDistributions,
+  allocations,
 }: {
   generalItems: Distribution["generalItems"];
-  distributions: Distribution[];
+  otherDistributions: Distribution[];
+  allocations: Allocation[];
 }) {
   return (
     <div className="w-full bg-sunken flex flex-wrap p-2">
@@ -174,7 +186,8 @@ function GeneralItemChipList({
         <GeneralItemChip
           key={item.id}
           generalItem={item}
-          distributions={distributions}
+          otherDistributions={otherDistributions}
+          allocations={allocations}
         />
       ))}
     </div>
@@ -183,11 +196,64 @@ function GeneralItemChipList({
 
 function GeneralItemChip({
   generalItem,
-  distributions,
+  otherDistributions,
+  allocations,
 }: {
   generalItem: Distribution["generalItems"][number];
-  distributions: Distribution[];
+  otherDistributions: Distribution[];
+  allocations: Allocation[];
 }) {
+  const [selectedDistribution, setSelectedDistribution] = useState<number>();
+  const [selectedLineItems, setSelectedLineItems] = useState<number[]>([]);
+
+  const { apiClient } = useApiClient();
+
+  function lineItemLabel(
+    lineItem: Distribution["generalItems"][number]["lineItems"][number]
+  ) {
+    return `${generalItem.title} x${lineItem.quantity}`;
+  }
+
+  async function transferLineItems() {
+    if (!selectedDistribution || selectedLineItems.length === 0) {
+      return;
+    }
+
+    const allocationIds = allocations
+      .filter((allocation) => selectedLineItems.includes(allocation.lineItemId))
+      .map((allocation) => allocation.id);
+
+    const distribution = otherDistributions.find(
+      (d) => d.id === selectedDistribution
+    );
+
+    if (!distribution) {
+      return;
+    }
+
+    const promise = apiClient.patch(
+      `/api/distributions/${distribution.id}/allocations/batch`,
+      {
+        body: JSON.stringify({
+          allocations: allocationIds.map((id) => ({ id })),
+          distributionId: selectedDistribution,
+          partnerId: distribution.partner.id,
+        }),
+      }
+    );
+
+    toast.promise(promise, {
+      loading: "Transferring line items...",
+      success: "Line items transferred!",
+      error: "Failed to transfer line items.",
+    });
+
+    await promise;
+
+    setSelectedDistribution(undefined);
+    setSelectedLineItems([]);
+  }
+
   return (
     <Chip
       title={generalItem.title}
@@ -200,13 +266,54 @@ function GeneralItemChip({
             Select Distribution
           </p>
           <ConfiguredSelect
-            options={distributions.map((distribution) => ({
+            value={
+              selectedDistribution
+                ? {
+                    value: selectedDistribution,
+                    label:
+                      otherDistributions.find(
+                        (d) => d.id === selectedDistribution
+                      )?.partner.name || "",
+                  }
+                : undefined
+            }
+            onChange={(newVal) => setSelectedDistribution(newVal?.value)}
+            options={otherDistributions.map((distribution) => ({
               value: distribution.id,
               label: distribution.partner.name,
             }))}
             isClearable
             placeholder="Choose distribution..."
           />
+          <p className="text-sm text-gray-primary font-normal">
+            Select Line Items
+          </p>
+          <ConfiguredSelect
+            value={selectedLineItems.map((id) => ({
+              value: id,
+              label: lineItemLabel(
+                generalItem.lineItems.find((li) => li.id === id)!
+              ),
+            }))}
+            onChange={(newVal) =>
+              setSelectedLineItems(newVal.map((item) => item.value))
+            }
+            options={generalItem.lineItems.map((lineItem) => ({
+              value: lineItem.id,
+              label: lineItemLabel(lineItem),
+            }))}
+            isClearable
+            isMulti
+            placeholder="Choose line items..."
+          />
+          <div className="w-full flex justify-end">
+            <button
+              onClick={transferLineItems}
+              className="rounded bg-blue-primary text-white px-3 py-1"
+            >
+              Transfer
+            </button>
+          </div>
         </div>
       }
     />
