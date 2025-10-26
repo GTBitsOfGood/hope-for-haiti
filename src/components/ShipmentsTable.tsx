@@ -59,9 +59,12 @@ export default function ShipmentsTable() {
           id: "partners",
           header: "Partners",
           cell: (shipment) =>
-            shipment.generalItems
-              .map((item) => item.partner)
-              .map((partner) => <Chip key={partner.id} title={partner.name} />),
+            shipment.generalItems.map((item) => (
+              <Chip
+                key={`${item.id}-${item.partner.id}`}
+                title={item.partner.name}
+              />
+            )),
         },
         {
           id: "manage",
@@ -243,7 +246,7 @@ function GeneralItemChipGroup({
       )}
       {generalItems.map((item) => (
         <Chip
-          key={item.id}
+          key={`${item.id}-${item.partner.id}`}
           title={item.title}
           label={item.partner.name}
           revisedAmount={item.lineItems.reduce(
