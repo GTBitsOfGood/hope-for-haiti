@@ -4,16 +4,7 @@ import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
 } from "./baseTable/AdvancedBaseTable";
-
-type Shipment = {
-  id: number;
-  donorShippingNumber: string;
-  hfhShippingNumber: string;
-  /**
-   * Status
-   */
-  value: string;
-};
+import { Shipment } from "@/types/api/shippingStatus.types";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();

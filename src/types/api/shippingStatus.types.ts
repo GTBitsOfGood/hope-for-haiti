@@ -11,3 +11,23 @@ export interface UpdateShippingStatusData {
   hfhShippingNumber: string;
   value: ShipmentStatus;
 }
+
+export type Shipment = {
+  id: number;
+  donorShippingNumber: string;
+  hfhShippingNumber: string;
+  /**
+   * Status
+   */
+  value: string;
+  generalItems: {
+    id: number;
+    partner: {
+      id: number;
+      name: string;
+    };
+    lineItems: {
+      quantity: number;
+    }[];
+  }[];
+};

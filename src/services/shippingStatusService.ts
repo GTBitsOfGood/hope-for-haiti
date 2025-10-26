@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { LineItem, Prisma, ShippingStatus } from "@prisma/client";
 import {
+  Shipment,
   ShippingStatusWithItems,
   UpdateShippingStatusData,
 } from "@/types/api/shippingStatus.types";
@@ -12,7 +13,7 @@ export class ShippingStatusService {
     page?: number,
     pageSize?: number,
     filters?: Filters
-  ) {
+  ): Promise<Shipment[]> {
     const where = buildWhereFromFilters<Prisma.ShippingStatusWhereInput>(
       Object.keys(Prisma.ShippingStatusScalarFieldEnum),
       filters
@@ -24,24 +25,70 @@ export class ShippingStatusService {
       take: pageSize,
     });
 
-    // const lineItems = await db.$queryRaw`
-    //   SELECT *
-    //   FROM "LineItem"
+    const lineItems = await db.lineItem.findMany({
+      where: {
+        OR: [
+          {
+            donorShippingNumber: {
+              in: statuses.map((s) => s.donorShippingNumber),
+            },
+          },
+          {
+            hfhShippingNumber: { in: statuses.map((s) => s.hfhShippingNumber) },
+          },
+        ],
+      },
+      include: {
+        generalItem: true,
+        allocation: {
+          include: {
+            partner: true,
+          },
+        },
+      },
+    });
 
-    //   JOIN "Allocation" ON "LineItem".id = "Allocation"."lineItemId"
-    //   JOIN "User" ON "Allocation"."partnerId" = "User".id
-    //   JOIN "GeneralItem" ON "LineItem"."generalItemId" = "GeneralItem".id
+    const shipments: Shipment[] = statuses.map((status) => ({
+      ...status,
+      generalItems: [],
+    }));
 
-    //   WHERE "donorShippingNumber" IN (${Prisma.join(statuses.map((s) => s.donorShippingNumber))})
-    //      OR "hfhShippingNumber" IN (${Prisma.join(statuses.map((s) => s.hfhShippingNumber))})
+    for (const lineItem of lineItems) {
+      if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
+        continue;
+      }
 
-    //   GROUP BY "User".id, "GeneralItem".id
-    // `;
+      const shipment = shipments.find(
+        (s) =>
+          s.donorShippingNumber === lineItem.donorShippingNumber ||
+          s.hfhShippingNumber === lineItem.hfhShippingNumber
+      );
 
-    // console.log(statuses);
-    // console.log(lineItems);
+      if (!shipment) {
+        continue;
+      }
 
-    return statuses;
+      const generalItem = shipment.generalItems.find(
+        (gi) =>
+          gi.id == lineItem.generalItemId &&
+          gi.partner.id === lineItem.allocation!.partner!.id
+      );
+
+      if (!generalItem) {
+        shipment.generalItems.push({
+          id: lineItem.generalItemId!,
+          partner: {
+            id: lineItem.allocation.partner.id,
+            name: lineItem.allocation.partner.name,
+          },
+          lineItems: [lineItem],
+        });
+      } else {
+        generalItem.lineItems.push(lineItem);
+      }
+    }
+
+    return shipments;
   }
 
   static async getShippingStatuses(
