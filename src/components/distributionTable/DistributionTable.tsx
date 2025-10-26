@@ -3,6 +3,8 @@ import { useCallback, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import Portal from "../baseTable/Portal";
 import toast from "react-hot-toast";
+import Chip from "../Chip";
+import ConfiguredSelect from "@/components/ConfiguredSelect";
 
 type Distribution = {
   id: number;
@@ -11,6 +13,8 @@ type Distribution = {
     name: string;
   };
   generalItems: {
+    id: number;
+    title: string;
     donorOffer: {
       donorName: string;
     };
@@ -25,6 +29,7 @@ type Distribution = {
 
 export default function DistributionTable() {
   const { apiClient } = useApiClient();
+  const [distributions, setDistributions] = useState<Distribution[]>([]);
 
   const fetchTableData = useCallback(
     async (
@@ -41,7 +46,7 @@ export default function DistributionTable() {
         `/api/distributions?${searchParams.toString()}`
       );
 
-      console.log(res);
+      setDistributions(res);
       return {
         data: res,
         total: res.length,
@@ -90,7 +95,10 @@ export default function DistributionTable() {
       fetchFn={fetchTableData}
       rowId={"id"}
       rowBody={(distribution) => (
-        <GeneralItemChipList generalItems={distribution.generalItems} />
+        <GeneralItemChipList
+          generalItems={distribution.generalItems}
+          distributions={distributions}
+        />
       )}
     />
   );
@@ -148,12 +156,59 @@ function OptionsButton({ distribution }: { distribution: Distribution }) {
   );
 }
 
-function GeneralItemChipList(
-  {
-    // generalItems,
-  }: {
-    generalItems: Distribution["generalItems"];
-  }
-) {
-  return <div></div>;
+function GeneralItemChipList({
+  generalItems,
+  distributions,
+}: {
+  generalItems: Distribution["generalItems"];
+  distributions: Distribution[];
+}) {
+  return (
+    <div className="w-full bg-sunken flex flex-wrap p-2">
+      {generalItems.length === 0 && (
+        <p className="w-full text-center text-gray-primary">
+          No general items.
+        </p>
+      )}
+      {generalItems.map((item) => (
+        <GeneralItemChip
+          key={item.id}
+          generalItem={item}
+          distributions={distributions}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GeneralItemChip({
+  generalItem,
+  distributions,
+}: {
+  generalItem: Distribution["generalItems"][number];
+  distributions: Distribution[];
+}) {
+  return (
+    <Chip
+      title={generalItem.title}
+      popover={
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-primary font-bold mb-1">
+            Allocate to Partner
+          </p>
+          <p className="text-sm text-gray-primary font-normal">
+            Select Distribution
+          </p>
+          <ConfiguredSelect
+            options={distributions.map((distribution) => ({
+              value: distribution.id,
+              label: distribution.partner.name,
+            }))}
+            isClearable
+            placeholder="Choose distribution..."
+          />
+        </div>
+      }
+    />
+  );
 }

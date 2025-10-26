@@ -240,15 +240,13 @@ function LineItemChip({
   return (
     <div className="relative">
       <Chip
-        className={
-          item.allocation ? "border-blue-primary" : "border-blue-primary/60"
-        }
+        className={item.allocation ? "" : "border-blue-primary/60"}
         title={item.palletNumber ?? "Unknown Pallet"}
         revisedAmount={item.quantity}
         showLabel={true}
         label={item.allocation?.partner?.name}
         popover={
-          <>
+          <div className="text-sm font-bold">
             <p className="text-gray-500 mb-1">Allocate to Partner</p>
             <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
               {item.allocation && (
@@ -272,7 +270,7 @@ function LineItemChip({
                 </button>
               ))}
             </div>
-          </>
+          </div>
         }
       />
     </div>

@@ -30,7 +30,7 @@ export default function Chip({
       <button
         ref={buttonRef}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className={`relative rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
+        className={`relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
       >
         <span className="text-blue-primary">{title}</span>
         {amount && (
@@ -61,7 +61,7 @@ export default function Chip({
           onClose={() => setIsDropdownOpen(false)}
           triggerRef={buttonRef}
           position="bottom-left"
-          className="w-80 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold"
+          className="w-80 bg-white border border-gray-primary/20 rounded shadow-lg p-2"
         >
           {popover}
         </Portal>
