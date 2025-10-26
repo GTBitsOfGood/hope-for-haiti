@@ -8,7 +8,7 @@ import Portal from "../baseTable/Portal";
 import toast from "react-hot-toast";
 import Chip from "../Chip";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
-import { CheckCircle } from "@phosphor-icons/react";
+import { CheckCircle, DotsThreeVertical } from "@phosphor-icons/react";
 
 type Allocation = {
   id: number;
@@ -111,7 +111,7 @@ export default function DistributionTable() {
           ),
         },
         {
-          id: "options",
+          id: "Manage",
           header: "",
           cell: (distribution) => (
             <OptionsButton
@@ -174,9 +174,9 @@ function OptionsButton({
       <button
         ref={buttonRef}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="border border-gray-primary px-2 py-1 rounded hover:bg-gray-100"
+        className="px-2 py-1 rounded hover:bg-gray-100"
       >
-        Options
+        <DotsThreeVertical size={16} />
       </button>
       <Portal
         isOpen={isDropdownOpen}
