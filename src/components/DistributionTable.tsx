@@ -127,7 +127,7 @@ export default function DistributionTable() {
         <GeneralItemChipList
           generalItems={distribution.generalItems}
           otherDistributions={distributions.filter(
-            (d) => d.id !== distribution.id
+            (d) => d.id !== distribution.id && d.pending
           )}
           allocations={distribution.allocations}
           fetchTableData={tableRef.current!.reload}
