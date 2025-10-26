@@ -11,8 +11,9 @@ export default function ResetPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
   const handleSubmit = submitHandler(async (formData: FormData) => {
     try {
+      const email = formData.get("email");
       await apiClient.post("/api/reset-password", {
-        body: formData,
+        body: JSON.stringify({ email }),
       });
       setSubmitted(true);
     } catch (e) {

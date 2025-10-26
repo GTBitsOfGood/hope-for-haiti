@@ -30,7 +30,7 @@ function VerifyAuthentication({
       </main>
     );
 
-  if (!onAuthPages && !user) {
+  if (!onAuthPages && !onGlobalPages && !user) {
     return <></>;
   }
 
