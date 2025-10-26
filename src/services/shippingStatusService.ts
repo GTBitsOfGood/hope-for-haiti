@@ -30,16 +30,10 @@ export class ShippingStatusService {
 
     const lineItems = await db.lineItem.findMany({
       where: {
-        OR: [
-          {
-            donorShippingNumber: {
-              in: statuses.map((s) => s.donorShippingNumber),
-            },
-          },
-          {
-            hfhShippingNumber: { in: statuses.map((s) => s.hfhShippingNumber) },
-          },
-        ],
+        donorShippingNumber: {
+          in: statuses.map((s) => s.donorShippingNumber),
+        },
+        hfhShippingNumber: { in: statuses.map((s) => s.hfhShippingNumber) },
       },
       include: {
         generalItem: true,
@@ -63,7 +57,7 @@ export class ShippingStatusService {
 
       const shipment = shipments.find(
         (s) =>
-          s.donorShippingNumber === lineItem.donorShippingNumber ||
+          s.donorShippingNumber === lineItem.donorShippingNumber &&
           s.hfhShippingNumber === lineItem.hfhShippingNumber
       );
 
