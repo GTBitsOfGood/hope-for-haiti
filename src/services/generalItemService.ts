@@ -115,6 +115,58 @@ export class GeneralItemService {
     };
   }
 
+  static async getExpiringItems(window: Date) {
+    const cutoff = new Date(new Date().getTime() + window.getTime());
+
+    const generalItems = await db.generalItem.findMany({
+      where: {
+        expirationDate: {
+          not: null,
+          lte: cutoff,
+        },
+        donorOffer: {
+          state: {
+            not: $Enums.DonorOfferState.ARCHIVED,
+          },
+        },
+      },
+      include: {
+        donorOffer: true,
+        items: {
+          select: {
+            quantity: true,
+            allocation: {
+              select: { id: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        expirationDate: "asc",
+      },
+    });
+
+    return generalItems.map((item) => {
+      const { allocatedQuantity, unallocatedQuantity } = item.items.reduce(
+        (totals, lineItem) => {
+          if (lineItem.allocation) {
+            totals.allocatedQuantity += lineItem.quantity;
+          } else {
+            totals.unallocatedQuantity += lineItem.quantity;
+          }
+          return totals;
+        },
+        { allocatedQuantity: 0, unallocatedQuantity: 0 }
+      );
+
+      return {
+        item,
+        unallocatedQuantity,
+        allocatedQuantity,
+      } 
+    });
+  }
+
   private static matchesFilters(
     item: GeneralItem & { quantity: number },
     filters: Filters

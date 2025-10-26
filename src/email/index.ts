@@ -107,7 +107,10 @@ export class EmailClient {
     return sendEmail(to, "Reminder: Complete Your Account", html);
   }
 
-  static async sendItemsExpiring(to: string, props: ExpiringItemsProps) {
+  static async sendItemsExpiring(
+    to: string | string[], 
+    props: ExpiringItemsProps) 
+  {
     const html = await render(ExpiringItems(props));
     return sendEmail(to, `Items Expiring in ${props.month}`, html);
   }
