@@ -62,17 +62,34 @@ function NavLinks() {
           icon={<UserList size={22} />}
         />
       )}
-      <NavLink
-        href="/unallocatedItems"
-        label="Unallocated Items"
-        icon={<Cube size={22} />}
-      />
-
-      <NavLink
-        href="/donorOffers"
-        label="Donor Offers"
-        icon={<HandHeart size={22} />}
-      />
+      {isStaff && (
+        <NavLink
+          href="/unallocatedItems"
+          label="Unallocated Items"
+          icon={<Cube size={22} />}
+        />
+      )}
+      {isStaff && (
+        <NavLink
+          href="/donorOffers"
+          label="Donor Offers"
+          icon={<HandHeart size={22} />}
+        />
+      )}
+      {isPartner && (
+        <>
+          <NavLink
+            href="/items"
+            label="Items"
+            icon={<Cube size={22} />}
+          />
+          <NavLink
+            href="/requests"
+            label="Requests"
+            icon={<List size={22} />}
+          />
+        </>
+      )}
       <NavLink
         href="/wishlists"
         label="Wishlists"

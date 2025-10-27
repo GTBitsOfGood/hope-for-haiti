@@ -114,6 +114,7 @@ model DonorOffer {
   donorName               String
   partnerResponseDeadline DateTime
   donorResponseDeadline   DateTime
+  archivedAt              DateTime?
 
   partnerVisibilities User[]
   items               GeneralItem[]

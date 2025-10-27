@@ -3,7 +3,9 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import DonorOfferService from "@/services/donorOfferService";
+import { GeneralItemRequestService } from "@/services/generalItemRequestService";
 import UserService from "@/services/userService";
+import { isPartner } from "@/lib/userUtils";
 import {
   ArgumentError,
   AuthenticationError,
@@ -11,6 +13,7 @@ import {
   errorResponse,
   ok,
 } from "@/util/errors";
+import { RequestPriority } from "@prisma/client";
 
 const paramSchema = z.object({
   generalItemId: z
@@ -29,6 +32,12 @@ const updateRequestSchema = z.object({
   finalQuantity: z.number().int().min(0, "Final quantity must be non-negative"),
 });
 
+const partnerUpdateSchema = z.object({
+  quantity: z.number().int().positive("Quantity must be positive"),
+  priority: z.nativeEnum(RequestPriority),
+  comments: z.string(),
+});
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ generalItemId: string; requestId: string }> }
@@ -39,10 +48,6 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
-
     const { generalItemId, requestId } = await params;
     const parsed = paramSchema.safeParse({ generalItemId, requestId });
 
@@ -50,19 +55,56 @@ export async function PATCH(
       throw new ArgumentError(parsed.error.message);
     }
 
-    const body = await req.json();
-    const updateParsed = updateRequestSchema.safeParse(body);
+    const contentType = req.headers.get("content-type");
+    const isFormData = contentType?.includes("multipart/form-data");
 
-    if (!updateParsed.success) {
-      throw new ArgumentError(updateParsed.error.message);
+    if (isPartner(session.user.type)) {
+      if (!isFormData) {
+        throw new ArgumentError("Partners must submit FormData");
+      }
+
+      const formData = await req.formData();
+      const updateData = {
+        quantity: Number(formData.get("quantity")),
+        priority: formData.get("priority") as RequestPriority,
+        comments: formData.get("comments") as string,
+      };
+
+      const updateParsed = partnerUpdateSchema.safeParse(updateData);
+
+      if (!updateParsed.success) {
+        throw new ArgumentError(updateParsed.error.message);
+      }
+
+      await GeneralItemRequestService.updateRequest(
+        parsed.data.requestId,
+        updateParsed.data
+      );
+
+      return NextResponse.json(ok());
+    } else if (UserService.isStaff(session.user.type)) {
+      if (isFormData) {
+        throw new ArgumentError("Staff must submit JSON");
+      }
+      const body = await req.json();
+
+      const updateParsed = updateRequestSchema.safeParse({
+        finalQuantity: Number(body.finalQuantity),
+      });
+
+      if (!updateParsed.success) {
+        throw new ArgumentError(updateParsed.error.message);
+      }
+
+      await DonorOfferService.updateRequestFinalQuantity(
+        parsed.data.requestId,
+        updateParsed.data.finalQuantity
+      );
+
+      return NextResponse.json(ok());
+    } else {
+      throw new AuthorizationError("Unauthorized to update requests");
     }
-
-    await DonorOfferService.updateRequestFinalQuantity(
-      parsed.data.requestId,
-      updateParsed.data.finalQuantity
-    );
-
-    return NextResponse.json(ok());
   } catch (error) {
     return errorResponse(error);
   }

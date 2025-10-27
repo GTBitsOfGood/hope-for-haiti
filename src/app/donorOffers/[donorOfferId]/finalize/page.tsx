@@ -54,7 +54,7 @@ export default function FinalizeDonorOfferPage() {
     partnerRequestDeadline: string;
     donorRequestDeadline: string;
     partners: { id: number; name: string }[];
-  }>(`/api/donorOffers/${donorOfferId}/finalize`, {
+  }>(`/api/donorOffers/${donorOfferId}`, {
     cache: "no-store",
     onSuccess: (donorOfferDetails) => {
       setOfferName(donorOfferDetails.offerName);

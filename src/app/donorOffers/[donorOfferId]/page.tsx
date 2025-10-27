@@ -2,8 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { isStaff } from "@/lib/userUtils";
-import PartnerDynamicDonorOfferScreen from "@/screens/DonorOffersScreens/PartnerDynamicDonorOfferScreen";
+import { isStaff, isPartner } from "@/lib/userUtils";
 import AdminDynamicDonorOfferScreen from "@/screens/DonorOffersScreens/AdminDynamicDonorOfferScreen";
 
 export default function DonorOfferDetailsPage() {
@@ -13,12 +12,13 @@ export default function DonorOfferDetailsPage() {
     redirect("/signIn");
   }
 
-  if (isStaff(session.user.type)) {
-    return <AdminDynamicDonorOfferScreen />;
+  // Partners should use the unified items screen at /items instead
+  if (isPartner(session.user.type)) {
+    redirect("/");
   }
 
-  if (session.user.type === "PARTNER") {
-    return <PartnerDynamicDonorOfferScreen />;
+  if (isStaff(session.user.type)) {
+    return <AdminDynamicDonorOfferScreen />;
   }
 
   redirect("/signIn");
