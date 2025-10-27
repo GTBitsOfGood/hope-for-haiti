@@ -29,6 +29,7 @@ import {
 } from "@/types/api/donorOffer.types";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import { Partner } from "@/components/DonorOffers";
 
 const DonorOfferItemSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -635,34 +636,57 @@ export default class DonorOfferService {
 
   static async getAdminDonorOfferDetails(
     donorOfferId: number,
+    requests?: boolean
   ): Promise<{
-    donorOffer: DonorOffer;
-    itemsWithRequests: (GeneralItem & {
-      requests: (GeneralItemRequest & { partner: { name: string } })[];
+    donorOffer: DonorOffer
+    partners: Partner[];
+    items: GeneralItem[] | (GeneralItem & {
+      requests?: (GeneralItemRequest & {
+        partner: { id: number; name: string };
+      })[];
     })[];
   }> {
-    const donorOffer = await db.donorOffer.findUnique({
+    const donorOfferRecord = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
-    });
-
-    if (!donorOffer) {
-      throw new NotFoundError("Donor offer not found");
-    }
-
-    const itemsWithRequests = await db.generalItem.findMany({
-      where: { donorOfferId },
       include: {
-        requests: {
-          include: {
-            partner: { select: { id: true, name: true } },
+        partnerVisibilities: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
     });
 
+    if (!donorOfferRecord) {
+      throw new NotFoundError("Donor offer not found");
+    }
+
+    const { partnerVisibilities, ...donorOffer } = donorOfferRecord;
+
+    const shouldIncludeRequests = requests ?? true;
+
+    const items = await db.generalItem.findMany({
+      where: { donorOfferId },
+      include: shouldIncludeRequests
+        ? {
+            requests: {
+              include: {
+                partner: { select: { id: true, name: true } },
+              },
+            },
+          }
+        : undefined,
+    });
+
     return {
       donorOffer,
-      itemsWithRequests,
+      partners: partnerVisibilities,
+      items: items as (GeneralItem & {
+        requests?: (GeneralItemRequest & {
+          partner: { id: number; name: string };
+        })[];
+      })[],
     };
   }
 

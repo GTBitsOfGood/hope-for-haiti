@@ -27,6 +27,23 @@ const paramSchema = z.object({
     ),
 });
 
+const requestParamSchema = z.object({
+  requests: z
+    .preprocess(
+      (value) => {
+        if (typeof value === "string") {
+          const lower = value.toLowerCase();
+          if (lower === "true") return true;
+          if (lower === "false") return false;
+        }
+
+        return undefined;
+      },
+      z.boolean().optional()
+    )
+    .optional(),
+});
+
 const updateSchema = z.object({
   offerName: z.string().min(1, "Offer name is required").optional(),
   donorName: z.string().min(1, "Donor name is required").optional(),
@@ -68,7 +85,8 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
-    const parsedParams = tableParamsSchema.safeParse({
+    const parsedParams = tableParamsSchema.merge(requestParamSchema).safeParse({
+      requests: request.nextUrl.searchParams.get("requests"),
       filters: request.nextUrl.searchParams.get("filters"),
       page: request.nextUrl.searchParams.get("page"),
       pageSize: request.nextUrl.searchParams.get("pageSize"),
@@ -78,7 +96,7 @@ export async function GET(
       throw new ArgumentError(parsedParams.error.message);
     }
 
-    const { filters, page, pageSize } = parsedParams.data;
+    const { filters, page, pageSize, requests } = parsedParams.data;
 
     let result;
 
@@ -91,9 +109,23 @@ export async function GET(
         pageSize ?? undefined
       );
     } else if (UserService.isStaff(session.user.type)) {
+      const includeRequests = requests ?? undefined;
       result = await DonorOfferService.getAdminDonorOfferDetails(
         parsed.data.donorOfferId,
+        includeRequests
       );
+
+      const donorOffer = result.donorOffer;
+
+      return NextResponse.json({
+        donorOffer,
+        partners: result.partners,
+        items: result.items,
+        offerName: donorOffer.offerName,
+        donorName: donorOffer.donorName,
+        partnerRequestDeadline: donorOffer.partnerResponseDeadline,
+        donorRequestDeadline: donorOffer.donorResponseDeadline,
+      });
     } else {
       throw new AuthorizationError("Unauthorized user type");
     }

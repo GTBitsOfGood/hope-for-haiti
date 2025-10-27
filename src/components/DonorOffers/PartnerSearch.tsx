@@ -8,12 +8,14 @@ export type Partner = {
 
 interface PartnerSearchProps {
   selectedPartners: Partner[];
-  onPartnersChange: (partners: Partner[]) => void;
+  disabled?: boolean;
+  onPartnersChange?: (partners: Partner[]) => void;
 }
 
 export const PartnerSearch = ({
   selectedPartners,
   onPartnersChange,
+  disabled,
 }: PartnerSearchProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Partner[]>([]);
@@ -89,14 +91,14 @@ export const PartnerSearch = ({
   }, [searchTerm, selectedPartners]);
 
   const handleAddPartner = (partner: Partner) => {
-    onPartnersChange([...selectedPartners, partner]);
+    onPartnersChange?.([...selectedPartners, partner]);
     setSearchTerm("");
     setSearchResults([]);
     setShowResults(false);
   };
 
   const handleRemovePartner = (partnerId: number) => {
-    onPartnersChange(
+    onPartnersChange?.(
       selectedPartners.filter((partner) => partner.id !== partnerId)
     );
   };
@@ -128,13 +130,15 @@ export const PartnerSearch = ({
                 className="flex items-center border border-red-500 bg-red-100 text-red-800 px-2 py-0.5 rounded-md text-sm m-0.5"
               >
                 <span>{partner.name}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemovePartner(partner.id)}
-                  className="ml-1 text-red-600 hover:text-red-800"
-                >
-                  <X size={14} />
-                </button>
+                {!disabled && 
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePartner(partner.id)}
+                    className="ml-1 text-red-600 hover:text-red-800"
+                  >
+                    <X size={14} />
+                  </button>
+                }
               </div>
             ))}
             <div className="flex-1 flex items-center min-w-[120px]">
@@ -149,6 +153,7 @@ export const PartnerSearch = ({
                   selectedPartners.length === 0 ? "Search partners..." : ""
                 }
                 className="flex-1 py-1.5 px-2 bg-zinc-50 border-0 focus:outline-none focus:ring-0 min-w-[60px]"
+                disabled={disabled}
               />
               {isSearching && (
                 <div className="mr-2">

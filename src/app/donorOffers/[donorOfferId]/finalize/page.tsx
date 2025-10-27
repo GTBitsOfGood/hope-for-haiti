@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import FileUpload from "@/components/FileUpload";
-import { DonorOfferState } from "@prisma/client";
+import { DonorOffer, GeneralItem, GeneralItemRequest } from "@prisma/client";
 import {
   FileInfoDisplay,
   ErrorDisplay,
@@ -14,10 +14,12 @@ import {
 import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 import { useSession } from "next-auth/react";
 import { redirect, useParams } from "next/navigation";
-import { PartnerSearch as NewPartnerSearch } from "@/components/DonorOffers/PartnerSearch";
+import { PartnerSearch as NewPartnerSearch, Partner } from "@/components/DonorOffers/PartnerSearch";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
+import Link from "next/link";
+import { formatTableValue } from "@/util/format";
 
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
@@ -30,40 +32,21 @@ export default function FinalizeDonorOfferPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [donorOfferForm, setDonorOfferForm] = useState<{
-    partnerRequestDeadline: string;
-    donorRequestDeadline: string;
-  }>({
-    partnerRequestDeadline: "",
-    donorRequestDeadline: "",
-  });
-
-  const [selectedPartners, setSelectedPartners] = useState<
-    { id: number; name: string }[]
-  >([]);
-
-  const [offerName, setOfferName] = useState("");
-
-  const [data, setData] = useState<DonorOfferItem[]>([]);
+  const [previewData, setPreviewData] = useState<DonorOfferItem[]>([]);
   const [preview, setPreview] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  const { isLoading: isLoadingDetails } = useFetch<{
-    offerName: string;
-    partnerRequestDeadline: string;
-    donorRequestDeadline: string;
-    partners: { id: number; name: string }[];
-  }>(`/api/donorOffers/${donorOfferId}`, {
+  const { data, isLoading: isLoadingDetails } = useFetch<{
+    donorOffer: DonorOffer
+    partners: Partner[];
+    items: GeneralItem[] | (GeneralItem & {
+      requests?: (GeneralItemRequest & {
+        partner: { id: number; name: string };
+      })[];
+    })[];
+  }>(`/api/donorOffers/${donorOfferId}?requests=true`, {
     cache: "no-store",
-    onSuccess: (donorOfferDetails) => {
-      setOfferName(donorOfferDetails.offerName);
-      setDonorOfferForm({
-        partnerRequestDeadline: donorOfferDetails.partnerRequestDeadline,
-        donorRequestDeadline: donorOfferDetails.donorRequestDeadline,
-      });
-      setSelectedPartners(donorOfferDetails.partners || []);
-    },
     onError: (error) => {
       if (error.includes("404")) {
         redirect("/donorOffers");
@@ -86,30 +69,9 @@ export default function FinalizeDonorOfferPage() {
   } = useFileUpload<{ donorOfferItems: DonorOfferItem[] }>({
     previewEndpoint: `/api/donorOffers/${donorOfferId}/finalize?preview=true`,
     onSuccess: (result) => {
-      setData(result.donorOfferItems);
-    },
-    validateBeforeUpload: () => {
-      if (
-        !donorOfferForm.partnerRequestDeadline ||
-        !donorOfferForm.donorRequestDeadline
-      ) {
-        return [
-          "Please fill out all required fields (Partner Request Deadline, Donor Request Deadline) before uploading a file.",
-        ];
-      }
-      return null;
+      setPreviewData(result.donorOfferItems);
     },
     buildFormData: (_, formData) => {
-      formData.append("offerName", offerName);
-      formData.append(
-        "partnerRequestDeadline",
-        donorOfferForm.partnerRequestDeadline
-      );
-      formData.append(
-        "donorRequestDeadline",
-        donorOfferForm.donorRequestDeadline
-      );
-      formData.append("state", DonorOfferState.FINALIZED);
       formData.append("donorOfferId", donorOfferId);
 
       return formData;
@@ -139,41 +101,8 @@ export default function FinalizeDonorOfferPage() {
       return;
     }
 
-    if (!donorOfferForm.partnerRequestDeadline) {
-      return;
-    }
-
-    if (!donorOfferForm.donorRequestDeadline) {
-      return;
-    }
-
-    if (selectedPartners.length === 0) {
-      return;
-    }
-
-    // Format dates to ensure they're in the correct format (YYYY-MM-DD)
-    const formatDate = (dateString: string) => {
-      const date = new Date(dateString);
-      return date.toISOString().split("T")[0];
-    };
-
     const formData = new FormData();
     formData.append("file", uploadedFile);
-    formData.append("offerName", offerName);
-    formData.append(
-      "partnerRequestDeadline",
-      formatDate(donorOfferForm.partnerRequestDeadline)
-    );
-    formData.append(
-      "donorRequestDeadline",
-      formatDate(donorOfferForm.donorRequestDeadline)
-    );
-    formData.append("state", DonorOfferState.FINALIZED);
-
-    // Add partner IDs
-    selectedPartners.forEach((partner) => {
-      formData.append("partnerIds", partner.id.toString());
-    });
 
     try {
       await apiClient.post(`/api/donorOffers/${donorOfferId}/finalize`, {
@@ -193,51 +122,79 @@ export default function FinalizeDonorOfferPage() {
     );
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toISOString().split("T")[0];
+  };
+
   return (
     <div className="px-10 py-5">
-      <h1 className="mb-4 text-xl font-semibold">
-        {offerName}: Finalize Donor Offer
-      </h1>
+      <div className="flex flex-row justify-between items-center mb-4">
+        <div className="flex items-center gap-1">
+          <Link
+            href="/donorOffers"
+            className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1"
+          >
+            Donor Offers
+          </Link>
+          <span className="text-gray-500 text-sm flex items-center">/</span>
+          <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
+            {formatTableValue(String(donorOfferId))}
+          </span>
+        </div>
+      </div>
 
       <div className="mb-6 flex flex-col gap-4">
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Partner Request Deadline<span className="text-red-500">*</span>
+            Donor offer name
           </label>
           <input
-            type="date"
-            value={donorOfferForm.partnerRequestDeadline}
-            onChange={(e) =>
-              setDonorOfferForm({
-                ...donorOfferForm,
-                partnerRequestDeadline: e.target.value,
-              })
-            }
+            type="text"
+            value={data?.donorOffer.offerName}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
-            required
+            placeholder="Offer name"
+            disabled
           />
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Donor Request Deadline<span className="text-red-500">*</span>
+            Donor name
+          </label>
+          <input
+            type="text"
+            value={data?.donorOffer.donorName}
+            className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
+            placeholder="Donor name"
+            disabled
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-light text-black mb-1">
+            Partner Request Deadline
           </label>
           <input
             type="date"
-            value={donorOfferForm.donorRequestDeadline}
-            onChange={(e) =>
-              setDonorOfferForm({
-                ...donorOfferForm,
-                donorRequestDeadline: e.target.value,
-              })
-            }
+            value={formatDate(data?.donorOffer.partnerResponseDeadline)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
-            required
+            disabled
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-light text-black mb-1">
+            Donor Request Deadline
+          </label>
+          <input
+            type="date"
+            value={formatDate(data?.donorOffer.donorResponseDeadline)}
+            className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
+            disabled
           />
         </div>
         <div>
           <NewPartnerSearch
-            selectedPartners={selectedPartners}
-            onPartnersChange={setSelectedPartners}
+            selectedPartners={data?.partners ?? []}
+            disabled
           />
         </div>
       </div>
@@ -263,7 +220,7 @@ export default function FinalizeDonorOfferPage() {
 
       {errors && errors.length > 0 && <ErrorDisplay errors={errors} />}
 
-      {preview && <PreviewTable final={true} data={data} />}
+      {preview && <PreviewTable final={true} data={previewData} />}
 
       <div className="flex justify-end mt-4">
         <button
@@ -283,16 +240,12 @@ export default function FinalizeDonorOfferPage() {
           <button
             disabled={
               !fileUploaded ||
-              fileError ||
-              !donorOfferForm.partnerRequestDeadline ||
-              !donorOfferForm.donorRequestDeadline
+              fileError
             }
             onClick={showPreview}
             className={
               fileUploaded &&
-              !fileError &&
-              donorOfferForm.partnerRequestDeadline &&
-              donorOfferForm.donorRequestDeadline
+              !fileError
                 ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
                 : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
             }
