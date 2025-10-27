@@ -114,7 +114,6 @@ export default function PartnerItemsScreen() {
       formData.append("comments", requestData.comments);
 
       if (item.requestId) {
-        // Update existing request
         await apiClient.patch(
           `/api/generalItems/${item.id}/requests/${item.requestId}`,
           {
@@ -122,7 +121,6 @@ export default function PartnerItemsScreen() {
           }
         );
 
-        // Update the item in the table
         tableRef.current?.updateItemById(item.id, {
           requestId: item.requestId,
           quantityRequested: requestData.quantity,
@@ -132,7 +130,6 @@ export default function PartnerItemsScreen() {
 
         toast.success("Request updated successfully!");
       } else {
-        // Create new request
         const response = await apiClient.post<{ requestId: number }>(
           `/api/generalItems/${item.id}/requests`,
           {
@@ -140,7 +137,6 @@ export default function PartnerItemsScreen() {
           }
         );
 
-        // Update the item in the table with the new requestId
         tableRef.current?.updateItemById(item.id, {
           requestId: response.requestId,
           quantityRequested: requestData.quantity,
@@ -188,7 +184,7 @@ export default function PartnerItemsScreen() {
     },
     {
       id: "title",
-      header: "Title",
+      header: "Title and Description",
       filterType: "string",
       cellClassName: "!whitespace-normal max-w-lg",
       cell: (item) => (

@@ -115,7 +115,6 @@ export default function PartnerRequestsScreen() {
         }
       );
 
-      // Update the item in the table
       tableRef.current?.updateItemById(request.id, {
         ...request,
         quantity: requestData.quantity,
@@ -161,7 +160,7 @@ export default function PartnerRequestsScreen() {
     },
     {
       id: "generalItem",
-      header: "Item Title",
+      header: "Title and Description",
       filterType: "string",
       cellClassName: "!whitespace-normal max-w-lg",
       cell: (request) => (
