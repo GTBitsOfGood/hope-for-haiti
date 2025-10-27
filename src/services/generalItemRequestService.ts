@@ -153,18 +153,28 @@ export class GeneralItemRequestService {
       ...filterWhere,
       partnerId,
       generalItem: {
-        donorOffer: { 
+        donorOffer: {
           OR: [
             {
               archivedAt: null,
+              state: "UNFINALIZED",
             },
             {
-              state: {
-                not: "ARCHIVED",
-              },
-            },
-          ],
+              archivedAt: { not: null },
+              state: "ARCHIVED",
+              items: {
+                some: {
+                  items: {
+                    every: {
+                      allocation: null
+                    }
+                  }
+                }
+              }
+            }
+          ]
         },
+        
       },
     };
 
