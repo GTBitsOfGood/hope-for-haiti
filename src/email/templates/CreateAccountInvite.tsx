@@ -11,7 +11,7 @@ export const CreateAccountInvite = ({
   userRole,
   token,
 }: CreateAccountInviteProps) => {
-  const inviteLink = `${process.env.URL}/register?token=${token}`;
+  const inviteLink = `${process.env.BASE_URL}/register?token=${token}`;
   return (
     <Html>
       <Head />

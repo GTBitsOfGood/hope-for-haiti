@@ -45,11 +45,9 @@ export const handler = schedule("@daily", async () => {
       distributedQuantity: item.allocatedQuantity,
     }));
 
-    const monthLabel = format(cutoff, "MMMM yyyy");
-
     await EmailClient.sendItemsExpiring(staffUsers.map(s => s.email), {
-      month: monthLabel,
       items: templateItems,
+      cutoffDays: LOOKAHEAD_DAYS,
     });
 
     return {

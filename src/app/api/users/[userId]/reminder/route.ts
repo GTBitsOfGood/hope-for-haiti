@@ -28,8 +28,7 @@ export async function POST(
       throw new AuthenticationError("Session required");
     }
 
-    // TODO: what should the permissions be for this?
-    if (!UserService.isStaff(session.user.type)) {
+    if (!UserService.isAdmin(session.user.type)) {
       throw new AuthorizationError("You are not allowed to send an invite reminder");
     }
 

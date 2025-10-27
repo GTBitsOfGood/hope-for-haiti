@@ -112,7 +112,7 @@ export class EmailClient {
     props: ExpiringItemsProps) 
   {
     const html = await render(ExpiringItems(props));
-    return sendEmail(to, `Items Expiring in ${props.month}`, html);
+    return sendEmail(to, "Items Expiring", html);
   }
 
   static async sendNewDistribution(

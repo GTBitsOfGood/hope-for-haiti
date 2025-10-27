@@ -560,7 +560,7 @@ export default class DonorOfferService {
       donorName,
       partnerResponseDeadline: donorOfferData.partnerResponseDeadline,
       donorResponseDeadline: donorOfferData.donorResponseDeadline,
-      offerUrl: `${process.env.URL}/donorOffers/${donorOffer.id}`
+      offerUrl: `${process.env.BASE_URL}/donorOffers/${donorOffer.id}`
     });
 
     return { success: true };

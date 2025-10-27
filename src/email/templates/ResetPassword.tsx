@@ -16,7 +16,7 @@ export interface ResetPasswordProps {
 }
 
 export const ResetPassword = ({ token }: ResetPasswordProps) => {
-  const resetLink = `${process.env.URL}/reset-password/change?token=${token}`;
+  const resetLink = `${process.env.BASE_URL}/reset-password/change?token=${token}`;
   return (
     <Html>
       <Head />

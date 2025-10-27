@@ -13,22 +13,22 @@ type ExpiringItem = {
 
 export interface ExpiringItemsProps {
   items: ExpiringItem[];
-  month: string;
+  cutoffDays: number;
 }
 
-export const ExpiringItems = ({ items, month }: ExpiringItemsProps) => {
+export const ExpiringItems = ({ items, cutoffDays }: ExpiringItemsProps) => {
   return (
     <Html>
       <Head />
       <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
-          <Preview>Expiring Items Report for {month}</Preview>
+          <Preview>Expiring Items</Preview>
           <Container className="w-[600px] mx-auto text-left">
             <Section>
               <div className="bg-white border-2 border-blue-primary rounded-lg p-8">
-              <Text className="text-2xl font-bold text-mainRed mb-3">Expiring Items This Month</Text>
+              <Text className="text-2xl font-bold text-mainRed mb-3">Expiring Items</Text>
               <Text className="text-base font-light text-gray-primary leading-[26px]">
-                The following items are set to expire in {month}. Please review and take necessary action.
+                The following items are set to expire within {cutoffDays} days. Please review and take necessary action.
               </Text>
               <table className="w-full border-collapse mt-4 mb-5">
                 <thead>
@@ -61,7 +61,7 @@ export const ExpiringItems = ({ items, month }: ExpiringItemsProps) => {
 };
 
 ExpiringItems.PreviewProps = {
-  month: 'September 2025',
+  cutoffDays: 30,
   items: [
     {
       id: 1,
