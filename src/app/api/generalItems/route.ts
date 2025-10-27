@@ -10,6 +10,8 @@ import {
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { tableParamsSchema } from "@/schema/tableParams";
+import { isPartner } from "@/lib/userUtils";
 
 const postSchema = z.object({
   donorOfferId: z.number().int().positive(),
@@ -66,6 +68,46 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(createdItem, {
       status: 201,
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!isPartner(session.user.type)) {
+      throw new AuthorizationError(
+        "You are not allowed to view available items"
+      );
+    }
+
+    const parsedParams = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+    });
+
+    if (!parsedParams.success) {
+      throw new ArgumentError(parsedParams.error.message);
+    }
+
+    const { filters, page, pageSize } = parsedParams.data;
+
+    const availableItems = await GeneralItemService.getAvailableItemsForPartner(
+      parseInt(session.user.id),
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined
+    );
+
+    return NextResponse.json(availableItems, {
+      status: 200,
     });
   } catch (error) {
     return errorResponse(error);
