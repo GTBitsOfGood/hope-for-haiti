@@ -232,7 +232,7 @@ export default class FileService {
     }
   }
 
-  static async parseFinalizeFile(file: File): Promise<ParsedFileData> {
+  static async parseFinalizedFile(file: File): Promise<ParsedFileData> {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
     if (!["csv", "xlsx"].includes(fileExt || "")) {
       throw new ArgumentError("File must be a CSV or XLSX file");

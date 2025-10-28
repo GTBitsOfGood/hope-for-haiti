@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import DonorOfferService from "@/services/donorOfferService";
+import FileService from "@/services/fileService";
 import UserService from "@/services/userService";
 import {
   ArgumentError,
@@ -28,20 +29,11 @@ const paramSchema = z.object({
 });
 
 const requestParamSchema = z.object({
-  requests: z
-    .preprocess(
-      (value) => {
-        if (typeof value === "string") {
-          const lower = value.toLowerCase();
-          if (lower === "true") return true;
-          if (lower === "false") return false;
-        }
+  requests: z.coerce.boolean().optional().nullable(),
+});
 
-        return undefined;
-      },
-      z.boolean().optional()
-    )
-    .optional(),
+const previewParamSchema = z.object({
+  preview: z.coerce.boolean().optional().nullable(),
 });
 
 const updateSchema = z.object({
@@ -66,6 +58,7 @@ const updateSchema = z.object({
     .enum(Object.values($Enums.DonorOfferState) as [string, ...string[]])
     .transform((val) => val as $Enums.DonorOfferState)
     .optional(),
+  file: z.any().optional(),
 });
 
 export async function GET(
@@ -185,6 +178,33 @@ export async function PATCH(
     }
 
     const formData = await req.formData();
+    const file = formData.get("file");
+
+    const previewParsed = previewParamSchema.safeParse({
+      preview: req.nextUrl.searchParams.get("preview"),
+    });
+    if (!previewParsed.success) {
+      throw new ArgumentError(previewParsed.error.message);
+    }
+    const { preview } = previewParsed.data;
+
+    if (file && file instanceof File) {
+      const parsedFileData = await FileService.parseFinalizedFile(file);
+      const result = await DonorOfferService.finalizeDonorOffer(
+        parsed.data.donorOfferId,
+        parsedFileData,
+        preview ?? false,
+      );
+
+      if (preview) {
+        return NextResponse.json({
+          donorOfferItems: result.donorOfferItems ?? [],
+        });
+      }
+
+      return NextResponse.json(result);
+    }
+
     const formObj = formDataToObject(formData) as typeof updateSchema._input;
 
     const updateParsed = updateSchema.safeParse(formObj);
@@ -192,9 +212,12 @@ export async function PATCH(
       throw new ArgumentError(updateParsed.error.message);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { file: _, ...updateData } = updateParsed.data;
+
     const result = await DonorOfferService.updateDonorOffer(
       parsed.data.donorOfferId,
-      updateParsed.data
+      updateData
     );
     
     return NextResponse.json(result);

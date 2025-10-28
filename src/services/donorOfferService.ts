@@ -8,6 +8,7 @@ import {
   Prisma,
   GeneralItem,
   GeneralItemRequest,
+  $Enums,
 } from "@prisma/client";
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
@@ -114,12 +115,6 @@ const FinalizeDonorOfferItemSchema = z.object({
       message: "Invalid boolean value",
     })
     .transform((val) => val === "true"),
-});
-
-const FinalizeDonorOfferSchema = z.object({
-  partnerResponseDeadline: z.date(),
-  donorResponseDeadline: z.date(),
-  state: z.nativeEnum(DonorOfferState).default(DonorOfferState.FINALIZED),
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
@@ -810,116 +805,68 @@ export default class DonorOfferService {
 
   static async finalizeDonorOffer(
     donorOfferId: number,
-    formData: FormData,
     parsedFileData: {
       data: Record<string, unknown>[];
       fields: string[];
-    } | null,
+    },
     preview: boolean
   ): Promise<FinalizeDonorOfferResult> {
-    const partnerRequestDeadline = formData.get(
-      "partnerRequestDeadline"
-    ) as string;
-    const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-    const state =
-      (formData.get("state") as DonorOfferState) || DonorOfferState.FINALIZED;
-
-    const partnerIds: number[] = [];
-    formData.getAll("partnerIds").forEach((id) => {
-      const parsedId = parseInt(id as string);
-      if (!isNaN(parsedId)) partnerIds.push(parsedId);
+    const donorOffer = await db.donorOffer.findUnique({
+      where: { id: donorOfferId },
+      include: {
+        partnerVisibilities: true,
+      },
     });
 
-    if (!partnerRequestDeadline || !donorRequestDeadline) {
-      throw new ArgumentError(
-        "Partner request deadline and donor request deadline are required"
-      );
+    if (!donorOffer) {
+      throw new NotFoundError("Donor offer not found")
     }
 
-    const partnerDeadline = new Date(partnerRequestDeadline);
-    const donorDeadline = new Date(donorRequestDeadline);
-    if (isNaN(partnerDeadline.getTime()) || isNaN(donorDeadline.getTime())) {
-      throw new ArgumentError("Invalid date format for deadlines");
-    }
-
-    const donorOfferData = {
-      partnerResponseDeadline: partnerDeadline,
-      donorResponseDeadline: donorDeadline,
-      state,
-    };
-
-    const validation = FinalizeDonorOfferSchema.safeParse(donorOfferData);
-    if (!validation.success) {
-      const errorMessages = validation.error.issues
-        .map((issue) => {
+    const { data: jsonData } = parsedFileData;
+    const validationResults = jsonData.map((row, index) => {
+      const result = FinalizeDonorOfferItemSchema.safeParse(row);
+      if (!result.success) {
+        const errorMessages = result.error.issues.map((issue) => {
           const field = issue.path.join(".");
-          return `Field '${field}': ${issue.message}`;
-        })
-        .join("; ");
-      throw new ArgumentError(`Error validating donor offer: ${errorMessages}`);
-    }
-
-    let validItems: FinalizeDonorOfferItem[] = [];
-
-    if (parsedFileData) {
-      const { data: jsonData } = parsedFileData;
-      const validationResults = jsonData.map((row, index) => {
-        const result = FinalizeDonorOfferItemSchema.safeParse(row);
-        if (!result.success) {
-          const errorMessages = result.error.issues.map((issue) => {
-            const field = issue.path.join(".");
-            return `Row ${index + 1}, Field '${field}': ${issue.message}`;
-          });
-          return { valid: false, errors: errorMessages };
-        }
-        return { valid: true, data: result.data };
-      });
-
-      const invalidRows = validationResults.filter((r) => !r.valid);
-      if (invalidRows.length > 0) {
-        return {
-          success: false,
-          errors: invalidRows.flatMap((r) => r.errors as string[]),
-        };
+          return `Row ${index + 1}, Field '${field}': ${issue.message}`;
+        });
+        return { valid: false, errors: errorMessages };
       }
+      return { valid: true, data: result.data };
+    });
 
-      validItems = validationResults
-        .filter(
-          (r): r is { valid: true; data: FinalizeDonorOfferItem } => r.valid
-        )
-        .map((r) => r.data);
+    const invalidRows = validationResults.filter((r) => !r.valid);
+    if (invalidRows.length > 0) {
+      return {
+        success: false,
+        errors: invalidRows.flatMap((r) => r.errors as string[]),
+      };
     }
+
+    const validItems = validationResults
+      .filter(
+        (r): r is { valid: true; data: FinalizeDonorOfferItem } => r.valid
+      )
+      .map((r) => r.data);
 
     if (preview) {
+      const previewItems = validItems.slice(0, 8).map((item) => ({
+        ...item,
+      }));
+
       return {
         success: true,
         donorOfferId,
-        createdCount: validItems.slice(0, 8).length,
+        createdCount: previewItems.length,
+        donorOfferItems: previewItems,
       };
     }
 
     await db.$transaction(async (tx) => {
-      const partners = await tx.user.findMany({
-        where: { id: { in: partnerIds }, type: UserType.PARTNER },
-        select: { id: true },
-      });
-      if (partners.length !== partnerIds.length) {
-        throw new ArgumentError("One or more partner IDs are invalid");
-      }
-
       const donorOffer = await tx.donorOffer.update({
         where: { id: donorOfferId },
         data: {
-          ...(partnerIds.length > 0
-            ? {
-                partnerVisibilities: {
-                  connect: partnerIds.map((id) => ({
-                    id,
-                  })),
-                },
-              }
-            : {}),
-          ...donorOfferData,
+          state: $Enums.DonorOfferState.FINALIZED,
         },
         include: { items: true },
       });
