@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { format } from "date-fns";
-import { NotFoundError } from "@/util/errors";
+import { NotFoundError, ArgumentError } from "@/util/errors";
 import {
   DistributionItem,
   SignedDistribution,
@@ -42,6 +42,9 @@ export default class DistributionService {
               },
             },
           },
+        },
+        partner: {
+          enabled: true,
         },
       },
       select: {
@@ -96,8 +99,24 @@ export default class DistributionService {
   static async getSignedDistributions(
     partnerId?: number
   ): Promise<SignedDistribution[]> {
+    const where: Prisma.SignOffWhereInput = {};
+    
+    if (partnerId) {
+      // Check if the partner is enabled
+      const partner = await db.user.findUnique({
+        where: { id: partnerId },
+        select: { enabled: true },
+      });
+      
+      if (!partner?.enabled) {
+        return [];
+      }
+      
+      where.partnerId = partnerId;
+    }
+    
     const signOffs = await db.signOff.findMany({
-      where: partnerId ? { partnerId } : {},
+      where,
       include: { allocations: true },
     });
 
@@ -111,8 +130,27 @@ export default class DistributionService {
   static async getPartnerDistributionItems(
     partnerId?: number
   ): Promise<DistributionItem[]> {
+    const where: Prisma.DistributionWhereInput = {};
+    
+    if (partnerId) {
+      // Check if the partner is enabled
+      const partner = await db.user.findUnique({
+        where: { id: partnerId },
+        select: { enabled: true },
+      });
+      
+      if (!partner?.enabled) {
+        return [];
+      }
+      
+      where.partner = { id: partnerId };
+    } else {
+      // Only include enabled partners when fetching all
+      where.partner = { enabled: true };
+    }
+    
     const distributions = await db.distribution.findMany({
-      where: partnerId ? { partner: { id: partnerId } } : {},
+      where,
       include: {
         allocations: true,
       },
@@ -181,6 +219,16 @@ export default class DistributionService {
   }
 
   static async getPendingDistributionForPartner(partnerId: number) {
+    // Check if the partner is enabled
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true },
+    });
+    
+    if (!partner?.enabled) {
+      return null;
+    }
+    
     return db.distribution.findFirst({
       where: { partnerId, pending: true },
     });
@@ -316,6 +364,20 @@ export default class DistributionService {
       }[];
     }
   ) {
+    // Check if the partner is enabled
+    const partner = await db.user.findUnique({
+      where: { id: data.partnerId },
+      select: { enabled: true, type: true },
+    });
+    
+    if (!partner) {
+      throw new NotFoundError("Partner not found");
+    }
+    
+    if (!partner.enabled) {
+      throw new ArgumentError("Cannot create distribution for deactivated partner");
+    }
+    
     return db.distribution.create({
       data: {
         ...data,
@@ -330,8 +392,24 @@ export default class DistributionService {
 
   static async updateDistribution(
     distributionId: number,
-    data: Prisma.DistributionUpdateInput
+    data: { partnerId?: number; pending?: boolean }
   ) {
+    // If partnerId is being updated, validate that the partner is enabled
+    if (data.partnerId !== undefined) {
+      const partner = await db.user.findUnique({
+        where: { id: data.partnerId },
+        select: { enabled: true },
+      });
+
+      if (!partner) {
+        throw new NotFoundError("Partner not found");
+      }
+
+      if (!partner.enabled) {
+        throw new ArgumentError("Cannot update distribution to deactivated partner");
+      }
+    }
+
     return db.distribution.update({
       where: { id: distributionId },
       data,
