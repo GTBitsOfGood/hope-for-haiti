@@ -278,4 +278,191 @@ export class LineItemService {
       createdCount: validItems.length,
     };
   }
+
+  static async getTotalImportsByMonth(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<{
+    total: number;
+    monthlyTotals: { month: number; year: number; total: number }[];
+  }> {
+    // Build base SQL fragment for the date range and joins
+    let baseQuery = Prisma.sql`
+      SELECT EXTRACT(MONTH FROM s."date") AS month, EXTRACT(YEAR FROM s."date") AS year, SUM(li.quantity * li."unitPrice")
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate} 
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    // Group by month and year on the sign off, preserving the total
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY month, year
+      ORDER BY year, month
+    `;
+
+    const result =
+      await db.$queryRaw<{ month: number; year: number; sum: number | null }[]>(
+        baseQuery
+      );
+
+    const monthlyTotals = result.map((row) => ({
+      month: Number(row.month),
+      year: Number(row.year),
+      total: Number(row.sum) || 0,
+    }));
+    const total = monthlyTotals.reduce((acc, curr) => acc + curr.total, 0);
+    return { total, monthlyTotals };
+  }
+
+  /**
+   * Counts shipments where at least one line item (based on shipping numbers) has been allocated and signed off.
+   * Note: Will be inaccurate if the number of relevant shipments exceeds the maximum size for numbers
+   */
+  static async getShipmentStats(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<{
+    shipmentCount: number;
+    palletCount: number;
+  }> {
+    let baseQuery = Prisma.sql`
+      SELECT COUNT(DISTINCT ss.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
+      FROM "ShippingStatus" ss
+      JOIN (
+        SELECT DISTINCT li.*
+        FROM "LineItem" li
+      ) li ON ss."hfhShippingNumber" = li."hfhShippingNumber" OR
+        ss."donorShippingNumber" = li."donorShippingNumber"
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    type QueryResult = { shipmentCount: bigint; palletCount: bigint }[];
+
+    const result = await db.$queryRaw<QueryResult>(baseQuery);
+    return {
+      shipmentCount: Number(result[0].shipmentCount) || 0,
+      palletCount: Number(result[0].palletCount) || 0,
+    };
+  }
+
+  /**
+   * @returns The top 5 medication imports by value
+   */
+  static async getTopMedicationImports(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<
+    {
+      title: string;
+      totalValue: number;
+    }[]
+  > {
+    let baseQuery = Prisma.sql`
+      SELECT g.title, SUM(li.quantity * li."unitPrice") as "totalValue"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "GeneralItem" g ON li."generalItemId" = g.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
+        AND li."category" = 'MEDICATION'
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY g.title
+      ORDER BY "totalValue" DESC
+      LIMIT 5
+    `;
+
+    const result =
+      await db.$queryRaw<{ title: string; totalValue: number }[]>(baseQuery);
+    return result.map((row) => ({
+      title: row.title,
+      totalValue: Number(row.totalValue),
+    }));
+  }
+
+  static async getTotalImportWeight(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ) {
+    let baseQuery = Prisma.sql`
+      SELECT SUM(g.weight * li.quantity) as "totalWeight"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "GeneralItem" g ON li."generalItemId" = g.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    const result =
+      await db.$queryRaw<{ totalWeight: number | null }[]>(baseQuery);
+    return Number(result[0].totalWeight) || 0;
+  }
+
+  /**
+   * Calculates donated value with the same method as getTotalImportsByMonth and returns the top 3 donors
+   */
+  static async getTopDonors(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<
+    {
+      donorName: string;
+      value: number;
+    }[]
+  > {
+    let baseQuery = Prisma.sql`
+      SELECT li."donorName", SUM(li.quantity * li."unitPrice") as "value"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY li."donorName"
+      ORDER BY "value" DESC
+      LIMIT 3
+    `;
+
+    const result =
+      await db.$queryRaw<{ donorName: string; value: number }[]>(baseQuery);
+    return result.map((row) => ({
+      donorName: row.donorName,
+      value: Number(row.value),
+    }));
+  }
 }
