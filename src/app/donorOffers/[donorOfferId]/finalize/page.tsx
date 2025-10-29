@@ -67,14 +67,10 @@ export default function FinalizeDonorOfferPage() {
     handleFileChange,
     resetUpload: resetFileUpload,
   } = useFileUpload<{ donorOfferItems: DonorOfferItem[] }>({
-    previewEndpoint: `/api/donorOffers/${donorOfferId}/finalize?preview=true`,
+    previewEndpoint: `/api/donorOffers/${donorOfferId}?preview=true`,
+    previewEndpointMethod: "PATCH",
     onSuccess: (result) => {
       setPreviewData(result.donorOfferItems);
-    },
-    buildFormData: (_, formData) => {
-      formData.append("donorOfferId", donorOfferId);
-
-      return formData;
     },
   });
 
@@ -105,7 +101,7 @@ export default function FinalizeDonorOfferPage() {
     formData.append("file", uploadedFile);
 
     try {
-      await apiClient.post(`/api/donorOffers/${donorOfferId}/finalize`, {
+      await apiClient.patch(`/api/donorOffers/${donorOfferId}`, {
         body: formData,
       });
       setIsSuccess(true);
@@ -114,7 +110,7 @@ export default function FinalizeDonorOfferPage() {
     }
   };
 
-  if (isLoadingDetails) {
+  if (isLoadingDetails || !data) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
@@ -122,8 +118,8 @@ export default function FinalizeDonorOfferPage() {
     );
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (str: Date | string) => {
+    const date = new Date(str);
     return date.toISOString().split("T")[0];
   };
 

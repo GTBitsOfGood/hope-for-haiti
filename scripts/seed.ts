@@ -1733,7 +1733,7 @@ async function buildSeedData() {
         ? {
             items: {
               create: item.lineItems.map((lineItem) => ({
-                category: lineItem.category,
+                // category: lineItem.category,
                 donorName: lineItem.donorName,
                 quantity: lineItem.quantity,
                 lotNumber: lineItem.lotNumber,

@@ -60,7 +60,9 @@ const DonorOfferSchema = z.object({
 });
 
 const FinalizeDonorOfferItemSchema = z.object({
-  title: z.string().trim().min(1, "Title is required"),
+  // not in schema, but used to match to generalItem
+  title: z.string(),
+  unitType: z.string(),
   expirationDate: z
     .union([
       z.coerce.date(),
@@ -71,25 +73,24 @@ const FinalizeDonorOfferItemSchema = z.object({
         d.setUTCHours(0);
       }
       return d;
-    })
-    .optional(),
-  unitType: z.string(),
-  category: z.nativeEnum(ItemCategory),
+    }),
+  // end 
+  category: z.nativeEnum(ItemCategory).optional(),
   quantity: z
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  datePosted: z.coerce.date(),
   lotNumber: z.string(),
   palletNumber: z.string(),
   boxNumber: z.string(),
-  donorShippingNumber: z.string(),
-  hfhShippingNumber: z.string(),
+  donorShippingNumber: z.string().optional(),
+  hfhShippingNumber: z.string().optional(),
+  // have to consider $
   unitPrice: z
     .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
+    .transform((val) => (val.trim() === "" ? undefined : Number(val.trim().replace("$", "").replace(/,/g, ""))))
     .pipe(z.number().min(0)),
-  maxRequestLimit: z.string(),
+  maxRequestLimit: z.string().optional(),
   ndc: z.string().optional(),
   visible: z
     .string()
@@ -789,8 +790,6 @@ export default class DonorOfferService {
       return date.toISOString().split("T")[0];
     };
 
-    console.log(donorOffer);
-
     return {
       offerName: donorOffer.offerName,
       donorName: donorOffer.donorName,
@@ -873,9 +872,18 @@ export default class DonorOfferService {
 
       if (validItems.length > 0) {
         const itemsWithDonorOfferItemId = validItems.map((item) => ({
-          ...item,
+          // TODO: removed in future 
+          allowAllocations: true,
+          visible: true,
+          gik: true,
+          //
           donorName: donorOffer.donorName,
-          donorOfferItemId: donorOffer.items.find((di) => {
+          quantity: item.quantity,
+          lotNumber: item.lotNumber,
+          palletNumber: item.palletNumber,
+          boxNumber: item.boxNumber,
+          unitPrice: item.unitPrice,
+          generalItemId: donorOffer.items.find((di) => {
             const itemExpiration =
               DonorOfferService.normalizeExpirationDate(
                 item.expirationDate

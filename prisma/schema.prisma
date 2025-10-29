@@ -60,7 +60,6 @@ model LineItem {
   id Int @id @default(autoincrement())
 
   // Columns that define a unique line item
-  category            ItemCategory
   donorName           String
   quantity            Int
   lotNumber           String
