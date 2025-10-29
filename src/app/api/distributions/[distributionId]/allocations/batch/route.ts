@@ -16,10 +16,12 @@ const paramSchema = z.object({
   distributionId: z
     .string()
     .transform((value) => parseInt(value, 10))
-    .pipe(z.number().int().positive("Distribution ID must be a positive integer")),
+    .pipe(
+      z.number().int().positive("Distribution ID must be a positive integer")
+    ),
 });
 
-const requestSchema = z.object({
+const postRequestSchema = z.object({
   allocations: z
     .array(
       z.object({
@@ -28,6 +30,18 @@ const requestSchema = z.object({
       })
     )
     .min(1, "Allocations payload must include at least one allocation"),
+});
+
+const patchRequestSchema = z.object({
+  allocations: z
+    .array(
+      z.object({
+        id: z.number().int().positive(),
+      })
+    )
+    .min(1, "Allocations payload must include at least one allocation"),
+  distributionId: z.number().int().positive().optional(),
+  partnerId: z.number().int().positive().optional(),
 });
 
 export async function POST(
@@ -45,13 +59,15 @@ export async function POST(
     }
 
     const { distributionId: rawDistributionId } = await params;
-    const parsedParams = paramSchema.safeParse({ distributionId: rawDistributionId });
+    const parsedParams = paramSchema.safeParse({
+      distributionId: rawDistributionId,
+    });
     if (!parsedParams.success) {
       throw new ArgumentError(parsedParams.error.message);
     }
 
     const body = await request.json();
-    const parsedBody = requestSchema.safeParse(body);
+    const parsedBody = postRequestSchema.safeParse(body);
     if (!parsedBody.success) {
       throw new ArgumentError(parsedBody.error.message);
     }
@@ -65,7 +81,41 @@ export async function POST(
       parsedBody.data.allocations
     );
 
-    return NextResponse.json({ allocations: createdAllocations }, { status: 201 });
+    return NextResponse.json(
+      { allocations: createdAllocations },
+      { status: 201 }
+    );
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    if (!UserService.isAdmin(session.user.type)) {
+      throw new AuthorizationError("Admin access required");
+    }
+
+    const body = await request.json();
+    const parsedBody = patchRequestSchema.safeParse(body);
+    if (!parsedBody.success) {
+      throw new ArgumentError(parsedBody.error.message);
+    }
+
+    await AllocationService.updateAllocationBatch(
+      parsedBody.data.allocations.map((allocation) => allocation.id),
+      {
+        distributionId: parsedBody.data.distributionId,
+        partnerId: parsedBody.data.partnerId,
+      }
+    );
+
+    return NextResponse.json({ message: "Allocations updated successfully" });
   } catch (error) {
     return errorResponse(error);
   }

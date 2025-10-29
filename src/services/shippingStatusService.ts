@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { LineItem, Prisma, ShippingStatus } from "@prisma/client";
 import {
+  Shipment,
   ShippingStatusWithItems,
   UpdateShippingStatusData,
 } from "@/types/api/shippingStatus.types";
@@ -8,17 +9,101 @@ import { Filters, FilterValue } from "@/types/api/filter.types";
 import { buildWhereFromFilters } from "@/util/table";
 
 export class ShippingStatusService {
-  static async getShippingStatuses(
-    filters?: Filters,
+  static async getShipments(
     page?: number,
-    pageSize?: number
-  ): Promise<ShippingStatusWithItems> {
-    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
-
-    const lineItemWhereFilters = buildWhereFromFilters<Prisma.LineItemWhereInput>(
-      Object.keys(Prisma.LineItemScalarFieldEnum),
-      lineItemFilters
+    pageSize?: number,
+    filters?: Filters
+  ): Promise<{ data: Shipment[]; total: number }> {
+    const where = buildWhereFromFilters<Prisma.ShippingStatusWhereInput>(
+      Object.keys(Prisma.ShippingStatusScalarFieldEnum),
+      filters
     );
+
+    const [statuses, totalCount] = await Promise.all([
+      db.shippingStatus.findMany({
+        where,
+        skip: page && pageSize ? (page - 1) * pageSize : undefined,
+        take: pageSize,
+      }),
+      db.shippingStatus.count({ where }),
+    ]);
+
+    const lineItems = await db.lineItem.findMany({
+      where: {
+        donorShippingNumber: {
+          in: statuses.map((s) => s.donorShippingNumber),
+        },
+        hfhShippingNumber: { in: statuses.map((s) => s.hfhShippingNumber) },
+      },
+      include: {
+        generalItem: true,
+        allocation: {
+          include: {
+            partner: true,
+          },
+        },
+      },
+    });
+
+    const shipments: Shipment[] = statuses.map((status) => ({
+      ...status,
+      generalItems: [],
+    }));
+
+    for (const lineItem of lineItems) {
+      if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
+        continue;
+      }
+
+      const shipment = shipments.find(
+        (s) =>
+          s.donorShippingNumber === lineItem.donorShippingNumber &&
+          s.hfhShippingNumber === lineItem.hfhShippingNumber
+      );
+
+      if (!shipment) {
+        continue;
+      }
+
+      const generalItem = shipment.generalItems.find(
+        (gi) =>
+          gi.id == lineItem.generalItemId &&
+          gi.partner.id === lineItem.allocation!.partner!.id
+      );
+
+      if (!generalItem) {
+        shipment.generalItems.push({
+          ...lineItem.generalItem!,
+          partner: {
+            id: lineItem.allocation.partner.id,
+            name: lineItem.allocation.partner.name,
+          },
+          lineItems: [lineItem],
+        });
+      } else {
+        generalItem.lineItems.push(lineItem);
+      }
+    }
+
+    return {
+      data: shipments,
+      total: totalCount,
+    };
+  }
+
+  static async getShippingStatuses(
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
+  ): Promise<ShippingStatusWithItems> {
+    const { lineItemFilters, statusFilters } =
+      this.splitShippingFilters(filters);
+
+    const lineItemWhereFilters =
+      buildWhereFromFilters<Prisma.LineItemWhereInput>(
+        Object.keys(Prisma.LineItemScalarFieldEnum),
+        lineItemFilters
+      );
 
     const clauses: Prisma.LineItemWhereInput[] = [
       {
@@ -45,12 +130,14 @@ export class ShippingStatusService {
     page?: number,
     pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
+    const { lineItemFilters, statusFilters } =
+      this.splitShippingFilters(filters);
 
-    const lineItemWhereFilters = buildWhereFromFilters<Prisma.LineItemWhereInput>(
-      Object.keys(Prisma.LineItemScalarFieldEnum),
-      lineItemFilters
-    );
+    const lineItemWhereFilters =
+      buildWhereFromFilters<Prisma.LineItemWhereInput>(
+        Object.keys(Prisma.LineItemScalarFieldEnum),
+        lineItemFilters
+      );
 
     const clauses: Prisma.LineItemWhereInput[] = [
       {
@@ -116,7 +203,10 @@ export class ShippingStatusService {
     };
   }
 
-  private static matchesFilterValue(value: unknown, filter: FilterValue): boolean {
+  private static matchesFilterValue(
+    value: unknown,
+    filter: FilterValue
+  ): boolean {
     if (value === null || value === undefined) {
       return false;
     }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { UserType } from "@prisma/client";
-import Select from "react-select/creatable";
 import GeneralModal from "./GeneralModal";
 import { useUser } from "@/components/context/UserContext";
 import { isAdmin } from "@/lib/userUtils";
+import ConfiguredSelect from "@/components/ConfiguredSelect";
 
 interface EditModalProps {
   title: string;
@@ -197,7 +197,7 @@ export default function EditModal({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Tag
           </label>
-          <Select
+          <ConfiguredSelect
             value={
               formData.tag ? { value: formData.tag, label: formData.tag } : null
             }
@@ -210,21 +210,6 @@ export default function EditModal({
             }))}
             isClearable
             placeholder="Select or create a tag..."
-            className="react-select-container"
-            classNamePrefix="react-select"
-            styles={{
-              control: (provided, state) => ({
-                ...provided,
-                backgroundColor: "#f9fafb",
-                borderColor: state.isFocused ? "#ef4444" : "#d1d5db",
-                boxShadow: state.isFocused
-                  ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
-                  : "none",
-                "&:hover": {
-                  borderColor: state.isFocused ? "#ef4444" : "#d1d5db",
-                },
-              }),
-            }}
           />
         </div>
       </div>

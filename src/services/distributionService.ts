@@ -15,13 +15,115 @@ import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export default class DistributionService {
-  static async getAllDistributions() {
-    return db.distribution.findMany();
+  static async getAllDistributions(
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
+  ) {
+    const whereClause = buildWhereFromFilters(
+      Object.keys(Prisma.DistributionScalarFieldEnum),
+      filters
+    );
+
+    const [distributions, totalCount] = await Promise.all([
+      db.distribution.findMany({
+        where: whereClause,
+        include: {
+          partner: true,
+          allocations: {
+            include: {
+              lineItem: {
+                include: {
+                  generalItem: {
+                    include: {
+                      donorOffer: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        take: pageSize,
+        skip: page && pageSize ? (page - 1) * pageSize : undefined,
+      }),
+      db.distribution.count({
+        where: whereClause,
+      }),
+    ]);
+
+    // I tried doing the below with SQL, to no avail. No luck with Prisma either. There's no complex analytics here, so it should be fine.
+
+    // Generate map of general items by their ID
+    const generalItemsById: Record<
+      number,
+      (typeof distributions)[0]["allocations"][0]["lineItem"]["generalItem"]
+    > = {};
+
+    for (const distribution of distributions) {
+      for (const allocation of distribution.allocations) {
+        const generalItem = allocation.lineItem.generalItem;
+        if (generalItem) {
+          generalItemsById[generalItem.id] = generalItem;
+        }
+      }
+    }
+
+    // Group line items by their general item within each distribution
+    const distributionsWithGroupedItems = distributions.map((distribution) => {
+      const lineItems = distribution.allocations.map(
+        (allocation) => allocation.lineItem
+      );
+
+      const generalItemsById: Record<
+        number,
+        (typeof distributions)[0]["allocations"][0]["lineItem"]["generalItem"] & {
+          lineItems: Omit<
+            (typeof distributions)[0]["allocations"][0]["lineItem"],
+            "generalItem"
+          >[];
+        }
+      > = {};
+
+      // Add line items to their respective general items
+      for (const lineItem of lineItems) {
+        if (!lineItem.generalItem) continue;
+
+        if (!generalItemsById[lineItem.generalItem.id]) {
+          generalItemsById[lineItem.generalItem.id] = {
+            ...lineItem.generalItem,
+            lineItems: [],
+          };
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { generalItem, ...lineItemWithoutGeneralItem } = lineItem;
+
+        generalItemsById[lineItem.generalItem.id].lineItems.push(
+          lineItemWithoutGeneralItem
+        );
+      }
+
+      // Remove lineItem from allocations to avoid duplicating the data
+      const allocationsWithoutLineItems = distribution.allocations.map(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        ({ lineItem, ...allocation }) => allocation
+      );
+
+      return {
+        ...distribution,
+        allocations: allocationsWithoutLineItems,
+        generalItems: Object.values(generalItemsById),
+      };
+    });
+
+    return {
+      data: distributionsWithGroupedItems,
+      total: totalCount,
+    };
   }
 
-  static async getDistributionsForDonorOffer(
-    donorOfferId: number
-  ): Promise<
+  static async getDistributionsForDonorOffer(donorOfferId: number): Promise<
     Record<
       number,
       {
@@ -94,11 +196,21 @@ export default class DistributionService {
   }
 
   static async getSignedDistributions(
-    partnerId?: number
+    partnerId?: number,
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
   ): Promise<SignedDistribution[]> {
+    const whereClause = buildWhereFromFilters<Prisma.SignOffWhereInput>(
+      Object.keys(Prisma.SignOffScalarFieldEnum),
+      filters
+    );
+
     const signOffs = await db.signOff.findMany({
-      where: partnerId ? { partnerId } : {},
+      where: partnerId ? { partnerId, ...whereClause } : whereClause,
       include: { allocations: true },
+      take: pageSize,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
     });
 
     return signOffs.map((signOff) => ({
@@ -109,13 +221,26 @@ export default class DistributionService {
   }
 
   static async getPartnerDistributionItems(
-    partnerId?: number
+    partnerId?: number,
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
   ): Promise<DistributionItem[]> {
+    const whereClause = buildWhereFromFilters<Prisma.DistributionWhereInput>(
+      Object.keys(Prisma.DistributionScalarFieldEnum),
+      filters
+    );
+
     const distributions = await db.distribution.findMany({
-      where: partnerId ? { partner: { id: partnerId } } : {},
+      where: {
+        ...whereClause,
+        ...(partnerId ? { partner: { id: partnerId } } : {}),
+      },
       include: {
         allocations: true,
       },
+      take: pageSize,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
     });
 
     const items: DistributionItem[] = [];
@@ -165,10 +290,23 @@ export default class DistributionService {
   }
 
   static async getPartnerDistributions(
-    partnerId: number
+    partnerId: number,
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
   ): Promise<PartnerDistributionsResult> {
-    const distributionItemPromise = this.getPartnerDistributionItems(partnerId);
-    const signedDistributionPromise = this.getSignedDistributions(partnerId);
+    const distributionItemPromise = this.getPartnerDistributionItems(
+      partnerId,
+      page,
+      pageSize,
+      filters
+    );
+    const signedDistributionPromise = this.getSignedDistributions(
+      partnerId,
+      page,
+      pageSize,
+      filters
+    );
 
     return {
       distributionItems: await distributionItemPromise,

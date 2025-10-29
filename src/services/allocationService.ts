@@ -95,7 +95,9 @@ export default class AllocationService {
     allocations: { partnerId: number; lineItemId: number }[]
   ) {
     if (!allocations.length) {
-      throw new ArgumentError("Allocations payload must include at least one allocation");
+      throw new ArgumentError(
+        "Allocations payload must include at least one allocation"
+      );
     }
 
     try {
@@ -149,6 +151,31 @@ export default class AllocationService {
         }
         if (error.code === "P2002") {
           throw new ArgumentError("Item is already allocated.");
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async updateAllocationBatch(
+    ids: number[],
+    update: {
+      partnerId?: number;
+      distributionId?: number;
+    }
+  ) {
+    try {
+      return await db.allocation.updateMany({
+        where: { id: { in: ids } },
+        data: {
+          partnerId: update.partnerId,
+          distributionId: update.distributionId,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundError("One or more allocations not found");
         }
       }
       throw error;
