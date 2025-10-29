@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -11,6 +11,7 @@ import {
   AuthorizationError,
   NotFoundError,
   errorResponse,
+  ok,
 } from "@/util/errors";
 
 const paramSchema = z.object({
@@ -42,15 +43,13 @@ export async function POST(
 
     const donorOfferId = parsedParams.data.donorOfferId;
 
-    const donorOffer = await DonorOfferService.getDonorOfferForEdit(
-      donorOfferId
-    );
+    const donorOfferDetails = await DonorOfferService.getAdminDonorOfferDetails(donorOfferId);
 
-    if (!donorOffer) {
+    if (!donorOfferDetails) {
       throw new NotFoundError("Donor offer not found");
     }
 
-    if (donorOffer.state !== DonorOfferState.FINALIZED) {
+    if (donorOfferDetails.donorOffer.state !== DonorOfferState.FINALIZED) {
       throw new ArgumentError(
         "Only finalized donor offers can be submitted"
       );
@@ -60,7 +59,7 @@ export async function POST(
       state: DonorOfferState.ARCHIVED,
     });
 
-    return NextResponse.json({ ok: true });
+    return ok();
   } catch (error) {
     return errorResponse(error);
   }

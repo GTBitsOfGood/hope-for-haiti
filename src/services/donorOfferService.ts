@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { EmailClient } from "@/email";
 import {
   DonorOfferState,
   UserType,
@@ -912,53 +913,92 @@ export default class DonorOfferService {
     return { success: true, donorOfferId, createdCount: validItems.length };
   }
 
-  static async getDonorOfferForEdit(
-    donorOfferId: number
-  ): Promise<DonorOfferUpdateParams | null> {
-    const donorOffer = await db.donorOffer.findUnique({
-      where: { id: donorOfferId },
-      include: {
-        items: true,
-        partnerVisibilities: true,
-      },
-    });
-
-    if (!donorOffer) return null;
-
-    return {
-      id: donorOffer.id,
-      offerName: donorOffer.offerName,
-      donorName: donorOffer.donorName,
-      partnerResponseDeadline: donorOffer.partnerResponseDeadline,
-      donorResponseDeadline: donorOffer.donorResponseDeadline,
-      partners: donorOffer.partnerVisibilities.map((pv) => pv.id),
-      state: donorOffer.state,
-    };
-  }
-
   static async updateDonorOffer(
     donorOfferId: number,
     updateData: Partial<Omit<DonorOfferUpdateParams, "id">>
   ) {
+    const existingOffer = await db.donorOffer.findUnique({
+      where: { id: donorOfferId },
+      include: {
+        partnerVisibilities: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!existingOffer) {
+      throw new NotFoundError("Donor offer not found");
+    }
+
+    const existingPartnerIds = new Set(existingOffer.partnerVisibilities.map((partner) => partner.id));
+
+    const addedPartnerIds = updateData.partners?.filter(id => !existingPartnerIds.has(id)) ?? [];
+
+    let newPartners: { id: number; name: string; email: string }[] = [];
+
+    if (addedPartnerIds.length > 0) {
+      newPartners = await db.user.findMany({
+        where: {
+          id: { in: addedPartnerIds },
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      });
+
+      if (newPartners.length !== addedPartnerIds.length) {
+        throw new ArgumentError("One or more partner IDs are invalid");
+      }
+    }
+
     const update: Prisma.DonorOfferUpdateInput = {
       offerName: updateData.offerName,
       donorName: updateData.donorName,
       partnerResponseDeadline: updateData.partnerResponseDeadline,
       donorResponseDeadline: updateData.donorResponseDeadline,
-      ...(updateData.partners
+      ...(addedPartnerIds !== undefined
         ? {
             partnerVisibilities: {
-              set: updateData.partners.map((p) => ({ id: p })),
+              set: addedPartnerIds.map((partnerId) => ({ id: partnerId })),
             },
           }
         : {}),
       state: updateData.state,
     };
 
-    return await db.donorOffer.update({
+    const updatedOffer = await db.donorOffer.update({
       where: { id: donorOfferId },
       data: update,
     });
+
+    if (addedPartnerIds.length > 0) {
+      const generalItems = await db.generalItem.findMany({
+        where: { donorOfferId },
+        select: {
+          title: true,
+          description: true,
+          expirationDate: true,
+          unitType: true,
+          initialQuantity: true,
+          requestQuantity: true,
+        },
+      });
+
+      const emails = newPartners.map(partner => partner.email);
+
+      EmailClient.sendDonorOfferCreated(emails, {
+        offerName: updatedOffer.offerName,
+        donorName: updatedOffer.donorName,
+        partnerResponseDeadline: updatedOffer.partnerResponseDeadline,
+        donorResponseDeadline: updatedOffer.donorResponseDeadline,
+        offerUrl: `${process.env.BASE_URL}/donorOffers/${donorOfferId}`,
+        items: generalItems,
+      });
+    }
+
+    return updatedOffer;
   }
 
   static async archiveDonorOffer(donorOfferId: number): Promise<void> {

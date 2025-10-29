@@ -13,8 +13,8 @@ import {
   ok,
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
-import { formDataToObject } from "@/util/formData";
 import { tableParamsSchema } from "@/schema/tableParams";
+import { formDataToObject } from "@/util/formData";
 
 /**
  * Schema for getting offer ID from URL params
@@ -116,8 +116,8 @@ export async function GET(
         items: result.items,
         offerName: donorOffer.offerName,
         donorName: donorOffer.donorName,
-        partnerRequestDeadline: donorOffer.partnerResponseDeadline,
-        donorRequestDeadline: donorOffer.donorResponseDeadline,
+        partnerResponseDeadline: donorOffer.partnerResponseDeadline,
+        donorResponseDeadline: donorOffer.donorResponseDeadline,
       });
     } else {
       throw new AuthorizationError("Unauthorized user type");
@@ -206,6 +206,10 @@ export async function PATCH(
     }
 
     const formObj = formDataToObject(formData) as typeof updateSchema._input;
+
+    if ("partners" in formObj) {
+      formObj.partners = formObj.partners?.map(partnerId => Number(partnerId));
+    }
 
     const updateParsed = updateSchema.safeParse(formObj);
     if (!updateParsed.success) {

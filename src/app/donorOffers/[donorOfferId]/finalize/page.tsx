@@ -18,8 +18,7 @@ import { PartnerSearch as NewPartnerSearch, Partner } from "@/components/DonorOf
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import Link from "next/link";
-import { formatTableValue } from "@/util/format";
+import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
@@ -125,20 +124,7 @@ export default function FinalizeDonorOfferPage() {
 
   return (
     <div className="px-10 py-5">
-      <div className="flex flex-row justify-between items-center mb-4">
-        <div className="flex items-center gap-1">
-          <Link
-            href="/donorOffers"
-            className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1"
-          >
-            Donor Offers
-          </Link>
-          <span className="text-gray-500 text-sm flex items-center">/</span>
-          <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
-            {formatTableValue(String(donorOfferId))}
-          </span>
-        </div>
-      </div>
+      <DonorOfferHeader donorOfferId={donorOfferId} />
 
       <div className="mb-6 flex flex-col gap-4">
         <div>
