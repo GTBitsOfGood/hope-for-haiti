@@ -2,17 +2,17 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export default function DeactivationCheck() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(false);
+  const checkingRef = useRef(false);
 
   useEffect(() => {
     // Skip if still loading or already checking
-    if (status === "loading" || isChecking) return;
+    if (status === "loading" || checkingRef.current) return;
 
     // Skip check for public paths (no auth required)
     const publicPaths = [
@@ -28,13 +28,13 @@ export default function DeactivationCheck() {
 
     // If user is authenticated, check their enabled status from the database
     if (session?.user) {
-      setIsChecking(true);
+      checkingRef.current = true;
       
       // Fetch fresh enabled status from database
       fetch("/api/auth/check-enabled")
         .then((res) => res.json())
         .then((data) => {
-          setIsChecking(false);
+          checkingRef.current = false;
           const isEnabled = data.enabled !== false;
           
           // Check if user is deactivated
@@ -50,7 +50,7 @@ export default function DeactivationCheck() {
           }
         })
         .catch(() => {
-          setIsChecking(false);
+          checkingRef.current = false;
           // If fetch fails, fall back to session data
           const isEnabled = session.user.enabled !== false;
           
@@ -61,7 +61,7 @@ export default function DeactivationCheck() {
           }
         });
     }
-  }, [pathname, session, status, router, isChecking]);
+  }, [pathname, session, status, router]);
 
   return null;
 }
