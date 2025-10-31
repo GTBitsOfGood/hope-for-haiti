@@ -961,7 +961,7 @@ export default class DonorOfferService {
       ...(addedPartnerIds !== undefined
         ? {
             partnerVisibilities: {
-              set: addedPartnerIds.map((partnerId) => ({ id: partnerId })),
+              connect: addedPartnerIds.map((partnerId) => ({ id: partnerId })),
             },
           }
         : {}),

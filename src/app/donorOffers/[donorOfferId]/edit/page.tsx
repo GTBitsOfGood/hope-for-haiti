@@ -28,7 +28,7 @@ export default function EditDonorOfferPage() {
     donorResponseDeadline: string;
     partnerResponseDeadline: string;
     partners: Partner[];
-  }>(`/api/donorOffers/${donorOfferId}`, {
+  }>(`/api/donorOffers/${donorOfferId}?requests=false`, {
     onSuccess: (data) => {
       setOfferName(data.offerName);
       setDonorName(data.donorName);
