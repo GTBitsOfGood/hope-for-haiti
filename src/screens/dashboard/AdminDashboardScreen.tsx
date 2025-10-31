@@ -3,7 +3,13 @@
 import { useUser } from "@/components/context/UserContext";
 import { isAdmin } from "@/lib/userUtils";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
+import AnalyticsSection from "@/components/dashboard/AnalyticsSection";
+import MapSection from "@/components/dashboard/MapSection";
 import { generateMockNotifications } from "@/components/dashboard/types";
+import {
+  mockAnalyticsData,
+  mockPartnerLocations,
+} from "@/components/dashboard/analyticsData";
 import { useState } from "react";
 
 export default function AdminDashboardScreen() {
@@ -32,15 +38,9 @@ export default function AdminDashboardScreen() {
 
       <NotificationsSection notifications={notifications} />
 
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Analytics</h2>
-        <hr className="mb-4 border-gray-200" />
-      </div>
+      <AnalyticsSection widgets={mockAnalyticsData} />
 
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Map</h2>
-        <hr className="mb-4 border-gray-200" />
-      </div>
+      <MapSection partners={mockPartnerLocations} />
     </div>
   );
 }

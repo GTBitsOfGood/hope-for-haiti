@@ -24,7 +24,7 @@ export default function NotificationsSection({
         {notifications.length > 0 && (
           <button
             onClick={() => setIsPanelOpen(true)}
-            className="px-4 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+            className="px-4 py-1.5 text-sm font-medium text-red-primary bg-white border border-red-primary rounded-[4px] hover:bg-red-50 transition-colors"
           >
             View All
           </button>
