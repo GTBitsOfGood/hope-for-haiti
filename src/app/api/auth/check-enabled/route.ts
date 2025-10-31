@@ -7,7 +7,8 @@ export async function GET() {
     const session = await auth();
     
     if (!session?.user?.id) {
-      return NextResponse.json({ enabled: true }); // Not authenticated, allow access
+      // Not authenticated - return enabled: false to force them to sign in
+      return NextResponse.json({ enabled: false });
     }
 
     // Convert string id to number for database query
@@ -15,7 +16,8 @@ export async function GET() {
     
     if (isNaN(userId)) {
       console.error("Invalid user ID:", session.user.id);
-      return NextResponse.json({ enabled: true }, { status: 400 });
+      // Invalid ID - treat as deactivated for security
+      return NextResponse.json({ enabled: false }, { status: 400 });
     }
 
     // Fetch fresh enabled status from database
@@ -24,11 +26,18 @@ export async function GET() {
       select: { enabled: true },
     });
 
+    if (!user) {
+      // User not found - treat as deactivated for security
+      console.error("User not found:", userId);
+      return NextResponse.json({ enabled: false }, { status: 404 });
+    }
+
     return NextResponse.json({ 
-      enabled: user?.enabled ?? true 
+      enabled: user.enabled ?? false // Default to false for safety
     });
   } catch (error) {
     console.error("Error checking enabled status:", error);
-    return NextResponse.json({ enabled: true }, { status: 500 });
+    // On error, be STRICT - return false to prevent unauthorized access
+    return NextResponse.json({ enabled: false }, { status: 500 });
   }
 }
