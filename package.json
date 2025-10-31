@@ -22,6 +22,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@headlessui/react": "^2.2.1",
+    "@hello-pangea/dnd": "^18.0.1",
     "@phosphor-icons/react": "^2.1.7",
     "@prisma/client": "^6.4.1",
     "@sendgrid/mail": "^8.1.4",

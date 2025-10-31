@@ -2,19 +2,14 @@
 
 import { useState } from "react";
 import {
-  DndContext,
-  DragEndEvent,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+  DraggableProvided,
+  DraggableStateSnapshot,
+  DroppableProvided,
+} from "@hello-pangea/dnd";
 import { DotsSixVertical } from "@phosphor-icons/react";
 import DashboardWidget from "./widgets/DashboardWidget";
 import type { DashboardWidget as WidgetType } from "./analyticsData";
@@ -25,32 +20,20 @@ interface AnalyticsSectionProps {
 
 function SortableWidget({
   widget,
-  isDragging,
+  provided,
+  snapshot,
 }: {
   widget: WidgetType;
-  isDragging: boolean;
+  provided: DraggableProvided;
+  snapshot: DraggableStateSnapshot;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({
-      id: widget.id,
-    });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`${isDragging ? "opacity-50" : "relative"} h-full`}
+      className={`${snapshot.isDragging ? "opacity-50" : "relative"} h-full`}
     >
-      {!isDragging && (
+      {!snapshot.isDragging && (
         <div
-          {...attributes}
-          {...listeners}
+          {...provided.dragHandleProps}
           className="absolute top-2 right-2 cursor-grab active:cursor-grabbing z-20 rounded p-1"
         >
           <DotsSixVertical size={18} className="text-gray-500" />
@@ -63,40 +46,19 @@ function SortableWidget({
 
 export default function AnalyticsSection({ widgets }: AnalyticsSectionProps) {
   const [widgetsState, setWidgetsState] = useState(widgets);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
+  const handleDragEnd = (result: DropResult) => {
+    const { destination, source } = result;
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) {
-      setActiveId(null);
+    if (!destination || destination.index === source.index) {
       return;
     }
 
-    const oldIndex = widgetsState.findIndex((w) => w.id === active.id);
-    const newIndex = widgetsState.findIndex((w) => w.id === over.id);
-
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const newWidgets = Array.from(widgetsState);
-      const [moved] = newWidgets.splice(oldIndex, 1);
-      newWidgets.splice(newIndex, 0, moved);
-      setWidgetsState(newWidgets);
-    }
-
-    setActiveId(null);
+    const newWidgets = Array.from(widgetsState);
+    const [moved] = newWidgets.splice(source.index, 1);
+    newWidgets.splice(destination.index, 0, moved);
+    setWidgetsState(newWidgets);
   };
 
   return (
@@ -119,26 +81,51 @@ export default function AnalyticsSection({ widgets }: AnalyticsSectionProps) {
           ))}
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SortableContext
-              items={widgetsState.map((w) => w.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {widgetsState.map((widget) => (
-                <SortableWidget
-                  key={widget.id}
-                  widget={widget}
-                  isDragging={widget.id === activeId}
-                />
-              ))}
-            </SortableContext>
-          </div>
-        </DndContext>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable
+            droppableId="widgets"
+            direction="vertical"
+            isCombineEnabled={false}
+          >
+            {(provided: DroppableProvided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative"
+              >
+                {widgetsState.map((widget, index) => (
+                  <Draggable
+                    key={widget.id}
+                    draggableId={widget.id}
+                    index={index}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        style={{
+                          ...provided.draggableProps.style,
+                          // When dragging, remove from normal flow to prevent layout shift
+                          ...(snapshot.isDragging && {
+                            position: "fixed" as const,
+                          }),
+                        }}
+                        className={snapshot.isDragging ? "z-50" : ""}
+                      >
+                        <SortableWidget
+                          widget={widget}
+                          provided={provided}
+                          snapshot={snapshot}
+                        />
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       )}
     </div>
   );

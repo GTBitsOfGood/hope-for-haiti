@@ -40,7 +40,6 @@ function MarkerCluster({
       clusterGroupRef.current = null;
     }
 
-    // Type assertion needed because MarkerClusterGroup is added via module augmentation
     const MarkerClusterGroupClass = (
       L as unknown as {
         MarkerClusterGroup: new (
