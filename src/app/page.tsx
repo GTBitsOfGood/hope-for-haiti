@@ -1,22 +1,31 @@
 "use client";
 
 import { useUser } from "@/components/context/UserContext";
-import { signOut } from "next-auth/react";
+import { isAdmin } from "@/lib/userUtils";
+import AdminDashboardScreen from "@/screens/dashboard/AdminDashboardScreen";
 
 export default function HomePage() {
-  const { user } = useUser();
-  const handleSignout = () => signOut();
+  const { user, loading } = useUser();
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Show admin dashboard for admin users
+  if (user && isAdmin(user.type)) {
+    return <AdminDashboardScreen />;
+  }
+
+  // Default home page for non-admin users
   return (
     <>
       <h1 className="text-2xl font-semibold">Home</h1>
       <p className="mb-4">User Type: {user?.type}</p>
-      <button
-        onClick={handleSignout}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-      >
-        Sign Out
-      </button>
+      <p className="text-gray-600">Welcome to Hope for Haiti</p>
     </>
   );
 }
