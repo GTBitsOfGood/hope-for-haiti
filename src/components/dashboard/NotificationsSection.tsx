@@ -40,6 +40,7 @@ export default function NotificationsSection({
               key={notification.id}
               message={notification.message}
               actionText={notification.actionText}
+              actionUrl={notification.actionUrl}
             />
           ))}
           {hasMore && (

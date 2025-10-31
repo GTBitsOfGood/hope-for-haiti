@@ -24,7 +24,7 @@ interface MapComponentProps {
 export default function MapComponent({ partners }: MapComponentProps) {
   const haitiCenter: [number, number] = [18.9712, -72.2852];
   const haitiBounds: [[number, number], [number, number]] = [
-    [-12.2, -72.0],
+    [-11, -72.0],
     [19.9, -71.9],
   ];
 

@@ -67,6 +67,7 @@ export default function NotificationsPanel({
                       key={notification.id}
                       message={notification.message}
                       actionText={notification.actionText}
+                      actionUrl={notification.actionUrl}
                     />
                   ))}
                 </div>
@@ -84,6 +85,7 @@ export default function NotificationsPanel({
                       key={notification.id}
                       message={notification.message}
                       actionText={notification.actionText}
+                      actionUrl={notification.actionUrl}
                     />
                   ))}
                 </div>
