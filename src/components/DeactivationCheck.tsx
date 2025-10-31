@@ -13,7 +13,7 @@ export default function DeactivationCheck() {
 
   useEffect(() => {
     // Skip if still loading or already checking
-    if (status === "loading" || checkingRef.current) return;
+    if (status === "loading") return;
 
     // Skip check for public paths (no auth required)
     const publicPaths = [
@@ -72,12 +72,8 @@ export default function DeactivationCheck() {
           if (error.name !== 'AbortError') {
             checkingRef.current = false;
             
-            // On error, be STRICT - redirect to deactivated page for safety
-            // This prevents deactivated users from accessing routes when DB fails
-            console.error("Failed to check enabled status, redirecting to deactivated for safety:", error);
-            if (currentPathname !== "/deactivated") {
-              router.push("/deactivated");
-            }
+            // Log error but don't redirect on network/server errors
+            console.error("Failed to check enabled status:", error);
           }
         });
     }
