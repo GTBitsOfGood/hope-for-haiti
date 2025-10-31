@@ -12,10 +12,7 @@ import {
 } from "@/types/api/user.types";
 import { validatePassword } from "@/util/util";
 import { Filters } from "@/types/api/filter.types";
-import {
-  buildQueryWithPagination,
-  buildWhereFromFilters,
-} from "@/util/table";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 function parsePartnerDetails(raw?: string) {
   if (!raw) return undefined;
@@ -367,6 +364,52 @@ export default class UserService {
     });
 
     return results.map((r) => r.tag as string);
+  }
+
+  static async getPartnerLocations() {
+    const partners = await db.user.findMany({
+      where: {
+        type: UserType.PARTNER,
+        AND: [
+          {
+            partnerDetails: {
+              path: ["latitude"],
+              not: Prisma.DbNull,
+            },
+          },
+          {
+            partnerDetails: {
+              path: ["longitude"],
+              not: Prisma.DbNull,
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        partnerDetails: true,
+      },
+    });
+
+    return partners.map((partner) => ({
+      id: partner.id,
+      name: partner.name,
+      latitude: (partner.partnerDetails as Prisma.JsonObject).latitude,
+      longitude: (partner.partnerDetails as Prisma.JsonObject).longitude,
+    }));
+  }
+
+  static async countPartners(excludePartnerTags?: string[]) {
+    const whereClause: Prisma.UserWhereInput = { type: UserType.PARTNER };
+
+    if (excludePartnerTags && excludePartnerTags.length > 0) {
+      whereClause.tag = { notIn: excludePartnerTags };
+    }
+
+    return db.user.count({
+      where: whereClause,
+    });
   }
 
   static isAdmin(userType: UserType): boolean {

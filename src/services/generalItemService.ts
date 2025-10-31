@@ -5,9 +5,10 @@ import {
 } from "@/types/api/generalItem.types";
 import { NotFoundError } from "@/util/errors";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { Filters, FilterValue } from "@/types/api/filter.types";
-import { $Enums, GeneralItem, Prisma } from "@prisma/client";
+import { Filters } from "@/types/api/filter.types";
+import { $Enums, Prisma } from "@prisma/client";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import { GeneralItemWithRelations } from "@/types/api/generalItem.types";
 
 export class GeneralItemService {
   static async createGeneralItem(item: CreateGeneralItemParams) {
@@ -57,7 +58,7 @@ export class GeneralItemService {
       Object.keys(Prisma.GeneralItemScalarFieldEnum),
       filters
     );
-    
+
     const query: Prisma.GeneralItemFindManyArgs = {
       where: {
         ...filterWhere,
@@ -95,7 +96,7 @@ export class GeneralItemService {
     buildQueryWithPagination(query, page, pageSize);
 
     const [generalItems, total] = await Promise.all([
-      db.generalItem.findMany(query),
+      db.generalItem.findMany(query) as Promise<GeneralItemWithRelations[]>,
       db.generalItem.count({ where: {
         ...filterWhere,
         donorOffer: {
@@ -109,63 +110,146 @@ export class GeneralItemService {
       }, }),
     ]);
 
+    const itemsWithFilteredRequests = generalItems.map((item) => {
+      const archivedAt = item.donorOffer.archivedAt;
+
+      const filteredRequests = archivedAt
+        ? item.requests.filter((request) => request.createdAt >= archivedAt)
+        : item.requests;
+
+      return {
+        ...item,
+        requests: filteredRequests,
+      };
+    });
+
     return {
-      items: generalItems,
+      items: itemsWithFilteredRequests,
       total: total,
     };
   }
 
-  private static matchesFilters(
-    item: GeneralItem & { quantity: number },
-    filters: Filters
+  static async getAvailableItemsForPartner(
+    partnerId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number
   ) {
-    return Object.entries(filters).every(([field, filter]) => {
-      if (!filter) {
-        return true;
+    const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
+      Object.keys(Prisma.GeneralItemScalarFieldEnum),
+      filters
+    );
+
+    const where: Prisma.GeneralItemWhereInput = {
+      ...filterWhere,
+      OR: [
+        {
+          donorOffer: {
+            state: $Enums.DonorOfferState.UNFINALIZED,
+            partnerVisibilities: {
+              some: {
+                id: partnerId,
+              },
+            },
+          },
+        },
+        {
+          donorOffer: {
+            state: $Enums.DonorOfferState.ARCHIVED,
+            partnerVisibilities: {
+              some: {
+                id: partnerId,
+              },
+            },
+          },
+          items: {
+            some: {
+              allocation: null,
+            },
+          },
+        },
+      ],
+      requests: {
+        none: {
+          partnerId: partnerId,
+        },
+      },
+    };
+
+    const query: Prisma.GeneralItemFindManyArgs = {
+      where,
+      include: {
+        donorOffer: {
+          select: {
+            id: true,
+            offerName: true,
+            donorName: true,
+            state: true,
+            archivedAt: true,
+          },
+        },
+        items: {
+          where: {
+            allocation: null,
+          },
+          select: {
+            id: true,
+            quantity: true,
+          },
+        },
+      },
+      orderBy: {
+        id: "asc",
+      },
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    type GeneralItemWithRelations = Prisma.GeneralItemGetPayload<{
+      include: {
+        donorOffer: {
+          select: {
+            id: true;
+            offerName: true;
+            donorName: true;
+            state: true;
+            archivedAt: true;
+          };
+        };
+        items: {
+          where: {
+            allocation: null;
+          };
+          select: {
+            id: true;
+            quantity: true;
+          };
+        };
+      };
+    }>;
+
+    const [generalItems, total] = await Promise.all([
+      db.generalItem.findMany(query) as Promise<GeneralItemWithRelations[]>,
+      db.generalItem.count({ where }),
+    ]);
+
+    const itemsWithQuantity = generalItems.map((item) => {
+      let availableQuantity = item.initialQuantity;
+
+      if (item.donorOffer.state === $Enums.DonorOfferState.ARCHIVED) {
+        availableQuantity = item.items.reduce((sum: number, lineItem) => sum + lineItem.quantity, 0);
       }
 
-      const value = (item as Record<string, unknown>)[field];
-      return this.matchesFilterValue(value, filter);
+      return {
+        ...item,
+        availableQuantity,
+      };
     });
+
+    return {
+      items: itemsWithQuantity,
+      total,
+    };
   }
 
-  private static matchesFilterValue(
-    value: unknown,
-    filter: FilterValue
-  ): boolean {
-    if (value === null || value === undefined) {
-      return false;
-    }
-
-    switch (filter.type) {
-      case "string":
-        return String(value).toLowerCase().includes(filter.value.toLowerCase());
-      case "enum":
-        return filter.values.includes(String(value));
-      case "number": {
-        const num = Number(value);
-        if (Number.isNaN(num)) {
-          return false;
-        }
-        if (filter.lte !== undefined) {
-          return num >= filter.gte && num <= filter.lte;
-        }
-        return num >= filter.gte;
-      }
-      case "date": {
-        const dateValue = new Date(value as string).getTime();
-        const gte = new Date(filter.gte).getTime();
-        const lte = filter.lte ? new Date(filter.lte).getTime() : undefined;
-        if (Number.isNaN(dateValue)) {
-          return false;
-        }
-        if (lte !== undefined) {
-          return dateValue >= gte && dateValue <= lte;
-        }
-        return dateValue >= gte;
-      }
-      default:
-        return false;
-    }
-  }
 }

@@ -82,6 +82,7 @@ export class GeneralItemRequestService {
         quantity: data.quantity,
         comments: data.comments,
         priority: data.priority,
+        finalQuantity: data.quantity,
       },
     });
 
@@ -109,7 +110,6 @@ export class GeneralItemRequestService {
   static async bulkUpdateRequests(
     updates: Array<{ requestId: number; finalQuantity: number }>
   ) {
-    // Use transaction to ensure all updates succeed or fail together
     const results = await db.$transaction(
       updates.map(({ requestId, finalQuantity }) =>
         db.generalItemRequest.update({
@@ -135,5 +135,87 @@ export class GeneralItemRequestService {
       }
       throw error;
     }
+  }
+
+  static async getRequestsByPartnerId(
+    partnerId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number
+  ): Promise<GeneralItemRequestsResponse> {
+    const filterWhere =
+      buildWhereFromFilters<Prisma.GeneralItemRequestWhereInput>(
+        Object.keys(Prisma.GeneralItemRequestScalarFieldEnum),
+        filters
+      );
+
+    const where: Prisma.GeneralItemRequestWhereInput = {
+      ...filterWhere,
+      partnerId,
+      generalItem: {
+        donorOffer: {
+          OR: [
+            {
+              archivedAt: null,
+              state: "UNFINALIZED",
+            },
+            {
+              archivedAt: { not: null },
+              state: "ARCHIVED",
+              items: {
+                some: {
+                  items: {
+                    every: {
+                      allocation: null
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        
+      },
+    };
+
+    const query = Prisma.validator<Prisma.GeneralItemRequestFindManyArgs>()({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        generalItem: {
+          include: {
+            donorOffer: {
+              select: {
+                id: true,
+                offerName: true,
+                donorName: true,
+                state: true,
+                archivedAt: true,
+              },
+            },
+          },
+        },
+        partner: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [requests, total] = await Promise.all([
+      db.generalItemRequest.findMany(query),
+      db.generalItemRequest.count({ where }),
+    ]);
+
+    type RequestWithRelations = Prisma.GeneralItemRequestGetPayload<typeof query>;
+
+    return {
+      requests: requests as RequestWithRelations[],
+      total,
+    };
   }
 }
