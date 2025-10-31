@@ -34,7 +34,7 @@ model User {
   passwordHash String
   type         UserType
   tag          String?
-  enabled      Boolean  @default(false)
+  enabled      Boolean  @default(true)
   pending      Boolean  @default(true)
 
   donorOfferVisibilities DonorOffer[]

@@ -10,6 +10,22 @@ import { Prisma } from "@prisma/client";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
+    // Check if partner is enabled if partnerId is provided
+    if (data.partnerId) {
+      const partner = await db.user.findUnique({
+        where: { id: data.partnerId },
+        select: { enabled: true, type: true },
+      });
+      
+      if (!partner) {
+        throw new NotFoundError("Partner not found");
+      }
+      
+      if (!partner.enabled) {
+        throw new ArgumentError("Cannot create allocation for deactivated partner");
+      }
+    }
+    
     let itemId: number | undefined;
     if (data.itemId) {
       itemId = data.itemId;
@@ -98,6 +114,27 @@ export default class AllocationService {
       throw new ArgumentError("Allocations payload must include at least one allocation");
     }
 
+    // Check if all partners are enabled
+    const partnerIds = [...new Set(allocations.map(a => a.partnerId))];
+    const partners = await db.user.findMany({
+      where: { id: { in: partnerIds } },
+      select: { id: true, enabled: true },
+    });
+    
+    const enabledPartnerIds = new Set(
+      partners.filter(p => p.enabled).map(p => p.id)
+    );
+    
+    const deactivatedPartnerIds = partnerIds.filter(
+      id => !enabledPartnerIds.has(id)
+    );
+    
+    if (deactivatedPartnerIds.length > 0) {
+      throw new ArgumentError(
+        `Cannot create allocations for deactivated partners: ${deactivatedPartnerIds.join(", ")}`
+      );
+    }
+
     try {
       return await db.$transaction(
         allocations.map((allocation) =>
@@ -133,6 +170,22 @@ export default class AllocationService {
       signOffId?: number;
     }
   ) {
+    // Check if partner is enabled if partnerId is being updated
+    if (data.partnerId) {
+      const partner = await db.user.findUnique({
+        where: { id: data.partnerId },
+        select: { enabled: true },
+      });
+      
+      if (!partner) {
+        throw new NotFoundError("Partner not found");
+      }
+      
+      if (!partner.enabled) {
+        throw new ArgumentError("Cannot update allocation to deactivated partner");
+      }
+    }
+    
     try {
       return await db.allocation.update({
         where: { id },

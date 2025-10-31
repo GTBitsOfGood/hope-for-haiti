@@ -219,6 +219,16 @@ export default class DonorOfferService {
     page?: number,
     pageSize?: number
   ): Promise<PartnerDonorOffersResponse> {
+    // Check if the partner is enabled
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true },
+    });
+    
+    if (!partner?.enabled) {
+      return { donorOffers: [], total: 0 };
+    }
+    
     const filterWhere = buildWhereFromFilters<Prisma.DonorOfferWhereInput>(
       Object.keys(Prisma.DonorOfferScalarFieldEnum),
       filters
@@ -229,6 +239,7 @@ export default class DonorOfferService {
       partnerVisibilities: {
         some: {
           id: partnerId,
+          enabled: true,
         },
       },
     };
@@ -459,6 +470,7 @@ export default class DonorOfferService {
             in: partnerIds,
           },
           type: UserType.PARTNER,
+          enabled: true,
         },
         select: {
           id: true,
@@ -466,7 +478,7 @@ export default class DonorOfferService {
       });
 
       if (partners.length !== partnerIds.length) {
-        throw new ArgumentError("One or more partner IDs are invalid");
+        throw new ArgumentError("One or more partner IDs are invalid or deactivated");
       }
     }
 
@@ -961,6 +973,33 @@ export default class DonorOfferService {
     donorOfferId: number,
     updateData: Partial<Omit<DonorOfferUpdateParams, "id">>
   ) {
+    // Validate that all partners are enabled if partners are being updated
+    if (updateData.partners && updateData.partners.length > 0) {
+      const partners = await db.user.findMany({
+        where: { id: { in: updateData.partners } },
+        select: { id: true, enabled: true },
+      });
+
+      const deactivatedPartnerIds = partners
+        .filter((p) => !p.enabled)
+        .map((p) => p.id);
+
+      if (deactivatedPartnerIds.length > 0) {
+        throw new ArgumentError(
+          `Cannot update donor offer with deactivated partners: ${deactivatedPartnerIds.join(", ")}`
+        );
+      }
+
+      // Check if any partner IDs don't exist
+      if (partners.length !== updateData.partners.length) {
+        const foundIds = partners.map((p) => p.id);
+        const missingIds = updateData.partners.filter((id) => !foundIds.includes(id));
+        throw new ArgumentError(
+          `Partner(s) not found: ${missingIds.join(", ")}`
+        );
+      }
+    }
+
     const update: Prisma.DonorOfferUpdateInput = {
       offerName: updateData.offerName,
       donorName: updateData.donorName,

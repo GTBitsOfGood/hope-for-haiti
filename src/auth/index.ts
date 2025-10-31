@@ -16,6 +16,7 @@ class InvalidCredentialsError extends CredentialsSignin {
 declare module "next-auth" {
   interface User {
     type: UserType;
+    enabled: boolean;
   }
 
   interface Session {
@@ -23,6 +24,7 @@ declare module "next-auth" {
       id: string;
       type: UserType;
       tag?: string;
+      enabled: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -31,6 +33,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     type: UserType;
+    enabled: boolean;
   }
 }
 
@@ -59,6 +62,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: user.id.toString(),
           type: user.type,
+          enabled: user.enabled,
         };
       },
     }),
@@ -68,6 +72,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id || "";
         token.type = user.type;
+        token.enabled = user.enabled;
       }
 
       return token;
@@ -75,6 +80,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session({ session, token }) {
       session.user.id = token.id;
       session.user.type = token.type;
+      session.user.enabled = token.enabled;
 
       return session;
     },
