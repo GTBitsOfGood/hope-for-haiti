@@ -1,25 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useFetch } from "@/hooks/useFetch";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
-import { Wishlist } from "@prisma/client";
-import { $Enums } from "@prisma/client";
-import { priorityOptions } from "@/types/api/wishlist.types";
-import ModalTextField from "@/components/ModalTextField";
-import ModalDropDown from "@/components/ModalDropDown";
+import { Wishlist, $Enums } from "@prisma/client";
 import PriorityTag from "@/components/tags/PriorityTag";
-import {
-  Check,
-  PencilSimple,
-  X,
-  ChatTeardropText,
-  Trash,
-} from "@phosphor-icons/react";
+import { PencilSimple, ChatTeardropText, Trash } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
-import CommentModal from "@/components/CommentModal";
 import toast from "react-hot-toast";
-import BaseTable from "@/components/baseTable/BaseTable";
+import AdvancedBaseTable, {
+  AdvancedBaseTableHandle,
+  ColumnDefinition,
+  FilterList,
+  TableQuery,
+} from "@/components/baseTable/AdvancedBaseTable";
+import AddToWishlistModal, {
+  AddToWishlistForm,
+} from "@/components/AddToWishlistModal";
 
 type WishlistItem = Wishlist;
 type WishlistPriority = $Enums.RequestPriority;
@@ -31,554 +27,217 @@ export default function PartnerWishlistScreen({
   partnerId?: number;
   readOnly?: boolean;
 }) {
-  const endpoint = useMemo(() => {
-    // If partnerId provided (admin viewing a partner), query string is used
-    return partnerId
-      ? `/api/wishlists?partnerId=${partnerId}`
-      : "/api/wishlists";
-  }, [partnerId]);
-
-  const [items, setItems] = useState<WishlistItem[]>([]);
-  const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
-  const [editingIds, setEditingIds] = useState<Set<number>>(new Set());
-  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
-  const [newIds, setNewIds] = useState<Set<number>>(new Set());
-  const [originals, setOriginals] = useState<Map<number, WishlistItem>>(
-    new Map()
+  const endpoint = useMemo(
+    () =>
+      partnerId ? `/api/wishlists?partnerId=${partnerId}` : "/api/wishlists",
+    [partnerId]
   );
-
-  const { refetch } = useFetch<WishlistItem[]>(endpoint, {
-    cache: "no-store",
-    onSuccess: (data) => {
-      setItems(data);
-    },
-    onError: (error: unknown) => {
-      toast.error((error as Error).message);
-      setItems([]);
-    },
-  });
 
   const { apiClient } = useApiClient();
 
-  const isEditing = (id: number) => editingIds.has(id);
-  const isDeleting = (id: number) => deletingIds.has(id);
+  // 🔹 Table ref so we can reload after creating an item
+  const tableRef = useRef<AdvancedBaseTableHandle<WishlistItem>>(null);
 
-  const startEdit = (id: number) => {
-    if (readOnly) return;
-    // Cancel any pending delete confirmation first
-    setDeletingIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
+  // 🔹 Modal state
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [savingCreate, setSavingCreate] = useState(false);
 
-    setEditingIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    // Capture original snapshot once when editing begins
-    if (!originals.has(id)) {
-      const it = items.find((i) => i.id === id);
-      if (it) {
-        setOriginals((prev) => new Map(prev).set(id, { ...it }));
-      }
-    }
-  };
+  // 🔹 Example unit size options (replace or fetch as needed)
+  const unitSizeOptions = useMemo(
+    () => [
+      { label: "Box", value: "Box" },
+      { label: "Bottle", value: "Bottle" },
+      { label: "Pack", value: "Pack" },
+      { label: "Case", value: "Case" },
+    ],
+    []
+  );
 
-  const startDelete = (id: number) => {
-    if (readOnly) return;
-    // Cancel any pending edit first
-    cancelEdit(id);
-
-    setDeletingIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  };
-
-  const cancelDelete = (id: number) => {
-    setDeletingIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  };
-  const cancelEdit = (id: number, keepIfNew: boolean = false) => {
-    setEditingIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-    if (!keepIfNew) {
-      setNewIds((prev) => {
-        if (prev.has(id)) {
-          // New unsaved row: remove it entirely
-          setItems((itemsPrev) => itemsPrev.filter((i) => i.id !== id));
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        }
-        return prev;
+  const fetchFn = useCallback(
+    async (
+      pageSize: number,
+      page: number,
+      filters: FilterList<WishlistItem>
+    ): Promise<TableQuery<WishlistItem>> => {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        filters: JSON.stringify(filters ?? {}),
       });
-      // Existing row: revert to original snapshot if present
-      const original = originals.get(id);
-      if (original) {
-        setItems((prev) => prev.map((it) => (it.id === id ? original : it)));
-      }
-    }
-    // Clear snapshot in all cases once we exit edit
-    setOriginals((prev) => {
-      const next = new Map(prev);
-      next.delete(id);
-      return next;
-    });
-  };
+      const url = endpoint.includes("?")
+        ? `${endpoint}&${params}`
+        : `${endpoint}?${params}`;
+      // API returns an array (adjust if you later return { wishlists, total })
+      const data = await apiClient.get<WishlistItem[]>(url);
+      return { data, total: data.length };
+    },
+    [apiClient, endpoint]
+  );
 
-  const applyLocalChange = (id: number, patch: Partial<WishlistItem>) => {
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === id ? ({ ...it, ...patch } as WishlistItem) : it
-      )
-    );
-  };
-
-  const isItemComplete = (it: WishlistItem) => {
-    const nameOk = typeof it.name === "string" && it.name.trim().length > 0;
-    const unitOk =
-      typeof it.unitSize === "string" && it.unitSize.trim().length > 0;
-    const qtyOk = Number.isFinite(it.quantity) && it.quantity > 0;
-    const prOk =
-      it.priority === "LOW" ||
-      it.priority === "MEDIUM" ||
-      it.priority === "HIGH";
-    // comments is optional
-    return nameOk && unitOk && qtyOk && prOk;
-  };
-
-  const save = async (id: number) => {
+  const openCreateModal = () => {
     if (readOnly) return;
-    const item = items.find((i) => i.id === id);
-    if (!item) return;
-    if (!isItemComplete(item)) {
-      toast.error("Please fill out required fields before saving");
-      return;
-    }
+    setIsCreateOpen(true);
+  };
 
+  const openEditModal = (item: WishlistItem) => {
+    if (readOnly) return;
+    toast(`Open edit modal for #${item.id} (to be implemented)`);
+  };
+
+  const openDeleteModal = (item: WishlistItem) => {
+    if (readOnly) return;
+    toast(`Open delete modal for #${item.id} (to be implemented)`);
+  };
+
+  const onCreateSave = async (values: AddToWishlistForm) => {
     try {
-      if (newIds.has(id)) {
-        // Creating new item
-        await apiClient.post("/api/wishlists", {
-          body: JSON.stringify({
-            name: item.name,
-            unitSize: item.unitSize,
-            quantity: item.quantity,
-            priority: item.priority,
-            comments: item.comments || "",
-          }),
-        });
-        toast.success("Wishlist item created");
-      } else {
-        // Updating existing item
-        await apiClient.patch(`/api/wishlists/${id}`, {
-          body: JSON.stringify({
-            name: item.name,
-            unitSize: item.unitSize,
-            quantity: item.quantity,
-            priority: item.priority,
-            comments: item.comments || "",
-          }),
-        });
-        toast.success("Wishlist item updated");
-      }
-
-      setNewIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
+      setSavingCreate(true);
+      // Backend can infer partnerId from auth; include here if required
+      await apiClient.post("/api/wishlists", {
+        body: JSON.stringify({
+          ...values,
+          partnerId, // remove if your API ignores this and derives from session
+        }),
       });
-      cancelEdit(id, true);
-      refetch();
+      toast.success("Wishlist item created");
+      setIsCreateOpen(false);
+      tableRef.current?.reload();
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setSavingCreate(false);
     }
   };
 
-  const remove = async (id: number) => {
-    if (readOnly) return;
-    try {
-      await apiClient.delete(`/api/wishlists/${id}`);
-      setItems((prev) => prev.filter((i) => i.id !== id));
-      setDeletingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      toast.success("Wishlist item removed");
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  };
+  const columns: ColumnDefinition<WishlistItem>[] = [
+    {
+      id: "name",
+      header: "Title",
+      cell: (it) =>
+        it.name || <span className="text-gray-400 italic">(untitled)</span>,
+      filterType: "string",
+    },
+    {
+      id: "unitSize",
+      header: "Unit Size",
+      cell: (it) =>
+        it.unitSize || (
+          <span className="text-gray-400 italic">(unit size)</span>
+        ),
+      filterType: "string",
+    },
+    {
+      id: "quantity",
+      header: "Quantity requested",
+      cell: (it) => it.quantity,
+      filterType: "number",
+    },
+    {
+      id: "priority",
+      header: "Priority",
+      cell: (it) => <PriorityTag priority={it.priority as WishlistPriority} />,
+      filterType: "enum",
+      filterOptions: ["LOW", "MEDIUM", "HIGH"],
+    },
+    {
+      id: "lastUpdated",
+      header: "Last updated",
+      cell: (it) =>
+        it.lastUpdated ? new Date(it.lastUpdated).toLocaleDateString() : "-",
+      filterType: "date",
+    },
+    {
+      id: "comments",
+      header: "Comment",
+      cell: (it) => {
+        const text = it.comments || "";
+        const hasComment = text.trim().length > 0;
+        return (
+          <div className="flex items-center justify-center">
+            <ChatTeardropText
+              size={22}
+              className={hasComment ? "text-black" : "text-gray-300"}
+              data-tooltip-id={`wishlist-comment-${it.id}`}
+              data-tooltip-content={hasComment ? text : "(no comment)"}
+            />
+            {hasComment && (
+              <Tooltip
+                id={`wishlist-comment-${it.id}`}
+                className="max-w-64 whitespace-pre-wrap"
+              />
+            )}
+          </div>
+        );
+      },
+      filterType: "string",
+    },
+    {
+      id: "actions",
+      header: "Manage",
+      cell: (it) => (
+        <div className="flex gap-2">
+          <button
+            className={`border rounded-md size-7 flex items-center justify-center ${
+              readOnly ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"
+            }`}
+            onClick={() => !readOnly && openEditModal(it)}
+            disabled={readOnly}
+            title={readOnly ? "View only" : "Edit"}
+          >
+            <PencilSimple size={18} />
+          </button>
+          <button
+            className={`border rounded-md size-7 flex items-center justify-center ${
+              readOnly ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"
+            }`}
+            onClick={() => !readOnly && openDeleteModal(it)}
+            disabled={readOnly}
+            title={readOnly ? "View only" : "Delete"}
+          >
+            <Trash size={18} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const toolbar = !readOnly ? (
+    <button
+      onClick={openCreateModal}
+      className="inline-flex items-center gap-2 text-sm md:text-base px-4 py-2 bg-red-primary text-white rounded-md shadow-sm hover:brightness-95 active:translate-y-px transition"
+    >
+      <span aria-hidden className="text-lg leading-none">
+        +
+      </span>
+      Add item
+    </button>
+  ) : null;
 
   return (
     <div className="pb-32">
-      <CommentModal
-        isOpen={activeCommentId !== null && isEditing(activeCommentId)}
-        title={
-          (items.find((i) => i.id === activeCommentId)?.name || "Item") +
-          ": Comment"
-        }
-        initialValue={
-          activeCommentId
-            ? ((
-                items.find((i) => i.id === activeCommentId) as WishlistItem & {
-                  comments?: string;
-                  comment?: string;
-                }
-              )?.comments ??
-              (
-                items.find((i) => i.id === activeCommentId) as WishlistItem & {
-                  comments?: string;
-                  comment?: string;
-                }
-              )?.comment ??
-              "")
-            : ""
-        }
-        onClose={() => {
-          // Just close the comment modal; keep the row in edit mode
-          setActiveCommentId(null);
-        }}
-        onSave={(val: string) => {
-          if (activeCommentId !== null) {
-            applyLocalChange(activeCommentId, { comments: val });
-            // keep in edit mode; user can still hit Save row or cancel
-          }
-          setActiveCommentId(null);
-        }}
-      />
       <div className="flex items-start justify-between">
         <h1 className="text-2xl font-semibold text-gray-primary mb-2">
           Wishlist
         </h1>
-        {!readOnly && (
-          <button
-            onClick={() => {
-              const nextId = Math.max(0, ...items.map((i) => i.id)) + 1;
-              setItems((prev) => [
-                ...prev,
-                {
-                  id: nextId,
-                  name: "",
-                  unitSize: "",
-                  quantity: 0,
-                  priority: "LOW" as WishlistPriority,
-                  comments: "",
-                  partnerId: 0, // Will be set by backend
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                } as unknown as WishlistItem,
-              ]);
-              startEdit(nextId);
-              setNewIds((prev) => {
-                const next = new Set(prev);
-                next.add(nextId);
-                return next;
-              });
-            }}
-            className="inline-flex items-center gap-2 text-sm md:text-base px-4 py-2 bg-red-primary text-white rounded-md shadow-sm hover:brightness-95 active:translate-y-px transition"
-          >
-            <span aria-hidden className="text-lg leading-none">
-              +
-            </span>
-            Add item
-          </button>
-        )}
       </div>
 
-      <BaseTable
-        headers={[
-          "Title",
-          "Unit Size",
-          "Quantity requested",
-          "Priority",
-          "Last updated",
-          "Comment",
-          "Manage",
-        ]}
-        rows={items.map((it) => {
-          const lastUpdated = (it as WishlistItem & { updatedAt?: Date })
-            .updatedAt
-            ? new Date(
-                (it as WishlistItem & { updatedAt?: Date }).updatedAt!
-              ).toLocaleDateString()
-            : new Date().toLocaleDateString();
-          const isEditingItem = isEditing(it.id) && !isDeleting(it.id);
-          const isDeletingItem = isDeleting(it.id);
+      <AdvancedBaseTable<WishlistItem>
+        ref={tableRef}
+        columns={columns}
+        fetchFn={fetchFn}
+        rowId="id"
+        pageSize={25}
+        emptyState="No wishlist items found."
+        toolBar={toolbar}
+      />
 
-          return {
-            cells: isEditingItem
-              ? [
-                  // Editing mode - all input fields
-                  <ModalTextField
-                    key={`name-${it.id}`}
-                    name="name"
-                    placeholder="Title"
-                    inputProps={{
-                      defaultValue: it.name,
-                      onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                        applyLocalChange(it.id, { name: e.target.value }),
-                    }}
-                  />,
-                  <ModalTextField
-                    key={`unitSize-${it.id}`}
-                    name="unitSize"
-                    placeholder="Unit Size"
-                    inputProps={{
-                      defaultValue: it.unitSize,
-                      onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                        applyLocalChange(it.id, { unitSize: e.target.value }),
-                    }}
-                  />,
-                  <ModalTextField
-                    key={`quantity-${it.id}`}
-                    name="quantity"
-                    type="number"
-                    placeholder="Qty"
-                    inputProps={{
-                      defaultValue: it.quantity,
-                      min: 0,
-                      onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                        applyLocalChange(it.id, {
-                          quantity: Number(e.target.value),
-                        }),
-                    }}
-                  />,
-                  <ModalDropDown
-                    key={`priority-${it.id}-${it.priority}`}
-                    name="priority"
-                    placeholder="Priority"
-                    options={priorityOptions}
-                    required
-                    defaultSelected={{
-                      label:
-                        it.priority.charAt(0) +
-                        it.priority.slice(1).toLowerCase(),
-                      value: it.priority,
-                    }}
-                    renderOption={(opt) => <PriorityTag priority={opt.value} />}
-                    renderValue={(opt) => <PriorityTag priority={opt.value} />}
-                    onSelect={(value: string) =>
-                      applyLocalChange(it.id, {
-                        priority: value as WishlistPriority,
-                      })
-                    }
-                  />,
-                  lastUpdated,
-                  <button
-                    key={`comment-${it.id}`}
-                    type="button"
-                    onClick={() => setActiveCommentId(it.id)}
-                    className="rounded-full size-8 flex items-center justify-center border transition-colors hover:bg-gray-100"
-                    title="Edit comment"
-                  >
-                    <ChatTeardropText size={22} className="text-blue-500" />
-                  </button>,
-                  <div key={`actions-${it.id}`} className="flex gap-2">
-                    <button
-                      className="border border-red-primary rounded-md size-7 flex items-center justify-center"
-                      onClick={() => cancelEdit(it.id)}
-                      title="Cancel"
-                    >
-                      <X className="text-red-primary" size={18} />
-                    </button>
-                    <button
-                      className={`bg-blue-primary rounded-md size-7 flex items-center justify-center text-white ${!isItemComplete(it) ? "opacity-50 cursor-not-allowed" : ""}`}
-                      onClick={() => {
-                        if (!isItemComplete(it)) return;
-                        save(it.id);
-                      }}
-                      disabled={!isItemComplete(it)}
-                      title={
-                        isItemComplete(it)
-                          ? "Save"
-                          : "Fill required fields to save"
-                      }
-                    >
-                      <Check size={18} />
-                    </button>
-                  </div>,
-                ]
-              : isDeletingItem
-                ? [
-                    // Deleting mode - show data with delete confirmation
-                    <span key={`delete-name-${it.id}`}>
-                      {it.name || (
-                        <span className="text-gray-400 italic">(untitled)</span>
-                      )}
-                    </span>,
-                    <span key={`delete-unitSize-${it.id}`}>
-                      {it.unitSize || (
-                        <span className="text-gray-400 italic">
-                          (unit size)
-                        </span>
-                      )}
-                    </span>,
-                    <span key={`delete-quantity-${it.id}`}>{it.quantity}</span>,
-                    <PriorityTag
-                      key={`delete-priority-${it.id}`}
-                      priority={it.priority}
-                    />,
-                    lastUpdated,
-                    <div key={`delete-comment-${it.id}`}>
-                      <ChatTeardropText
-                        data-tooltip-id={`wishlist-comment-${it.id}`}
-                        data-tooltip-content={
-                          (
-                            it as WishlistItem & {
-                              comments?: string;
-                              comment?: string;
-                            }
-                          ).comments ||
-                          (
-                            it as WishlistItem & {
-                              comments?: string;
-                              comment?: string;
-                            }
-                          ).comment ||
-                          ""
-                        }
-                        size={22}
-                        className={`${(it as WishlistItem & { comments?: string; comment?: string }).comments || (it as WishlistItem & { comments?: string; comment?: string }).comment ? "text-black" : "text-gray-300"}`}
-                      />
-                      {((
-                        it as WishlistItem & {
-                          comments?: string;
-                          comment?: string;
-                        }
-                      ).comments ||
-                        (
-                          it as WishlistItem & {
-                            comments?: string;
-                            comment?: string;
-                          }
-                        ).comment) && (
-                        <Tooltip
-                          key={`wishlist-comment-${it.id}-${(it as WishlistItem & { comments?: string; comment?: string }).comments || (it as WishlistItem & { comments?: string; comment?: string }).comment}`}
-                          id={`wishlist-comment-${it.id}`}
-                          className="max-w-64 whitespace-pre-wrap"
-                        />
-                      )}
-                    </div>,
-                    <div key={`delete-actions-${it.id}`} className="flex gap-2">
-                      <button
-                        className="border border-gray-400 rounded-md size-7 flex items-center justify-center"
-                        onClick={() => cancelDelete(it.id)}
-                        title="Cancel Delete"
-                      >
-                        <X className="text-gray-600" size={18} />
-                      </button>
-                      <button
-                        className="bg-red-primary rounded-md size-7 flex items-center justify-center text-white"
-                        onClick={() => remove(it.id)}
-                        title="Confirm Delete"
-                      >
-                        <Check size={18} />
-                      </button>
-                    </div>,
-                  ]
-                : [
-                    <span key={`view-name-${it.id}`}>
-                      {it.name || (
-                        <span className="text-gray-400 italic">(untitled)</span>
-                      )}
-                    </span>,
-                    <span key={`view-unitSize-${it.id}`}>
-                      {it.unitSize || (
-                        <span className="text-gray-400 italic">
-                          (unit size)
-                        </span>
-                      )}
-                    </span>,
-                    <span key={`view-quantity-${it.id}`}>{it.quantity}</span>,
-                    <PriorityTag
-                      key={`view-priority-${it.id}`}
-                      priority={it.priority}
-                    />,
-                    lastUpdated,
-                    <div key={`view-comment-${it.id}`}>
-                      <ChatTeardropText
-                        data-tooltip-id={`wishlist-comment-${it.id}`}
-                        data-tooltip-content={
-                          (
-                            it as WishlistItem & {
-                              comments?: string;
-                              comment?: string;
-                            }
-                          ).comments ||
-                          (
-                            it as WishlistItem & {
-                              comments?: string;
-                              comment?: string;
-                            }
-                          ).comment ||
-                          ""
-                        }
-                        size={22}
-                        className={`${(it as WishlistItem & { comments?: string; comment?: string }).comments || (it as WishlistItem & { comments?: string; comment?: string }).comment ? "text-black" : "text-gray-300"}`}
-                      />
-                      {((
-                        it as WishlistItem & {
-                          comments?: string;
-                          comment?: string;
-                        }
-                      ).comments ||
-                        (
-                          it as WishlistItem & {
-                            comments?: string;
-                            comment?: string;
-                          }
-                        ).comment) && (
-                        <Tooltip
-                          key={`wishlist-comment-${it.id}-${(it as WishlistItem & { comments?: string; comment?: string }).comments || (it as WishlistItem & { comments?: string; comment?: string }).comment}`}
-                          id={`wishlist-comment-${it.id}`}
-                          className="max-w-64 whitespace-pre-wrap"
-                        />
-                      )}
-                    </div>,
-                    <div key={`view-actions-${it.id}`} className="flex gap-2">
-                      <button
-                        className={`border rounded-md size-7 flex items-center justify-center ${readOnly ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
-                        onClick={() => {
-                          if (readOnly) return;
-                          startEdit(it.id);
-                        }}
-                        disabled={readOnly}
-                        title={readOnly ? "View only" : "Edit"}
-                      >
-                        <PencilSimple size={18} />
-                      </button>
-                      <button
-                        className={`border rounded-md size-7 flex items-center justify-center ${readOnly ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
-                        onClick={() => {
-                          if (readOnly) return;
-                          startDelete(it.id);
-                        }}
-                        disabled={readOnly}
-                        title={readOnly ? "View only" : "Delete"}
-                      >
-                        <Trash size={18} />
-                      </button>
-                    </div>,
-                  ],
-            className: isEditingItem
-              ? "bg-blue-50"
-              : isDeletingItem
-                ? "bg-red-50"
-                : undefined,
-          };
-        })}
+      {/* Add to Wishlist modal */}
+      <AddToWishlistModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSave={onCreateSave}
+        unitSizeOptions={unitSizeOptions}
+        saving={savingCreate}
       />
     </div>
   );

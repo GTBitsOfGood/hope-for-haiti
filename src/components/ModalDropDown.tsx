@@ -1,4 +1,11 @@
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { FaChevronDown } from "react-icons/fa";
 
@@ -40,7 +47,11 @@ export default function ModalDropDown({
   );
   const dropdownRef = useRef<HTMLDivElement>(null); // Attach ref to the root <div>
   const menuRef = useRef<HTMLUListElement>(null);
-  const [menuPos, setMenuPos] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+  } | null>(null);
 
   const measureAndPosition = useCallback(() => {
     const root = dropdownRef.current;
@@ -53,7 +64,9 @@ export default function ModalDropDown({
     const estItemHeight = 36; // px
     const estMenuHeight = Math.min(options.length, 6) * estItemHeight;
     const shouldUp = spaceBelow < estMenuHeight + 16 && spaceAbove > spaceBelow;
-    const top = shouldUp ? Math.max(8, rect.top - estMenuHeight - 4) : Math.min(window.innerHeight - 8, rect.bottom + 4);
+    const top = shouldUp
+      ? Math.max(8, rect.top - estMenuHeight - 4)
+      : Math.min(window.innerHeight - 8, rect.bottom + 4);
     setMenuPos({ left, top, width });
   }, [options.length]);
 
@@ -111,7 +124,7 @@ export default function ModalDropDown({
   }, [isOpen, measureAndPosition]);
 
   const selectedOption = useMemo(() => {
-    return options.find(o => o.value === selectedOptionValue) || null;
+    return options.find((o) => o.value === selectedOptionValue) || null;
   }, [options, selectedOptionValue]);
 
   return (
@@ -128,28 +141,39 @@ export default function ModalDropDown({
           <button
             type="button"
             onClick={toggleDropdown}
-            className="mt-1 flex w-full items-center justify-between gap-2 px-3 py-2 border border-gray-primary border-opacity-10 rounded-sm bg-sunken text-gray-primary placeholder-gray-primary focus:outline-none focus:border-gray-400"
+            className="h-10 mt-1 flex w-full items-center justify-between gap-2 px-3 py-2 border border-gray-primary border-opacity-10 rounded-sm bg-sunken text-gray-primary placeholder-gray-primary focus:outline-none focus:border-gray-400"
           >
             <span className="truncate text-left">
-              {selectedOption
-                ? (renderValue?.(selectedOption) ?? selectedOption.fullLabel ?? selectedOptionLabel)
-                : <span className="text-gray-primary/50">{placeholder}</span>}
+              {selectedOption ? (
+                (renderValue?.(selectedOption) ??
+                selectedOption.fullLabel ??
+                selectedOptionLabel)
+              ) : (
+                <span className="text-gray-primary/50">{placeholder}</span>
+              )}
             </span>
             <FaChevronDown className="text-gray-400" />
           </button>
         </div>
-        {isOpen && menuPos &&
+        {isOpen &&
+          menuPos &&
           createPortal(
             <ul
               ref={menuRef}
               className="fixed z-[9999] bg-white border border-gray-primary border-opacity-10 rounded-sm shadow-lg max-h-48 overflow-y-auto"
-              style={{ left: menuPos.left, top: menuPos.top, width: menuPos.width }}
+              style={{
+                left: menuPos.left,
+                top: menuPos.top,
+                width: menuPos.width,
+              }}
             >
               {options.map((option, index) => (
                 <li
                   key={index}
                   className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
-                  onClick={() => handleSelect({ label: option.label, value: option.value })}
+                  onClick={() =>
+                    handleSelect({ label: option.label, value: option.value })
+                  }
                 >
                   {renderOption?.(option) ?? option.fullLabel ?? option.label}
                 </li>

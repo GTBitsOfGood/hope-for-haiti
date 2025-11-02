@@ -3,12 +3,16 @@ interface ModalTextFieldProps {
   placeholder: string;
   required?: boolean;
   name: string;
+  defaultValue?: string;
+  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }
 export default function ModalTextField({
   label,
   required,
   placeholder,
   name,
+  defaultValue,
+  onChange,
 }: ModalTextFieldProps) {
   return (
     <div className="grow">
@@ -20,6 +24,8 @@ export default function ModalTextField({
           rows={5}
           placeholder={placeholder}
           name={name}
+          defaultValue={defaultValue}
+          onChange={onChange}
         ></textarea>
       </label>
     </div>

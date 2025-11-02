@@ -13,16 +13,24 @@ export type AzureOpenAIConfig = {
   deployment?: string;
 };
 
-export function getAzureOpenAIConfig(): AzureOpenAIConfig {
+export function getAzureOpenAIConfig(
+  embedding: boolean = false
+): AzureOpenAIConfig {
   return {
     endpoint: process.env.AZURE_OPENAI_ENDPOINT,
     apiKey: process.env.AZURE_OPENAI_API_KEY,
-    deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+    deployment: embedding
+      ? process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+      : process.env.AZURE_OPENAI_DEPLOYMENT,
   };
 }
 
-export function getOpenAIClient(): { client: OpenAI | null; deployment: string | null; reason?: string } {
-  const { endpoint, apiKey, deployment } = getAzureOpenAIConfig();
+export function getOpenAIClient(embedding: boolean = false): {
+  client: OpenAI | null;
+  deployment: string | null;
+  reason?: string;
+} {
+  const { endpoint, apiKey, deployment } = getAzureOpenAIConfig(embedding);
   if (!endpoint || !apiKey || !deployment) {
     return {
       client: null,
@@ -32,7 +40,8 @@ export function getOpenAIClient(): { client: OpenAI | null; deployment: string |
   }
 
   // The OpenAI SDK supports Azure by setting baseURL and api-version header
-  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-08-01-preview";
+  const apiVersion =
+    process.env.AZURE_OPENAI_API_VERSION || "2024-08-01-preview";
   const baseEndpoint = endpoint.replace(/\/+$/, ""); // trim trailing slashes
   const client = new OpenAI({
     apiKey,
