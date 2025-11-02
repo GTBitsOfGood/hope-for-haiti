@@ -1,26 +1,44 @@
 import { shippingStatusToText } from "@/util/util";
 import { $Enums } from "@prisma/client";
+import OptionsTag from "./OptionsTag";
 
 export default function ShippingStatusTag({
   status,
 }: {
   status: $Enums.ShipmentStatus;
 }) {
-  const text = shippingStatusToText[status];
-  let className = "bg-blue-primary/20 text-blue-primary";
+  const defaultClassName = "bg-blue-primary/20 text-blue-primary";
 
-  switch (status) {
-    case $Enums.ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR:
-      className = "bg-yellow-primary text-orange-primary";
-      break;
-    case $Enums.ShipmentStatus.READY_FOR_DISTRIBUTION:
-      className = "bg-green-primary text-green-dark";
-      break;
-  }
+  const styleMap = new Map([
+    ...Object.keys(shippingStatusToText).map(
+      (key) =>
+        [
+          key,
+          {
+            text: shippingStatusToText[key as $Enums.ShipmentStatus],
+            className: defaultClassName,
+          },
+        ] as [string, { text: string; className: string }]
+    ),
+    [
+      $Enums.ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
+      {
+        text: shippingStatusToText[
+          $Enums.ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR
+        ],
+        className: "bg-yellow-primary text-orange-primary",
+      },
+    ],
+    [
+      $Enums.ShipmentStatus.READY_FOR_DISTRIBUTION,
+      {
+        text: shippingStatusToText[
+          $Enums.ShipmentStatus.READY_FOR_DISTRIBUTION
+        ],
+        className: "bg-green-primary text-green-dark",
+      },
+    ],
+  ]);
 
-  return (
-    <span className={`rounded px-3 py-1 text-sm font-semibold ${className}`}>
-      {text}
-    </span>
-  );
+  return <OptionsTag value={status} styleMap={styleMap} />;
 }
