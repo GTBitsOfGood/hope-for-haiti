@@ -5,12 +5,12 @@ import AdvancedBaseTable, {
   FilterList,
 } from "./baseTable/AdvancedBaseTable";
 import { Shipment } from "@/types/api/shippingStatus.types";
-import Chip from "./Chip";
-import { $Enums } from "@prisma/client";
-import { DotsThreeVertical, Clock, ArrowLeft } from "@phosphor-icons/react";
+import Chip from "./chips/Chip";
+import { DotsThreeVertical, Clock } from "@phosphor-icons/react";
 import Portal from "./baseTable/Portal";
-import ConfiguredSelect from "./ConfiguredSelect";
-import toast from "react-hot-toast";
+import ChangeShippingStatusMenu from "./ChangeShippingStatusMenu";
+import ShippingStatusTag from "./tags/ShippingStatusTag";
+import GeneralItemChipGroup from "./chips/GeneralItemChipGroup";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
@@ -53,7 +53,7 @@ export default function ShipmentsTable() {
         {
           id: "status",
           header: "Status",
-          cell: (shipment) => <StatusBubble status={shipment.value} />,
+          cell: (shipment) => <ShippingStatusTag status={shipment.value} />,
         },
         {
           id: "partners",
@@ -83,37 +83,6 @@ export default function ShipmentsTable() {
         <GeneralItemChipGroup generalItems={shipment.generalItems} />
       )}
     />
-  );
-}
-
-const shippingStatusToText = {
-  [$Enums.ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR]:
-    "Awaiting Arrival from Donor",
-  [$Enums.ShipmentStatus.READY_FOR_DISTRIBUTION]: "Ready for Distribution",
-  [$Enums.ShipmentStatus.ARRIVED_AT_DEPO]: "Arrived at Depot",
-  [$Enums.ShipmentStatus.ARRIVED_IN_HAITI]: "Arrived in Haiti",
-  [$Enums.ShipmentStatus.CLEARED_CUSTOMS]: "Cleared Customs",
-  [$Enums.ShipmentStatus.INVENTORIES]: "Inventories",
-  [$Enums.ShipmentStatus.LOAD_ON_SHIP_AIR]: "Load on Ship/Air",
-};
-
-function StatusBubble({ status }: { status: $Enums.ShipmentStatus }) {
-  const text = shippingStatusToText[status];
-  let className = "bg-blue-primary/20 text-blue-primary";
-
-  switch (status) {
-    case $Enums.ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR:
-      className = "bg-yellow-primary text-orange-primary";
-      break;
-    case $Enums.ShipmentStatus.READY_FOR_DISTRIBUTION:
-      className = "bg-green-primary text-green-dark";
-      break;
-  }
-
-  return (
-    <span className={`rounded px-3 py-1 text-sm font-semibold ${className}`}>
-      {text}
-    </span>
   );
 }
 
@@ -162,7 +131,7 @@ function OptionsButton({
         position="bottom-left"
         className="bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm"
       >
-        <ChangeStatusMenu
+        <ChangeShippingStatusMenu
           shipment={shipment}
           fetchTableData={fetchTableData}
           back={() => {
@@ -171,90 +140,6 @@ function OptionsButton({
           }}
         />
       </Portal>
-    </div>
-  );
-}
-
-function ChangeStatusMenu({
-  shipment,
-  fetchTableData,
-  back,
-}: {
-  shipment: Shipment;
-  fetchTableData: () => void;
-  back: () => void;
-}) {
-  const { apiClient } = useApiClient();
-
-  async function onChangeStatus(newStatus: $Enums.ShipmentStatus | undefined) {
-    if (!newStatus || newStatus === shipment.value) return;
-
-    const url = new URLSearchParams({
-      donorShippingNumber: shipment.donorShippingNumber,
-      hfhShippingNumber: shipment.hfhShippingNumber,
-    });
-
-    const promise = apiClient.patch(`/api/shipments?${url}`, {
-      body: JSON.stringify({ status: newStatus }),
-    });
-
-    toast.promise(promise, {
-      loading: "Updating status...",
-      success: "Status updated",
-      error: "Error updating status",
-    });
-
-    await promise;
-    fetchTableData();
-  }
-
-  return (
-    <>
-      <div className="flex items-center gap-1">
-        <button onClick={back} className="p-1 rounded hover:bg-gray-100">
-          <ArrowLeft size={16} />
-        </button>
-        <p className="font-bold">Change Status</p>
-      </div>
-      <ConfiguredSelect
-        value={{
-          value: shipment.value,
-          label: shippingStatusToText[shipment.value],
-        }}
-        onChange={(newVal) => onChangeStatus(newVal?.value)}
-        options={Object.values($Enums.ShipmentStatus).map((status) => ({
-          value: status,
-          label: shippingStatusToText[status],
-        }))}
-        placeholder="Select status"
-      />
-    </>
-  );
-}
-
-function GeneralItemChipGroup({
-  generalItems,
-}: {
-  generalItems: Shipment["generalItems"];
-}) {
-  return (
-    <div className="w-full bg-sunken flex flex-wrap p-2">
-      {generalItems.length === 0 && (
-        <p className="w-full text-center text-gray-primary">
-          No line items available.
-        </p>
-      )}
-      {generalItems.map((item) => (
-        <Chip
-          key={`${item.id}-${item.partner.id}`}
-          title={item.title}
-          label={item.partner.name}
-          revisedAmount={item.lineItems.reduce(
-            (total, li) => li.quantity + total,
-            0
-          )}
-        />
-      ))}
     </div>
   );
 }

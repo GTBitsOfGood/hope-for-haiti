@@ -1,7 +1,7 @@
 import { useApiClient } from "@/hooks/useApiClient";
 import { toast } from "react-hot-toast";
-import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
-import { AllocationTableItem } from "./allocationTable/types";
+import { AdvancedBaseTableHandle } from "../baseTable/AdvancedBaseTable";
+import { AllocationTableItem } from "../allocationTable/types";
 import Chip from "./Chip";
 
 export interface PartnerDistributionSummary {

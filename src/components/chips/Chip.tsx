@@ -1,5 +1,5 @@
 import { ReactNode, useRef, useState } from "react";
-import Portal from "./baseTable/Portal";
+import Portal from "../baseTable/Portal";
 
 /**
  * Set showLabel to true to display the label even when it is empty.
