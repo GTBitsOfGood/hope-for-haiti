@@ -69,3 +69,31 @@ export interface SignOff {
   signatureUrl: string;
   partnerId: number;
 }
+
+export type TableAllocation = {
+  id: number;
+  lineItemId: number;
+};
+
+export type TableDistribution = {
+  id: number;
+  pending: boolean;
+  partner: {
+    id: number;
+    name: string;
+  };
+  allocations: TableAllocation[];
+  generalItems: {
+    id: number;
+    title: string;
+    donorOffer: {
+      donorName: string;
+    };
+    lineItems: {
+      id: number;
+      quantity: number;
+      hfhShippingNumber: string | null;
+      donorShippingNumber: string | null;
+    }[];
+  }[];
+};

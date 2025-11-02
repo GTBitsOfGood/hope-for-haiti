@@ -1,7 +1,7 @@
 import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./Chip";
 
-export default function GeneralItemChipGroup({
+export default function ShipmentsGeneralItemChipGroup({
   generalItems,
 }: {
   generalItems: Shipment["generalItems"];

@@ -10,7 +10,7 @@ import { DotsThreeVertical, Clock } from "@phosphor-icons/react";
 import Portal from "./baseTable/Portal";
 import ChangeShippingStatusMenu from "./ChangeShippingStatusMenu";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
-import GeneralItemChipGroup from "./chips/GeneralItemChipGroup";
+import GeneralItemChipGroup from "./chips/ShipmentsGeneralItemChipGroup";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
