@@ -62,7 +62,13 @@ function GeneralItemChip({
   }
 
   async function transferLineItems() {
-    if (!selectedDistribution || selectedLineItems.length === 0) {
+    if (!selectedDistribution) {
+      toast.error("Please select a distribution to transfer to.");
+      return;
+    }
+
+    if (selectedLineItems.length === 0) {
+      toast.error("Please select at least one line item to transfer.");
       return;
     }
 
@@ -75,6 +81,7 @@ function GeneralItemChip({
     );
 
     if (!distribution) {
+      toast.error("Selected distribution not found.");
       return;
     }
 
