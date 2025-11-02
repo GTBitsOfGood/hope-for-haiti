@@ -6,7 +6,7 @@ import { useCallback, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import Portal from "./baseTable/Portal";
 import toast from "react-hot-toast";
-import { CheckCircle, DotsThreeVertical } from "@phosphor-icons/react";
+import { CheckCircle, DotsThree } from "@phosphor-icons/react";
 import DistributionsGeneralItemChipGroup from "./chips/DistributionsGeneralItemGroup";
 import { TableDistribution } from "@/types/api/distribution.types";
 
@@ -152,7 +152,7 @@ function OptionsButton({
         }}
         className="px-2 py-1 rounded hover:bg-gray-100"
       >
-        <DotsThreeVertical size={16} />
+        <DotsThree size={16} />
       </button>
       <Portal
         isOpen={isDropdownOpen}

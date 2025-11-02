@@ -6,7 +6,7 @@ import AdvancedBaseTable, {
 } from "./baseTable/AdvancedBaseTable";
 import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./chips/Chip";
-import { DotsThreeVertical, Clock } from "@phosphor-icons/react";
+import { DotsThree, Clock } from "@phosphor-icons/react";
 import Portal from "./baseTable/Portal";
 import ChangeShippingStatusMenu from "./ChangeShippingStatusMenu";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
@@ -107,7 +107,7 @@ function OptionsButton({
         }}
         className="px-2 py-1 rounded hover:bg-gray-100"
       >
-        <DotsThreeVertical size={16} />
+        <DotsThree size={16} />
       </button>
       <Portal
         isOpen={isBaseDropdownOpen}
