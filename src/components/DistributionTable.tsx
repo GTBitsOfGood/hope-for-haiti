@@ -146,7 +146,10 @@ function OptionsButton({
     <div className="relative">
       <button
         ref={buttonRef}
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsDropdownOpen(!isDropdownOpen);
+        }}
         className="px-2 py-1 rounded hover:bg-gray-100"
       >
         <DotsThreeVertical size={16} />
@@ -162,7 +165,7 @@ function OptionsButton({
           onClick={approveDistribution}
           className="flex items-center w-full px-4 py-2 text-sm text-left transition-colors duration-150 hover:bg-gray-50 text-gray-900 cursor-pointer"
         >
-          <CheckCircle size={16} />
+          <CheckCircle size={16} className="mr-3 flex-shrink-0" />
           <p>Approve</p>
         </button>
       </Portal>

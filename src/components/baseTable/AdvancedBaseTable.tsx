@@ -137,7 +137,8 @@ function AdvancedBaseTableInner<T extends object>(
               ...(previousMeta?.options ?? []),
               ...values,
             ]);
-            options = collectedOptions.length > 0 ? collectedOptions : undefined;
+            options =
+              collectedOptions.length > 0 ? collectedOptions : undefined;
           }
         }
 
@@ -434,8 +435,12 @@ function AdvancedBaseTableInner<T extends object>(
                   </tr>
                   {rowBody && openRowIds.has(resolveRowId(item)) && (
                     <tr>
-                      <td colSpan={normalizedColumns.length} className="p-0" style={{ width: 0 }}>
-                        <div style={{ width: '100%', maxWidth: '100%' }}>
+                      <td
+                        colSpan={normalizedColumns.length}
+                        className="p-0"
+                        style={{ width: 0 }}
+                      >
+                        <div style={{ width: "100%", maxWidth: "100%" }}>
                           {rowBody(item)}
                         </div>
                       </td>
