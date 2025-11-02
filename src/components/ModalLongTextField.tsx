@@ -4,6 +4,7 @@ interface ModalTextFieldProps {
   required?: boolean;
   name: string;
   defaultValue?: string;
+  value?: string;
   onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }
 export default function ModalTextField({
@@ -12,6 +13,7 @@ export default function ModalTextField({
   placeholder,
   name,
   defaultValue,
+  value,
   onChange,
 }: ModalTextFieldProps) {
   return (
@@ -25,6 +27,7 @@ export default function ModalTextField({
           placeholder={placeholder}
           name={name}
           defaultValue={defaultValue}
+          value={value}
           onChange={onChange}
         ></textarea>
       </label>

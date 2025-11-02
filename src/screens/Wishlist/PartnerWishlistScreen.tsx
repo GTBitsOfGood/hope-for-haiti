@@ -6,7 +6,6 @@ import { Wishlist, $Enums } from "@prisma/client";
 import PriorityTag from "@/components/tags/PriorityTag";
 import { PencilSimple, ChatTeardropText, Trash } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
-import toast from "react-hot-toast";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   ColumnDefinition,
@@ -14,9 +13,18 @@ import AdvancedBaseTable, {
   TableQuery,
 } from "@/components/baseTable/AdvancedBaseTable";
 import AddToWishlistModal from "@/components/AddToWishlistModal";
+import EditWishlistModal from "@/components/EditWishlistModal";
+import DeleteWishlistModal from "@/components/DeleteWishlistModal";
 
 type WishlistItem = Wishlist;
 type WishlistPriority = $Enums.RequestPriority;
+
+type WishlistEditable = {
+  id: number;
+  name: string; // Title (read-only)
+  quantity?: number | null;
+  comments?: string | null;
+};
 
 export default function PartnerWishlistScreen({
   partnerId,
@@ -38,6 +46,8 @@ export default function PartnerWishlistScreen({
 
   // 🔹 Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<WishlistEditable | null>(null);
+  const [deleting, setDeleting] = useState<WishlistEditable | null>(null);
 
   const fetchFn = useCallback(
     async (
@@ -67,12 +77,33 @@ export default function PartnerWishlistScreen({
 
   const openEditModal = (item: WishlistItem) => {
     if (readOnly) return;
-    toast(`Open edit modal for #${item.id} (to be implemented)`);
+    setEditing({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      comments: item.comments,
+    });
   };
 
   const openDeleteModal = (item: WishlistItem) => {
     if (readOnly) return;
-    toast(`Open delete modal for #${item.id} (to be implemented)`);
+    setDeleting({ id: item.id, name: item.name });
+  };
+
+  const onSaveEdit = async (updates: {
+    id: number;
+    quantity?: number;
+    comments?: string;
+  }) => {
+    await apiClient.patch(`/api/wishlists/${updates.id}`, {
+      body: JSON.stringify(updates),
+    });
+    tableRef.current?.updateItemById(updates.id, updates); // AdvancedBaseTable ref method
+  };
+
+  const onConfirmDelete = async (id: number) => {
+    await apiClient.delete(`/api/wishlists/${id}`);
+    tableRef.current?.removeItemById(id); // AdvancedBaseTable ref method
   };
 
   const columns: ColumnDefinition<WishlistItem>[] = [
@@ -201,6 +232,28 @@ export default function PartnerWishlistScreen({
       <AddToWishlistModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
+      />
+      {/* Edit Modal */}
+      <EditWishlistModal
+        isOpen={!!editing}
+        item={editing}
+        onClose={() => setEditing(null)}
+        onSave={async (updates) => {
+          await onSaveEdit(updates);
+          setEditing(null);
+        }}
+      />
+
+      {/* Delete Modal */}
+      <DeleteWishlistModal
+        isOpen={!!deleting}
+        itemName={deleting?.name}
+        onClose={() => setDeleting(null)}
+        onConfirm={async () => {
+          if (!deleting) return;
+          await onConfirmDelete(deleting.id);
+          setDeleting(null);
+        }}
       />
     </div>
   );
