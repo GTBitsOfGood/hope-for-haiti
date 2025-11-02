@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState } from "react";
+import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import Portal from "../baseTable/Portal";
 
 /**
@@ -13,6 +13,7 @@ export default function Chip({
   label,
   className,
   popover,
+  setIsDropdownOpenRef,
 }: {
   title: string;
   amount?: number;
@@ -21,9 +22,16 @@ export default function Chip({
   label?: string;
   className?: string;
   popover?: ReactNode;
+  setIsDropdownOpenRef?: RefObject<
+    React.Dispatch<React.SetStateAction<boolean>>
+  >;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (setIsDropdownOpenRef) setIsDropdownOpenRef.current = setIsDropdownOpen;
+  }, [setIsDropdownOpen, setIsDropdownOpenRef]);
 
   return (
     <div className="relative">
