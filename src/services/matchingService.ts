@@ -1,7 +1,6 @@
 // src/services/MatchingService.ts
 import { ChromaClient, type Collection, type Where } from "chromadb";
 import { getOpenAIClient } from "@/lib/azureOpenAI";
-import { OpenAIEmbeddingFunction } from "@chroma-core/openai";
 // ---- Schema reference (no Prisma usage) ------------------------------------
 // GeneralItem: { id: Int, donorOfferId: Int, title: String }
 
