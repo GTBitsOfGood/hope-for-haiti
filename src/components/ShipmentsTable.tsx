@@ -110,15 +110,15 @@ function OptionsButton({
         isOpen={isBaseDropdownOpen}
         onClose={() => setIsBaseDropdownOpen(false)}
         triggerRef={buttonRef}
-        position="bottom-left"
-        className="bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold"
+        position="bottom-right"
+        className="w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5 py-1"
       >
         <button
           onClick={() => {
             setIsStatusDropdownOpen(true);
             setIsBaseDropdownOpen(false);
           }}
-          className="px-2 py-1 rounded hover:bg-gray-100 flex items-center gap-1"
+          className="flex items-center w-full px-4 py-2 text-sm text-left transition-colors duration-150 hover:bg-gray-50 text-gray-900 cursor-pointer"
         >
           <Clock size={16} />
           <p>Change Status</p>
