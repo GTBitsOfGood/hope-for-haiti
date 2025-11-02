@@ -7,7 +7,7 @@ import { useApiClient } from "@/hooks/useApiClient";
 import Portal from "./baseTable/Portal";
 import toast from "react-hot-toast";
 import { CheckCircle, DotsThree } from "@phosphor-icons/react";
-import DistributionsGeneralItemChipGroup from "./chips/DistributionsGeneralItemGroup";
+import DistributionsGeneralItemChipGroup from "./chips/DistributionsGeneralItemChipGroup";
 import { TableDistribution } from "@/types/api/distribution.types";
 
 export default function DistributionTable() {
