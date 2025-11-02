@@ -298,7 +298,7 @@ function GeneralItemChip({
       popover={
         <div className="flex flex-col gap-2">
           <p className="text-gray-primary font-bold mb-1">
-            Allocate to Partner
+            Transfer Item
           </p>
           <p className="text-sm text-gray-primary font-normal">
             Select Distribution
