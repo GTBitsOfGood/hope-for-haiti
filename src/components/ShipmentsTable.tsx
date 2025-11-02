@@ -10,7 +10,7 @@ import { DotsThree, Clock } from "@phosphor-icons/react";
 import Portal from "./baseTable/Portal";
 import ChangeShippingStatusMenu from "./ChangeShippingStatusMenu";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
-import GeneralItemChipGroup from "./chips/ShipmentsGeneralItemChipGroup";
+import ShipmentsLineItemChipGroup from "./chips/ShipmentsLineItemChipGroup";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
@@ -80,7 +80,18 @@ export default function ShipmentsTable() {
       fetchFn={fetchTableData}
       rowId={"id"}
       rowBody={(shipment) => (
-        <GeneralItemChipGroup generalItems={shipment.generalItems} />
+        <ShipmentsLineItemChipGroup
+          lineItems={shipment.generalItems.flatMap((item) =>
+            item.lineItems.map((li) => ({
+              id: item.id,
+              title: item.title,
+              quantity: li.quantity,
+              partnerName: item.partner.name,
+              partnerId: item.partner.id,
+              palletNumber: li.palletNumber,
+            }))
+          )}
+        />
       )}
     />
   );

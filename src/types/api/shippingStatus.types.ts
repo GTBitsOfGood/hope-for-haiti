@@ -34,6 +34,7 @@ export type Shipment = {
     };
     lineItems: {
       quantity: number;
+      palletNumber: string;
     }[];
   }[];
 };
