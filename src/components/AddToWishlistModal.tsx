@@ -43,16 +43,9 @@ export default function AddToWishlistModal({
 
   // --- Suggestions state ---
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
+  const [searching, setSearching] = useState<boolean>(false);
   const [hardMatch, setHardMatch] = useState<boolean>(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    // Reset suggestion UI when opening
-    setShowSuggestions(true);
-    // sync defaults
-  }, [isOpen]);
 
   const suggestionColumns: ColumnDefinition<Suggestion>[] = [
     {
@@ -87,6 +80,7 @@ export default function AddToWishlistModal({
     }
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    console.log(searching);
     debounceTimer.current = setTimeout(async () => {
       try {
         const url = `/api/generalItems/compare?${new URLSearchParams({
@@ -101,20 +95,19 @@ export default function AddToWishlistModal({
         if (hits.length > 0) {
           const hasHard = hits.some((h) => h.strength === "hard");
           setHardMatch(hasHard);
-          setShowSuggestions(true);
         } else if (hits.length === 0) {
-          setShowSuggestions(false);
         }
       } catch {
         // On error, just hide the suggestions (don’t block form)
         setSuggestions([]);
       }
+      setSearching(false);
     }, 500);
 
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [form.name, apiClient, isOpen, showSuggestions]);
+  }, [form.name, apiClient, isOpen, searching]);
 
   if (!isOpen) return null;
 
@@ -176,14 +169,14 @@ export default function AddToWishlistModal({
                 defaultValue={form.name}
                 onChange={(e) => {
                   setForm((f) => ({ ...f, name: e.target.value }));
-                  setShowSuggestions(false);
+                  setSearching(true);
                   setSuggestions([]);
                 }}
               />
             </ModalFormRow>
 
             {/* Suggestions block (red highlighted) */}
-            {showSuggestions && suggestions.length > 0 && (
+            {!searching && suggestions.length > 0 && (
               <>
                 <div className="rounded-lg border border-red-primary bg-red-50/50 p-3 md:p-4">
                   <div className="mb-3">
@@ -238,7 +231,16 @@ export default function AddToWishlistModal({
               </>
             )}
 
-            {/* Footer buttons */}
+            {!searching && suggestions.length === 0 && form.name !== "" && (
+              <button
+                type="submit"
+                className={
+                  "cursor-pointer w-full rounded-lg px-4 py-2 font-medium text-white active:translate-y-px bg-red-primary hover:brightness-95"
+                }
+              >
+                Continue with Wish
+              </button>
+            )}
           </form>
         </div>
       </div>
