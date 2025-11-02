@@ -13,9 +13,7 @@ import AdvancedBaseTable, {
   FilterList,
   TableQuery,
 } from "@/components/baseTable/AdvancedBaseTable";
-import AddToWishlistModal, {
-  AddToWishlistForm,
-} from "@/components/AddToWishlistModal";
+import AddToWishlistModal from "@/components/AddToWishlistModal";
 
 type WishlistItem = Wishlist;
 type WishlistPriority = $Enums.RequestPriority;
@@ -40,18 +38,6 @@ export default function PartnerWishlistScreen({
 
   // 🔹 Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [savingCreate, setSavingCreate] = useState(false);
-
-  // 🔹 Example unit size options (replace or fetch as needed)
-  const unitSizeOptions = useMemo(
-    () => [
-      { label: "Box", value: "Box" },
-      { label: "Bottle", value: "Bottle" },
-      { label: "Pack", value: "Pack" },
-      { label: "Case", value: "Case" },
-    ],
-    []
-  );
 
   const fetchFn = useCallback(
     async (
@@ -87,26 +73,6 @@ export default function PartnerWishlistScreen({
   const openDeleteModal = (item: WishlistItem) => {
     if (readOnly) return;
     toast(`Open delete modal for #${item.id} (to be implemented)`);
-  };
-
-  const onCreateSave = async (values: AddToWishlistForm) => {
-    try {
-      setSavingCreate(true);
-      // Backend can infer partnerId from auth; include here if required
-      await apiClient.post("/api/wishlists", {
-        body: JSON.stringify({
-          ...values,
-          partnerId, // remove if your API ignores this and derives from session
-        }),
-      });
-      toast.success("Wishlist item created");
-      setIsCreateOpen(false);
-      tableRef.current?.reload();
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setSavingCreate(false);
-    }
   };
 
   const columns: ColumnDefinition<WishlistItem>[] = [
@@ -235,9 +201,6 @@ export default function PartnerWishlistScreen({
       <AddToWishlistModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onSave={onCreateSave}
-        unitSizeOptions={unitSizeOptions}
-        saving={savingCreate}
       />
     </div>
   );

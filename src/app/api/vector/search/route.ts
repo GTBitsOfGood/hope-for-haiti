@@ -24,8 +24,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       query,
       k,
       donorOfferId,
-      distanceCutoff: 0.5,
-      hardCutoff: 0.1,
+      distanceCutoff: 100,
+      hardCutoff: 100,
     });
 
     return NextResponse.json({ ids, k, q: query, donorOfferId });

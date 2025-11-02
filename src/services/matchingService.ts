@@ -1,5 +1,4 @@
 // src/services/MatchingService.ts
-import "dotenv/config";
 import { ChromaClient, type Collection, type Where } from "chromadb";
 import { getOpenAIClient } from "@/lib/azureOpenAI";
 import { OpenAIEmbeddingFunction } from "@chroma-core/openai";
@@ -21,9 +20,7 @@ const chroma = new ChromaClient({
 // Create/get once at module load
 const collectionP: Promise<Collection> = chroma.getOrCreateCollection({
   name: "general-items",
-  embeddingFunction: new OpenAIEmbeddingFunction({
-    modelName: "text-embedding-3-small",
-  }),
+  embeddingFunction: null,
 });
 
 // ---- Internal helpers -------------------------------------------------------

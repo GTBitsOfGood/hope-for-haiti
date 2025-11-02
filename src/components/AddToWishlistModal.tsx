@@ -1,7 +1,7 @@
 // src/components/wishlist/AddToWishlistModal.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "@phosphor-icons/react";
 import ModalFormRow from "@/components/ModalFormRow";
 import ModalTextField from "@/components/ModalTextField";
@@ -26,17 +26,15 @@ export type AddToWishlistForm = {
   name: string;
 };
 
+interface AddToWishlistModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 export default function AddToWishlistModal({
   isOpen,
   onClose,
-  onSave,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (values: AddToWishlistForm) => Promise<void> | void;
-  saving?: boolean;
-  onGoToRequestItem?: (generalItemId: number) => void;
-}) {
+}: AddToWishlistModalProps) {
   const { apiClient } = useApiClient();
 
   const [form, setForm] = useState<AddToWishlistForm>({
@@ -55,10 +53,6 @@ export default function AddToWishlistModal({
     setShowSuggestions(true);
     // sync defaults
   }, [isOpen]);
-
-  const canSubmit = useMemo(() => {
-    return true;
-  }, []);
 
   const suggestionColumns: ColumnDefinition<Suggestion>[] = [
     {
@@ -106,7 +100,6 @@ export default function AddToWishlistModal({
         setSuggestions(hits);
         if (hits.length > 0) {
           const hasHard = hits.some((h) => h.strength === "hard");
-          console.log(hasHard, hits);
           setHardMatch(hasHard);
           setShowSuggestions(true);
         } else if (hits.length === 0) {
@@ -131,7 +124,7 @@ export default function AddToWishlistModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (canSubmit) onSave(form);
+    console.log("Submitting wish:", form);
   };
 
   const suggestionFetchFn = async (
@@ -225,18 +218,18 @@ export default function AddToWishlistModal({
                 </div>
                 <div className="mt-6 flex gap-4">
                   <Link
-                    href="/unallocatedItems"
+                    href="/items"
                     className="inline-block w-1/2 rounded-lg border border-red-primary px-4 py-2 font-medium text-red-primary hover:bg-red-50 active:translate-y-px text-center"
                   >
                     Go to Items Page
                   </Link>
                   <button
                     type="submit"
-                    disabled={!hardMatch}
+                    disabled={hardMatch}
                     className={`cursor-pointer w-1/2 rounded-lg px-4 py-2 font-medium text-white active:translate-y-px ${
-                      !hardMatch
-                        ? "bg-red-primary hover:brightness-95"
-                        : "bg-red-300 cursor-not-allowed"
+                      hardMatch
+                        ? "bg-red-300 cursor-not-allowed"
+                        : "bg-red-primary hover:brightness-95"
                     }`}
                   >
                     Continue with Wish
