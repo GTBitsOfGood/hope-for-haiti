@@ -69,7 +69,7 @@ export default function Chip({
           isOpen={isDropdownOpen}
           onClose={() => setIsDropdownOpen(false)}
           triggerRef={buttonRef}
-          position="bottom-left"
+          position="bottom-right"
           className="w-80 bg-white border border-gray-primary/20 rounded shadow-lg p-2"
         >
           {popover}
