@@ -1,22 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import "leaflet.markercluster";
+import { MapContainer, GeoJSON, Pane, Marker, Tooltip } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
+import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
+import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
+import haitiDepartments from "@/../public/HaitiAdmin1.json";
+import haitiMask from "@/../public/haitiMask.json";
 
-const iconRetinaUrl =
-  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png";
-const iconUrl =
-  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png";
+import L, { MarkerCluster } from "leaflet";
+import { GeoJsonObject } from "geojson";
 
 const DefaultIcon = L.icon({
-  iconUrl,
-  iconRetinaUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconUrl: "/pin.svg",
+  iconSize: [27, 34],
+  iconAnchor: [13, 34],
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -25,117 +22,77 @@ interface MapComponentProps {
   partners: { id: string; name: string; lat: number; lng: number }[];
 }
 
-function MarkerCluster({
-  partners,
-}: {
-  partners: MapComponentProps["partners"];
-}) {
-  const map = useMap();
-  const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
-
-  useEffect(() => {
-    if (clusterGroupRef.current) {
-      map.removeLayer(clusterGroupRef.current);
-      clusterGroupRef.current.clearLayers();
-      clusterGroupRef.current = null;
-    }
-
-    const MarkerClusterGroupClass = (
-      L as unknown as {
-        MarkerClusterGroup: new (
-          options?: L.MarkerClusterGroupOptions
-        ) => L.MarkerClusterGroup;
-      }
-    ).MarkerClusterGroup;
-
-    clusterGroupRef.current = new MarkerClusterGroupClass({
-      maxClusterRadius: 50,
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: true,
-      zoomToBoundsOnClick: true,
-      iconCreateFunction: (cluster: L.MarkerCluster) => {
-        const count = cluster.getChildCount();
-        return L.divIcon({
-          html: `<div style="
-            background-color: #ef3340;
-            color: white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            border: 3px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          ">${count}</div>`,
-          className: "marker-cluster-custom",
-          iconSize: L.point(40, 40),
-        });
-      },
-    });
-
-    partners.forEach((partner) => {
-      const marker = L.marker([partner.lat, partner.lng], {
-        icon: DefaultIcon,
-      });
-      marker.bindTooltip(partner.name, {
-        direction: "top",
-        offset: [0, -10],
-        opacity: 1,
-        permanent: false,
-        className: "custom-tooltip",
-      });
-      clusterGroupRef.current!.addLayer(marker);
-    });
-
-    if (clusterGroupRef.current) {
-      map.addLayer(clusterGroupRef.current);
-    }
-
-    return () => {
-      if (clusterGroupRef.current) {
-        map.removeLayer(clusterGroupRef.current);
-        clusterGroupRef.current.clearLayers();
-        clusterGroupRef.current = null;
-      }
-    };
-  }, [map, partners]);
-
-  return null;
-}
-
 export default function MapComponent({ partners }: MapComponentProps) {
-  const haitiCenter: [number, number] = [19.0, -72.2852];
+  const haitiCenter: [number, number] = [19.1, -72.2];
   const haitiBounds: [[number, number], [number, number]] = [
-    [17.9, -73.9],
-    [19.9, -71.9],
+    [17.8, -75.5],
+    [20.2, -71.2],
   ];
+
+  const clusterIconFunction = (cluster: MarkerCluster) => {
+    return L.divIcon({
+      html: `<div class="marker-cluster-custom">${cluster.getChildCount()}</div>`,
+      className: "border-none",
+      iconSize: L.point(40, 40),
+    });
+  };
 
   return (
     <MapContainer
       center={haitiCenter}
-      zoom={8}
-      minZoom={8}
-      maxZoom={8}
-      zoomControl={false}
-      dragging={false}
-      scrollWheelZoom={false}
-      doubleClickZoom={false}
-      boxZoom={false}
-      keyboard={false}
-      touchZoom={false}
+      zoom={8.5}
+      minZoom={8.0}
+      zoomDelta={0.75}
+      zoomSnap={0.5}
+      maxZoom={12}
+      zoomControl={true}
+      dragging={true}
+      scrollWheelZoom={true}
+      doubleClickZoom={true}
+      boxZoom={true}
+      keyboard={true}
+      touchZoom={true}
       maxBounds={haitiBounds}
       maxBoundsViscosity={1.0}
       style={{ height: "100%", width: "100%" }}
       className="z-0"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+      <GeoJSON
+        data={haitiDepartments as GeoJsonObject}
+        interactive={false}
+        style={() => ({
+          fillColor: "#D4E3EF",
+          color: "#B8C9D8",
+          weight: 1.5,
+          fillOpacity: 1,
+        })}
       />
-      <MarkerCluster partners={partners} />
+      <Pane name="mask-pane" style={{ zIndex: 300, pointerEvents: "none" }}>
+        <GeoJSON
+          data={haitiMask as GeoJsonObject}
+          interactive={false}
+          style={{ 
+            fillColor: "#ffffff", 
+            fillOpacity: 1, 
+            color: "transparent",
+          }}
+          pane="mask-pane"
+        />
+      </Pane>
+      <MarkerClusterGroup 
+        chunkedLoading
+        iconCreateFunction={clusterIconFunction}
+        spiderfyOnMaxZoom={true}
+        maxClusterRadius={50}
+      >
+        {partners.map((p) => (
+          <Marker key={p.id} position={[p.lat, p.lng]} icon={DefaultIcon}>
+            <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false} className="custom-tooltip">
+              {p.name}
+            </Tooltip>
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 }
