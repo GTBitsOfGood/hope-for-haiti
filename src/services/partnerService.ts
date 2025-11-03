@@ -30,6 +30,7 @@ export class PartnerService {
           where: {
             type: UserType.PARTNER,
             enabled: true,
+            pending: false,
             name: {
               contains: params.term,
               mode: "insensitive",
@@ -49,9 +50,10 @@ export class PartnerService {
     }
 
     const partnerQuery = Prisma.validator<Prisma.UserFindManyArgs>()({
-      where: { 
+      where: {
         type: UserType.PARTNER,
         enabled: true,
+        pending: false,
       },
       select: {
         email: true,
@@ -81,6 +83,7 @@ export class PartnerService {
         id: partnerId,
         type: UserType.PARTNER,
         enabled: true,
+        pending: false,
       },
       select: {
         id: true,
@@ -112,9 +115,10 @@ export class PartnerService {
 
   static async getPartnerEmails(): Promise<string[]> {
     const partners = await db.user.findMany({
-      where: { 
+      where: {
         type: UserType.PARTNER,
         enabled: true,
+        pending: false,
       },
       select: {
         email: true,

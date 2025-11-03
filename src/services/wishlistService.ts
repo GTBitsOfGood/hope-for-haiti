@@ -8,20 +8,24 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export class WishlistService {
   static async createWishlist(data: CreateWishlistData) {
-    // Check if the partner is enabled
+    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
-      select: { enabled: true },
+      select: { enabled: true, pending: true },
     });
-    
+
     if (!partner) {
       throw new NotFoundError("Partner not found");
     }
-    
+
     if (!partner.enabled) {
       throw new ArgumentError("Cannot create wishlist for deactivated partner");
     }
-    
+
+    if (partner.pending) {
+      throw new ArgumentError("Cannot create wishlist for pending partner");
+    }
+
     await db.wishlist.create({
       data,
     });
@@ -65,16 +69,16 @@ export class WishlistService {
   }
 
   static async getWishlistsByPartner(partnerId: number) {
-    // Check if the partner is enabled
+    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
-      select: { enabled: true },
+      select: { enabled: true, pending: true },
     });
-    
-    if (!partner?.enabled) {
+
+    if (!partner?.enabled || partner?.pending) {
       return [];
     }
-    
+
     return await db.wishlist.findMany({
       where: {
         partnerId,
@@ -102,7 +106,7 @@ export class WishlistService {
             SUM(CASE WHEN w.priority = 'HIGH' THEN 1 ELSE 0 END) as "highCount"
         FROM "User" u
         LEFT JOIN "Wishlist" w ON u.id = w."partnerId"
-        WHERE u.type = 'PARTNER' AND u.enabled = true
+        WHERE u.type = 'PARTNER' AND u.enabled = true AND u.pending = false
         GROUP BY u.id, u.name
         ORDER BY u.id
     `;

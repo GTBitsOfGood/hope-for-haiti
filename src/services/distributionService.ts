@@ -45,6 +45,7 @@ export default class DistributionService {
         },
         partner: {
           enabled: true,
+          pending: false,
         },
       },
       select: {
@@ -102,16 +103,16 @@ export default class DistributionService {
     const where: Prisma.SignOffWhereInput = {};
     
     if (partnerId) {
-      // Check if the partner is enabled
+      // Check if the partner is enabled and not pending
       const partner = await db.user.findUnique({
         where: { id: partnerId },
-        select: { enabled: true },
+        select: { enabled: true, pending: true },
       });
-      
-      if (!partner?.enabled) {
+
+      if (!partner?.enabled || partner?.pending) {
         return [];
       }
-      
+
       where.partnerId = partnerId;
     }
     
@@ -133,20 +134,20 @@ export default class DistributionService {
     const where: Prisma.DistributionWhereInput = {};
     
     if (partnerId) {
-      // Check if the partner is enabled
+      // Check if the partner is enabled and not pending
       const partner = await db.user.findUnique({
         where: { id: partnerId },
-        select: { enabled: true },
+        select: { enabled: true, pending: true },
       });
-      
-      if (!partner?.enabled) {
+
+      if (!partner?.enabled || partner?.pending) {
         return [];
       }
-      
+
       where.partner = { id: partnerId };
     } else {
-      // Only include enabled partners when fetching all
-      where.partner = { enabled: true };
+      // Only include enabled and non-pending partners when fetching all
+      where.partner = { enabled: true, pending: false };
     }
     
     const distributions = await db.distribution.findMany({
@@ -219,16 +220,16 @@ export default class DistributionService {
   }
 
   static async getPendingDistributionForPartner(partnerId: number) {
-    // Check if the partner is enabled
+    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
-      select: { enabled: true },
+      select: { enabled: true, pending: true },
     });
-    
-    if (!partner?.enabled) {
+
+    if (!partner?.enabled || partner?.pending) {
       return null;
     }
-    
+
     return db.distribution.findFirst({
       where: { partnerId, pending: true },
     });
@@ -312,6 +313,8 @@ export default class DistributionService {
     const where: Prisma.UserWhereInput = {
       ...userFilterWhere,
       type: "PARTNER",
+      enabled: true,
+      pending: false,
     };
 
     const usersQuery = Prisma.validator<Prisma.UserFindManyArgs>()({
@@ -364,18 +367,21 @@ export default class DistributionService {
       }[];
     }
   ) {
-    // Check if the partner is enabled
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
-      select: { enabled: true, type: true },
+      select: { enabled: true, pending: true, type: true },
     });
-    
+
     if (!partner) {
       throw new NotFoundError("Partner not found");
     }
-    
+
     if (!partner.enabled) {
       throw new ArgumentError("Cannot create distribution for deactivated partner");
+    }
+
+    if (partner.pending) {
+      throw new ArgumentError("Cannot create distribution for pending partner");
     }
     
     return db.distribution.create({
@@ -394,11 +400,10 @@ export default class DistributionService {
     distributionId: number,
     data: { partnerId?: number; pending?: boolean }
   ) {
-    // If partnerId is being updated, validate that the partner is enabled
     if (data.partnerId !== undefined) {
       const partner = await db.user.findUnique({
         where: { id: data.partnerId },
-        select: { enabled: true },
+        select: { enabled: true, pending: true },
       });
 
       if (!partner) {
@@ -407,6 +412,10 @@ export default class DistributionService {
 
       if (!partner.enabled) {
         throw new ArgumentError("Cannot update distribution to deactivated partner");
+      }
+
+      if (partner.pending) {
+        throw new ArgumentError("Cannot update distribution to pending partner");
       }
     }
 

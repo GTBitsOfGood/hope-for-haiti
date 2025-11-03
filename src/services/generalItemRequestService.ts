@@ -39,6 +39,7 @@ export class GeneralItemRequestService {
       generalItemId,
       partner: {
         enabled: true,
+        pending: false,
       },
     };
 
@@ -76,18 +77,22 @@ export class GeneralItemRequestService {
       "generalItem" | "partner"
     > & { generalItemId: number; partnerId: number }
   ) {
-    // Check if the partner is enabled
+    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
-      select: { enabled: true, type: true },
+      select: { enabled: true, pending: true, type: true },
     });
-    
+
     if (!partner) {
       throw new NotFoundError("Partner not found");
     }
-    
+
     if (!partner.enabled) {
       throw new ArgumentError("Cannot create request for deactivated partner");
+    }
+
+    if (partner.pending) {
+      throw new ArgumentError("Cannot create request for pending partner");
     }
     
     const newRequest = await db.generalItemRequest.create({
@@ -160,13 +165,13 @@ export class GeneralItemRequestService {
     page?: number,
     pageSize?: number
   ): Promise<GeneralItemRequestsResponse> {
-    // Check if the partner is enabled
+    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
-      select: { enabled: true },
+      select: { enabled: true, pending: true },
     });
-    
-    if (!partner?.enabled) {
+
+    if (!partner?.enabled || partner?.pending) {
       return { requests: [], total: 0 };
     }
     

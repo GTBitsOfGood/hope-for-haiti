@@ -219,13 +219,13 @@ export default class DonorOfferService {
     page?: number,
     pageSize?: number
   ): Promise<PartnerDonorOffersResponse> {
-    // Check if the partner is enabled
+    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
-      select: { enabled: true },
+      select: { enabled: true, pending: true },
     });
-    
-    if (!partner?.enabled) {
+
+    if (!partner?.enabled || partner?.pending) {
       return { donorOffers: [], total: 0 };
     }
     
@@ -240,6 +240,7 @@ export default class DonorOfferService {
         some: {
           id: partnerId,
           enabled: true,
+          pending: false,
         },
       },
     };
@@ -577,6 +578,16 @@ export default class DonorOfferService {
     page?: number,
     pageSize?: number
   ): Promise<DonorOfferItemsRequestsResponse> {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: parseInt(partnerId) },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      throw new NotFoundError("Partner not found, deactivated, or pending");
+    }
+
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
     });
@@ -973,7 +984,6 @@ export default class DonorOfferService {
     donorOfferId: number,
     updateData: Partial<Omit<DonorOfferUpdateParams, "id">>
   ) {
-    // Validate that all partners are enabled if partners are being updated
     if (updateData.partners && updateData.partners.length > 0) {
       const partners = await db.user.findMany({
         where: { id: { in: updateData.partners } },

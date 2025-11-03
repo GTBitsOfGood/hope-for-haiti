@@ -10,19 +10,23 @@ import { Prisma } from "@prisma/client";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
-    // Check if partner is enabled if partnerId is provided
+    // Check if partner is enabled and not pending if partnerId is provided
     if (data.partnerId) {
       const partner = await db.user.findUnique({
         where: { id: data.partnerId },
-        select: { enabled: true, type: true },
+        select: { enabled: true, pending: true, type: true },
       });
-      
+
       if (!partner) {
         throw new NotFoundError("Partner not found");
       }
-      
+
       if (!partner.enabled) {
         throw new ArgumentError("Cannot create allocation for deactivated partner");
+      }
+
+      if (partner.pending) {
+        throw new ArgumentError("Cannot create allocation for pending partner");
       }
     }
     
@@ -114,24 +118,24 @@ export default class AllocationService {
       throw new ArgumentError("Allocations payload must include at least one allocation");
     }
 
-    // Check if all partners are enabled
+    // Check if all partners are enabled and not pending
     const partnerIds = [...new Set(allocations.map(a => a.partnerId))];
     const partners = await db.user.findMany({
       where: { id: { in: partnerIds } },
-      select: { id: true, enabled: true },
+      select: { id: true, enabled: true, pending: true },
     });
-    
-    const enabledPartnerIds = new Set(
-      partners.filter(p => p.enabled).map(p => p.id)
+
+    const validPartnerIds = new Set(
+      partners.filter(p => p.enabled && !p.pending).map(p => p.id)
     );
-    
-    const deactivatedPartnerIds = partnerIds.filter(
-      id => !enabledPartnerIds.has(id)
+
+    const invalidPartnerIds = partnerIds.filter(
+      id => !validPartnerIds.has(id)
     );
-    
-    if (deactivatedPartnerIds.length > 0) {
+
+    if (invalidPartnerIds.length > 0) {
       throw new ArgumentError(
-        `Cannot create allocations for deactivated partners: ${deactivatedPartnerIds.join(", ")}`
+        `Cannot create allocations for deactivated or pending partners: ${invalidPartnerIds.join(", ")}`
       );
     }
 
@@ -170,19 +174,23 @@ export default class AllocationService {
       signOffId?: number;
     }
   ) {
-    // Check if partner is enabled if partnerId is being updated
+    // Check if partner is enabled and not pending if partnerId is being updated
     if (data.partnerId) {
       const partner = await db.user.findUnique({
         where: { id: data.partnerId },
-        select: { enabled: true },
+        select: { enabled: true, pending: true },
       });
-      
+
       if (!partner) {
         throw new NotFoundError("Partner not found");
       }
-      
+
       if (!partner.enabled) {
         throw new ArgumentError("Cannot update allocation to deactivated partner");
+      }
+
+      if (partner.pending) {
+        throw new ArgumentError("Cannot update allocation to pending partner");
       }
     }
     
