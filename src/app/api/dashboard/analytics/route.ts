@@ -47,55 +47,39 @@ export async function GET(request: Request) {
       throw new ArgumentError(parsedQuery.error.message);
     }
 
-    const importsPromise = LineItemService.getTotalImportsByMonth(
+    const imports = await LineItemService.getTotalImportsByMonth(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const topMedicationsPromise = LineItemService.getTopMedicationImports(
+    const topMedications = await LineItemService.getTopMedicationImports(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const shipmentStatsPromise = LineItemService.getShipmentStats(
+    const shipmentStats = await LineItemService.getShipmentStats(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const partnerCountPromise = UserService.countPartners(
+    const partnerCount = await UserService.countPartners(
       parsedQuery.data.excludePartnerTags
     );
 
-    const importWeightPromise = LineItemService.getTotalImportWeight(
+    const importWeight = await LineItemService.getTotalImportWeight(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
 
-    const topDonorsPromise = LineItemService.getTopDonors(
+    const topDonors = await LineItemService.getTopDonors(
       parsedQuery.data.startDate,
       parsedQuery.data.endDate,
       parsedQuery.data.excludePartnerTags
     );
-
-    const [
-      imports,
-      topMedications,
-      shipmentStats,
-      partnerCount,
-      importWeight,
-      topDonors,
-    ] = await Promise.all([
-      importsPromise,
-      topMedicationsPromise,
-      shipmentStatsPromise,
-      partnerCountPromise,
-      importWeightPromise,
-      topDonorsPromise,
-    ]);
 
     const result = {
       totalImports: imports.total,
