@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
 import DistributionTable from "@/components/DistributionTable";
 import ShipmentsTable from "@/components/ShipmentsTable";
 
@@ -22,21 +21,6 @@ export default function AdminDistributionsScreen() {
       <h1 className="text-2xl font-semibold text-gray-primary">
         Distributions
       </h1>
-
-      {/* Search bar */}
-      <div className="flex justify-between items-center w-full py-4 mt-6">
-        <div className="relative w-1/3">
-          <MagnifyingGlass
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Search"
-            className="pl-10 pr-4 py-2 w-full border border-gray-primary border-opacity-10 rounded bg-zinc-100 text-zinc-500 font-light focus:outline-none focus:border-gray-400"
-          />
-        </div>
-      </div>
 
       {/* Tabs */}
       <div className="flex space-x-4 mt-6 border-b-2 border-gray-primary border-opacity-10">
