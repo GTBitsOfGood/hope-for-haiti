@@ -197,7 +197,7 @@ export default function NavbarLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const { user } = useUser();
   const pathname = usePathname();
-  const hideNavPaths = ["/reset-password", "/createPartnerAccount"];
+  const hideNavPaths = ["/reset-password", "/createPartnerAccount", "/deactivated", "/signIn"];
   const hideNav = hideNavPaths.some((path) => pathname.startsWith(path));
 
   return (

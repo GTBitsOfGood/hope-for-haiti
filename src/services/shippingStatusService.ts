@@ -130,8 +130,17 @@ export class ShippingStatusService {
     page?: number,
     pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    const { lineItemFilters, statusFilters } =
-      this.splitShippingFilters(filters);
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      return { shippingStatuses: [], items: [], total: 0 };
+    }
+
+    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
 
     const lineItemWhereFilters =
       buildWhereFromFilters<Prisma.LineItemWhereInput>(

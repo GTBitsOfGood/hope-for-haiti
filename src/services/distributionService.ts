@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { format } from "date-fns";
-import { NotFoundError } from "@/util/errors";
+import { NotFoundError, ArgumentError } from "@/util/errors";
 import {
   DistributionItem,
   SignedDistribution,
@@ -145,6 +145,10 @@ export default class DistributionService {
             },
           },
         },
+        partner: {
+          enabled: true,
+          pending: false,
+        },
       },
       select: {
         id: true,
@@ -206,8 +210,24 @@ export default class DistributionService {
       filters
     );
 
+    const where: Prisma.SignOffWhereInput = whereClause;
+
+    if (partnerId) {
+      // Check if the partner is enabled and not pending
+      const partner = await db.user.findUnique({
+        where: { id: partnerId },
+        select: { enabled: true, pending: true },
+      });
+
+      if (!partner?.enabled || partner?.pending) {
+        return [];
+      }
+
+      where.partnerId = partnerId;
+    }
+
     const signOffs = await db.signOff.findMany({
-      where: partnerId ? { partnerId, ...whereClause } : whereClause,
+      where,
       include: { allocations: true },
       take: pageSize,
       skip: page && pageSize ? (page - 1) * pageSize : undefined,
@@ -231,11 +251,27 @@ export default class DistributionService {
       filters
     );
 
+    const where: Prisma.DistributionWhereInput = { ...whereClause };
+
+    if (partnerId) {
+      // Check if the partner is enabled and not pending
+      const partner = await db.user.findUnique({
+        where: { id: partnerId },
+        select: { enabled: true, pending: true },
+      });
+
+      if (!partner?.enabled || partner?.pending) {
+        return [];
+      }
+
+      where.partner = { id: partnerId };
+    } else {
+      // Only include enabled and non-pending partners when fetching all
+      where.partner = { enabled: true, pending: false };
+    }
+
     const distributions = await db.distribution.findMany({
-      where: {
-        ...whereClause,
-        ...(partnerId ? { partner: { id: partnerId } } : {}),
-      },
+      where,
       include: {
         allocations: true,
       },
@@ -319,6 +355,16 @@ export default class DistributionService {
   }
 
   static async getPendingDistributionForPartner(partnerId: number) {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      return null;
+    }
+
     return db.distribution.findFirst({
       where: { partnerId, pending: true },
     });
@@ -402,6 +448,8 @@ export default class DistributionService {
     const where: Prisma.UserWhereInput = {
       ...userFilterWhere,
       type: "PARTNER",
+      enabled: true,
+      pending: false,
     };
 
     const usersQuery = Prisma.validator<Prisma.UserFindManyArgs>()({
@@ -454,6 +502,23 @@ export default class DistributionService {
       }[];
     }
   ) {
+    const partner = await db.user.findUnique({
+      where: { id: data.partnerId },
+      select: { enabled: true, pending: true, type: true },
+    });
+
+    if (!partner) {
+      throw new NotFoundError("Partner not found");
+    }
+
+    if (!partner.enabled) {
+      throw new ArgumentError("Cannot create distribution for deactivated partner");
+    }
+
+    if (partner.pending) {
+      throw new ArgumentError("Cannot create distribution for pending partner");
+    }
+    
     return db.distribution.create({
       data: {
         ...data,
@@ -468,8 +533,27 @@ export default class DistributionService {
 
   static async updateDistribution(
     distributionId: number,
-    data: Prisma.DistributionUpdateInput
+    data: { partnerId?: number; pending?: boolean }
   ) {
+    if (data.partnerId !== undefined) {
+      const partner = await db.user.findUnique({
+        where: { id: data.partnerId },
+        select: { enabled: true, pending: true },
+      });
+
+      if (!partner) {
+        throw new NotFoundError("Partner not found");
+      }
+
+      if (!partner.enabled) {
+        throw new ArgumentError("Cannot update distribution to deactivated partner");
+      }
+
+      if (partner.pending) {
+        throw new ArgumentError("Cannot update distribution to pending partner");
+      }
+    }
+
     return db.distribution.update({
       where: { id: distributionId },
       data,

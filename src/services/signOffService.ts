@@ -5,7 +5,7 @@ import {
   SignOffSummaryResponse,
   SignOffDetails,
 } from "@/types/api/signOff.types";
-import { NotFoundError } from "@/util/errors";
+import { NotFoundError, ArgumentError } from "@/util/errors";
 import { Prisma, ShipmentStatus } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
@@ -13,6 +13,23 @@ import { DistributionItem } from "@/types/api/distribution.types";
 
 export class SignOffService {
   static async createSignOff(data: CreateSignOffData) {
+    const partner = await db.user.findUnique({
+      where: { id: data.partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner) {
+      throw new NotFoundError("Partner not found");
+    }
+
+    if (!partner.enabled) {
+      throw new ArgumentError("Cannot create sign-off for deactivated partner");
+    }
+
+    if (partner.pending) {
+      throw new ArgumentError("Cannot create sign-off for pending partner");
+    }
+
     return db.signOff.create({
       data: {
         staffMemberName: data.staffName,
@@ -103,6 +120,16 @@ export class SignOffService {
   static async getSignOffsByPartner(
     partnerId: number
   ): Promise<SignOffSummary[]> {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      return [];
+    }
+
     const query = Prisma.validator<Prisma.SignOffFindManyArgs>()({
       where: { partnerId },
       include: {

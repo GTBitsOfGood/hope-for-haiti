@@ -251,6 +251,16 @@ export default class DonorOfferService {
     page?: number,
     pageSize?: number
   ): Promise<PartnerDonorOffersResponse> {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      return { donorOffers: [], total: 0 };
+    }
+    
     const filterWhere = buildWhereFromFilters<Prisma.DonorOfferWhereInput>(
       Object.keys(Prisma.DonorOfferScalarFieldEnum),
       filters
@@ -261,6 +271,8 @@ export default class DonorOfferService {
       partnerVisibilities: {
         some: {
           id: partnerId,
+          enabled: true,
+          pending: false,
         },
       },
     };
@@ -490,6 +502,8 @@ export default class DonorOfferService {
           in: partnerIds,
         },
         type: UserType.PARTNER,
+        enabled: true,
+        pending: false,
       },
       select: {
         id: true,
@@ -498,7 +512,7 @@ export default class DonorOfferService {
     }) : [];
 
     if (partners.length !== partnerIds.length) {
-      throw new ArgumentError("One or more partner IDs are invalid");
+      throw new ArgumentError("One or more partner IDs are invalid or deactivated");
     }
 
     if (
@@ -604,6 +618,16 @@ export default class DonorOfferService {
     page?: number,
     pageSize?: number
   ): Promise<DonorOfferItemsRequestsResponse> {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: parseInt(partnerId) },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      throw new NotFoundError("Partner not found, deactivated, or pending");
+    }
+
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
     });
@@ -732,6 +756,16 @@ export default class DonorOfferService {
     requests: DonorOfferItemsRequestsDTO[],
     partnerId: number
   ): Promise<void> {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      throw new NotFoundError("Partner not found, deactivated, or pending");
+    }
+
     await db.$transaction(async (tx) => {
       await Promise.all(
         requests.map((item) => {
@@ -1020,6 +1054,8 @@ export default class DonorOfferService {
       newPartners = await db.user.findMany({
         where: {
           id: { in: addedPartnerIds },
+          enabled: true,
+          pending: false,
         },
         select: {
           id: true,
@@ -1029,7 +1065,11 @@ export default class DonorOfferService {
       });
 
       if (newPartners.length !== addedPartnerIds.length) {
-        throw new ArgumentError("One or more partner IDs are invalid");
+        const foundIds = newPartners.map((p) => p.id);
+        const missingIds = addedPartnerIds.filter((id) => !foundIds.includes(id));
+        throw new ArgumentError(
+          `One or more partner IDs are invalid or deactivated: ${missingIds.join(", ")}`
+        );
       }
     }
 

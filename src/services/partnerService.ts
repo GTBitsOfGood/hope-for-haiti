@@ -25,6 +25,8 @@ export class PartnerService {
   ): Promise<PartnerSearchResult[]> {
     const where: Prisma.UserWhereInput = {
       type: UserType.PARTNER,
+      enabled: true,
+      pending: false,
     };
 
     if (params.term && params.term.trim().length > 0) {
@@ -58,6 +60,8 @@ export class PartnerService {
       where: {
         id: partnerId,
         type: UserType.PARTNER,
+        enabled: true,
+        pending: false,
       },
       select: {
         id: true,
@@ -89,7 +93,11 @@ export class PartnerService {
 
   static async getPartnerEmails(): Promise<string[]> {
     const partners = await db.user.findMany({
-      where: { type: UserType.PARTNER },
+      where: {
+        type: UserType.PARTNER,
+        enabled: true,
+        pending: false,
+      },
       select: {
         email: true,
       },

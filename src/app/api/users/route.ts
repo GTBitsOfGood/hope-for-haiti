@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // This endpoint allows unauthenticated access for user registration from invites
+    // The inviteToken validates the request
     const parsed = createUserSchema.safeParse(await req.formData());
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
     const { inviteToken, password } = parsed.data;
 
     await UserService.createUserFromInvite({ inviteToken, password });
-    
+
     return ok();
   } catch (error) {
     return errorResponse(error);
