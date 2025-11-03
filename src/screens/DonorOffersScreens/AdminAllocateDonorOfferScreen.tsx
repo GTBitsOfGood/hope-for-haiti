@@ -101,7 +101,7 @@ export default function AdminAllocateDonorOfferScreen() {
 
       return {
         data: items,
-        total: items.length,
+        total: response.total,
       };
     },
     [apiClient, donorOfferId, isValidDonorOfferId]

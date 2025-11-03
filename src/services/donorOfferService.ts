@@ -62,8 +62,12 @@ const DonorOfferSchema = z.object({
 
 const FinalizeDonorOfferItemSchema = z.object({
   // not in schema, but used to match to generalItem
-  title: z.string(),
-  unitType: z.string(),
+  title: z
+    .string()
+    .transform((v) => v.replace(/\s+/g, " ").trim()),
+  unitType: z
+    .string()
+    .transform((v) => v.replace(/\s+/g, " ").trim()),
   expirationDate: z
     .union([
       z.coerce.date(),
@@ -143,6 +147,26 @@ export default class DonorOfferService {
     }
 
     return null;
+  }
+
+  private static datesWithinTolerance(
+    a: Date | null,
+    b: Date | null,
+    toleranceDays: number
+  ): boolean {
+    if (a === null && b === null) return true;
+    if (a === null || b === null) return false;
+    const aMidnight = new Date(a);
+    aMidnight.setUTCHours(0, 0, 0, 0);
+    const bMidnight = new Date(b);
+    bMidnight.setUTCHours(0, 0, 0, 0);
+    const diffMs = Math.abs(aMidnight.getTime() - bMidnight.getTime());
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    return diffMs <= toleranceDays * oneDayMs;
+  }
+
+  private static normalizeWhitespace(value: string): string {
+    return value.replace(/\s+/g, " ").trim();
   }
 
   private static toGeneralItemCreateInputs(
@@ -862,53 +886,91 @@ export default class DonorOfferService {
       };
     }
 
-    await db.$transaction(async (tx) => {
-      const donorOffer = await tx.donorOffer.update({
-        where: { id: donorOfferId },
-        data: {
-          state: $Enums.DonorOfferState.FINALIZED,
-        },
-        include: { items: true },
-      });
+    const updatedOffer = await db.donorOffer.update({
+      where: { id: donorOfferId },
+      data: { state: $Enums.DonorOfferState.FINALIZED },
+      include: { items: true },
+    });
 
-      if (validItems.length > 0) {
-        const itemsWithDonorOfferItemId = validItems.map((item) => ({
-          // TODO: removed in future 
-          allowAllocations: true,
-          visible: true,
-          gik: true,
-          //
-          donorName: donorOffer.donorName,
+    if (validItems.length > 0) {
+      const lineItemsByGeneralItem = new Map<string, FinalizeDonorOfferItem[]>();
+
+      for (const item of validItems) {
+        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(item.expirationDate);
+        const expirationKey = normalizedExpiration
+          ? normalizedExpiration.toISOString().split("T")[0]
+          : "null";
+        const key = `${DonorOfferService.normalizeWhitespace(item.title)}|${expirationKey}|${DonorOfferService.normalizeWhitespace(item.unitType)}`;
+
+        if (!lineItemsByGeneralItem.has(key)) {
+          lineItemsByGeneralItem.set(key, []);
+        }
+        lineItemsByGeneralItem.get(key)!.push(item);
+      }
+
+      const offerItems: typeof updatedOffer.items = [...updatedOffer.items];
+
+      for (const [, lineItems] of lineItemsByGeneralItem.entries()) {
+        const firstLineItem = lineItems[0];
+        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(firstLineItem.expirationDate);
+
+        let generalItem = offerItems.find((di) => {
+          const diExpiration = di.expirationDate
+            ? DonorOfferService.normalizeExpirationDate(di.expirationDate)
+            : null;
+          const expirationMatches = DonorOfferService.datesWithinTolerance(
+            normalizedExpiration,
+            diExpiration,
+            1
+          );
+          return (
+            DonorOfferService.normalizeWhitespace(firstLineItem.title) === DonorOfferService.normalizeWhitespace(di.title) &&
+            expirationMatches &&
+            DonorOfferService.normalizeWhitespace(firstLineItem.unitType) === DonorOfferService.normalizeWhitespace(di.unitType)
+          );
+        });
+
+        if (!generalItem) {
+          const totalQuantity = lineItems.reduce((sum, item) => sum + item.quantity, 0);
+
+          generalItem = await db.generalItem.create({
+            data: {
+              donorOfferId,
+              title: DonorOfferService.normalizeWhitespace(firstLineItem.title),
+              expirationDate: normalizedExpiration,
+              unitType: DonorOfferService.normalizeWhitespace(firstLineItem.unitType),
+              initialQuantity: totalQuantity,
+              description: null,
+            },
+          });
+
+          offerItems.push(generalItem);
+        }
+
+        const generalItemId = generalItem.id;
+        console.log(generalItemId, generalItem.title);
+
+        const lineItemsToCreate = lineItems.map((item) => ({
+          allowAllocations: item.allowAllocations ?? true,
+          visible: item.visible ?? true,
+          gik: item.gik ?? true,
+          donorName: updatedOffer.donorName,
           quantity: item.quantity,
           lotNumber: item.lotNumber,
           palletNumber: item.palletNumber,
           boxNumber: item.boxNumber,
           unitPrice: item.unitPrice,
-          generalItemId: donorOffer.items.find((di) => {
-            const itemExpiration =
-              DonorOfferService.normalizeExpirationDate(
-                item.expirationDate
-              );
-            const diExpiration = di.expirationDate
-              ? DonorOfferService.normalizeExpirationDate(di.expirationDate)
-              : null;
-            const expirationMatches =
-              itemExpiration === null && diExpiration === null
-                ? true
-                : !!itemExpiration &&
-                  !!diExpiration &&
-                  itemExpiration.getTime() === diExpiration.getTime();
-            return (
-              item.title === di.title &&
-              expirationMatches &&
-              item.unitType === di.unitType
-            );
-          })?.id,
+          maxRequestLimit: item.maxRequestLimit ?? null,
+          donorShippingNumber: item.donorShippingNumber ?? null,
+          hfhShippingNumber: item.hfhShippingNumber ?? null,
+          ndc: item.ndc ?? null,
+          notes: null,
+          generalItemId: generalItemId,
         }));
 
-        await tx.lineItem.createMany({ data: itemsWithDonorOfferItemId });
+        await db.lineItem.createMany({ data: lineItemsToCreate });
       }
-    });
+    }
 
     return { success: true, donorOfferId, createdCount: validItems.length };
   }
