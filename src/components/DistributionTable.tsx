@@ -146,10 +146,7 @@ function OptionsButton({
     <div className="relative">
       <button
         ref={buttonRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsDropdownOpen(!isDropdownOpen);
-        }}
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="px-2 py-1 rounded hover:bg-gray-100"
       >
         <DotsThree size={16} />
