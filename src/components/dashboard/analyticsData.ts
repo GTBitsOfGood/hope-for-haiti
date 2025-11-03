@@ -71,14 +71,16 @@ export const mockAnalyticsData: DashboardWidget[] = [
   {
     id: "2",
     title: "Top Donation Categories",
-    items: [
-      { name: "General Medicine", value: 2987 },
-      { name: "Cancer", value: 3243 },
-      { name: "Menstrual Hygiene", value: 4352 },
-      { name: "Antibiotic", value: 2345 },
-      { name: "Recreation", value: 1257 },
+    data: [
+      { label: "General Medicine", value: 2987 },
+      { label: "Cancer", value: 3243 },
+      { label: "Menstrual Hygiene", value: 4352 },
+      { label: "Antibiotic", value: 2345 },
+      { label: "Recreation", value: 1257 },
     ],
-    type: "leaderboard",
+    orientation: "horizontal",
+    axisTitleX: "Count",
+    type: "bar",
   },
   {
     id: "3",

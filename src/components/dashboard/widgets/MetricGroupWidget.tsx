@@ -8,7 +8,7 @@ export default function MetricGroupWidget({ metrics }: MetricGroupWidgetProps) {
       {metrics.map((metric, index) => (
         <div
           key={index}
-          className="p-4 pb-20 bg-gray-50 rounded-lg border border-blue-primary/[0.80]"
+          className="p-4 pb-20 rounded-lg border border-blue-200 bg-white"
         >
           <p className="text-sm font-medium text-black mb-2">{metric.title}</p>
           <p className="text-2xl font-bold text-blue-primary">{metric.value}</p>

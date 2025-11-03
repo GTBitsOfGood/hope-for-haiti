@@ -1,4 +1,5 @@
 import type { DashboardWidget } from "@/components/dashboard/analyticsData";
+import { mockAnalyticsData } from "@/components/dashboard/analyticsData";
 import type { Notification } from "@/components/dashboard/types";
 
 // Backend notification type
@@ -50,7 +51,7 @@ export async function fetchNotifications(): Promise<Notification[]> {
     actionText: notif.actionText || "View",
     actionUrl: notif.action || "#",
     timestamp: new Date(notif.dateCreated),
-    type: "other" as const, // Default type, could be determined from notification content
+    type: "other" as const,
   }));
 }
 
@@ -100,6 +101,13 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
     "Dec",
   ];
 
+  const topDonationCategoriesMock = mockAnalyticsData.find(
+    (w) => w.title === "Top Donation Categories"
+  );
+  const breakdownByDonationTypeMock = mockAnalyticsData.find(
+    (w) => w.title === "Breakdown by Donation Type"
+  );
+
   const widgets: DashboardWidget[] = [
     // Metric Group: Overview Metrics
     {
@@ -119,9 +127,9 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
       ],
       type: "metricGroup",
     },
-    // Top Three GIK Donors
+    ...(topDonationCategoriesMock ? [topDonationCategoriesMock] : []),
     {
-      id: "2",
+      id: "3",
       title: "Top Three GIK Donors",
       data: data.topDonors.map((donor) => ({
         label: donor.donorName,
@@ -133,7 +141,7 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
     },
     // Top Five Medications Imported
     {
-      id: "3",
+      id: "5",
       title: "Top Five Medications Imported",
       data: data.topMedications.map((med) => ({
         label: med.title,
@@ -145,7 +153,7 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
     },
     // Total Imported By Value (Gauge)
     {
-      id: "4",
+      id: "6",
       title: "Total Imported By Value",
       current: data.totalImports,
       goal: 25_000_000, // $25M goal
@@ -155,7 +163,7 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
     },
     // Total GIK Partners (Gauge)
     {
-      id: "5",
+      id: "7",
       title: "Total GIK Partners",
       current: data.partnerCount,
       goal: 70,
@@ -163,9 +171,11 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
       textColor: "#8F6C1A",
       type: "gauge",
     },
+
+    ...(breakdownByDonationTypeMock ? [breakdownByDonationTypeMock] : []),
     // Total GIK $ Amount Imported (Monthly Bar Chart)
     {
-      id: "6",
+      id: "9",
       title: "Total GIK $ Amount Imported",
       data: data.monthlyImportTotals.map((month) => ({
         label: monthAbbr[month.month - 1],

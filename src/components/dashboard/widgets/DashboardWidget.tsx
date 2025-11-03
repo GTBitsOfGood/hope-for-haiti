@@ -12,7 +12,7 @@ interface DashboardWidgetProps {
 
 export default function DashboardWidget({ widget }: DashboardWidgetProps) {
   const commonWrapperClass =
-    "rounded-[5.227px] border border-blue-primary/[0.80] bg-white px-[26px] py-5";
+    "rounded-[5.227px] border border-blue-200 bg-white px-[26px] py-5";
 
   const renderContent = () => {
     switch (widget.type) {
@@ -47,14 +47,16 @@ export default function DashboardWidget({ widget }: DashboardWidgetProps) {
     }
   };
 
-  const hasTitle = widget.type !== "metricGroup";
+  if (widget.type === "metricGroup") {
+    return renderContent();
+  }
 
   return (
-    <div className={`${commonWrapperClass} h-full flex flex-col`}>
-      {hasTitle && (
+    <div className={commonWrapperClass}>
+      {"title" in widget && widget.title ? (
         <h3 className="text-md font-medium text-black mb-4">{widget.title}</h3>
-      )}
-      <div className="flex-1">{renderContent()}</div>
+      ) : null}
+      {renderContent()}
     </div>
   );
 }
