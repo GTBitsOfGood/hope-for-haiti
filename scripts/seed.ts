@@ -29,7 +29,6 @@ type GeneralItemRequestSeed = {
 };
 
 type LineItemSeed = {
-  category: ItemCategory;
   donorName: string;
   quantity: number;
   lotNumber: string;
@@ -599,7 +598,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Global Health Trust",
         quantity: 150,
         lotNumber: "LOT-NA-2405",
@@ -615,7 +613,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         notes: "Stored at depot Port-au-Prince.",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Global Health Trust",
         quantity: 180,
         lotNumber: "LOT-NA-2406",
@@ -630,7 +627,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         ndc: "00409-0882-02",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Global Health Trust",
         quantity: 120,
         lotNumber: "LOT-NA-2407",
@@ -645,7 +641,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         ndc: "00409-0882-02",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Global Health Trust",
         quantity: 150,
         lotNumber: "LOT-NA-2408",
@@ -703,7 +698,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Aid for All Foundation",
         quantity: 200,
         lotNumber: "LOT-CEF-1324",
@@ -719,7 +713,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         notes: "Cold-chain item.",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Aid for All Foundation",
         quantity: 160,
         lotNumber: "LOT-CEF-1325",
@@ -734,7 +727,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         ndc: "00409-7331-01",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Aid for All Foundation",
         quantity: 120,
         lotNumber: "LOT-CEF-1326",
@@ -793,7 +785,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Health Lifeline",
         quantity: 220,
         lotNumber: "LOT-VA-881",
@@ -807,7 +798,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         hfhShippingNumber: "HFH-2406-005",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Health Lifeline",
         quantity: 180,
         lotNumber: "LOT-VA-882",
@@ -821,7 +811,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         hfhShippingNumber: "HFH-2406-005",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Health Lifeline",
         quantity: 210,
         lotNumber: "LOT-VA-883",
@@ -834,7 +823,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2405-010",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Health Lifeline",
         quantity: 190,
         lotNumber: "LOT-VA-884",
@@ -848,7 +836,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         notes: "Reserved for QA inspection.",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Health Lifeline",
         quantity: 200,
         lotNumber: "LOT-VA-885",
@@ -906,7 +893,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Better Future Supplies",
         quantity: 250,
         lotNumber: "LOT-MSK-503",
@@ -920,7 +906,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         hfhShippingNumber: "HFH-2406-007",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Better Future Supplies",
         quantity: 260,
         lotNumber: "LOT-MSK-504",
@@ -933,7 +918,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2405-014",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Better Future Supplies",
         quantity: 240,
         lotNumber: "LOT-MSK-505",
@@ -946,7 +930,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2405-015",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Better Future Supplies",
         quantity: 260,
         lotNumber: "LOT-MSK-506",
@@ -960,7 +943,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         hfhShippingNumber: "HFH-2406-008",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Better Future Supplies",
         quantity: 245,
         lotNumber: "LOT-MSK-507",
@@ -974,7 +956,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         notes: "Outer cartons slightly dented.",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Better Future Supplies",
         quantity: 245,
         lotNumber: "LOT-MSK-508",
@@ -1031,7 +1012,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Diagnostics Without Borders",
         quantity: 160,
         lotNumber: "LOT-LAB-210",
@@ -1044,7 +1024,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2405-019",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Diagnostics Without Borders",
         quantity: 140,
         lotNumber: "LOT-LAB-211",
@@ -1102,7 +1081,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Imaging for Hope",
         quantity: 150,
         lotNumber: "LOT-GEL-701",
@@ -1115,7 +1093,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2405-021",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Imaging for Hope",
         quantity: 130,
         lotNumber: "LOT-GEL-702",
@@ -1129,7 +1106,6 @@ const finalizedGeneralItems: GeneralItemSeed[] = [
         hfhShippingNumber: "HFH-2406-011",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Imaging for Hope",
         quantity: 120,
         lotNumber: "LOT-GEL-703",
@@ -1192,7 +1168,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Med Relief International",
         quantity: 160,
         lotNumber: "LOT-AZI-2401",
@@ -1207,7 +1182,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         ndc: "00378-3125-60",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Med Relief International",
         quantity: 140,
         lotNumber: "LOT-AZI-2402",
@@ -1221,7 +1195,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         notes: "Packed with desiccant packets.",
       },
       {
-        category: ItemCategory.MEDICATION,
         donorName: "Med Relief International",
         quantity: 120,
         lotNumber: "LOT-AZI-2403",
@@ -1279,7 +1252,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "CareWear Collective",
         quantity: 120,
         lotNumber: "LOT-GOWN-4201",
@@ -1293,7 +1265,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         hfhShippingNumber: "HFH-2405-042",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "CareWear Collective",
         quantity: 100,
         lotNumber: "LOT-GOWN-4202",
@@ -1307,7 +1278,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         notes: "Preferred sizes mix requested by partners.",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "CareWear Collective",
         quantity: 80,
         lotNumber: "LOT-GOWN-4203",
@@ -1363,7 +1333,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Global Hydration Network",
         quantity: 90,
         lotNumber: "LOT-INF-3301",
@@ -1376,7 +1345,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2404-107",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Global Hydration Network",
         quantity: 80,
         lotNumber: "LOT-INF-3302",
@@ -1390,7 +1358,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         maxRequestLimit: "Allocate in bundles of 20 kits.",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "Global Hydration Network",
         quantity: 90,
         lotNumber: "LOT-INF-3303",
@@ -1446,7 +1413,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "CoolChain Alliance",
         quantity: 50,
         lotNumber: "LOT-COLD-2101",
@@ -1460,7 +1426,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         hfhShippingNumber: "HFH-2405-043",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "CoolChain Alliance",
         quantity: 45,
         lotNumber: "LOT-COLD-2102",
@@ -1474,7 +1439,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         notes: "Ice packs preconditioned on arrival.",
       },
       {
-        category: ItemCategory.MEDICAL_SUPPLY,
         donorName: "CoolChain Alliance",
         quantity: 45,
         lotNumber: "LOT-COLD-2103",
@@ -1532,7 +1496,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
     ],
     lineItems: [
       {
-        category: ItemCategory.NON_MEDICAL,
         donorName: "Resilience Relief",
         quantity: 150,
         lotNumber: "LOT-NUT-5501",
@@ -1546,7 +1509,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         notes: "Variety pack flavors.",
       },
       {
-        category: ItemCategory.NON_MEDICAL,
         donorName: "Resilience Relief",
         quantity: 140,
         lotNumber: "LOT-NUT-5502",
@@ -1559,7 +1521,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2404-114",
       },
       {
-        category: ItemCategory.NON_MEDICAL,
         donorName: "Resilience Relief",
         quantity: 130,
         lotNumber: "LOT-NUT-5503",
@@ -1572,7 +1533,6 @@ const archivedGeneralItems: GeneralItemSeed[] = [
         donorShippingNumber: "DN-2404-115",
       },
       {
-        category: ItemCategory.NON_MEDICAL,
         donorName: "Resilience Relief",
         quantity: 120,
         lotNumber: "LOT-NUT-5504",
@@ -1819,7 +1779,6 @@ async function buildSeedData() {
       ? {
           items: {
             create: item.lineItems.map((lineItem) => ({
-              category: lineItem.category,
               donorName: lineItem.donorName,
               quantity: lineItem.quantity,
               lotNumber: lineItem.lotNumber,

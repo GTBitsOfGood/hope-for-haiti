@@ -361,7 +361,7 @@ export class LineItemService {
   }
 
   /**
-   * @returns The top 5 medication imports by value
+   * @returns The top 5 imports by value (category removed)
    */
   static async getTopMedicationImports(
     startDate: Date = new Date(0),
@@ -381,7 +381,6 @@ export class LineItemService {
       JOIN "GeneralItem" g ON li."generalItemId" = g.id
       JOIN "SignOff" s ON a."signOffId" = s.id
       WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
-        AND li."category" = 'MEDICATION'
     `;
 
     if (excludePartnerTags.length > 0) {

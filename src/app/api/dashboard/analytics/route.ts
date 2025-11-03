@@ -110,6 +110,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
+    console.error(error);
     return errorResponse(error);
   }
 }
