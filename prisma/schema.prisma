@@ -141,6 +141,8 @@ model GeneralItem {
   requests GeneralItemRequest[]
   items    LineItem[]
 
+  wishlists Wishlist[]
+
   @@unique([donorOfferId, title, expirationDate, unitType])
 }
 
@@ -222,6 +224,9 @@ model Wishlist {
   comments  String
   partnerId Int
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  generalItemId Int?
+  generalItem GeneralItem? @relation(fields: [generalItemId], references: [id])
 }
 
 model PasswordResetToken {

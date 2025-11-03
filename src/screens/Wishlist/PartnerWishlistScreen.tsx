@@ -232,6 +232,10 @@ export default function PartnerWishlistScreen({
       <AddToWishlistModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
+        onSave={async () => {
+          tableRef.current?.reload();
+          setIsCreateOpen(false);
+        }}
       />
       {/* Edit Modal */}
       <EditWishlistModal

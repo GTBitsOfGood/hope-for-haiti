@@ -53,6 +53,7 @@ export class WishlistService {
   static async getWishlistsByPartner(partnerId: number) {
     return await db.wishlist.findMany({
       where: {
+        generalItemId: null,
         partnerId,
       },
     });

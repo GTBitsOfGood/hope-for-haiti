@@ -11,6 +11,7 @@ import AdvancedBaseTable, {
   TableQuery,
 } from "./baseTable/AdvancedBaseTable";
 import Link from "next/link";
+import { Wishlist } from "@prisma/client";
 
 type Suggestion = {
   id: number;
@@ -31,11 +32,13 @@ export type AddToWishlistForm = {
 interface AddToWishlistModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave: (data: Wishlist) => void;
 }
 
 export default function AddToWishlistModal({
   isOpen,
   onClose,
+  onSave,
 }: AddToWishlistModalProps) {
   const { apiClient } = useApiClient();
 
@@ -129,11 +132,16 @@ export default function AddToWishlistModal({
       name: form.name.trim(),
       quantity: form.quantity, // number | undefined
       comments: form.comments?.trim() || undefined,
+      unitSize: "N/A",
+      priority: "LOW",
     };
 
     // TODO: POST to /api/wishlists with `payload`
     console.log("Submitting wish:", payload);
-    onClose();
+    await apiClient.post("/api/wishlists", {
+      body: JSON.stringify(payload),
+    });
+    onSave(payload as Wishlist); // Cast for onSave callback
   };
 
   const suggestionFetchFn = async (

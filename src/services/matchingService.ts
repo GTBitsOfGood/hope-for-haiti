@@ -156,82 +156,166 @@ export class MatchingService {
   }
 
   /**
-   * Get top-K matches for a query string.
-   * - Embeds the string and uses queryEmbeddings (NOT queryTexts).
-   * - Returns the top-K results **with** distance/similarity and a "soft"/"hard" match label.
+   * Get top-K matches for one or many query strings.
+   * - Embeds the string(s) and uses queryEmbeddings (NOT queryTexts).
+   * - Returns per-query top-K results with distance/similarity and "soft"/"hard" label.
    * - Filters out weak matches by a distance cutoff.
+   *
+   * Overloads:
+   *  - { query: string,   ... } -> Promise<Match[]>
+   *  - { queries: string[], ... } -> Promise<Match[][]>
    */
   static async getTopKMatches(params: {
     query: string;
     k: number;
     donorOfferId?: number;
-    /**
-     * Exclude results farther than this cosine distance.
-     * (Smaller = closer; 0.25 ≈ sim 0.75)
-     */
-    distanceCutoff?: number; // default 0.25
-    /**
-     * Distance threshold for a "hard" match (<= hardCutoff = hard; else soft).
-     * (0.10 ≈ sim 0.90)
-     */
-    hardCutoff?: number; // default 0.10
+    distanceCutoff?: number; // default 0.25  (0.25 ≈ sim 0.75)
+    hardCutoff?: number; // default 0.10  (0.10 ≈ sim 0.90)
   }): Promise<
     Array<{
       id: number;
       title: string;
       donorOfferId: number | null;
-      distance: number; // cosine distance (smaller is better)
-      similarity: number; // 1 - distance
+      distance: number;
+      similarity: number;
       strength: "hard" | "soft";
     }>
+  >;
+  static async getTopKMatches(params: {
+    queries: string[];
+    k: number;
+    donorOfferId?: number;
+    distanceCutoff?: number; // default 0.25
+    hardCutoff?: number; // default 0.10
+  }): Promise<
+    Array<
+      Array<{
+        id: number;
+        title: string;
+        donorOfferId: number | null;
+        distance: number;
+        similarity: number;
+        strength: "hard" | "soft";
+      }>
+    >
+  >;
+  static async getTopKMatches(params: {
+    query?: string;
+    queries?: string[];
+    k: number;
+    donorOfferId?: number;
+    distanceCutoff?: number;
+    hardCutoff?: number;
+  }): Promise<
+    | Array<{
+        id: number;
+        title: string;
+        donorOfferId: number | null;
+        distance: number;
+        similarity: number;
+        strength: "hard" | "soft";
+      }>
+    | Array<
+        Array<{
+          id: number;
+          title: string;
+          donorOfferId: number | null;
+          distance: number;
+          similarity: number;
+          strength: "hard" | "soft";
+        }>
+      >
   > {
     const {
       query,
+      queries,
       k,
       donorOfferId,
       distanceCutoff = 0.25,
       hardCutoff = 0.1,
     } = params;
 
-    const collection = await collectionP;
-    const [qvec] = await embed([query]);
+    // Normalize input to an array, preserving positions for empty/trimmed queries
+    const original: (string | undefined)[] =
+      queries ?? (typeof query === "string" ? [query] : []);
+    if (!original.length) return Array.isArray(queries) ? [] : [];
 
+    const normalized: { text: string; index: number }[] = [];
+    original.forEach((q, i) => {
+      const t = (q ?? "").trim();
+      if (t.length > 0) normalized.push({ text: t, index: i });
+    });
+
+    // If all queries were empty, return appropriately
+    if (!normalized.length)
+      return Array.isArray(queries) ? original.map(() => []) : [];
+
+    const collection = await collectionP;
+
+    // Embed only the non-empty queries, keep an index map
+    const embeddings = await embed(normalized.map((q) => q.text)); // number[][]
     const res = await collection.query({
-      queryEmbeddings: [qvec],
+      queryEmbeddings: embeddings,
       nResults: k,
       where: donorOfferId != null ? { donorOfferId } : undefined,
       include: ["documents", "distances", "metadatas"],
     });
 
-    const ids = res.ids?.[0] ?? [];
-    const docs = res.documents?.[0] ?? [];
-    const dists = res.distances?.[0] ?? [];
-    const metas = (res.metadatas?.[0] ?? []) as Array<Record<string, unknown>>;
+    // Helper to convert one query's result row into our shape
+    const buildMatches = (qIdx: number) => {
+      const ids = res.ids?.[qIdx] ?? [];
+      const docs = res.documents?.[qIdx] ?? [];
+      const dists = res.distances?.[qIdx] ?? [];
+      const metas = (res.metadatas?.[qIdx] ?? []) as Array<
+        Record<string, unknown>
+      >;
 
-    // Build + filter + label
-    const raw = ids.map((id, i) => {
-      const distance = typeof dists[i] === "number" ? (dists[i] as number) : 1;
-      const similarity = 1 - distance;
-      const meta = metas[i] ?? {};
-      const donorOfferIdMeta =
-        typeof meta.donorOfferId === "number"
-          ? (meta.donorOfferId as number)
-          : null;
+      const rows = ids.map((id, i) => {
+        const distance =
+          typeof dists[i] === "number" ? (dists[i] as number) : 1;
+        const similarity = 1 - distance;
+        const meta = metas[i] ?? {};
+        const donorOfferIdMeta =
+          typeof meta.donorOfferId === "number"
+            ? (meta.donorOfferId as number)
+            : null;
 
-      const matchType: "hard" | "soft" =
-        distance <= hardCutoff ? "hard" : "soft";
+        const matchType: "hard" | "soft" =
+          distance <= hardCutoff ? "hard" : "soft";
 
-      return {
-        id: Number(id),
-        title: typeof docs[i] === "string" ? (docs[i] as string) : "",
-        donorOfferId: donorOfferIdMeta,
-        distance,
-        similarity: Number.isFinite(similarity) ? similarity : 0,
-        strength: matchType,
-      };
+        return {
+          id: Number(id),
+          title: typeof docs[i] === "string" ? (docs[i] as string) : "",
+          donorOfferId: donorOfferIdMeta,
+          distance,
+          similarity: Number.isFinite(similarity) ? similarity : 0,
+          strength: matchType,
+        };
+      });
+
+      return rows.filter((r) => r.distance <= distanceCutoff).slice(0, k);
+    };
+
+    // Chroma returns one list per query in the *embedded order*
+    // We must place each list back at its original index; empty inputs produce []
+    const perEmbedded = normalized.map((_, i) => buildMatches(i));
+    const perOriginal: Array<
+      Array<{
+        id: number;
+        title: string;
+        donorOfferId: number | null;
+        distance: number;
+        similarity: number;
+        strength: "hard" | "soft";
+      }>
+    > = original.map(() => []); // seed with empties
+    normalized.forEach(({ index }, i) => {
+      perOriginal[index] = perEmbedded[i];
     });
 
-    // Exclude weak matches and cap to K (defensive slice after filter)
-    return raw.filter((r) => r.distance <= distanceCutoff).slice(0, k);
+    // Backward compatibility:
+    // - If the caller passed a single `query`, return Match[]
+    // - If the caller passed `queries`, return Match[][]
+    return Array.isArray(queries) ? perOriginal : (perOriginal[0] ?? []);
   }
 }
