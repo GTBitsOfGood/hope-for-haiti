@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import DonorOfferService from "@/services/donorOfferService";
+import FileService from "@/services/fileService";
 import UserService from "@/services/userService";
 import {
   ArgumentError,
@@ -12,8 +13,8 @@ import {
   ok,
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
-import { formDataToObject } from "@/util/formData";
 import { tableParamsSchema } from "@/schema/tableParams";
+import { formDataToObject } from "@/util/formData";
 
 /**
  * Schema for getting offer ID from URL params
@@ -25,6 +26,14 @@ const paramSchema = z.object({
     .pipe(
       z.number().int().positive("Donor offer ID must be a positive integer")
     ),
+});
+
+const requestParamSchema = z.object({
+  requests: z.coerce.boolean().optional().nullable(),
+});
+
+const previewParamSchema = z.object({
+  preview: z.coerce.boolean().optional().nullable(),
 });
 
 const updateSchema = z.object({
@@ -49,6 +58,7 @@ const updateSchema = z.object({
     .enum(Object.values($Enums.DonorOfferState) as [string, ...string[]])
     .transform((val) => val as $Enums.DonorOfferState)
     .optional(),
+  file: z.any().optional(),
 });
 
 export async function GET(
@@ -68,7 +78,8 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
-    const parsedParams = tableParamsSchema.safeParse({
+    const parsedParams = tableParamsSchema.merge(requestParamSchema).safeParse({
+      requests: request.nextUrl.searchParams.get("requests"),
       filters: request.nextUrl.searchParams.get("filters"),
       page: request.nextUrl.searchParams.get("page"),
       pageSize: request.nextUrl.searchParams.get("pageSize"),
@@ -78,7 +89,7 @@ export async function GET(
       throw new ArgumentError(parsedParams.error.message);
     }
 
-    const { filters, page, pageSize } = parsedParams.data;
+    const { filters, page, pageSize, requests } = parsedParams.data;
 
     let result;
 
@@ -91,9 +102,23 @@ export async function GET(
         pageSize ?? undefined
       );
     } else if (UserService.isStaff(session.user.type)) {
+      const includeRequests = requests ?? undefined;
       result = await DonorOfferService.getAdminDonorOfferDetails(
         parsed.data.donorOfferId,
+        includeRequests
       );
+
+      const donorOffer = result.donorOffer;
+
+      return NextResponse.json({
+        donorOffer,
+        partners: result.partners,
+        items: result.items,
+        offerName: donorOffer.offerName,
+        donorName: donorOffer.donorName,
+        partnerResponseDeadline: donorOffer.partnerResponseDeadline,
+        donorResponseDeadline: donorOffer.donorResponseDeadline,
+      });
     } else {
       throw new AuthorizationError("Unauthorized user type");
     }
@@ -153,16 +178,50 @@ export async function PATCH(
     }
 
     const formData = await req.formData();
+    const file = formData.get("file");
+
+    const previewParsed = previewParamSchema.safeParse({
+      preview: req.nextUrl.searchParams.get("preview"),
+    });
+    if (!previewParsed.success) {
+      throw new ArgumentError(previewParsed.error.message);
+    }
+    const { preview } = previewParsed.data;
+
+    if (file && file instanceof File) {
+      const parsedFileData = await FileService.parseFinalizedFile(file);
+      const result = await DonorOfferService.finalizeDonorOffer(
+        parsed.data.donorOfferId,
+        parsedFileData,
+        preview ?? false,
+      );
+
+      if (preview) {
+        return NextResponse.json({
+          donorOfferItems: result.donorOfferItems ?? [],
+        });
+      }
+
+      return NextResponse.json(result);
+    }
+
     const formObj = formDataToObject(formData) as typeof updateSchema._input;
+
+    if ("partners" in formObj) {
+      formObj.partners = formObj.partners?.map(partnerId => Number(partnerId));
+    }
 
     const updateParsed = updateSchema.safeParse(formObj);
     if (!updateParsed.success) {
       throw new ArgumentError(updateParsed.error.message);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { file: _, ...updateData } = updateParsed.data;
+
     const result = await DonorOfferService.updateDonorOffer(
       parsed.data.donorOfferId,
-      updateParsed.data
+      updateData
     );
     
     return NextResponse.json(result);

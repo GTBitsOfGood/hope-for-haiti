@@ -29,6 +29,7 @@ export default function BulkAddItemsPage() {
     resetUpload: resetFileUpload,
   } = useFileUpload<{ items: BulkItemFormData[] }>({
     previewEndpoint: "/api/items/bulk?preview=true",
+    previewEndpointMethod: "POST",
     onSuccess: (result) => {
       setData(result.items as BulkItemFormData[]);
       setPreview(false);

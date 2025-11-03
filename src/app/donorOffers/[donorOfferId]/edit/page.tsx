@@ -1,32 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { DonorOfferState } from "@prisma/client";
 import {
-  ErrorDisplay,
   PartnerSearch,
   Partner,
-  DonorOfferSuccessModal,
 } from "@/components/DonorOffers";
-import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
-import { Check, Pencil, Plus, Trash } from "@phosphor-icons/react";
 import toast from "react-hot-toast";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
-import BaseTable from "@/components/baseTable/BaseTable";
-
-interface DonorOfferItem {
-  id?: number;
-  title: string;
-  type: string;
-  quantity: number;
-  expirationDate: string;
-  unitType: string;
-  quantityPerUnit: number;
-  editing?: boolean;
-}
+import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 
 export default function EditDonorOfferPage() {
   const { donorOfferId } = useParams();
@@ -34,116 +18,55 @@ export default function EditDonorOfferPage() {
 
   const [offerName, setOfferName] = useState("");
   const [donorName, setDonorName] = useState("");
-  const [partnerRequestDeadline, setPartnerRequestDeadline] = useState("");
-  const [donorRequestDeadline, setDonorRequestDeadline] = useState("");
+  const [partnerResponseDeadline, setPartnerResponseDeadline] = useState("");
+  const [donorResponseDeadline, setDonorResponseDeadline] = useState("");
   const [selectedPartners, setSelectedPartners] = useState<Partner[]>([]);
-
-  const [items, setData] = useState<DonorOfferItem[]>([]);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const { isLoading: isLoadingDetails } = useFetch<{
     offerName: string;
     donorName: string;
     donorResponseDeadline: string;
     partnerResponseDeadline: string;
-    partners: [Partner];
-    items: DonorOfferItem[];
-  }>(`/api/donorOffers/${donorOfferId}/edit`, {
+    partners: Partner[];
+  }>(`/api/donorOffers/${donorOfferId}?requests=false`, {
     onSuccess: (data) => {
       setOfferName(data.offerName);
       setDonorName(data.donorName);
-      setPartnerRequestDeadline(
+      setPartnerResponseDeadline(
         new Date(data.partnerResponseDeadline).toISOString().substring(0, 10)
       );
-      setDonorRequestDeadline(
+      setDonorResponseDeadline(
         new Date(data.donorResponseDeadline).toISOString().substring(0, 10)
       );
       setSelectedPartners(data.partners);
-      setData(data.items);
     },
     onError: (error) => {
       console.error("Error fetching donor offer details:", error);
-      setErrors(["Failed to load donor offer details. Please try again."]);
+      toast.error("Failed to load donor offer details");
     },
   });
 
   const { isLoading: isSubmitting, apiClient } = useApiClient();
 
-  const handleAddItem = () => {
-    const newItem: DonorOfferItem = {
-      title: "",
-      type: "",
-      quantity: 0,
-      expirationDate: "",
-      unitType: "",
-      quantityPerUnit: 0,
-      editing: true,
-    };
-    setData([...items, newItem]);
-  };
-
-  const handleSaveItem = (index: number) => {
-    const item = items[index];
-    if (item.title === "") return toast.error("Item must have a title");
-    if (item.type === "") return toast.error("Item must have a type");
-    if (item.quantity === 0)
-      return toast.error("Item quantity must be greater than 0");
-    if (item.unitType === "") return toast.error("Item must have a unit type");
-    if (item.quantityPerUnit === 0)
-      return toast.error("Item quantity per unit must be greater than 0");
-
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], editing: false };
-    setData(newItems);
-  };
-
-  const handleToggleEdit = (index: number) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], editing: !newItems[index].editing };
-    setData(newItems);
-  };
-
-  const handleItemChange = (
-    index: number,
-    field: keyof DonorOfferItem,
-    value: string | number
-  ) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setData(newItems);
-  };
-
   const handleSubmit = async () => {
-    if (items.some((i) => i.editing)) {
-      return toast.error("Finish editing items before submitting");
-    }
-
-    const formData = new FormData();
-    formData.append("offerName", offerName);
-    formData.append("donorName", donorName);
-    formData.append("partnerRequestDeadline", partnerRequestDeadline);
-    formData.append("donorRequestDeadline", donorRequestDeadline);
-    formData.append("state", DonorOfferState.UNFINALIZED);
-
-    selectedPartners.forEach((partner) => {
-      formData.append("partnerIds", partner.id.toString());
-    });
-
-    items.forEach((item) => {
-      formData.append("items", JSON.stringify(item));
-    });
-
     try {
-      await apiClient.put(`/api/donorOffers/${donorOfferId}/edit`, {
-        body: formData,
+      const formData = new FormData();
+      formData.append("offerName", offerName);
+      formData.append("donorName", donorName);
+      formData.append("partnerResponseDeadline", partnerResponseDeadline);
+      formData.append("donorResponseDeadline", donorResponseDeadline);
+
+      selectedPartners.forEach((partner) => {
+        formData.append("partners[]", partner.id.toString());
       });
-      setIsSuccess(true);
+
+      await apiClient.patch(`/api/donorOffers/${donorOfferId}`, {
+        body: formData
+      });
+      toast.success("Successfully updated donor offer")
     } catch (error) {
       console.error("Error updating donor offer:", error);
-      setErrors([
-        "An error occurred while updating the donor offer. Please try again.",
-      ]);
+      toast.error("An error occurred while updating the donor offer");
     }
   };
 
@@ -157,6 +80,8 @@ export default function EditDonorOfferPage() {
 
   return (
     <div className="px-10 py-5">
+      <DonorOfferHeader donorOfferId={donorOfferId} />
+      
       <h1 className="mb-4 text-xl font-semibold">Edit Donor Offer</h1>
 
       <div className="mb-6 flex flex-col gap-4">
@@ -188,24 +113,24 @@ export default function EditDonorOfferPage() {
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Donor Request Deadline<span className="text-red-500">*</span>
+            Donor Response Deadline<span className="text-red-500">*</span>
           </label>
           <input
             type="date"
-            value={donorRequestDeadline}
-            onChange={(e) => setDonorRequestDeadline(e.target.value)}
+            value={donorResponseDeadline}
+            onChange={(e) => setDonorResponseDeadline(e.target.value)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             required
           />
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Partner Request Deadline<span className="text-red-500">*</span>
+            Partner Response Deadline<span className="text-red-500">*</span>
           </label>
           <input
             type="date"
-            value={partnerRequestDeadline}
-            onChange={(e) => setPartnerRequestDeadline(e.target.value)}
+            value={partnerResponseDeadline}
+            onChange={(e) => setPartnerResponseDeadline(e.target.value)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             required
           />
@@ -217,122 +142,6 @@ export default function EditDonorOfferPage() {
           />
         </div>
       </div>
-      <BaseTable
-        headers={[
-          "Item Name",
-          "Type",
-          "Quantity",
-          "Expiration",
-          "Unit Type",
-          "Qty/Unit",
-          "",
-        ]}
-        rows={items.map((item, index) => ({
-          cells: item.editing
-            ? [
-                <input
-                  type="text"
-                  value={item.title}
-                  key="title"
-                  onChange={(e) =>
-                    handleItemChange(index, "title", e.target.value)
-                  }
-                  className="w-full px-2 py-1 border rounded"
-                />,
-                <input
-                  type="text"
-                  value={item.type}
-                  key="type"
-                  onChange={(e) =>
-                    handleItemChange(index, "type", e.target.value)
-                  }
-                  className="w-full px-2 py-1 border rounded"
-                />,
-                <input
-                  type="number"
-                  min={0}
-                  value={item.quantity}
-                  key="quantity"
-                  onChange={(e) =>
-                    handleItemChange(
-                      index,
-                      "quantity",
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                  className="w-full px-2 py-1 border rounded"
-                />,
-                <input
-                  type="date"
-                  value={item.expirationDate}
-                  key="expirationDate"
-                  onChange={(e) =>
-                    handleItemChange(index, "expirationDate", e.target.value)
-                  }
-                  className="w-full px-2 py-1 border rounded"
-                />,
-                <input
-                  type="text"
-                  value={item.unitType}
-                  key="unitType"
-                  onChange={(e) =>
-                    handleItemChange(index, "unitType", e.target.value)
-                  }
-                  className="w-full px-2 py-1 border rounded"
-                />,
-                <input
-                  type="number"
-                  min={0}
-                  value={item.quantityPerUnit}
-                  key="quantityPerUnit"
-                  onChange={(e) =>
-                    handleItemChange(
-                      index,
-                      "quantityPerUnit",
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                  className="w-full px-2 py-1 border rounded"
-                />,
-                <div className="flex gap-2" key="saveItem">
-                  <button onClick={() => handleSaveItem(index)}>
-                    <Check size={20} />
-                  </button>
-                  {!item.id && (
-                    <button
-                      onClick={() => {
-                        const newItems = items.filter((_, i) => i !== index);
-                        setData(newItems);
-                      }}
-                    >
-                      <Trash size={20} />
-                    </button>
-                  )}
-                </div>,
-              ]
-            : [
-                item.title,
-                item.type,
-                item.quantity,
-                item.expirationDate
-                  ? new Date(item.expirationDate).toLocaleDateString()
-                  : "None",
-                item.unitType,
-                item.quantityPerUnit,
-                <button onClick={() => handleToggleEdit(index)} key="editItem">
-                  <Pencil size={20} />
-                </button>,
-              ],
-        }))}
-      />
-      <button
-        onClick={handleAddItem}
-        className="mt-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-      >
-        <Plus size={18} /> Add Item
-      </button>
-
-      {errors && errors.length > 0 && <ErrorDisplay errors={errors} />}
 
       <div className="flex justify-end mt-4">
         <button
@@ -344,14 +153,11 @@ export default function EditDonorOfferPage() {
         <button
           onClick={handleSubmit}
           className="bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+          disabled={isSubmitting}
         >
           Save Donor Offer
         </button>
       </div>
-
-      {isSubmitting && <BulkAddLoadingModal />}
-
-      {isSuccess && <DonorOfferSuccessModal />}
     </div>
   );
 }

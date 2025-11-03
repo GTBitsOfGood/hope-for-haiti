@@ -129,12 +129,62 @@ export class GeneralItemService {
     };
   }
 
+  static async getExpiringItems(cutoff: Date) {
+    const generalItems = await db.generalItem.findMany({
+      where: {
+        expirationDate: {
+          not: null,
+          lte: cutoff,
+        },
+        donorOffer: {
+          state: {
+            not: $Enums.DonorOfferState.ARCHIVED,
+          },
+        },
+      },
+      include: {
+        donorOffer: true,
+        items: {
+          select: {
+            quantity: true,
+            allocation: {
+              select: { id: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        expirationDate: "asc",
+      },
+    });
+
+    return generalItems.map((item) => {
+      const { allocatedQuantity, unallocatedQuantity } = item.items.reduce(
+        (totals, lineItem) => {
+          if (lineItem.allocation) {
+            totals.allocatedQuantity += lineItem.quantity;
+          } else {
+            totals.unallocatedQuantity += lineItem.quantity;
+          }
+          return totals;
+        },
+        { allocatedQuantity: 0, unallocatedQuantity: 0 }
+      );
+
+      return {
+        item,
+        unallocatedQuantity,
+        allocatedQuantity,
+      } 
+    });
+  }
+
   static async getAvailableItemsForPartner(
     partnerId: number,
     filters?: Filters,
     page?: number,
-    pageSize?: number
-  ) {
+    pageSize?: number) 
+  {
     const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
       Object.keys(Prisma.GeneralItemScalarFieldEnum),
       filters

@@ -25,6 +25,7 @@ const postSchema = z.object({
   quantityPerUnit: z.number().int().positive(),
   initialQuantity: z.number().int().min(0),
   requestQuantity: z.number().int().min(0).optional(),
+  weight: z.number().positive("Weight must be positive and non-zero"),
   lineItem: z.array(singleLineItemSchema).optional(),
 });
 
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
       requestQuantity: form.get("requestQuantity")
         ? Number(form.get("requestQuantity"))
         : undefined,
+      weight: Number(form.get("weight")),
       lineItem: form.get("lineItem")
         ? JSON.parse(form.get("lineItem") as string)
         : undefined,

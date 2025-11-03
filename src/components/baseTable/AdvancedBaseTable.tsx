@@ -137,7 +137,8 @@ function AdvancedBaseTableInner<T extends object>(
               ...(previousMeta?.options ?? []),
               ...values,
             ]);
-            options = collectedOptions.length > 0 ? collectedOptions : undefined;
+            options =
+              collectedOptions.length > 0 ? collectedOptions : undefined;
           }
         }
 
@@ -398,8 +399,18 @@ function AdvancedBaseTableInner<T extends object>(
                     className={`bg-white data-[odd=false]:bg-blue-light/35 border-b border-blue-primary/10 text-gray-primary ${
                       onRowClick || rowBody ? "cursor-pointer" : ""
                     } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
-                    onClick={() => {
+                    onClick={(e) => {
                       onRowClick?.(item);
+
+                      if (
+                        !(
+                          e.target instanceof HTMLTableCellElement ||
+                          e.target instanceof HTMLSpanElement
+                        )
+                      ) {
+                        return;
+                      }
+
                       if (rowBody) {
                         const id = resolveRowId(item);
                         setOpenRowIds((prev) => {
@@ -434,8 +445,12 @@ function AdvancedBaseTableInner<T extends object>(
                   </tr>
                   {rowBody && openRowIds.has(resolveRowId(item)) && (
                     <tr>
-                      <td colSpan={normalizedColumns.length} className="p-0" style={{ width: 0 }}>
-                        <div style={{ width: '100%', maxWidth: '100%' }}>
+                      <td
+                        colSpan={normalizedColumns.length}
+                        className="p-0"
+                        style={{ width: 0 }}
+                      >
+                        <div style={{ width: "100%", maxWidth: "100%" }}>
                           {rowBody(item)}
                         </div>
                       </td>

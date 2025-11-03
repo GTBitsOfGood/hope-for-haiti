@@ -104,6 +104,7 @@ export interface FinalizeDonorOfferResult {
   errors?: string[];
   donorOfferId?: number;
   createdCount?: number;
+  donorOfferItems?: Record<string, unknown>[];
 }
 
 export interface DonorOfferUpdateParams {

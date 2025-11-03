@@ -9,7 +9,7 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 import LineItemChipGroup, {
   PartnerDistributionSummary,
-} from "@/components/LineItemChipGroup";
+} from "@/components/chips/LineItemChipGroup";
 import { toast } from "react-hot-toast";
 import { AllocationChange, AllocationTableItem } from "./types";
 import {
@@ -26,9 +26,7 @@ type SuggestionResponse = {
 
 type SuggestionConfig = {
   suggestLabel?: string;
-  onSuggest: (
-    items: AllocationTableItem[]
-  ) => Promise<SuggestionResponse>;
+  onSuggest: (items: AllocationTableItem[]) => Promise<SuggestionResponse>;
   onApply: (changes: AllocationChange[]) => Promise<number>;
   onAfterApply?: () => void;
 };
@@ -98,14 +96,12 @@ export default function AllocationTable({
   toolBarExtras,
   emptyState,
 }: AllocationTableProps) {
-  const tableRef =
-    useRef<AdvancedBaseTableHandle<AllocationTableItem>>(null);
+  const tableRef = useRef<AdvancedBaseTableHandle<AllocationTableItem>>(null);
   const currentItemsRef = useRef<AllocationTableItem[]>([]);
   const preInteractionItemsRef = useRef<AllocationTableItem[]>([]);
 
   const [isInteractionMode, setIsInteractionMode] = useState(false);
-  const [isProcessingSuggestions, setIsProcessingSuggestions] =
-    useState(false);
+  const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const resolvedColumns = useMemo(
@@ -123,9 +119,7 @@ export default function AllocationTable({
     [emptyState]
   );
 
-  const wrappedFetchFn = useCallback<
-    AllocationTableProps["fetchFn"]
-  >(
+  const wrappedFetchFn = useCallback<AllocationTableProps["fetchFn"]>(
     async (pageSizeArg, pageArg, filters) => {
       const result = await fetchFn(pageSizeArg, pageArg, filters);
       currentItemsRef.current = cloneAllocationItems(result.data);
@@ -191,9 +185,7 @@ export default function AllocationTable({
             ? {
                 ...request,
                 itemsAllocated: prev.items
-                  .filter(
-                    (line) => line.allocation?.partner?.id === partnerId
-                  )
+                  .filter((line) => line.allocation?.partner?.id === partnerId)
                   .reduce((sum, line) => sum + line.quantity, 0),
               }
             : request
@@ -232,9 +224,7 @@ export default function AllocationTable({
 
       if (!programs.length) {
         toast("No allocation changes suggested.");
-        const recomputed = recomputeItemsAllocated(
-          currentItemsRef.current
-        );
+        const recomputed = recomputeItemsAllocated(currentItemsRef.current);
         tableRef.current?.setItems(recomputed);
         currentItemsRef.current = recomputed;
         setIsInteractionMode(false);
@@ -252,9 +242,7 @@ export default function AllocationTable({
       if (!suggestions.length) {
         toast("No allocation changes suggested.");
         setIsInteractionMode(false);
-        const recomputed = recomputeItemsAllocated(
-          currentItemsRef.current
-        );
+        const recomputed = recomputeItemsAllocated(currentItemsRef.current);
         tableRef.current?.setItems(recomputed);
         currentItemsRef.current = recomputed;
         preInteractionItemsRef.current = [];
@@ -380,7 +368,7 @@ export default function AllocationTable({
         >
           {isProcessingSuggestions
             ? "Preparing suggestions..."
-            : suggestionConfig.suggestLabel ?? "Suggest Allocations"}
+            : (suggestionConfig.suggestLabel ?? "Suggest Allocations")}
         </button>
         {toolBarExtras}
       </div>
@@ -419,7 +407,7 @@ export default function AllocationTable({
       </div>
     )
   ) : (
-    toolBarExtras ?? undefined
+    (toolBarExtras ?? undefined)
   );
 
   return (

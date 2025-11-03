@@ -7,6 +7,7 @@ export interface CreateGeneralItemParams {
   unitType: string;
   initialQuantity: number;
   requestQuantity?: number;
+  weight: number;
 }
 
 export type UpdateGeneralItemParams = Partial<
