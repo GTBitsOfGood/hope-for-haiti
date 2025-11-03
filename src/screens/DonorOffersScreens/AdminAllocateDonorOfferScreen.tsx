@@ -10,7 +10,7 @@ import {
   AllocationTableItem,
 } from "@/components/allocationTable/types";
 import type { FilterList } from "@/components/baseTable/AdvancedBaseTable";
-import type { PartnerDistributionSummary } from "@/components/LineItemChipGroup";
+import type { PartnerDistributionSummary } from "@/components/chips/LineItemChipGroup";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useFetch } from "@/hooks/useFetch";
 import { formatTableValue } from "@/util/format";

@@ -1,9 +1,8 @@
 import { useApiClient } from "@/hooks/useApiClient";
-import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
-import { AdvancedBaseTableHandle } from "./baseTable/AdvancedBaseTable";
-import Portal from "./baseTable/Portal";
-import { AllocationTableItem } from "./allocationTable/types";
+import { AdvancedBaseTableHandle } from "../baseTable/AdvancedBaseTable";
+import { AllocationTableItem } from "../allocationTable/types";
+import Chip from "./Chip";
 
 export interface PartnerDistributionSummary {
   id: number;
@@ -88,9 +87,6 @@ function LineItemChip({
   onDistributionRemoved?: (partnerId: number) => void;
   isInteractionMode?: boolean;
 }) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
   const { apiClient } = useApiClient();
 
   function updateLineItemInTable(updatedItem: Partial<typeof item>) {
@@ -104,8 +100,6 @@ function LineItemChip({
 
   async function unallocateItem() {
     if (isInteractionMode) {
-      setIsDropdownOpen(false);
-
       updateLineItemInTable({
         allocation: null,
       });
@@ -120,11 +114,8 @@ function LineItemChip({
 
     if (!item.allocation?.id) {
       toast("Item is not allocated to any organization.");
-      setIsDropdownOpen(false);
       return;
     }
-
-    setIsDropdownOpen(false);
 
     const response = await apiClient.delete<{
       deletedDistribution: boolean;
@@ -146,14 +137,15 @@ function LineItemChip({
   async function allocateItem(
     request: AllocationTableItem["requests"][number]
   ) {
-    if (isInteractionMode && item.allocation?.partner?.id === request.partnerId) {
+    if (
+      isInteractionMode &&
+      item.allocation?.partner?.id === request.partnerId
+    ) {
       await unallocateItem();
       return;
     }
 
     if (isInteractionMode) {
-      setIsDropdownOpen(false);
-
       const nextPartner = {
         id: request.partnerId,
         name: request.partner.name,
@@ -184,8 +176,6 @@ function LineItemChip({
     if (item.allocation?.id) {
       await unallocateItem();
     }
-
-    setIsDropdownOpen(false);
 
     let distributionId: number | undefined;
 
@@ -249,63 +239,40 @@ function LineItemChip({
 
   return (
     <div className="relative">
-      <button
-        ref={buttonRef}
-        onClick={() => {
-          setIsDropdownOpen(!isDropdownOpen);
-        }}
-        className={`relative rounded-lg border m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow disabled:opacity-60 disabled:cursor-not-allowed ${
-          item.allocation ? "border-blue-primary" : "border-blue-primary/60"
-        }`}
-      >
-        <span className="text-blue-primary">{item.palletNumber}</span>
-        <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
-          {item.quantity}
-        </span>
-        <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
-          <span
-            className={`block max-w-[110px] h-full truncate px-1 py-[1px] ${
-              item.allocation
-                ? "bg-red-primary/20 text-red-primary"
-                : "bg-gray-primary/10 text-gray-primary/30"
-            }`}
-          >
-            {item.allocation?.partner ? item.allocation.partner.name : "None"}
-          </span>
-        </span>
-      </button>
-
-      <Portal
-        isOpen={isDropdownOpen}
-        onClose={() => setIsDropdownOpen(false)}
-        triggerRef={buttonRef}
-        position="bottom-left"
-        className="w-80 bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm font-bold"
-      >
-        <p className="text-gray-500 mb-1">Allocate to Partner</p>
-        <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
-          {item.allocation && (
-            <button
-              onClick={unallocateItem}
-              className="text-left px-2 py-1 hover:bg-red-primary/20 rounded transition-all duration-200"
-            >
-              Unallocate
-            </button>
-          )}
-          {requests.map((request) => (
-            <button
-              key={request.id}
-              onClick={() => allocateItem(request)}
-              className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-primary/20 hover:bg-red-primary/20" : "hover:bg-blue-primary/20"}`}
-            >
-              <p>{request.partner.name}</p>
-              <p className="text-blue-primary pr-2">
-                {request.itemsAllocated}/{request.quantity}
-              </p>
-            </button>
-          ))}
-        </div>
-      </Portal>
+      <Chip
+        className={item.allocation ? "" : "border-blue-primary/60"}
+        title={item.palletNumber ?? "Unknown Pallet"}
+        revisedAmount={item.quantity}
+        showLabel={true}
+        label={item.allocation?.partner?.name}
+        popover={
+          <div className="text-sm font-bold">
+            <p className="text-gray-500 mb-1">Allocate to Partner</p>
+            <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
+              {item.allocation && (
+                <button
+                  onClick={unallocateItem}
+                  className="text-left px-2 py-1 hover:bg-red-primary/20 rounded transition-all duration-200"
+                >
+                  Unallocate
+                </button>
+              )}
+              {requests.map((request) => (
+                <button
+                  key={request.id}
+                  onClick={() => allocateItem(request)}
+                  className={`flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === request.partner?.id ? "bg-blue-primary/20 hover:bg-red-primary/20" : "hover:bg-blue-primary/20"}`}
+                >
+                  <p>{request.partner.name}</p>
+                  <p className="text-blue-primary pr-2">
+                    {request.itemsAllocated}/{request.quantity}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        }
+      />
     </div>
   );
 }

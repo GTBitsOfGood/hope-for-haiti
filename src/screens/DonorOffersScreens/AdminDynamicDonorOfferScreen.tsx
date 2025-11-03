@@ -13,7 +13,7 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 import PartnerRequestChipGroup, {
   PartnerRequestChipData,
-} from "@/components/DonorOffers/PartnerRequestChipGroup";
+} from "@/components/chips/PartnerRequestChipGroup";
 import toast from "react-hot-toast";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
 

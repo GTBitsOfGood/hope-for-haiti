@@ -1,3 +1,4 @@
+import { $Enums } from "@prisma/client";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -33,3 +34,14 @@ export function validatePassword(pw: string) {
   const regex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
   return regex.test(pw);
 }
+
+export const shippingStatusToText = {
+  [$Enums.ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR]:
+    "Awaiting Arrival from Donor",
+  [$Enums.ShipmentStatus.READY_FOR_DISTRIBUTION]: "Ready for Distribution",
+  [$Enums.ShipmentStatus.ARRIVED_AT_DEPO]: "Arrived at Depot",
+  [$Enums.ShipmentStatus.ARRIVED_IN_HAITI]: "Arrived in Haiti",
+  [$Enums.ShipmentStatus.CLEARED_CUSTOMS]: "Cleared Customs",
+  [$Enums.ShipmentStatus.INVENTORIES]: "Inventories",
+  [$Enums.ShipmentStatus.LOAD_ON_SHIP_AIR]: "Load on Ship/Air",
+};
