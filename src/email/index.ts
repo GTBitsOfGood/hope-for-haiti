@@ -88,7 +88,12 @@ export async function sendEmail(
   }
 
   return SendGrid.send(
-    { to, from: fromEmail, subject, html },
+    {
+      to,
+      from: { email: fromEmail, name: "Hope for Haiti" },
+      subject,
+      html,
+    },
     Array.isArray(to)
   );
 }

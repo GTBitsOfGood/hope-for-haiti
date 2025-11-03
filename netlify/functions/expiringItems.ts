@@ -1,5 +1,4 @@
 import { schedule } from "@netlify/functions";
-import { format } from "date-fns";
 import { UserType } from "@prisma/client";
 
 import { GeneralItemService } from "../../src/services/generalItemService";
