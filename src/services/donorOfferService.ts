@@ -1023,9 +1023,24 @@ export default class DonorOfferService {
     }
   }
 
-  static async getAllocationItems(donorOfferId: number) {
-    const items = await db.generalItem.findMany({
-      where: { donorOfferId },
+  static async getAllocationItems(
+    donorOfferId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number
+  ) {
+    const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
+      Object.keys(Prisma.GeneralItemScalarFieldEnum),
+      filters
+    );
+
+    const where: Prisma.GeneralItemWhereInput = {
+      ...filterWhere,
+      donorOfferId,
+    };
+
+    const query: Prisma.GeneralItemFindManyArgs = {
+      where,
       include: {
         items: {
           include: {
@@ -1061,14 +1076,21 @@ export default class DonorOfferService {
       orderBy: {
         id: "asc",
       },
-    });
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.generalItem.findMany(query),
+      db.generalItem.count({ where }),
+    ]);
 
     return {
       items: items.map((item) => ({
         ...item,
         quantity: item.initialQuantity,
       })),
-      total: items.length,
+      total,
     };
   }
 }

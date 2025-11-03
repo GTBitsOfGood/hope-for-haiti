@@ -133,7 +133,6 @@ model GeneralItem {
   requestQuantity Int?
   
   description String?
-
   requests GeneralItemRequest[]
   items    LineItem[]
 

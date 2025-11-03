@@ -258,7 +258,7 @@ function LineItemChip({
           item.allocation ? "border-blue-primary" : "border-blue-primary/60"
         }`}
       >
-        <span className="text-blue-primary">{item.palletNumber}</span>
+        <span className="text-blue-primary">Pallet {item.palletNumber}</span>
         <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
           {item.quantity}
         </span>

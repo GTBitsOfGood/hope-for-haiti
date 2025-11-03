@@ -24,64 +24,61 @@ export const PartnerSearch = ({
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Debounced search function
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setSearchResults([]);
-      return;
-    }
-
+  const fetchPartners = async (term: string) => {
     setIsSearching(true);
+    try {
+      const searchTerm = term.trim() === "" ? "a" : term;
+      const url = `/api/partners?term=${encodeURIComponent(searchTerm)}`;
+      
+      const response = await fetch(url, {
+        cache: "no-store",
+      });
+      
+      if (response.ok) {
+        const responseData = await response.json();
 
-    // Clear previous timeout
+        let data: Partner[] = [];
+        if (responseData.partners && Array.isArray(responseData.partners)) {
+          data = responseData.partners;
+        } else if (Array.isArray(responseData)) {
+          data = responseData;
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          data = responseData.data;
+        }
+
+        const filteredData = data.filter(
+          (partner: Partner) =>
+            !selectedPartners.some((selected) => selected.id === partner.id)
+        );
+        setSearchResults(filteredData);
+
+        if (filteredData.length > 0) {
+          setShowResults(true);
+        }
+      } else {
+        console.error("Failed to fetch partners");
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error("Error searching partners:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Set new timeout for debounced search
-    searchTimeoutRef.current = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/partners?term=${encodeURIComponent(searchTerm)}`,
-          {
-            cache: "no-store",
-          }
-        );
-        if (response.ok) {
-          const responseData = await response.json();
+    if (searchTerm.trim() === "") {
+      return;
+    }
 
-          // Handle the specific API response format {"partners":[...]}
-          let data: Partner[] = [];
-          if (responseData.partners && Array.isArray(responseData.partners)) {
-            data = responseData.partners;
-          } else if (Array.isArray(responseData)) {
-            data = responseData;
-          } else if (responseData.data && Array.isArray(responseData.data)) {
-            data = responseData.data;
-          }
-
-          // Filter out already selected partners
-          const filteredData = data.filter(
-            (partner: Partner) =>
-              !selectedPartners.some((selected) => selected.id === partner.id)
-          );
-          setSearchResults(filteredData);
-
-          // Show results if we have any
-          if (filteredData.length > 0) {
-            setShowResults(true);
-          }
-        } else {
-          console.error("Failed to fetch partners");
-          setSearchResults([]);
-        }
-      } catch (error) {
-        console.error("Error searching partners:", error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300); // 300ms debounce
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchPartners(searchTerm);
+    }, 300);
 
     return () => {
       if (searchTimeoutRef.current) {
@@ -104,13 +101,16 @@ export const PartnerSearch = ({
   };
 
   const handleInputFocus = () => {
-    if (searchTerm.trim() !== "") {
+    if (searchResults.length > 0) {
+      setShowResults(true);
+    } else if (searchTerm.trim() === "") {
+      fetchPartners("");
+    } else {
       setShowResults(true);
     }
   };
 
   const handleInputBlur = () => {
-    // Delay hiding results to allow for click events
     setTimeout(() => {
       setShowResults(false);
     }, 200);

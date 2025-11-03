@@ -75,16 +75,19 @@ export default function AdminAllocateDonorOfferScreen() {
       page: number,
       filters: FilterList<AllocationTableItem>
     ) => {
-      void pageSize;
-      void page;
-      void filters;
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        filters: JSON.stringify(filters),
+      });
 
       if (!isValidDonorOfferId) {
         return { data: [], total: 0 };
       }
 
       const response = await apiClient.get<AllocationResponse>(
-        `/api/donorOffers/${donorOfferId}/allocationItems`,
+        `/api/donorOffers/${donorOfferId}/allocationItems?${params}`,
         { cache: "no-store" }
       );
 
