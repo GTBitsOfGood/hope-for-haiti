@@ -1,7 +1,6 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import submitHandler from "@/util/formAction";
@@ -11,7 +10,6 @@ import { useApiClient } from "@/hooks/useApiClient";
 
 export default function RegisterPage() {
   const searchParams = useSearchParams();
-  const [error, setError] = useState("");
   const router = useRouter();
   const { apiClient } = useApiClient();
   const token = searchParams.get("token");
@@ -21,7 +19,7 @@ export default function RegisterPage() {
     {
       conditionalFetch: !!token,
       onError: (error) => {
-          toast.error(error);
+          toast.error(error.toString());
           console.error(error);
       }
     }
@@ -47,10 +45,10 @@ export default function RegisterPage() {
       await signIn("credentials", {
         email: inviteData?.email,
         password,
-        redirect: false,
+        redirect: true,
       });
     } catch (error) {
-      setError((error as Error).message);
+      toast.error((error as Error).toString());
     }
   });
 
@@ -80,83 +78,75 @@ export default function RegisterPage() {
       }}
     >      
       <div className="bg-white py-6 px-6 rounded-xl w-96 sm:w-[580px]">
-        {!error ? (
-          <div>
-            <h1 className="mb-1 text-xl font-semibold">Create Account</h1>
-            <p className="mb-4 text-sm font-light text-gray-500">
-              Welcome to the Hope for Haiti database. Please fill in your <br />{" "}
-              organization&apos;s account information.
-            </p>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label
-                  className="block text-gray-800 text-sm mb-2 font-light"
-                  htmlFor="email"
-                >
-                  Email
-                  <div className="text-red-500 inline">*</div>
-                </label>
-                <input
-                  className="bg-zinc-50 appearance-none border-gray-200 rounded w-full py-2 px-3 text-gray-500 leading-tight font-light text-sm"
-                  type="email"
-                  value={inviteData?.email || ""}
-                  disabled
-                  required
-                />
-              </div>
+        <div>
+          <h1 className="mb-1 text-xl font-semibold">Create Account</h1>
+          <p className="mb-4 text-sm font-light text-gray-500">
+            Welcome to the Hope for Haiti database. Please fill in your <br />{" "}
+            organization&apos;s account information.
+          </p>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label
+                className="block text-gray-800 text-sm mb-2 font-light"
+                htmlFor="email"
+              >
+                Email
+                <div className="text-red-500 inline">*</div>
+              </label>
+              <input
+                className="bg-zinc-50 appearance-none border-gray-200 rounded w-full py-2 px-3 text-gray-500 leading-tight font-light text-sm"
+                type="email"
+                value={inviteData?.email || ""}
+                disabled
+                required
+              />
+            </div>
 
-              <div className="mb-3">
-                <label
-                  className="block text-gray-800 text-sm mb-2 font-light"
-                  htmlFor="password"
-                >
-                  Password
-                  <div className="text-red-500 inline">*</div>
-                </label>
-                <input
-                  className="bg-zinc-50 appearance-none border-gray-200 rounded w-full py-2 px-3 text-gray-700 leading-tight font-light text-sm"
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Password"
-                  required
-                />
-              </div>
+            <div className="mb-3">
+              <label
+                className="block text-gray-800 text-sm mb-2 font-light"
+                htmlFor="password"
+              >
+                Password
+                <div className="text-red-500 inline">*</div>
+              </label>
+              <input
+                className="bg-zinc-50 appearance-none border-gray-200 rounded w-full py-2 px-3 text-gray-700 leading-tight font-light text-sm"
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Password"
+                required
+              />
+            </div>
 
-              <div className="mb-3">
-                <label
-                  className="block text-gray-800 text-sm mb-2 font-light"
-                  htmlFor="confirm"
-                >
-                  Confirm Password
-                  <div className="text-red-500 inline">*</div>
-                </label>
-                <input
-                  className="bg-zinc-50 appearance-none border-gray-200 rounded w-full py-2 px-3 text-gray-700 leading-tight font-light text-sm"
-                  id="confirm"
-                  name="confirm"
-                  type="password"
-                  placeholder="Confirm Password"
-                  required
-                />
-              </div>
-              <div className="justify-end flex">
-                <button
-                  className="w-36 bg-red-500 hover:bg-red-700 text-white py-1 px-4 mt-2 rounded focus:outline-none focus:shadow-outline"
-                  type="submit"
-                >
-                  Create account
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            <p className="text-red-500 text-lg font-semibold py-1 mt-2">
-              {error}
-            </p>
-          </div>
-        )}
+            <div className="mb-3">
+              <label
+                className="block text-gray-800 text-sm mb-2 font-light"
+                htmlFor="confirm"
+              >
+                Confirm Password
+                <div className="text-red-500 inline">*</div>
+              </label>
+              <input
+                className="bg-zinc-50 appearance-none border-gray-200 rounded w-full py-2 px-3 text-gray-700 leading-tight font-light text-sm"
+                id="confirm"
+                name="confirm"
+                type="password"
+                placeholder="Confirm Password"
+                required
+              />
+            </div>
+            <div className="justify-end flex">
+              <button
+                className="w-36 bg-red-500 hover:bg-red-700 text-white py-1 px-4 mt-2 rounded focus:outline-none focus:shadow-outline"
+                type="submit"
+              >
+                Create account
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </main>
   );

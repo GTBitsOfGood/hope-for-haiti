@@ -13,7 +13,7 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 import PartnerRequestChipGroup, {
   PartnerRequestChipData,
-} from "@/components/DonorOffers/PartnerRequestChipGroup";
+} from "@/components/chips/PartnerRequestChipGroup";
 import toast from "react-hot-toast";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
 
@@ -57,7 +57,7 @@ type GeneralItemWithRequests = {
 
 type AdminDonorOfferDetails = {
   donorOffer: DonorOffer;
-  itemsWithRequests: GeneralItemWithRequests[];
+  items: GeneralItemWithRequests[];
 };
 
 export default function AdminDynamicDonorOfferScreen() {
@@ -79,11 +79,11 @@ export default function AdminDynamicDonorOfferScreen() {
   const fetchItems = useCallback(
     async (pageSize: number, page: number) => {
       const data = await apiClient.get<AdminDonorOfferDetails>(
-        `/api/donorOffers/${donorOfferId}`,
+        `/api/donorOffers/${donorOfferId}?requests=true`,
         { cache: "no-store" }
       );
 
-      const items = data.itemsWithRequests;
+      const items = data.items;
       setCurrentItems(items);
       const start = (page - 1) * pageSize;
       const paged = items.slice(start, start + pageSize);

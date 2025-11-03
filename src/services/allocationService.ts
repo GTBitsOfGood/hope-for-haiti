@@ -10,6 +10,26 @@ import { Prisma } from "@prisma/client";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
+    // Check if partner is enabled and not pending if partnerId is provided
+    if (data.partnerId) {
+      const partner = await db.user.findUnique({
+        where: { id: data.partnerId },
+        select: { enabled: true, pending: true, type: true },
+      });
+
+      if (!partner) {
+        throw new NotFoundError("Partner not found");
+      }
+
+      if (!partner.enabled) {
+        throw new ArgumentError("Cannot create allocation for deactivated partner");
+      }
+
+      if (partner.pending) {
+        throw new ArgumentError("Cannot create allocation for pending partner");
+      }
+    }
+    
     let itemId: number | undefined;
     if (data.itemId) {
       itemId = data.itemId;
@@ -95,7 +115,30 @@ export default class AllocationService {
     allocations: { partnerId: number; lineItemId: number }[]
   ) {
     if (!allocations.length) {
-      throw new ArgumentError("Allocations payload must include at least one allocation");
+      throw new ArgumentError(
+        "Allocations payload must include at least one allocation"
+      );
+    }
+
+    // Check if all partners are enabled and not pending
+    const partnerIds = [...new Set(allocations.map(a => a.partnerId))];
+    const partners = await db.user.findMany({
+      where: { id: { in: partnerIds } },
+      select: { id: true, enabled: true, pending: true },
+    });
+
+    const validPartnerIds = new Set(
+      partners.filter(p => p.enabled && !p.pending).map(p => p.id)
+    );
+
+    const invalidPartnerIds = partnerIds.filter(
+      id => !validPartnerIds.has(id)
+    );
+
+    if (invalidPartnerIds.length > 0) {
+      throw new ArgumentError(
+        `Cannot create allocations for deactivated or pending partners: ${invalidPartnerIds.join(", ")}`
+      );
     }
 
     try {
@@ -133,6 +176,26 @@ export default class AllocationService {
       signOffId?: number;
     }
   ) {
+    // Check if partner is enabled and not pending if partnerId is being updated
+    if (data.partnerId) {
+      const partner = await db.user.findUnique({
+        where: { id: data.partnerId },
+        select: { enabled: true, pending: true },
+      });
+
+      if (!partner) {
+        throw new NotFoundError("Partner not found");
+      }
+
+      if (!partner.enabled) {
+        throw new ArgumentError("Cannot update allocation to deactivated partner");
+      }
+
+      if (partner.pending) {
+        throw new ArgumentError("Cannot update allocation to pending partner");
+      }
+    }
+    
     try {
       return await db.allocation.update({
         where: { id },
@@ -149,6 +212,31 @@ export default class AllocationService {
         }
         if (error.code === "P2002") {
           throw new ArgumentError("Item is already allocated.");
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async updateAllocationBatch(
+    ids: number[],
+    update: {
+      partnerId?: number;
+      distributionId?: number;
+    }
+  ) {
+    try {
+      return await db.allocation.updateMany({
+        where: { id: { in: ids } },
+        data: {
+          partnerId: update.partnerId,
+          distributionId: update.distributionId,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundError("One or more allocations not found");
         }
       }
       throw error;

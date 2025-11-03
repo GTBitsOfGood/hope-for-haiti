@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { NotFoundError } from "@/util/errors";
+import { NotFoundError, ArgumentError } from "@/util/errors";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { UpdateGeneralItemRequestData } from "@/types/api/generalItemRequest.types";
 import { Prisma } from "@prisma/client";
@@ -37,6 +37,10 @@ export class GeneralItemRequestService {
     const where: Prisma.GeneralItemRequestWhereInput = {
       ...filterWhere,
       generalItemId,
+      partner: {
+        enabled: true,
+        pending: false,
+      },
     };
 
     const query = Prisma.validator<Prisma.GeneralItemRequestFindManyArgs>()({
@@ -73,6 +77,24 @@ export class GeneralItemRequestService {
       "generalItem" | "partner"
     > & { generalItemId: number; partnerId: number }
   ) {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: data.partnerId },
+      select: { enabled: true, pending: true, type: true },
+    });
+
+    if (!partner) {
+      throw new NotFoundError("Partner not found");
+    }
+
+    if (!partner.enabled) {
+      throw new ArgumentError("Cannot create request for deactivated partner");
+    }
+
+    if (partner.pending) {
+      throw new ArgumentError("Cannot create request for pending partner");
+    }
+    
     const newRequest = await db.generalItemRequest.create({
       data: {
         generalItem: {
@@ -143,6 +165,16 @@ export class GeneralItemRequestService {
     page?: number,
     pageSize?: number
   ): Promise<GeneralItemRequestsResponse> {
+    // Check if the partner is enabled and not pending
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      return { requests: [], total: 0 };
+    }
+    
     const filterWhere =
       buildWhereFromFilters<Prisma.GeneralItemRequestWhereInput>(
         Object.keys(Prisma.GeneralItemRequestScalarFieldEnum),

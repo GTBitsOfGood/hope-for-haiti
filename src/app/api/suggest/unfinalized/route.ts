@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { RequestPriority } from "@prisma/client";
+import { RequestPriority, Prisma } from "@prisma/client";
 import {
   errorResponse,
   AuthenticationError,
@@ -28,6 +28,7 @@ type GeneralItemWithRequests = {
   donorOfferId: number;
   requestQuantity: number | null;
   description: string | null;
+  weight: Prisma.Decimal;
   requests: {
     id: number;
     quantity: number;
@@ -72,10 +73,14 @@ export async function POST(req: NextRequest) {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const { itemsWithRequests } =
+    const { items } =
       await DonorOfferService.getAdminDonorOfferDetails(
-        parsed.data.donorOfferId
+        parsed.data.donorOfferId,
+        true
       );
+
+    // Type cast because we know requests will be included when we pass true
+    const itemsWithRequests = items as GeneralItemWithRequests[];
 
     const generalItems: GeneralItemForLLM[] = itemsWithRequests.map(
       (item: GeneralItemWithRequests) => ({

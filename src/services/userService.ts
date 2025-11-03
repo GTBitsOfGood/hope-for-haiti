@@ -292,6 +292,38 @@ export default class UserService {
     });
   }
 
+  static async sendInviteReminder(id: number) {
+    const user = await db.user.findUnique({
+      where: { id },
+      include: {
+        invite: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundError("User does not exist")
+    }
+    if (!user.pending) {
+      throw new ConflictError("User does not have a pending invite");
+    }
+
+    const expiration = inviteExpirationDate();
+    const token = uuidv4();
+
+    await db.userInvite.update({
+      where: { userId: user.id },
+      data: {
+        token,
+        expiration,
+      },
+    });
+
+    await EmailClient.sendUserInviteReminder(user.email, {
+      userRole: user.type,
+      token: token
+    })
+  }
+
   static async updateUser(data: UpdateUserData) {
     if (!data.userId || data.userId <= 0) {
       throw new ArgumentError("Valid user ID is required");

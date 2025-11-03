@@ -18,6 +18,7 @@ import {
   ColumnDefinition,
   FilterList,
 } from "@/types/ui/table.types";
+import toast from "react-hot-toast";
 
 interface AccountUserResponse {
   id: number;
@@ -79,6 +80,16 @@ export default function AccountManagementPage() {
     setSelectedUser(user);
     setDeleteModalOpen(true);
   };
+  
+  const handleSendReminder = async (user: AccountRow) => {
+    try {
+      await apiClient.post(`/api/users/${user.id}/reminder`);
+      toast.success(`Sent a reminder to ${user.name}`);
+    } catch (error) {
+      console.error(`Error sending reminder: ${error}`);
+      toast.error(`Error occured while sending reminder to ${user.name}`);
+    }
+  }
 
   const handleEditAccount = (user: AccountRow) => {
     if (user.pending) return;
@@ -231,6 +242,7 @@ export default function AccountManagementPage() {
             onDeleteAccount={() => handleDeleteAccount(item)}
             onEditAccount={() => handleEditAccount(item)}
             onDeactivateAccount={() => handleDeactivateAccount(item)}
+            onSendReminder={() => handleSendReminder(item)}
           />
         </div>
       ),

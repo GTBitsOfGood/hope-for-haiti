@@ -10,6 +10,7 @@ import {
   errorResponse,
 } from "@/util/errors";
 import DonorOfferService from "@/services/donorOfferService";
+import { tableParamsSchema } from "@/schema/tableParams";
 
 const paramSchema = z.object({
   donorOfferId: z
@@ -24,7 +25,7 @@ const paramSchema = z.object({
 });
 
 export async function GET(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ donorOfferId: string }> }
 ) {
   try {
@@ -43,8 +44,23 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
+    const parsedParams = tableParamsSchema.safeParse({
+      filters: request.nextUrl.searchParams.get("filters"),
+      page: request.nextUrl.searchParams.get("page"),
+      pageSize: request.nextUrl.searchParams.get("pageSize"),
+    });
+
+    if (!parsedParams.success) {
+      throw new ArgumentError(parsedParams.error.message);
+    }
+
+    const { filters, page, pageSize } = parsedParams.data;
+
     const result = await DonorOfferService.getAllocationItems(
-      parsed.data.donorOfferId
+      parsed.data.donorOfferId,
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined
     );
 
     return NextResponse.json(result);

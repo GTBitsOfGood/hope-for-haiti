@@ -15,17 +15,38 @@ import {
   ParsedFileData,
 } from "@/types/api/file.types";
 
-const requiredKeys = new Map<string, string>([
+const unfinalizedRequiredKeys = new Map<string, string>([
   ["Generic Description", "title"],
   ["Quantity", "quantity"],
   ["Expiration Date", "expirationDate"],
   ["Unit UOM", "unitType"],
+  ["UOM Weight Lb", "weight"],
 ]);
 
-const requiredKeyList = Array.from(requiredKeys.keys());
+const finalizedRequiredKeys = new Map<string, string>([
+  // not in schema, but used to match to generalItem
+  ["Description", "title"],
+  ["Exp.", "expirationDate"],
+  ["Container Type", "unitType"],
+  ["Weight Lb", "weight"],
+  // end
+  ["Donor", "donorName"],
+  ["# of Containers", "quantity"],
+  ["Lot #", "lotNumber"],
+  ["Pallet #", "palletNumber"],
+  ["Box #", "boxNumber"],
+  ["Cost per Piece", "unitPrice"],
+]);
 
-const containsRequiredKeys = (fields?: string[]) =>
-  fields ? requiredKeyList.every((key) => fields.includes(key)) : false;
+const unfinalizedRequiredKeysList = Array.from(unfinalizedRequiredKeys.keys());
+const finalizedRequiredKeysList = Array.from(finalizedRequiredKeys.keys());
+
+const containsRequiredKeys = (type: "unfinalized" | "finalized", fields?: string[]) => {
+  if (!fields) return false;
+  return type === "finalized" ? 
+    finalizedRequiredKeysList.every((key) => fields.includes(key)) : 
+    unfinalizedRequiredKeysList.every((key) => fields.includes(key));
+}
 
 const hasValue = (value: unknown) => {
   if (value === undefined || value === null) return false;
@@ -35,14 +56,18 @@ const hasValue = (value: unknown) => {
   return true;
 };
 
-const filterEmptyRows = (rows: Record<string, unknown>[]) =>
-  rows.filter((row) => hasValue(row["Generic Description"]));
+const filterEmptyRows = (type: "unfinalized" | "finalized",rows: Record<string, unknown>[]) =>
+  type === "unfinalized" ? 
+    rows.filter((row) => hasValue(row["Generic Description"])) : 
+    rows.filter((row) => hasValue(row["Donor"]));
 
 const remapRequiredColumns = (
+  type: "unfinalized" | "finalized",
   row: Record<string, unknown>
 ): Record<string, unknown> => {
   const updated: Record<string, unknown> = { ...row };
-  for (const [originalKey, newKey] of requiredKeys) {
+  const keys = type === "unfinalized" ? unfinalizedRequiredKeys : finalizedRequiredKeys;
+  for (const [originalKey, newKey] of keys) {
     if (Object.prototype.hasOwnProperty.call(updated, originalKey)) {
       updated[newKey] = updated[originalKey];
       delete updated[originalKey];
@@ -54,14 +79,23 @@ const remapRequiredColumns = (
 const transformDonorOfferRow = (
   row: Record<string, unknown>
 ): Record<string, unknown> => {
-  const remapped = remapRequiredColumns(row);
+  const remapped = remapRequiredColumns("unfinalized", row);
   const quantity = remapped["quantity"];
+  const weight = remapped["weight"];
   const transformed: Record<string, unknown> = {
     ...remapped,
   };
 
   if (quantity !== undefined) {
     transformed["initialQuantity"] = quantity;
+  }
+
+  // Ensure weight is present and not zero
+  if (weight !== undefined && weight !== null && weight !== 0 && weight !== "0") {
+    transformed["weight"] = weight;
+  } else {
+    // If weight is missing or zero, throw an error as weight is required
+    throw new Error("Weight is required and cannot be zero");
   }
 
   delete transformed["quantity"];
@@ -215,9 +249,9 @@ export default class FileService {
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields || [];
       }
-      jsonData = filterEmptyRows(jsonData);
+      jsonData = filterEmptyRows("unfinalized", jsonData);
 
-      if (!fields || !containsRequiredKeys(fields)) {
+      if (!fields || !containsRequiredKeys("unfinalized", fields)) {
         throw new ArgumentError("File does not contain required keys");
       }
 
@@ -232,7 +266,7 @@ export default class FileService {
     }
   }
 
-  static async parseFinalizeFile(file: File): Promise<ParsedFileData> {
+  static async parseFinalizedFile(file: File): Promise<ParsedFileData> {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
     if (!["csv", "xlsx"].includes(fileExt || "")) {
       throw new ArgumentError("File must be a CSV or XLSX file");
@@ -263,9 +297,9 @@ export default class FileService {
         fields = meta.fields || [];
       }
 
-      jsonData = filterEmptyRows(jsonData).map(remapRequiredColumns);
+      jsonData = filterEmptyRows("finalized", jsonData).map(row => remapRequiredColumns("finalized", row));
 
-      if (!fields || !containsRequiredKeys(fields)) {
+      if (!fields || !containsRequiredKeys("finalized", fields)) {
         throw new ArgumentError("File does not contain required keys");
       }
 

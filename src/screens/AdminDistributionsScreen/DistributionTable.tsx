@@ -5,6 +5,10 @@ import DistributionActions from "./DistributionActions";
 import { DistributionRecord } from "@/types";
 import BaseTable from "@/components/baseTable/BaseTable";
 
+/**
+ * @deprecated
+ * Don't confuse this with the DistributionTable in src/components/DistributionTable.tsx
+ */
 export default function DistributionTable({
   refetch,
   visible,

@@ -6,9 +6,9 @@ import { exec } from "child_process";
 import CreateAccountInvite, {
   CreateAccountInviteProps,
 } from "./templates/CreateAccountInvite";
-import ItemsVisibleNotification, {
-  ItemsVisibleNotificationProps,
-} from "./templates/ItemsVisibleNotification";
+import NewDistribution, {
+  NewDistributionProps,
+} from "./templates/NewDistribution";
 import DonorOfferCreated, {
   DonorOfferCreatedProps,
 } from "./templates/DonorOfferCreated";
@@ -20,7 +20,6 @@ import ResetPassword, { ResetPasswordProps } from "./templates/ResetPassword";
 
 const apiKey = process.env.SENDGRID_API_KEY as string;
 const fromEmail = process.env.SENDGRID_SENDER as string;
-
 
 if (apiKey) SendGrid.setApiKey(apiKey);
 
@@ -89,7 +88,12 @@ export async function sendEmail(
   }
 
   return SendGrid.send(
-    { to, from: fromEmail, subject, html },
+    {
+      to,
+      from: { email: fromEmail, name: "Hope for Haiti" },
+      subject,
+      html,
+    },
     Array.isArray(to)
   );
 }
@@ -108,17 +112,20 @@ export class EmailClient {
     return sendEmail(to, "Reminder: Complete Your Account", html);
   }
 
-  static async sendItemsExpiring(to: string, props: ExpiringItemsProps) {
+  static async sendItemsExpiring(
+    to: string | string[], 
+    props: ExpiringItemsProps) 
+  {
     const html = await render(ExpiringItems(props));
-    return sendEmail(to, `Items Expiring in ${props.month}`, html);
+    return sendEmail(to, "Items Expiring", html);
   }
 
-  static async sendItemsVisible(
+  static async sendNewDistribution(
     to: string,
-    props: ItemsVisibleNotificationProps
+    props: NewDistributionProps
   ) {
-    const html = await render(ItemsVisibleNotification(props));
-    return sendEmail(to, "New Items Visible", html);
+    const html = await render(NewDistribution(props));
+    return sendEmail(to, "New Distribution", html);
   }
 
   static async sendDonorOfferCreated(

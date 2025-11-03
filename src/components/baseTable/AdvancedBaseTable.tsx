@@ -141,7 +141,8 @@ function AdvancedBaseTableInner<T extends object>(
               ...(previousMeta?.options ?? []),
               ...values,
             ]);
-            options = collectedOptions.length > 0 ? collectedOptions : undefined;
+            options =
+              collectedOptions.length > 0 ? collectedOptions : undefined;
           }
         }
 
@@ -402,8 +403,18 @@ function AdvancedBaseTableInner<T extends object>(
                     className={`bg-white data-[odd=false]:bg-blue-light/35 border-b border-blue-primary/10 text-gray-primary ${
                       onRowClick || rowBody ? "cursor-pointer" : ""
                     } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
-                    onClick={() => {
+                    onClick={(e) => {
                       onRowClick?.(item);
+
+                      if (
+                        !(
+                          e.target instanceof HTMLTableCellElement ||
+                          e.target instanceof HTMLSpanElement
+                        )
+                      ) {
+                        return;
+                      }
+
                       if (rowBody) {
                         const id = resolveRowId(item);
                         setOpenRowIds((prev) => {

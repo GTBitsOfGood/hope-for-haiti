@@ -2,7 +2,6 @@ import { db } from "@/db";
 import { Prisma, UserType } from "@prisma/client";
 
 import {
-  PartnerSummary,
   PartnerSearchResult,
   PartnerDetails,
   GetPartnersParams,
@@ -23,49 +22,34 @@ export class PartnerService {
 
   static async getPartners(
     params: GetPartnersParams
-  ): Promise<PartnerSummary[] | PartnerSearchResult[]> {
-    if (params.term) {
-      const partners = await db.user.findMany(
-        Prisma.validator<Prisma.UserFindManyArgs>()({
-          where: {
-            type: UserType.PARTNER,
-            name: {
-              contains: params.term,
-              mode: "insensitive",
-            },
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-        })
-      );
+  ): Promise<PartnerSearchResult[]> {
+    const where: Prisma.UserWhereInput = {
+      type: UserType.PARTNER,
+      enabled: true,
+      pending: false,
+    };
 
-      return partners.map((partner) => ({
-        id: partner.id,
-        name: partner.name,
-      }));
+    if (params.term && params.term.trim().length > 0) {
+      where.name = {
+        contains: params.term.trim(),
+        mode: "insensitive",
+      };
     }
 
-    const partnerQuery = Prisma.validator<Prisma.UserFindManyArgs>()({
-      where: { type: UserType.PARTNER },
+    const partners = await db.user.findMany({
+      where,
       select: {
-        email: true,
+        id: true,
         name: true,
-        _count: {
-          select: { generalItemRequests: true },
-        },
+      },
+      orderBy: {
+        name: "asc",
       },
     });
 
-    const partners = await db.user.findMany(partnerQuery);
-
-    type PartnerWithCount = Prisma.UserGetPayload<typeof partnerQuery>;
-
-    return (partners as PartnerWithCount[]).map((partner) => ({
+    return partners.map((partner) => ({
+      id: partner.id,
       name: partner.name,
-      email: partner.email,
-      itemRequestCount: partner._count.generalItemRequests,
     }));
   }
 
@@ -76,6 +60,8 @@ export class PartnerService {
       where: {
         id: partnerId,
         type: UserType.PARTNER,
+        enabled: true,
+        pending: false,
       },
       select: {
         id: true,
@@ -107,7 +93,11 @@ export class PartnerService {
 
   static async getPartnerEmails(): Promise<string[]> {
     const partners = await db.user.findMany({
-      where: { type: UserType.PARTNER },
+      where: {
+        type: UserType.PARTNER,
+        enabled: true,
+        pending: false,
+      },
       select: {
         email: true,
       },

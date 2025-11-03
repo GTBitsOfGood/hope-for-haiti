@@ -4,6 +4,7 @@ import { useState } from "react";
 
 interface UseFileUploadOptions<T> {
   previewEndpoint: string;
+  previewEndpointMethod: string;
   onSuccess: (data: T) => void;
   validateBeforeUpload?: () => string[] | null; // Return errors or null if valid
   buildFormData?: (file: File, formData: FormData) => FormData; // Custom form data builder
@@ -61,7 +62,7 @@ export function useFileUpload<T>(
         : formData;
 
       const response = await fetch(options.previewEndpoint, {
-        method: "POST",
+        method: options.previewEndpointMethod,
         body: finalFormData,
       });
 
