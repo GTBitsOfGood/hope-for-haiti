@@ -140,7 +140,7 @@ function OptionsButton({
         onClose={() => setIsStatusDropdownOpen(false)}
         triggerRef={buttonRef}
         position="bottom-right"
-        className="bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm"
+        className="bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm w-1/5"
       >
         <ChangeShippingStatusMenu
           shipment={shipment}
