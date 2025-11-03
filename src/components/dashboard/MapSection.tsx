@@ -19,7 +19,7 @@ export default function MapSection({ partners }: MapSectionProps) {
           GIK Partners Locations
         </h3>
       </div>
-      <div className="bg-white rounded-lg border border-blue-primary/[0.80] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-blue-200 shadow-sm overflow-hidden">
         <div className="h-[600px] w-full">
           <MapComponent partners={partners} />
         </div>
