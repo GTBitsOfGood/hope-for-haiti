@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X } from "@phosphor-icons/react";
 
 export type Partner = {
@@ -8,39 +8,33 @@ export type Partner = {
 
 interface PartnerSearchProps {
   selectedPartners: Partner[];
-  onPartnersChange: (partners: Partner[]) => void;
+  disabled?: boolean;
+  onPartnersChange?: (partners: Partner[]) => void;
 }
 
 export const PartnerSearch = ({
   selectedPartners,
   onPartnersChange,
+  disabled,
 }: PartnerSearchProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Partner[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const initialFetchRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchPartners = useCallback(
-    async (term?: string) => {
-      setIsSearching(true);
-      try {
-        const query = term && term.trim().length
-          ? `/api/partners?term=${encodeURIComponent(term.trim())}`
-          : "/api/partners";
-
-        const response = await fetch(query, {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          console.error("Failed to fetch partners");
-          setSearchResults([]);
-          return;
-        }
-
+  const fetchPartners = async (term: string) => {
+    setIsSearching(true);
+    try {
+      const searchTerm = term.trim() === "" ? "a" : term;
+      const url = `/api/partners?term=${encodeURIComponent(searchTerm)}`;
+      
+      const response = await fetch(url, {
+        cache: "no-store",
+      });
+      
+      if (response.ok) {
         const responseData = await response.json();
 
         let data: Partner[] = [];
@@ -56,40 +50,34 @@ export const PartnerSearch = ({
           (partner: Partner) =>
             !selectedPartners.some((selected) => selected.id === partner.id)
         );
-
         setSearchResults(filteredData);
+
         if (filteredData.length > 0) {
           setShowResults(true);
         }
-      } catch (error) {
-        console.error("Error searching partners:", error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    [selectedPartners]
-  );
-
-  // Debounced search function
-  useEffect(() => {
-    const trimmedTerm = searchTerm.trim();
-
-    if (trimmedTerm === "") {
-      if (initialFetchRef.current) {
-        fetchPartners();
       } else {
+        console.error("Failed to fetch partners");
         setSearchResults([]);
       }
-      return;
+    } catch (error) {
+      console.error("Error searching partners:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
     }
+  };
 
+  useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
+    if (searchTerm.trim() === "") {
+      return;
+    }
+
     searchTimeoutRef.current = setTimeout(() => {
-      fetchPartners(trimmedTerm);
+      fetchPartners(searchTerm);
     }, 300);
 
     return () => {
@@ -100,29 +88,29 @@ export const PartnerSearch = ({
   }, [searchTerm, fetchPartners]);
 
   const handleAddPartner = (partner: Partner) => {
-    onPartnersChange([...selectedPartners, partner]);
+    onPartnersChange?.([...selectedPartners, partner]);
     setSearchTerm("");
     setSearchResults([]);
     setShowResults(false);
   };
 
   const handleRemovePartner = (partnerId: number) => {
-    onPartnersChange(
+    onPartnersChange?.(
       selectedPartners.filter((partner) => partner.id !== partnerId)
     );
   };
 
   const handleInputFocus = () => {
-    if (!initialFetchRef.current || searchTerm.trim() === "") {
-      initialFetchRef.current = true;
-      fetchPartners();
-    } else if (searchResults.length > 0) {
+    if (searchResults.length > 0) {
+      setShowResults(true);
+    } else if (searchTerm.trim() === "") {
+      fetchPartners("");
+    } else {
       setShowResults(true);
     }
   };
 
   const handleInputBlur = () => {
-    // Delay hiding results to allow for click events
     setTimeout(() => {
       setShowResults(false);
     }, 200);
@@ -142,13 +130,15 @@ export const PartnerSearch = ({
                 className="flex items-center border border-red-500 bg-red-100 text-red-800 px-2 py-0.5 rounded-md text-sm m-0.5"
               >
                 <span>{partner.name}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemovePartner(partner.id)}
-                  className="ml-1 text-red-600 hover:text-red-800"
-                >
-                  <X size={14} />
-                </button>
+                {!disabled && 
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePartner(partner.id)}
+                    className="ml-1 text-red-600 hover:text-red-800"
+                  >
+                    <X size={14} />
+                  </button>
+                }
               </div>
             ))}
             <div className="flex-1 flex items-center min-w-[120px]">
@@ -163,6 +153,7 @@ export const PartnerSearch = ({
                   selectedPartners.length === 0 ? "Search partners..." : ""
                 }
                 className="flex-1 py-1.5 px-2 bg-zinc-50 border-0 focus:outline-none focus:ring-0 min-w-[60px]"
+                disabled={disabled}
               />
               {isSearching && (
                 <div className="mr-2">

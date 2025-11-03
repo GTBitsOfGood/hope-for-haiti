@@ -241,7 +241,7 @@ function LineItemChip({
     <div className="relative">
       <Chip
         className={item.allocation ? "" : "border-blue-primary/60"}
-        title={item.palletNumber ?? "Unknown Pallet"}
+        title={item.palletNumber ? `Pallet ${item.palletNumber}` : "Unknown Pallet"}
         revisedAmount={item.quantity}
         showLabel={true}
         label={item.allocation?.partner?.name}

@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { EmailClient } from "@/email";
 import {
   DonorOfferState,
   UserType,
@@ -8,6 +9,7 @@ import {
   Prisma,
   GeneralItem,
   GeneralItemRequest,
+  $Enums,
 } from "@prisma/client";
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
@@ -29,7 +31,7 @@ import {
 } from "@/types/api/donorOffer.types";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
-import { EmailClient } from "@/email";
+import { Partner } from "@/components/DonorOffers";
 
 const DonorOfferItemSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -59,7 +61,13 @@ const DonorOfferSchema = z.object({
 });
 
 const FinalizeDonorOfferItemSchema = z.object({
-  title: z.string().trim().min(1, "Title is required"),
+  // not in schema, but used to match to generalItem
+  title: z
+    .string()
+    .transform((v) => v.replace(/\s+/g, " ").trim()),
+  unitType: z
+    .string()
+    .transform((v) => v.replace(/\s+/g, " ").trim()),
   expirationDate: z
     .union([
       z.coerce.date(),
@@ -70,25 +78,24 @@ const FinalizeDonorOfferItemSchema = z.object({
         d.setUTCHours(0);
       }
       return d;
-    })
-    .optional(),
-  unitType: z.string(),
-  category: z.nativeEnum(ItemCategory),
+    }),
+  // end 
+  category: z.nativeEnum(ItemCategory).optional(),
   quantity: z
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  datePosted: z.coerce.date(),
   lotNumber: z.string(),
   palletNumber: z.string(),
   boxNumber: z.string(),
-  donorShippingNumber: z.string(),
-  hfhShippingNumber: z.string(),
+  donorShippingNumber: z.string().optional(),
+  hfhShippingNumber: z.string().optional(),
+  // have to consider $
   unitPrice: z
     .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
+    .transform((val) => (val.trim() === "" ? undefined : Number(val.trim().replace("$", "").replace(/,/g, ""))))
     .pipe(z.number().min(0)),
-  maxRequestLimit: z.string(),
+  maxRequestLimit: z.string().optional(),
   ndc: z.string().optional(),
   visible: z
     .string()
@@ -116,12 +123,6 @@ const FinalizeDonorOfferItemSchema = z.object({
     .transform((val) => val === "true"),
 });
 
-const FinalizeDonorOfferSchema = z.object({
-  partnerResponseDeadline: z.date(),
-  donorResponseDeadline: z.date(),
-  state: z.nativeEnum(DonorOfferState).default(DonorOfferState.FINALIZED),
-});
-
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
 
 export default class DonorOfferService {
@@ -146,6 +147,26 @@ export default class DonorOfferService {
     }
 
     return null;
+  }
+
+  private static datesWithinTolerance(
+    a: Date | null,
+    b: Date | null,
+    toleranceDays: number
+  ): boolean {
+    if (a === null && b === null) return true;
+    if (a === null || b === null) return false;
+    const aMidnight = new Date(a);
+    aMidnight.setUTCHours(0, 0, 0, 0);
+    const bMidnight = new Date(b);
+    bMidnight.setUTCHours(0, 0, 0, 0);
+    const diffMs = Math.abs(aMidnight.getTime() - bMidnight.getTime());
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    return diffMs <= toleranceDays * oneDayMs;
+  }
+
+  private static normalizeWhitespace(value: string): string {
+    return value.replace(/\s+/g, " ").trim();
   }
 
   private static toGeneralItemCreateInputs(
@@ -643,34 +664,57 @@ export default class DonorOfferService {
 
   static async getAdminDonorOfferDetails(
     donorOfferId: number,
+    requests?: boolean
   ): Promise<{
-    donorOffer: DonorOffer;
-    itemsWithRequests: (GeneralItem & {
-      requests: (GeneralItemRequest & { partner: { name: string } })[];
+    donorOffer: DonorOffer
+    partners: Partner[];
+    items: GeneralItem[] | (GeneralItem & {
+      requests?: (GeneralItemRequest & {
+        partner: { id: number; name: string };
+      })[];
     })[];
   }> {
-    const donorOffer = await db.donorOffer.findUnique({
+    const donorOfferRecord = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
-    });
-
-    if (!donorOffer) {
-      throw new NotFoundError("Donor offer not found");
-    }
-
-    const itemsWithRequests = await db.generalItem.findMany({
-      where: { donorOfferId },
       include: {
-        requests: {
-          include: {
-            partner: { select: { id: true, name: true } },
+        partnerVisibilities: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
     });
 
+    if (!donorOfferRecord) {
+      throw new NotFoundError("Donor offer not found");
+    }
+
+    const { partnerVisibilities, ...donorOffer } = donorOfferRecord;
+
+    const shouldIncludeRequests = requests ?? true;
+
+    const items = await db.generalItem.findMany({
+      where: { donorOfferId },
+      include: shouldIncludeRequests
+        ? {
+            requests: {
+              include: {
+                partner: { select: { id: true, name: true } },
+              },
+            },
+          }
+        : undefined,
+    });
+
     return {
       donorOffer,
-      itemsWithRequests,
+      partners: partnerVisibilities,
+      items: items as (GeneralItem & {
+        requests?: (GeneralItemRequest & {
+          partner: { id: number; name: string };
+        })[];
+      })[],
     };
   }
 
@@ -778,8 +822,6 @@ export default class DonorOfferService {
       return date.toISOString().split("T")[0];
     };
 
-    console.log(donorOffer);
-
     return {
       offerName: donorOffer.offerName,
       donorName: donorOffer.donorName,
@@ -794,200 +836,238 @@ export default class DonorOfferService {
 
   static async finalizeDonorOffer(
     donorOfferId: number,
-    formData: FormData,
     parsedFileData: {
       data: Record<string, unknown>[];
       fields: string[];
-    } | null,
+    },
     preview: boolean
   ): Promise<FinalizeDonorOfferResult> {
-    const partnerRequestDeadline = formData.get(
-      "partnerRequestDeadline"
-    ) as string;
-    const donorRequestDeadline = formData.get("donorRequestDeadline") as string;
-    const state =
-      (formData.get("state") as DonorOfferState) || DonorOfferState.FINALIZED;
-
-    const partnerIds: number[] = [];
-    formData.getAll("partnerIds").forEach((id) => {
-      const parsedId = parseInt(id as string);
-      if (!isNaN(parsedId)) partnerIds.push(parsedId);
-    });
-
-    if (!partnerRequestDeadline || !donorRequestDeadline) {
-      throw new ArgumentError(
-        "Partner request deadline and donor request deadline are required"
-      );
-    }
-
-    const partnerDeadline = new Date(partnerRequestDeadline);
-    const donorDeadline = new Date(donorRequestDeadline);
-    if (isNaN(partnerDeadline.getTime()) || isNaN(donorDeadline.getTime())) {
-      throw new ArgumentError("Invalid date format for deadlines");
-    }
-
-    const donorOfferData = {
-      partnerResponseDeadline: partnerDeadline,
-      donorResponseDeadline: donorDeadline,
-      state,
-    };
-
-    const validation = FinalizeDonorOfferSchema.safeParse(donorOfferData);
-    if (!validation.success) {
-      const errorMessages = validation.error.issues
-        .map((issue) => {
-          const field = issue.path.join(".");
-          return `Field '${field}': ${issue.message}`;
-        })
-        .join("; ");
-      throw new ArgumentError(`Error validating donor offer: ${errorMessages}`);
-    }
-
-    let validItems: FinalizeDonorOfferItem[] = [];
-
-    if (parsedFileData) {
-      const { data: jsonData } = parsedFileData;
-      const validationResults = jsonData.map((row, index) => {
-        const result = FinalizeDonorOfferItemSchema.safeParse(row);
-        if (!result.success) {
-          const errorMessages = result.error.issues.map((issue) => {
-            const field = issue.path.join(".");
-            return `Row ${index + 1}, Field '${field}': ${issue.message}`;
-          });
-          return { valid: false, errors: errorMessages };
-        }
-        return { valid: true, data: result.data };
-      });
-
-      const invalidRows = validationResults.filter((r) => !r.valid);
-      if (invalidRows.length > 0) {
-        return {
-          success: false,
-          errors: invalidRows.flatMap((r) => r.errors as string[]),
-        };
-      }
-
-      validItems = validationResults
-        .filter(
-          (r): r is { valid: true; data: FinalizeDonorOfferItem } => r.valid
-        )
-        .map((r) => r.data);
-    }
-
-    if (preview) {
-      return {
-        success: true,
-        donorOfferId,
-        createdCount: validItems.slice(0, 8).length,
-      };
-    }
-
-    await db.$transaction(async (tx) => {
-      const partners = await tx.user.findMany({
-        where: { id: { in: partnerIds }, type: UserType.PARTNER },
-        select: { id: true },
-      });
-      if (partners.length !== partnerIds.length) {
-        throw new ArgumentError("One or more partner IDs are invalid");
-      }
-
-      const donorOffer = await tx.donorOffer.update({
-        where: { id: donorOfferId },
-        data: {
-          ...(partnerIds.length > 0
-            ? {
-                partnerVisibilities: {
-                  connect: partnerIds.map((id) => ({
-                    id,
-                  })),
-                },
-              }
-            : {}),
-          ...donorOfferData,
-        },
-        include: { items: true },
-      });
-
-      if (validItems.length > 0) {
-        const itemsWithDonorOfferItemId = validItems.map((item) => ({
-          ...item,
-          donorName: donorOffer.donorName,
-          donorOfferItemId: donorOffer.items.find((di) => {
-            const itemExpiration =
-              DonorOfferService.normalizeExpirationDate(
-                item.expirationDate
-              );
-            const diExpiration = di.expirationDate
-              ? DonorOfferService.normalizeExpirationDate(di.expirationDate)
-              : null;
-            const expirationMatches =
-              itemExpiration === null && diExpiration === null
-                ? true
-                : !!itemExpiration &&
-                  !!diExpiration &&
-                  itemExpiration.getTime() === diExpiration.getTime();
-            return (
-              item.title === di.title &&
-              expirationMatches &&
-              item.unitType === di.unitType
-            );
-          })?.id,
-        }));
-
-        await tx.lineItem.createMany({ data: itemsWithDonorOfferItemId });
-      }
-    });
-
-    return { success: true, donorOfferId, createdCount: validItems.length };
-  }
-
-  static async getDonorOfferForEdit(
-    donorOfferId: number
-  ): Promise<DonorOfferUpdateParams | null> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
       include: {
-        items: true,
         partnerVisibilities: true,
       },
     });
 
-    if (!donorOffer) return null;
+    if (!donorOffer) {
+      throw new NotFoundError("Donor offer not found")
+    }
 
-    return {
-      id: donorOffer.id,
-      offerName: donorOffer.offerName,
-      donorName: donorOffer.donorName,
-      partnerResponseDeadline: donorOffer.partnerResponseDeadline,
-      donorResponseDeadline: donorOffer.donorResponseDeadline,
-      partners: donorOffer.partnerVisibilities.map((pv) => pv.id),
-      state: donorOffer.state,
-    };
+    const { data: jsonData } = parsedFileData;
+    const validationResults = jsonData.map((row, index) => {
+      const result = FinalizeDonorOfferItemSchema.safeParse(row);
+      if (!result.success) {
+        const errorMessages = result.error.issues.map((issue) => {
+          const field = issue.path.join(".");
+          return `Row ${index + 1}, Field '${field}': ${issue.message}`;
+        });
+        return { valid: false, errors: errorMessages };
+      }
+      return { valid: true, data: result.data };
+    });
+
+    const invalidRows = validationResults.filter((r) => !r.valid);
+    if (invalidRows.length > 0) {
+      return {
+        success: false,
+        errors: invalidRows.flatMap((r) => r.errors as string[]),
+      };
+    }
+
+    const validItems = validationResults
+      .filter(
+        (r): r is { valid: true; data: FinalizeDonorOfferItem } => r.valid
+      )
+      .map((r) => r.data);
+
+    if (preview) {
+      const previewItems = validItems.slice(0, 8).map((item) => ({
+        ...item,
+      }));
+
+      return {
+        success: true,
+        donorOfferId,
+        createdCount: previewItems.length,
+        donorOfferItems: previewItems,
+      };
+    }
+
+    const updatedOffer = await db.donorOffer.update({
+      where: { id: donorOfferId },
+      data: { state: $Enums.DonorOfferState.FINALIZED },
+      include: { items: true },
+    });
+
+    if (validItems.length > 0) {
+      const lineItemsByGeneralItem = new Map<string, FinalizeDonorOfferItem[]>();
+
+      for (const item of validItems) {
+        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(item.expirationDate);
+        const expirationKey = normalizedExpiration
+          ? normalizedExpiration.toISOString().split("T")[0]
+          : "null";
+        const key = `${DonorOfferService.normalizeWhitespace(item.title)}|${expirationKey}|${DonorOfferService.normalizeWhitespace(item.unitType)}`;
+
+        if (!lineItemsByGeneralItem.has(key)) {
+          lineItemsByGeneralItem.set(key, []);
+        }
+        lineItemsByGeneralItem.get(key)!.push(item);
+      }
+
+      const offerItems: typeof updatedOffer.items = [...updatedOffer.items];
+
+      for (const [, lineItems] of lineItemsByGeneralItem.entries()) {
+        const firstLineItem = lineItems[0];
+        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(firstLineItem.expirationDate);
+
+        let generalItem = offerItems.find((di) => {
+          const diExpiration = di.expirationDate
+            ? DonorOfferService.normalizeExpirationDate(di.expirationDate)
+            : null;
+          const expirationMatches = DonorOfferService.datesWithinTolerance(
+            normalizedExpiration,
+            diExpiration,
+            1
+          );
+          return (
+            DonorOfferService.normalizeWhitespace(firstLineItem.title) === DonorOfferService.normalizeWhitespace(di.title) &&
+            expirationMatches &&
+            DonorOfferService.normalizeWhitespace(firstLineItem.unitType) === DonorOfferService.normalizeWhitespace(di.unitType)
+          );
+        });
+
+        if (!generalItem) {
+          const totalQuantity = lineItems.reduce((sum, item) => sum + item.quantity, 0);
+
+          generalItem = await db.generalItem.create({
+            data: {
+              donorOfferId,
+              title: DonorOfferService.normalizeWhitespace(firstLineItem.title),
+              expirationDate: normalizedExpiration,
+              unitType: DonorOfferService.normalizeWhitespace(firstLineItem.unitType),
+              initialQuantity: totalQuantity,
+              description: null,
+            },
+          });
+
+          offerItems.push(generalItem);
+        }
+
+        const generalItemId = generalItem.id;
+        console.log(generalItemId, generalItem.title);
+
+        const lineItemsToCreate = lineItems.map((item) => ({
+          allowAllocations: item.allowAllocations ?? true,
+          visible: item.visible ?? true,
+          gik: item.gik ?? true,
+          donorName: updatedOffer.donorName,
+          quantity: item.quantity,
+          lotNumber: item.lotNumber,
+          palletNumber: item.palletNumber,
+          boxNumber: item.boxNumber,
+          unitPrice: item.unitPrice,
+          maxRequestLimit: item.maxRequestLimit ?? null,
+          donorShippingNumber: item.donorShippingNumber ?? null,
+          hfhShippingNumber: item.hfhShippingNumber ?? null,
+          ndc: item.ndc ?? null,
+          notes: null,
+          generalItemId: generalItemId,
+        }));
+
+        await db.lineItem.createMany({ data: lineItemsToCreate });
+      }
+    }
+
+    return { success: true, donorOfferId, createdCount: validItems.length };
   }
 
   static async updateDonorOffer(
     donorOfferId: number,
     updateData: Partial<Omit<DonorOfferUpdateParams, "id">>
   ) {
+    const existingOffer = await db.donorOffer.findUnique({
+      where: { id: donorOfferId },
+      include: {
+        partnerVisibilities: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!existingOffer) {
+      throw new NotFoundError("Donor offer not found");
+    }
+
+    const existingPartnerIds = new Set(existingOffer.partnerVisibilities.map((partner) => partner.id));
+
+    const addedPartnerIds = updateData.partners?.filter(id => !existingPartnerIds.has(id)) ?? [];
+
+    let newPartners: { id: number; name: string; email: string }[] = [];
+
+    if (addedPartnerIds.length > 0) {
+      newPartners = await db.user.findMany({
+        where: {
+          id: { in: addedPartnerIds },
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      });
+
+      if (newPartners.length !== addedPartnerIds.length) {
+        throw new ArgumentError("One or more partner IDs are invalid");
+      }
+    }
+
     const update: Prisma.DonorOfferUpdateInput = {
       offerName: updateData.offerName,
       donorName: updateData.donorName,
       partnerResponseDeadline: updateData.partnerResponseDeadline,
       donorResponseDeadline: updateData.donorResponseDeadline,
-      ...(updateData.partners
+      ...(addedPartnerIds !== undefined
         ? {
             partnerVisibilities: {
-              set: updateData.partners.map((p) => ({ id: p })),
+              connect: addedPartnerIds.map((partnerId) => ({ id: partnerId })),
             },
           }
         : {}),
       state: updateData.state,
     };
 
-    return await db.donorOffer.update({
+    const updatedOffer = await db.donorOffer.update({
       where: { id: donorOfferId },
       data: update,
     });
+
+    if (addedPartnerIds.length > 0) {
+      const generalItems = await db.generalItem.findMany({
+        where: { donorOfferId },
+        select: {
+          title: true,
+          description: true,
+          expirationDate: true,
+          unitType: true,
+          initialQuantity: true,
+          requestQuantity: true,
+        },
+      });
+
+      const emails = newPartners.map(partner => partner.email);
+
+      EmailClient.sendDonorOfferCreated(emails, {
+        offerName: updatedOffer.offerName,
+        donorName: updatedOffer.donorName,
+        partnerResponseDeadline: updatedOffer.partnerResponseDeadline,
+        donorResponseDeadline: updatedOffer.donorResponseDeadline,
+        offerUrl: `${process.env.BASE_URL}/donorOffers/${donorOfferId}`,
+        items: generalItems,
+      });
+    }
+
+    return updatedOffer;
   }
 
   static async archiveDonorOffer(donorOfferId: number): Promise<void> {
@@ -1012,9 +1092,24 @@ export default class DonorOfferService {
     }
   }
 
-  static async getAllocationItems(donorOfferId: number) {
-    const items = await db.generalItem.findMany({
-      where: { donorOfferId },
+  static async getAllocationItems(
+    donorOfferId: number,
+    filters?: Filters,
+    page?: number,
+    pageSize?: number
+  ) {
+    const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
+      Object.keys(Prisma.GeneralItemScalarFieldEnum),
+      filters
+    );
+
+    const where: Prisma.GeneralItemWhereInput = {
+      ...filterWhere,
+      donorOfferId,
+    };
+
+    const query: Prisma.GeneralItemFindManyArgs = {
+      where,
       include: {
         items: {
           include: {
@@ -1050,14 +1145,21 @@ export default class DonorOfferService {
       orderBy: {
         id: "asc",
       },
-    });
+    };
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [items, total] = await Promise.all([
+      db.generalItem.findMany(query),
+      db.generalItem.count({ where }),
+    ]);
 
     return {
       items: items.map((item) => ({
         ...item,
         quantity: item.initialQuantity,
       })),
-      total: items.length,
+      total,
     };
   }
 }

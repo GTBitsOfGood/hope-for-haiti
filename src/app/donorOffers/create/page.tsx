@@ -49,6 +49,7 @@ export default function CreateDonorOfferPage() {
     resetUpload: resetFileUpload,
   } = useFileUpload<{ donorOfferItems: DonorOfferItem[] }>({
     previewEndpoint: "/api/donorOffers?preview=true",
+    previewEndpointMethod: "POST",
     onSuccess: (result) => {
       setData(result.donorOfferItems);
     },
