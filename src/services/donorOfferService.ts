@@ -50,6 +50,10 @@ const DonorOfferItemSchema = z.object({
     .string()
     .transform((val) => val.trim())
     .optional(),
+  weight: z
+    .string()
+    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
+    .pipe(z.number().positive("Weight must be positive and non-zero")),
 });
 
 const DonorOfferSchema = z.object({
@@ -79,7 +83,11 @@ const FinalizeDonorOfferItemSchema = z.object({
       }
       return d;
     }),
-  // end 
+  weight: z
+    .string()
+    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
+    .pipe(z.number().positive("Weight must be positive and non-zero")),
+  // end
   category: z.nativeEnum(ItemCategory).optional(),
   quantity: z
     .string()
@@ -184,6 +192,7 @@ export default class DonorOfferService {
         item.description && item.description.length > 0
           ? item.description
           : null,
+      weight: item.weight,
     }));
   }
 
@@ -232,6 +241,7 @@ export default class DonorOfferService {
       unitType: item.unitType,
       initialQuantity: item.initialQuantity,
       description: item.description ?? undefined,
+      weight: typeof item.weight === 'number' ? item.weight : Number(item.weight),
     }));
   }
 
@@ -948,6 +958,7 @@ export default class DonorOfferService {
               unitType: DonorOfferService.normalizeWhitespace(firstLineItem.unitType),
               initialQuantity: totalQuantity,
               description: null,
+              weight: firstLineItem.weight,
             },
           });
 
@@ -1043,27 +1054,13 @@ export default class DonorOfferService {
     });
 
     if (addedPartnerIds.length > 0) {
-      const generalItems = await db.generalItem.findMany({
-        where: { donorOfferId },
-        select: {
-          title: true,
-          description: true,
-          expirationDate: true,
-          unitType: true,
-          initialQuantity: true,
-          requestQuantity: true,
-        },
-      });
-
       const emails = newPartners.map(partner => partner.email);
-
       EmailClient.sendDonorOfferCreated(emails, {
         offerName: updatedOffer.offerName,
         donorName: updatedOffer.donorName,
         partnerResponseDeadline: updatedOffer.partnerResponseDeadline,
         donorResponseDeadline: updatedOffer.donorResponseDeadline,
         offerUrl: `${process.env.BASE_URL}/donorOffers/${donorOfferId}`,
-        items: generalItems,
       });
     }
 

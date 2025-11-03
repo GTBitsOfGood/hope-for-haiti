@@ -20,6 +20,7 @@ const unfinalizedRequiredKeys = new Map<string, string>([
   ["Quantity", "quantity"],
   ["Expiration Date", "expirationDate"],
   ["Unit UOM", "unitType"],
+  ["UOM Weight Lb", "weight"],
 ]);
 
 const finalizedRequiredKeys = new Map<string, string>([
@@ -27,6 +28,7 @@ const finalizedRequiredKeys = new Map<string, string>([
   ["Description", "title"],
   ["Exp.", "expirationDate"],
   ["Container Type", "unitType"],
+  ["Weight Lb", "weight"],
   // end
   ["Donor", "donorName"],
   ["# of Containers", "quantity"],
@@ -79,12 +81,21 @@ const transformDonorOfferRow = (
 ): Record<string, unknown> => {
   const remapped = remapRequiredColumns("unfinalized", row);
   const quantity = remapped["quantity"];
+  const weight = remapped["weight"];
   const transformed: Record<string, unknown> = {
     ...remapped,
   };
 
   if (quantity !== undefined) {
     transformed["initialQuantity"] = quantity;
+  }
+
+  // Ensure weight is present and not zero
+  if (weight !== undefined && weight !== null && weight !== 0 && weight !== "0") {
+    transformed["weight"] = weight;
+  } else {
+    // If weight is missing or zero, throw an error as weight is required
+    throw new Error("Weight is required and cannot be zero");
   }
 
   delete transformed["quantity"];

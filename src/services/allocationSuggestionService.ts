@@ -44,8 +44,13 @@ export class AllocationSuggestionService {
   private static async fetchItemsForDonorOffer(
     donorOfferId: number
   ): Promise<NormalizedItem[]> {
-    const { itemsWithRequests } =
-      await DonorOfferService.getAdminDonorOfferDetails(donorOfferId);
+    const { items } =
+      await DonorOfferService.getAdminDonorOfferDetails(donorOfferId, true);
+
+    // Type cast because we know requests will be included when we pass true
+    const itemsWithRequests = items as (typeof items[number] & {
+      requests: { id: number; quantity: number; partnerId: number }[];
+    })[];
 
     if (!itemsWithRequests.length) {
       return [];
@@ -92,7 +97,7 @@ export class AllocationSuggestionService {
         return acc;
       }
 
-      const requests = item.requests
+      const requests = (item.requests ?? [])
         .filter((request) => request.quantity > 0)
         .map((request) => ({
           partnerId: request.partnerId,
