@@ -24,6 +24,7 @@ interface AccountDropdownProps {
   onDeleteAccount?: () => void;
   onEditAccount?: () => void;
   onDeactivateAccount?: () => void;
+  onSendReminder?: () => void;
 }
 
 export default function AccountDropdown({
@@ -32,6 +33,7 @@ export default function AccountDropdown({
   onDeleteAccount,
   onEditAccount,
   onDeactivateAccount,
+  onSendReminder,
 }: AccountDropdownProps) {
   const { user: currentUser } = useUser();
   const [isOpen, setIsOpen] = useState(false);
@@ -45,8 +47,10 @@ export default function AccountDropdown({
         {
           icon: <EnvelopeSimple size={18} />,
           label: "Send reminder",
-          onClick: () => {},
-          disabled: true,
+          onClick: () => {
+            onSendReminder?.();
+            setIsOpen(false);
+          },
         },
         {
           icon: <Trash size={18} />,

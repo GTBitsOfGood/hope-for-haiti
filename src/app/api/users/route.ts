@@ -54,15 +54,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      throw new AuthenticationError("Session required");
-    }
-
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
-
     const parsed = createUserSchema.safeParse(await req.formData());
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);

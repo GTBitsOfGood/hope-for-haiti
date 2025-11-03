@@ -7,7 +7,7 @@ import { z } from "zod";
 import UserService from "@/services/userService";
 
 const searchParamsSchema = z.object({
-  term: z.string().optional(),
+  term: z.string().optional().nullable(),
 });
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -30,7 +30,9 @@ export async function GET(request: Request): Promise<NextResponse> {
       throw new ArgumentError(parsed.error.message);
     }
 
-    const partners = await PartnerService.getPartners(parsed.data);
+    const partners = await PartnerService.getPartners({
+      term: parsed.data.term ?? undefined
+    });
 
     return NextResponse.json({ partners }, { status: 200 });
   } catch (error) {

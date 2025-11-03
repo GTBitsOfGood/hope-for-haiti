@@ -46,3 +46,6 @@ next-env.d.ts
 # email previews (development only)
 /email-previews/
 AGENTS.md
+
+# Local Netlify folder
+.netlify
