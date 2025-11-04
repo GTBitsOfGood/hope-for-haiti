@@ -53,6 +53,8 @@ interface AdvancedBaseTableProps<T extends object> {
   emptyState?: React.ReactNode;
   toolBar?: React.ReactNode;
   rowBody?: (item: T) => React.ReactNode | undefined;
+  disablePagination?: boolean;
+  disableFilters?: boolean;
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -69,6 +71,8 @@ function AdvancedBaseTableInner<T extends object>(
     emptyState,
     toolBar,
     rowBody,
+    disablePagination = false,
+    disableFilters = false,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -301,6 +305,10 @@ function AdvancedBaseTableInner<T extends object>(
     [resolveRowId]
   );
 
+  const getAllItems = useCallback(() => {
+    return items;
+  }, [items]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -309,8 +317,9 @@ function AdvancedBaseTableInner<T extends object>(
       upsertItem,
       removeItemById,
       updateItemById,
+      getAllItems,
     }),
-    [reload, removeItemById, setItemsExternally, upsertItem, updateItemById]
+    [reload, removeItemById, setItemsExternally, upsertItem, updateItemById, getAllItems]
   );
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -323,7 +332,7 @@ function AdvancedBaseTableInner<T extends object>(
     <div className="w-full">
       <div className="my-2 space-x-4 flex justify-end">
         {toolBar}
-        {filterableColumns.length > 0 && (
+        {!disableFilters && filterableColumns.length > 0 && (
           <div className="relative" ref={filterMenuRef}>
             <button
               type="button"
@@ -462,23 +471,25 @@ function AdvancedBaseTableInner<T extends object>(
           </tbody>
         </table>
       </div>
-      <div className="mt-2 flex justify-end items-center text-gray-primary">
-        <CgChevronLeft
-          onClick={canGoPrevious ? goToPreviousPage : undefined}
-          className={`inline-block w-6 h-6 mr-2 ${
-            canGoPrevious ? "cursor-pointer" : "opacity-30"
-          }`}
-        />
-        <span>
-          Page {Math.min(page, totalPages)} of {totalPages}
-        </span>
-        <CgChevronRight
-          onClick={canGoNext ? goToNextPage : undefined}
-          className={`inline-block w-6 h-6 ml-2 ${
-            canGoNext ? "cursor-pointer" : "opacity-30"
-          }`}
-        />
-      </div>
+      {!disablePagination && (
+        <div className="mt-2 flex justify-end items-center text-gray-primary">
+          <CgChevronLeft
+            onClick={canGoPrevious ? goToPreviousPage : undefined}
+            className={`inline-block w-6 h-6 mr-2 ${
+              canGoPrevious ? "cursor-pointer" : "opacity-30"
+            }`}
+          />
+          <span>
+            Page {Math.min(page, totalPages)} of {totalPages}
+          </span>
+          <CgChevronRight
+            onClick={canGoNext ? goToNextPage : undefined}
+            className={`inline-block w-6 h-6 ml-2 ${
+              canGoNext ? "cursor-pointer" : "opacity-30"
+            }`}
+          />
+        </div>
+      )}
     </div>
   );
 }

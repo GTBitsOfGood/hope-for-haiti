@@ -56,4 +56,5 @@ export interface AdvancedBaseTableHandle<T> {
     id: string | number,
     updater: Partial<T> | ((current: T) => Partial<T> | T | undefined)
   ) => void;
+  getAllItems: () => T[];
 }

@@ -11,18 +11,28 @@ export type AzureOpenAIConfig = {
   endpoint?: string;
   apiKey?: string;
   deployment?: string;
+  apiVersion?: string;
 };
 
-export function getAzureOpenAIConfig(): AzureOpenAIConfig {
+export function getAzureOpenAIConfig(
+  embedding: boolean = false
+): AzureOpenAIConfig {
   return {
-    endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+    endpoint: "https://hfh-ai.cognitiveservices.azure.com/",
     apiKey: process.env.AZURE_OPENAI_API_KEY,
-    deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+    deployment: embedding
+      ? "text-embedding-3-small"
+      : "gpt-5-mini",
+    apiVersion: embedding? "2024-12-01-preview" : "2024-08-01-preview",
   };
 }
 
-export function getOpenAIClient(): { client: OpenAI | null; deployment: string | null; reason?: string } {
-  const { endpoint, apiKey, deployment } = getAzureOpenAIConfig();
+export function getOpenAIClient(embedding: boolean = false): {
+  client: OpenAI | null;
+  deployment: string | null;
+  reason?: string;
+} {
+  const { endpoint, apiKey, deployment, apiVersion } = getAzureOpenAIConfig(embedding);
   if (!endpoint || !apiKey || !deployment) {
     return {
       client: null,
@@ -31,16 +41,12 @@ export function getOpenAIClient(): { client: OpenAI | null; deployment: string |
     };
   }
 
-  // The OpenAI SDK supports Azure by setting baseURL and api-version header
-  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-08-01-preview";
-  const baseEndpoint = endpoint.replace(/\/+$/, ""); // trim trailing slashes
   const client = new OpenAI({
     apiKey,
-    baseURL: `${baseEndpoint}/openai/deployments/${deployment}`,
+    baseURL: `${endpoint}/openai/deployments/${deployment}`,
     defaultHeaders: {
       "api-key": apiKey,
     },
-    // Azure requires api-version as a query parameter
     defaultQuery: {
       "api-version": apiVersion,
     },

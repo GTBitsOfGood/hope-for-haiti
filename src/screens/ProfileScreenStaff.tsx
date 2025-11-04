@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { User } from "@prisma/client";
+import { signOut } from "next-auth/react";
 
 interface ProfileScreenStaffProps {
   user: User;
@@ -154,6 +155,14 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
             </>
           )}
         </div>
+      </div>
+      <div className="mt-6">
+        <button 
+        className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
+        onClick={() => signOut({ callbackUrl: "/signIn" })}
+        >
+          Logout
+        </button>
       </div>
     </div>
   );

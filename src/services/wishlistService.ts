@@ -60,6 +60,26 @@ export class WishlistService {
     });
   }
 
+  static async linkWishlistToGeneralItem(wishlistId: number, generalItemId: number) {
+    try {
+      await db.wishlist.update({
+        where: {
+          id: wishlistId,
+        },
+        data: {
+          generalItemId: generalItemId,
+        },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundError("Wishlist not found");
+        }
+      }
+      throw error;
+    }
+  }
+
   static async getWishlistItem(id: number) {
     return await db.wishlist.findUnique({
       where: {
@@ -81,6 +101,7 @@ export class WishlistService {
 
     return await db.wishlist.findMany({
       where: {
+        generalItemId: null,
         partnerId,
       },
     });

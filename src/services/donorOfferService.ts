@@ -5,6 +5,7 @@ import {
   UserType,
   RequestPriority,
   ItemCategory,
+  ItemType,
   DonorOffer,
   Prisma,
   GeneralItem,
@@ -54,6 +55,8 @@ const DonorOfferItemSchema = z.object({
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().positive("Weight must be positive and non-zero")),
+  type: z.nativeEnum(ItemType).optional(),
+  category: z.nativeEnum(ItemCategory).optional(),
 });
 
 const DonorOfferSchema = z.object({
@@ -181,19 +184,26 @@ export default class DonorOfferService {
     items: (typeof DonorOfferItemSchema._type)[],
     donorOfferId: number
   ): Prisma.GeneralItemCreateManyInput[] {
-    return items.map((item) => ({
-      donorOfferId,
-      title: item.title,
-      expirationDate:
-        DonorOfferService.normalizeExpirationDate(item.expirationDate) ?? null,
-      unitType: item.unitType,
-      initialQuantity: item.initialQuantity,
-      description:
-        item.description && item.description.length > 0
-          ? item.description
-          : null,
-      weight: item.weight,
-    }));
+    return items.map((item) => {
+      const result: Prisma.GeneralItemCreateManyInput = {
+        donorOfferId,
+        title: item.title,
+        expirationDate:
+          DonorOfferService.normalizeExpirationDate(item.expirationDate) ?? null,
+        unitType: item.unitType,
+        initialQuantity: item.initialQuantity,
+        description:
+          item.description && item.description.length > 0
+            ? item.description
+            : null,
+        weight: item.weight,
+      };
+
+      if (item.type) result.type = item.type;
+      if (item.category) result.category = item.category;
+
+      return result;
+    });
   }
 
   private static aggregateGeneralItems(
@@ -984,16 +994,18 @@ export default class DonorOfferService {
         if (!generalItem) {
           const totalQuantity = lineItems.reduce((sum, item) => sum + item.quantity, 0);
 
+          const createData: Prisma.GeneralItemCreateInput = {
+            donorOffer: { connect: { id: donorOfferId } },
+            title: DonorOfferService.normalizeWhitespace(firstLineItem.title),
+            expirationDate: normalizedExpiration,
+            unitType: DonorOfferService.normalizeWhitespace(firstLineItem.unitType),
+            initialQuantity: totalQuantity,
+            description: null,
+            weight: firstLineItem.weight,
+          };
+
           generalItem = await db.generalItem.create({
-            data: {
-              donorOfferId,
-              title: DonorOfferService.normalizeWhitespace(firstLineItem.title),
-              expirationDate: normalizedExpiration,
-              unitType: DonorOfferService.normalizeWhitespace(firstLineItem.unitType),
-              initialQuantity: totalQuantity,
-              description: null,
-              weight: firstLineItem.weight,
-            },
+            data: createData,
           });
 
           offerItems.push(generalItem);

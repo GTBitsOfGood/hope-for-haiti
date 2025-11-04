@@ -102,13 +102,6 @@ function NavLinks() {
           icon={<Package size={22} />}
         />
       )}
-      {isPartner && (
-        <NavLink
-          href="/distributions"
-          label="My Distributions"
-          icon={<Package size={22} />}
-        />
-      )}
       <NavLink
         href="/profile"
         label="Profile"
