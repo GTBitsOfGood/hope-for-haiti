@@ -55,7 +55,6 @@ export default async function middleware(req: NextRequest) {
       );
     }
     const url = new URL("/signIn", origin);
-    url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
