@@ -53,6 +53,12 @@ export interface AvailableItemDTO {
   quantityRequested?: number | null;
   priority?: string | null;
   comments?: string | null;
+  // Wishlist match information
+  wishlistMatch: {
+    wishlistId: number;
+    wishlistTitle: string;
+    strength: "hard" | "soft";
+  } | null;
 }
 
 export interface AvailableItemsResponse {

@@ -7,7 +7,13 @@ import Portal from "@/components/baseTable/Portal";
 interface RequestPopoverProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { quantity: number; priority: RequestPriority; comments: string }) => void;
+  onSave: (data: {
+    quantity: number;
+    priority: RequestPriority;
+    comments: string;
+    removeFromWishlist?: boolean;
+    wishlistId?: number;
+  }) => void;
   initialData?: {
     quantity: number;
     priority: RequestPriority | null;
@@ -18,6 +24,11 @@ interface RequestPopoverProps {
     requestId: number | null;
     donorOfferItemId: number;
   };
+  wishlistMatch?: {
+    wishlistId: number;
+    wishlistTitle: string;
+    strength: "hard" | "soft";
+  } | null;
 }
 
 const getPriorityColor = (priority: RequestPriority | ""): string => {
@@ -40,6 +51,7 @@ export default function RequestPopover({
   initialData,
   buttonRef,
   item,
+  wishlistMatch,
 }: RequestPopoverProps) {
   const [quantity, setQuantity] = useState<string>(
     initialData?.quantity ? initialData.quantity.toString() : ""
@@ -48,27 +60,31 @@ export default function RequestPopover({
     initialData?.priority || ""
   );
   const [comments, setComments] = useState(initialData?.comments || "");
+  const [connectWishlist, setConnectWishlist] = useState(false);
 
   useEffect(() => {
     setQuantity(initialData?.quantity ? initialData.quantity.toString() : "");
     setPriority(initialData?.priority || "");
     setComments(initialData?.comments || "");
+    setConnectWishlist(false);
   }, [initialData]);
 
   const handleSave = () => {
     const quantityNum = parseInt(quantity) || 0;
-    
+
     if (priority === "") {
       return;
     }
     if (quantityNum <= 0) {
       return;
     }
-    
+
     onSave({
       quantity: quantityNum,
       priority: priority as RequestPriority,
       comments,
+      removeFromWishlist: wishlistMatch ? (wishlistMatch.strength === "hard" || connectWishlist) : undefined,
+      wishlistId: wishlistMatch?.wishlistId,
     });
     onClose();
   };
@@ -127,6 +143,36 @@ export default function RequestPopover({
             placeholder="Optional comments..."
           />
         </div>
+
+        {wishlistMatch && (
+          <div className="bg-red-primary/10 border-2 border-red-primary/50 rounded-lg p-2.5">
+            {wishlistMatch.strength === "hard" ? (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-red-primary font-medium">
+                  ✓ Matches <span className="font-bold">{wishlistMatch.wishlistTitle}</span>
+                </span>
+                <span className="text-gray-600 text-xs">— auto-connects on request</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-red-primary font-medium text-sm">
+                  Similar to <span className="font-bold">{wishlistMatch.wishlistTitle}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setConnectWishlist(!connectWishlist)}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                    connectWishlist
+                      ? "bg-red-primary text-white border-2 border-transparent"
+                      : "border-2 border-red-primary text-red-primary bg-white"
+                  }`}
+                >
+                  {connectWishlist ? "Will Fulfil" : "Fulfil?"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-between">
           <button

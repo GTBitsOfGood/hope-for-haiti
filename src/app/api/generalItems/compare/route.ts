@@ -21,10 +21,8 @@ export async function GET(req: NextRequest) {
     query: title,
     k: 4,
     donorOfferId,
-    // tweakable thresholds if desired (service should already filter/label 'hard' vs 'soft'):
-    distanceCutoff: 0.6,
-    hardCutoff: 0.2,
   });
+
 
   if (baseResults.length === 0) {
     return NextResponse.json({

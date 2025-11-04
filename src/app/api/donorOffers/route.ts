@@ -12,7 +12,7 @@ import {
 } from "@/util/errors";
 import FileService from "@/services/fileService";
 import { tableParamsSchema } from "@/schema/tableParams";
-import { DescriptionService } from "@/services/descriptionService";
+import { GeneralItemService } from "@/services/generalItemService";
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,22 +52,25 @@ export async function POST(req: NextRequest) {
 
       const itemDescriptionInput = parsedItems.map((item) => ({
         title: toSafeString(item["title"]).trim(),
-        type: toSafeString(item["type"]).trim(),
         unitType: toSafeString(item["unitType"]).trim(),
       }));
 
-      let descriptions: string[] = [];
+      let metadata: Array<{
+        description: string;
+        type: string;
+        category: string;
+      }> = [];
       try {
-        descriptions = await DescriptionService.getOrGenerateDescriptions(
+        metadata = await GeneralItemService.getOrGenerateMetadata(
           itemDescriptionInput
         );
       } catch {
-        throw new InternalError("Failed to generate item descriptions");
+        throw new InternalError("Failed to generate item metadata");
       }
 
-      if (descriptions.length !== parsedItems.length) {
+      if (metadata.length !== parsedItems.length) {
         throw new InternalError(
-          "Description generation returned unexpected result"
+          "Metadata generation returned unexpected result"
         );
       }
 
@@ -75,7 +78,9 @@ export async function POST(req: NextRequest) {
         ...parsedFileData,
         data: parsedItems.map((item, index) => ({
           ...item,
-          description: descriptions[index] ?? null,
+          description: metadata[index]?.description ?? null,
+          type: metadata[index]?.type ?? null,
+          category: metadata[index]?.category ?? null,
         })),
       };
     };

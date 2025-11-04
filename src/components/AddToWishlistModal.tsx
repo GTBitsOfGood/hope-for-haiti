@@ -42,14 +42,11 @@ export default function AddToWishlistModal({
 }: AddToWishlistModalProps) {
   const { apiClient } = useApiClient();
 
-  // NEW: wizard step (1 = title/suggestions, 2 = details)
   const [step, setStep] = useState<1 | 2>(1);
-
   const [form, setForm] = useState<AddToWishlistForm>({
     name: "",
   });
 
-  // --- Suggestions state ---
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [searching, setSearching] = useState<boolean>(false);
   const [hardMatch, setHardMatch] = useState<boolean>(false);
@@ -76,7 +73,6 @@ export default function AddToWishlistModal({
     },
   ];
 
-  // ---- Debounced compare lookup (only on Step 1) ----
   useEffect(() => {
     if (!isOpen || step !== 1) return;
 
@@ -91,7 +87,6 @@ export default function AddToWishlistModal({
     debounceTimer.current = setTimeout(async () => {
       try {
         const url = `/api/generalItems/compare?${new URLSearchParams({ title: q }).toString()}`;
-        // Expected response: { results: Suggestion[] }
         const resp = await apiClient.get<{ results?: Suggestion[] }>(url);
         const hits = resp?.results ?? [];
         setSuggestions(hits);
@@ -107,7 +102,6 @@ export default function AddToWishlistModal({
     };
   }, [form.name, apiClient, isOpen, step]);
 
-  // Reset to step 1 when reopened
   useEffect(() => {
     if (isOpen) setStep(1);
   }, [isOpen]);
@@ -118,30 +112,27 @@ export default function AddToWishlistModal({
     if (e.target === e.currentTarget) onClose();
   };
 
-  // STEP 1 → STEP 2
   const goToStep2 = () => {
     if (!form.name.trim() || hardMatch) return;
     setStep(2);
   };
 
-  // Final submit at STEP 2
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const payload = {
       name: form.name.trim(),
-      quantity: form.quantity, // number | undefined
+      quantity: form.quantity,
       comments: form.comments?.trim() || undefined,
       unitSize: "N/A",
       priority: "LOW",
     };
 
-    // TODO: POST to /api/wishlists with `payload`
     console.log("Submitting wish:", payload);
     await apiClient.post("/api/wishlists", {
       body: JSON.stringify(payload),
     });
-    onSave(payload as Wishlist); // Cast for onSave callback
+    onSave(payload as Wishlist);
   };
 
   const suggestionFetchFn = async (

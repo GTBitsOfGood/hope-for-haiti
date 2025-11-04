@@ -69,7 +69,11 @@ export async function POST(request: NextRequest) {
     const data = parsed.data;
 
     const createdItem = await GeneralItemService.createGeneralItem(data);
-    await MatchingService.add(createdItem);
+    await MatchingService.add({
+      generalItemId: createdItem.id,
+      donorOfferId: createdItem.donorOfferId,
+      title: createdItem.title,
+    });
 
     return NextResponse.json(createdItem, {
       status: 201,
@@ -100,62 +104,71 @@ export async function GET(request: NextRequest) {
     }
     const { filters, page, pageSize } = parsedParams.data;
 
-    // 1) Get user wishlists
     const wishlists = await WishlistService.getWishlistsByPartner(
       parseInt(session.user.id)
     );
 
-    // 2) Compute matches (k=1 per wishlist, your thresholds)
     const matches = await MatchingService.getTopKMatches({
       queries: wishlists.map((w) => w.name),
-      k: 1,
-      distanceCutoff: 0.6,
-      hardCutoff: 0.2,
+      k: 4,
     });
 
-    // 3) Build a Set of matched ids
-    const matchedIds = new Set<number>();
-    for (const matchList of matches) {
+    const matchedIds: number[] = [];
+    const matchMetadata = new Map<number, { wishlistId: number; wishlistTitle: string; strength: "hard" | "soft"; distance: number }>();
+
+    for (let i = 0; i < matches.length; i++) {
+      const matchList = matches[i];
+      const wishlist = wishlists[i];
+
       for (const match of matchList) {
-        matchedIds.add(Number(match.id));
+        const id = Number(match.id);
+
+        if (!matchedIds.includes(id)) {
+          matchedIds.push(id);
+        }
+
+        // Store match metadata - keep strongest match if multiple wishlists match
+        // Priority: hard > soft, then lower distance wins
+        const existing = matchMetadata.get(id);
+        const shouldUpdate = !existing ||
+          (match.strength === "hard" && existing.strength === "soft") ||
+          (match.strength === existing.strength && match.distance < existing.distance);
+
+        if (shouldUpdate) {
+          matchMetadata.set(id, {
+            wishlistId: wishlist.id,
+            wishlistTitle: wishlist.name,
+            strength: match.strength,
+            distance: match.distance,
+          });
+        }
       }
     }
 
-    // 4) Fetch ALL items (unpaginated), keeping existing filters
-    //    We will do the "move matched first" + paginate locally.
-    //    Potential performance issues here but simplifies logic greatly.
-    const allItems = await GeneralItemService.getAvailableItemsForPartner(
+    const result = await GeneralItemService.getAvailableItemsForPartner(
       parseInt(session.user.id),
       filters ?? undefined,
-      /* page */ undefined,
-      /* pageSize */ undefined
+      page ?? undefined,
+      pageSize ?? undefined,
+      matchedIds.length > 0 ? matchedIds : undefined
     );
 
-    // 5) Stable partition: matched first (preserve original order), then the rest
-    const matched = [];
-    const rest = [];
-    for (const item of allItems.items) {
-      if (matchedIds.has(Number(item.id))) matched.push(item);
-      else rest.push(item);
-    }
-    const ordered = matched.concat(rest);
+    const enrichedItems = result.items.map((item) => {
+      const matchInfo = matchMetadata.get(item.id);
+      return {
+        ...item,
+        wishlistMatch: matchInfo ? {
+          wishlistId: matchInfo.wishlistId,
+          wishlistTitle: matchInfo.wishlistTitle,
+          strength: matchInfo.strength,
+        } : null,
+      };
+    });
 
-    // 6) Paginate the ordered list
-    const p = Math.max(1, Number(page ?? 1));
-    const ps = Math.max(1, Number(pageSize ?? 25));
-    const start = (p - 1) * ps;
-    const end = start + ps;
-
-    const paged = ordered.slice(start, end);
-    const total = ordered.length;
-
-    // 7) Return in standard table shape (data + total)
     return NextResponse.json(
       {
-        items: paged,
-        total,
-        page: p,
-        pageSize: ps,
+        items: enrichedItems,
+        total: result.total
       },
       { status: 200 }
     );

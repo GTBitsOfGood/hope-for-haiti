@@ -305,6 +305,10 @@ function AdvancedBaseTableInner<T extends object>(
     [resolveRowId]
   );
 
+  const getAllItems = useCallback(() => {
+    return items;
+  }, [items]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -313,8 +317,9 @@ function AdvancedBaseTableInner<T extends object>(
       upsertItem,
       removeItemById,
       updateItemById,
+      getAllItems,
     }),
-    [reload, removeItemById, setItemsExternally, upsertItem, updateItemById]
+    [reload, removeItemById, setItemsExternally, upsertItem, updateItemById, getAllItems]
   );
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

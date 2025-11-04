@@ -55,6 +55,7 @@ function ActionButton({ item, onOpenPopover, isPopoverOpen, onPopoverClose, onRe
             requestId: item.requestId ?? null,
             donorOfferItemId: item.id,
           }}
+          wishlistMatch={item.wishlistMatch}
         />
       )}
     </div>
@@ -105,6 +106,8 @@ export default function PartnerItemsScreen() {
       quantity: number;
       priority: RequestPriority;
       comments: string;
+      removeFromWishlist?: boolean;
+      wishlistId?: number;
     }
   ) => {
     try {
@@ -126,10 +129,20 @@ export default function PartnerItemsScreen() {
           quantityRequested: requestData.quantity,
           priority: requestData.priority,
           comments: requestData.comments,
+          wishlistMatch: null,
         });
 
         toast.success("Request updated successfully!");
       } else {
+        const fulfilledWishlistId = (requestData.removeFromWishlist && requestData.wishlistId)
+          ? requestData.wishlistId
+          : null;
+
+        if (fulfilledWishlistId) {
+          formData.append("removeFromWishlist", "true");
+          formData.append("wishlistId", fulfilledWishlistId.toString());
+        }
+
         const response = await apiClient.post<{ requestId: number }>(
           `/api/generalItems/${item.id}/requests`,
           {
@@ -142,7 +155,19 @@ export default function PartnerItemsScreen() {
           quantityRequested: requestData.quantity,
           priority: requestData.priority,
           comments: requestData.comments,
+          wishlistMatch: null,
         });
+
+        if (fulfilledWishlistId && tableRef.current) {
+          const allItems = tableRef.current.getAllItems();
+          allItems.forEach((tableItem) => {
+            if (tableItem.wishlistMatch?.wishlistId === fulfilledWishlistId && tableItem.id !== item.id) {
+              tableRef.current?.updateItemById(tableItem.id, {
+                wishlistMatch: null,
+              });
+            }
+          });
+        }
 
         toast.success("Request created successfully!");
       }
@@ -213,6 +238,14 @@ export default function PartnerItemsScreen() {
     },
   ];
 
+  const getRowClassName = (item: AvailableItemDTO) => {
+    if (!item.wishlistMatch) return undefined;
+    if (item.wishlistMatch.strength === "hard") {
+      return "!bg-red-primary/25 !border-2 !border-red-primary/75";
+    }
+    return "!bg-red-primary/10 !border-2 !border-red-primary/50";
+  };
+
   return (
     <div className="w-full px-4 py-6 font-[Open_Sans]">
       <h1 className="text-2xl font-semibold text-gray-primary mb-6">Available Items</h1>
@@ -224,6 +257,7 @@ export default function PartnerItemsScreen() {
         rowId="id"
         pageSize={25}
         emptyState="No available items found."
+        rowClassName={getRowClassName}
       />
     </div>
   );

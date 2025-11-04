@@ -2,8 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
-import { Wishlist, $Enums } from "@prisma/client";
-import PriorityTag from "@/components/tags/PriorityTag";
+import { Wishlist } from "@prisma/client";
 import { PencilSimple, ChatTeardropText, Trash } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
 import AdvancedBaseTable, {
@@ -17,11 +16,10 @@ import EditWishlistModal from "@/components/EditWishlistModal";
 import DeleteWishlistModal from "@/components/DeleteWishlistModal";
 
 type WishlistItem = Wishlist;
-type WishlistPriority = $Enums.RequestPriority;
 
 type WishlistEditable = {
   id: number;
-  name: string; // Title (read-only)
+  name: string;
   quantity?: number | null;
   comments?: string | null;
 };
@@ -115,33 +113,10 @@ export default function PartnerWishlistScreen({
       filterType: "string",
     },
     {
-      id: "unitSize",
-      header: "Unit Size",
-      cell: (it) =>
-        it.unitSize || (
-          <span className="text-gray-400 italic">(unit size)</span>
-        ),
-      filterType: "string",
-    },
-    {
       id: "quantity",
       header: "Quantity requested",
       cell: (it) => it.quantity,
       filterType: "number",
-    },
-    {
-      id: "priority",
-      header: "Priority",
-      cell: (it) => <PriorityTag priority={it.priority as WishlistPriority} />,
-      filterType: "enum",
-      filterOptions: ["LOW", "MEDIUM", "HIGH"],
-    },
-    {
-      id: "lastUpdated",
-      header: "Last updated",
-      cell: (it) =>
-        it.lastUpdated ? new Date(it.lastUpdated).toLocaleDateString() : "-",
-      filterType: "date",
     },
     {
       id: "comments",
@@ -228,7 +203,6 @@ export default function PartnerWishlistScreen({
         toolBar={toolbar}
       />
 
-      {/* Add to Wishlist modal */}
       <AddToWishlistModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
@@ -237,7 +211,7 @@ export default function PartnerWishlistScreen({
           setIsCreateOpen(false);
         }}
       />
-      {/* Edit Modal */}
+
       <EditWishlistModal
         isOpen={!!editing}
         item={editing}
@@ -248,7 +222,6 @@ export default function PartnerWishlistScreen({
         }}
       />
 
-      {/* Delete Modal */}
       <DeleteWishlistModal
         isOpen={!!deleting}
         itemName={deleting?.name}

@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { isPartner } from "@/lib/userUtils";
 import { GeneralItemRequestService } from "@/services/generalItemRequestService";
+import { WishlistService } from "@/services/wishlistService";
 import {
   ArgumentError,
   AuthenticationError,
@@ -20,6 +21,8 @@ const createSchema = z.object({
   priority: z
     .enum(Object.values($Enums.RequestPriority) as [string, ...string[]])
     .transform((val) => val as $Enums.RequestPriority),
+  removeFromWishlist: z.boolean().optional(),
+  wishlistId: z.number().int().positive().optional(),
 });
 
 export async function GET(
@@ -77,13 +80,15 @@ export async function POST(
     const { generalItemId } = await params;
 
     const formData = await request.formData();
- 
+
     const parsedData = createSchema.safeParse({
       generalItemId: parseInt(generalItemId),
       partnerId: parseInt(session.user.id),
       quantity: formData.get("quantity") ? parseInt(formData.get("quantity") as string) : undefined,
       priority: formData.get("priority") ? formData.get("priority") as string : undefined,
       comments: formData.get("comments") ? formData.get("comments") as string : undefined,
+      removeFromWishlist: formData.get("removeFromWishlist") === "true",
+      wishlistId: formData.get("wishlistId") ? parseInt(formData.get("wishlistId") as string) : undefined,
     });
 
     if (!parsedData.success) {
@@ -94,9 +99,17 @@ export async function POST(
       parsedData.data
     );
 
-    return NextResponse.json({ 
+    // Link wishlist to general item if requested
+    if (parsedData.data.removeFromWishlist && parsedData.data.wishlistId) {
+      await WishlistService.linkWishlistToGeneralItem(
+        parsedData.data.wishlistId,
+        parsedData.data.generalItemId
+      );
+    }
+
+    return NextResponse.json({
       requestId: itemRequest.id,
-      ...itemRequest 
+      ...itemRequest
     }, { status: 201 });
   } catch (error) {
     return errorResponse(error);

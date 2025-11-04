@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
+    console.log("session", session);
 
     if (!UserService.isPartner(session?.user)) {
       throw new ArgumentError("Must be PARTNER");
@@ -25,8 +26,6 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       throw new ArgumentError(result.error.message);
     }
-
-    // Request is valid
 
     const wishlist: CreateWishlistData = {
       ...result.data,
