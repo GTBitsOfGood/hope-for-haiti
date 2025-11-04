@@ -269,36 +269,41 @@ export class MatchingService {
             : null;
         const embeddingExpr = vectorToSql(vectors[idx]);
 
-        await db.$transaction(async (trx) => {
-          if (identifiers.generalItemId !== null) {
-            await trx.$executeRaw`
-              DELETE FROM "ItemEmbeddings"
-              WHERE "generalItemId" = ${identifiers.generalItemId}
-            `;
-          } else if (identifiers.wishlistId !== null) {
-            await trx.$executeRaw`
-              DELETE FROM "ItemEmbeddings"
-              WHERE "wishlistId" = ${identifiers.wishlistId}
-            `;
-          }
+        const generalItemIdPart = identifiers.generalItemId !== null
+          ? Prisma.sql`${identifiers.generalItemId}`
+          : Prisma.raw('NULL');
+        const wishlistIdPart = identifiers.wishlistId !== null
+          ? Prisma.sql`${identifiers.wishlistId}`
+          : Prisma.raw('NULL');
+        const donorOfferIdPart = donorOfferId !== null
+          ? Prisma.sql`${donorOfferId}`
+          : Prisma.raw('NULL');
 
-          const generalItemIdPart = identifiers.generalItemId !== null
-            ? Prisma.sql`${identifiers.generalItemId}`
-            : Prisma.raw('NULL');
-          const wishlistIdPart = identifiers.wishlistId !== null
-            ? Prisma.sql`${identifiers.wishlistId}`
-            : Prisma.raw('NULL');
-          const donorOfferIdPart = donorOfferId !== null
-            ? Prisma.sql`${donorOfferId}`
-            : Prisma.raw('NULL');
-
-          await trx.$executeRaw(
+        if (identifiers.generalItemId !== null) {
+          await db.$executeRaw(
             Prisma.sql`
               INSERT INTO "ItemEmbeddings" ("generalItemId", "wishlistId", "donorOfferId", "embedding", "updatedAt")
               VALUES (${generalItemIdPart}, ${wishlistIdPart}, ${donorOfferIdPart}, ${embeddingExpr}, CURRENT_TIMESTAMP)
+              ON CONFLICT ("generalItemId")
+              DO UPDATE SET
+                "embedding" = EXCLUDED."embedding",
+                "donorOfferId" = EXCLUDED."donorOfferId",
+                "updatedAt" = CURRENT_TIMESTAMP
             `
           );
-        });
+        } else if (identifiers.wishlistId !== null) {
+          await db.$executeRaw(
+            Prisma.sql`
+              INSERT INTO "ItemEmbeddings" ("generalItemId", "wishlistId", "donorOfferId", "embedding", "updatedAt")
+              VALUES (${generalItemIdPart}, ${wishlistIdPart}, ${donorOfferIdPart}, ${embeddingExpr}, CURRENT_TIMESTAMP)
+              ON CONFLICT ("wishlistId")
+              DO UPDATE SET
+                "embedding" = EXCLUDED."embedding",
+                "donorOfferId" = EXCLUDED."donorOfferId",
+                "updatedAt" = CURRENT_TIMESTAMP
+            `
+          );
+        }
       })
     );
   }
