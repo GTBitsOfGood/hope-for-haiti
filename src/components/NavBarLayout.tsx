@@ -55,6 +55,7 @@ function NavLinks() {
   return (
     <>
       <NavLink href="/" label="Home" icon={<House size={22} />} />
+      <NavLink href="/support" label="Support" icon={<HandHeart size={22} />} />
       {isStaff && (
         <NavLink
           href="/accountManagement"
