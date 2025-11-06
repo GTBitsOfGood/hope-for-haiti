@@ -10,6 +10,7 @@ import {
   X,
   UserList,
   ClipboardText,
+  Chat,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -55,7 +56,7 @@ function NavLinks() {
   return (
     <>
       <NavLink href="/" label="Home" icon={<House size={22} />} />
-      <NavLink href="/support" label="Support" icon={<HandHeart size={22} />} />
+      <NavLink href="/support" label="Support" icon={<Chat size={22} />} />
       {isStaff && (
         <NavLink
           href="/accountManagement"
