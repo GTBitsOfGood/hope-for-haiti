@@ -115,7 +115,8 @@ model User {
   invite                 UserInvite?
   notifications          Notification[]
 
-  streamUserToken String @unique
+  streamUserId    String? @unique
+  streamUserToken String? @unique
 }
 
 model UserInvite {

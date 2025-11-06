@@ -12,7 +12,7 @@ import {
 import { db } from "@/db";
 import type { Prisma } from "@prisma/client";
 import { MatchingService } from "@/services/matchingService";
-import { StreamChat } from "stream-chat";
+import StreamIoService from "@/services/streamIoService";
 
 const addDays = (daysFromToday: number) => {
   const base = new Date();
@@ -21,42 +21,19 @@ const addDays = (daysFromToday: number) => {
   return base;
 };
 
-const streamChatClient = StreamChat.getInstance(
-  process.env.STREAMIO_API_KEY!,
-  process.env.STREAMIO_SECRET_KEY!
-);
-
-/**
- * @returns stream chat user token
- */
-async function createStreamChatUser(
-  userId: string,
-  name: string
-): Promise<string> {
-  // Sanitize userId
-  userId = userId.toLowerCase().replace(".", "_");
-
-  await streamChatClient.upsertUser({
-    id: userId,
-    name,
-  });
-
-  const userToken = streamChatClient.createToken(userId);
-  return userToken;
-}
-
 /**
  * Creates a user with a Stream Chat user token in the DB
  */
 async function createUser(
   user: Omit<Prisma.UserCreateInput, "streamUserToken">
 ): Promise<ReturnType<typeof db.user.create>> {
-  const streamUserToken = await createStreamChatUser(user.email!, user.name!);
+  const streamUser = await StreamIoService.createUser(user);
 
   return await db.user.create({
     data: {
       ...user,
-      streamUserToken,
+      streamUserId: streamUser.userId,
+      streamUserToken: streamUser.userToken,
     },
   });
 }

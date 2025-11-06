@@ -1,7 +1,29 @@
 import { exit } from "process";
 import { db } from "@/db";
+import StreamIoService from "@/services/streamIoService";
+
+async function deleteAllStreamUsers() {
+  const users = (await db.user.findMany({
+    where: {
+      streamUserId: {
+        not: null,
+      },
+    },
+    select: {
+      streamUserId: true,
+    },
+  })) as { streamUserId: string }[];
+
+  await Promise.all(
+    users.map(async (user) => {
+      await StreamIoService.deactivateUser(user.streamUserId);
+    })
+  );
+}
 
 async function run() {
+  await deleteAllStreamUsers();
+
   await db.$transaction(async (tx) => {
     await tx.shippingStatus.deleteMany();
     await tx.donorOffer.deleteMany();
