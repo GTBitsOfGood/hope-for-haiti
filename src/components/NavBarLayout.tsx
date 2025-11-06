@@ -79,11 +79,7 @@ function NavLinks() {
       )}
       {isPartner && (
         <>
-          <NavLink
-            href="/items"
-            label="Items"
-            icon={<Cube size={22} />}
-          />
+          <NavLink href="/items" label="Items" icon={<Cube size={22} />} />
           <NavLink
             href="/requests"
             label="Requests"
@@ -191,7 +187,12 @@ export default function NavbarLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const { user } = useUser();
   const pathname = usePathname();
-  const hideNavPaths = ["/reset-password", "/createPartnerAccount", "/deactivated", "/signIn"];
+  const hideNavPaths = [
+    "/reset-password",
+    "/createPartnerAccount",
+    "/deactivated",
+    "/signIn",
+  ];
   const hideNav = hideNavPaths.some((path) => pathname.startsWith(path));
 
   return (
