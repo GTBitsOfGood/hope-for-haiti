@@ -114,6 +114,8 @@ model User {
   wishlists              Wishlist[]
   invite                 UserInvite?
   notifications          Notification[]
+
+  streamUserToken String @unique
 }
 
 model UserInvite {
