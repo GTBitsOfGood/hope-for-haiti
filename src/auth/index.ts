@@ -16,6 +16,8 @@ class InvalidCredentialsError extends CredentialsSignin {
 declare module "next-auth" {
   interface User {
     type: UserType;
+    streamUserId: string | null;
+    streamUserToken: string | null;
     enabled: boolean;
   }
 
@@ -23,6 +25,9 @@ declare module "next-auth" {
     user: {
       id: string;
       type: UserType;
+      name: string | null | undefined;
+      streamUserId: string | null;
+      streamUserToken: string | null;
       tag?: string;
       enabled: boolean;
     } & DefaultSession["user"];
@@ -34,6 +39,9 @@ declare module "next-auth/jwt" {
     id: string;
     type: UserType;
     enabled: boolean;
+    name: string | null | undefined;
+    streamUserId: string | null;
+    streamUserToken: string | null;
   }
 }
 
@@ -63,6 +71,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id.toString(),
           type: user.type,
           enabled: user.enabled,
+          name: user.name,
+          streamUserId: user.streamUserId,
+          streamUserToken: user.streamUserToken,
         };
       },
     }),
@@ -73,6 +84,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id || "";
         token.type = user.type;
         token.enabled = user.enabled;
+        token.name = user.name ?? user.email ?? `User ${user.id}`;
+        token.streamUserId = user.streamUserId;
+        token.streamUserToken = user.streamUserToken;
       }
 
       return token;
@@ -81,6 +95,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.id;
       session.user.type = token.type;
       session.user.enabled = token.enabled;
+      session.user.name = token.name;
+      session.user.streamUserId = token.streamUserId;
+      session.user.streamUserToken = token.streamUserToken;
 
       return session;
     },

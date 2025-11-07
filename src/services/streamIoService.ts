@@ -2,7 +2,7 @@ import { StreamChat } from "stream-chat";
 
 export default class StreamIoService {
   private static client: StreamChat = StreamChat.getInstance(
-    process.env.STREAMIO_API_KEY!,
+    process.env.NEXT_PUBLIC_STREAMIO_API_KEY!,
     process.env.STREAMIO_SECRET_KEY!
   );
 
