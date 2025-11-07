@@ -1,4 +1,4 @@
-import { StreamChat } from "stream-chat";
+import { ChannelData, StreamChat } from "stream-chat";
 
 export default class StreamIoService {
   private static client: StreamChat = StreamChat.getInstance(
@@ -76,5 +76,25 @@ export default class StreamIoService {
       }
       throw err;
     }
+  }
+
+  /**
+   * @param channelId channel name
+   * @param memberIds stream user IDs, not DB user IDs
+   * @param extraData extra config for the channel, including whether it's closed
+   */
+  static async createTicketChannel(
+    channelId: string,
+    memberIds: string[],
+    extraData: ChannelData & {
+      closed: boolean;
+    } = {
+      closed: false,
+    }
+  ) {
+    return StreamIoService.client.channel("ticket", channelId, {
+      members: memberIds,
+      ...extraData,
+    });
   }
 }
