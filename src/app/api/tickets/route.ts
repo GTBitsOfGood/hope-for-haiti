@@ -7,6 +7,7 @@ import {
   AuthenticationError,
   errorResponse,
 } from "@/util/errors";
+import { $Enums } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
     }
 
     const admins = await UserService.getUsers({
-      type: { type: "string", value: "ADMIN" },
+      type: { type: "enum", values: [$Enums.UserType.ADMIN] },
     });
 
     const streamUsers = admins.users
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
       streamUsers
     );
 
-    return NextResponse.json({ channel });
+    return NextResponse.json({ channelId: channel.id });
   } catch (error) {
     return errorResponse(error);
   }
