@@ -1,5 +1,6 @@
 import CreateTicketModal from "@/components/CreateTicketModal";
 import useChat from "@/hooks/useChat";
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import {
   Channel,
@@ -12,6 +13,7 @@ import {
 } from "stream-chat-react";
 
 export default function SupportScreen() {
+  const session = useSession();
   const client = useChat();
 
   const [isCreateTicketModalOpen, setIsCreateTicketModalOpen] = useState(false);
@@ -32,7 +34,13 @@ export default function SupportScreen() {
       >
         Create Ticket
       </button>
-      <ChannelList />
+      <ChannelList
+        filters={{
+          members: {
+            $in: [session.data!.user.streamUserId!],
+          },
+        }}
+      />
       <Channel>
         <Window>
           <ChannelHeader />

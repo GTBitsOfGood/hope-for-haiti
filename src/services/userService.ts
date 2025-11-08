@@ -49,6 +49,8 @@ export default class UserService {
         enabled: true,
         pending: true,
         partnerDetails: true,
+        streamUserId: true,
+        streamUserToken: true,
         invite: {
           select: {
             token: true,

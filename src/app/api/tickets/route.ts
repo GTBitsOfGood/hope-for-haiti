@@ -58,7 +58,10 @@ export async function POST(req: Request) {
     }
 
     const admins = await UserService.getUsers({
-      type: { type: "enum", values: [$Enums.UserType.ADMIN] },
+      type: {
+        type: "enum",
+        values: [$Enums.UserType.ADMIN, $Enums.UserType.SUPER_ADMIN],
+      },
     });
 
     const streamUsers = admins.users
@@ -67,6 +70,7 @@ export async function POST(req: Request) {
 
     const channel = await StreamIoService.createTicketChannel(
       ticketName,
+      session!.user.streamUserId!,
       streamUsers
     );
 

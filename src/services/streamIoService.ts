@@ -85,6 +85,7 @@ export default class StreamIoService {
    */
   static async createTicketChannel(
     channelId: string,
+    createdById: string,
     memberIds: string[],
     extraData: ChannelData & {
       closed: boolean;
@@ -92,9 +93,14 @@ export default class StreamIoService {
       closed: false,
     }
   ) {
-    return StreamIoService.client.channel("ticket", channelId, {
+    const channel = StreamIoService.client.channel("ticket", channelId, {
+      created_by_id: createdById,
       members: memberIds,
       ...extraData,
     });
+
+    await channel.create();
+
+    return channel;
   }
 }
