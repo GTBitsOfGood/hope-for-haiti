@@ -6,6 +6,7 @@ import {
   useChannelStateContext,
   useMessageComposer,
 } from "stream-chat-react";
+import TicketInput from "./TicketInput";
 
 export default function TicketMessageInput() {
   const { channel } = useChannelStateContext();
@@ -32,6 +33,7 @@ export default function TicketMessageInput() {
             }
           : undefined
       }
+      Input={TicketInput}
     />
   );
 }
