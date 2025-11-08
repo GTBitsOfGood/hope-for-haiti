@@ -56,6 +56,10 @@ export default function SupportScreen() {
             ]}
             Preview={ChannelPreview}
             showChannelSearch
+            additionalChannelSearchProps={{
+              searchForChannels: true,
+              searchForUsers: false,
+            }}
           />
           <Channel>
             <Window>
