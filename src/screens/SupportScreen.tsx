@@ -1,10 +1,7 @@
-import CreateTicketModal from "@/components/tickets/CreateTicketModal";
 import useChat from "@/hooks/useChat";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
 import {
   Channel,
-  ChannelHeader,
   ChannelList,
   Chat,
   MessageInput,
@@ -15,12 +12,11 @@ import {
 import "stream-chat-react/dist/css/v2/index.css";
 import "@/app/support/support.css";
 import ChannelPreview from "@/components/tickets/ChannelPreview";
+import TicketChannelHeader from "@/components/tickets/TicketChannelHeader";
 
 export default function SupportScreen() {
   const session = useSession();
   const client = useChat();
-
-  const [isCreateTicketModalOpen, setIsCreateTicketModalOpen] = useState(false);
 
   if (!client) {
     return <div>Loading chat...</div>;
@@ -28,16 +24,6 @@ export default function SupportScreen() {
 
   return (
     <div className="flex flex-col h-full">
-      <CreateTicketModal
-        isOpen={isCreateTicketModalOpen}
-        onClose={() => setIsCreateTicketModalOpen(false)}
-      />
-      <button
-        onClick={() => setIsCreateTicketModalOpen(true)}
-        className="m-4 p-2 bg-blue-primary text-white rounded"
-      >
-        Create Ticket
-      </button>
       <div className="flex h-full flex-grow">
         <Chat client={client}>
           <ChannelList
@@ -48,10 +34,10 @@ export default function SupportScreen() {
             }}
             sort={[
               {
-                last_message_at: -1,
+                closed: 1,
               },
               {
-                closed: -1,
+                last_message_at: -1,
               },
             ]}
             Preview={ChannelPreview}
@@ -63,7 +49,7 @@ export default function SupportScreen() {
           />
           <Channel>
             <Window>
-              <ChannelHeader />
+              <TicketChannelHeader />
               <MessageList />
               <MessageInput />
             </Window>

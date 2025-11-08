@@ -6,13 +6,9 @@ import { useApiClient } from "@/hooks/useApiClient";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-export default function CreateTicketModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+export default function CreateTicketModal() {
+  const [isOpen, setIsOpen] = useState(false);
+
   const session = useSession();
   const user = session.data?.user;
   const admin = user ? isAdmin(user.type) : false;
@@ -73,50 +69,56 @@ export default function CreateTicketModal({
     setTicketName("");
     setPartnerId(undefined);
 
-    onClose();
+    setIsOpen(false);
   }
 
   return (
-    <GeneralModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={"Create Ticket"}
-      onCancel={() => {
-        onClose();
-      }}
-      onConfirm={createTicket}
-    >
-      <form>
-        <input
-          type="text"
-          name="title"
-          placeholder="Ticket Title"
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-          value={ticketName}
-          onChange={(e) => setTicketName(e.target.value)}
-        />
-        {admin && (
-          <ConfiguredSelect
-            name="partner"
-            placeholder="Select Partner"
-            options={partners.map((partner) => ({
-              label: partner.name,
-              value: partner.id,
-            }))}
-            value={
-              partnerId
-                ? {
-                    value: partnerId,
-                    label:
-                      partners.find((partner) => partner.id === partnerId)
-                        ?.name || "",
-                  }
-                : undefined
-            }
-            onChange={(newVal) => setPartnerId(newVal?.value)}
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="p-2 bg-blue-primary text-white rounded"
+      >
+        Create Ticket
+      </button>
+      <GeneralModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={"Create Ticket"}
+        onCancel={() => setIsOpen(false)}
+        onConfirm={createTicket}
+      >
+        <form>
+          <input
+            type="text"
+            name="title"
+            placeholder="Ticket Title"
+            className="w-full p-2 border border-gray-300 rounded mb-4"
+            value={ticketName}
+            onChange={(e) => setTicketName(e.target.value)}
           />
-        )}
-      </form>
-    </GeneralModal>
+          {admin && (
+            <ConfiguredSelect
+              name="partner"
+              placeholder="Select Partner"
+              options={partners.map((partner) => ({
+                label: partner.name,
+                value: partner.id,
+              }))}
+              value={
+                partnerId
+                  ? {
+                      value: partnerId,
+                      label:
+                        partners.find((partner) => partner.id === partnerId)
+                          ?.name || "",
+                    }
+                  : undefined
+              }
+              onChange={(newVal) => setPartnerId(newVal?.value)}
+            />
+          )}
+        </form>
+      </GeneralModal>
+    </>
   );
 }
