@@ -3,7 +3,6 @@ import { ExtraChannelData } from "@/types/api/streamio.types";
 import { useSession } from "next-auth/react";
 import { ChannelPreviewUIComponentProps } from "stream-chat-react";
 import ChannelOptionsButton from "./ChannelOptionsButton";
-import Image from "next/image";
 
 export default function ChannelPreview({
   channel,
@@ -45,7 +44,7 @@ export default function ChannelPreview({
       onClick={() => setActiveChannel?.(channel)}
       className={`w-full flex p-2 ${statusColors[status]} hover:bg-blue-primary/50 transition-all duration-200`}
     >
-      <Image
+      <img
         src={data.image}
         alt={data.name ?? displayTitle}
         className="w-10 h-10 rounded-full mr-3"
