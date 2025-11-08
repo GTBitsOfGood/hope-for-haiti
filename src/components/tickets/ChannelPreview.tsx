@@ -34,8 +34,8 @@ export default function ChannelPreview({
   const statusColors: Record<typeof status, string> = {
     Unread: "bg-blue-primary/30",
     Open: "",
-    Stale: "bg-gray-primary/15",
-    Closed: "bg-gray-primary/30",
+    Stale: "bg-gray-primary/5",
+    Closed: "bg-gray-primary/15",
   };
 
   return (

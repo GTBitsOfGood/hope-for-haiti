@@ -8,11 +8,11 @@ import {
   Thread,
   Window,
 } from "stream-chat-react";
-import "stream-chat-react/dist/css/v2/index.css";
-import "@/app/support/support.css";
 import ChannelPreview from "@/components/tickets/ChannelPreview";
 import TicketChannelHeader from "@/components/tickets/TicketChannelHeader";
 import TicketMessageInput from "@/components/tickets/TicketMessageInput";
+
+import "@/app/support/support.css";
 
 export default function SupportScreen() {
   const session = useSession();

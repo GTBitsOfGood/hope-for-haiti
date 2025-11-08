@@ -31,6 +31,11 @@ export default function TicketInput() {
         containerClassName={`grow *:w-full *:rounded-full *:resize-none flex items-center ${
           isClosed && "*:bg-gray-primary/15 *:cursor-not-allowed"
         }`}
+        placeholder={
+          isClosed
+            ? "Ticket is closed. You cannot send messages."
+            : "Type your message here..."
+        }
       />
       <SendButton
         sendMessage={handleSubmit}
