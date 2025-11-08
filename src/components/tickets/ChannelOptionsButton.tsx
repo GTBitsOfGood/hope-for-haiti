@@ -35,6 +35,8 @@ export default function ChannelOptionsButton({
 
     await promise;
 
+    channel.watch(); // Refresh channel data
+
     setIsDropdownOpen(false);
   }
 
