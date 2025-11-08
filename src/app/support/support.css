@@ -25,13 +25,15 @@ body {
 
 @layer stream-overrides {
   .str-chat {
-    --str-chat__primary-color: #2774ae;
-    --str-chat__active-primary-color: #0a7b40;
-    --str-chat__surface-color: #f9f9f9;
+    --str-chat__primary-color: theme("colors.blue.primary");
+    --str-chat__active-primary-color: theme("colors.green.dark");
+    --str-chat__surface-color: theme("colors.sunken");
     --str-chat__secondary-surface-color: #fafafa;
     --str-chat__primary-surface-color: #e0f2f1;
     --str-chat__primary-surface-color-low-emphasis: #edf7f7;
     --str-chat__border-radius-circle: 6px;
-    --str-chat__avatar-background-color: #ef3340; /* Only changes the background color of the avatar component */
+    --str-chat__avatar-background-color: theme(
+      "colors.red.primary"
+    ); /* Only changes the background color of the avatar component */
   }
 }

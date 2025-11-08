@@ -94,7 +94,7 @@ export default function CreateTicketModal() {
             type="text"
             name="title"
             placeholder="Ticket Title"
-            className="w-full p-2 border border-gray-300 rounded mb-4"
+            className="w-full p-2 border border-gray-primary/20 rounded mb-4"
             value={ticketName}
             onChange={(e) => setTicketName(e.target.value)}
           />
