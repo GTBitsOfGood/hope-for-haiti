@@ -9,8 +9,11 @@ import {
   Chat,
   MessageInput,
   MessageList,
+  Thread,
   Window,
 } from "stream-chat-react";
+import "stream-chat-react/dist/css/v2/index.css";
+import "@/app/support/support.css";
 
 export default function SupportScreen() {
   const session = useSession();
@@ -23,7 +26,7 @@ export default function SupportScreen() {
   }
 
   return (
-    <Chat client={client}>
+    <div className="flex flex-col h-full">
       <CreateTicketModal
         isOpen={isCreateTicketModalOpen}
         onClose={() => setIsCreateTicketModalOpen(false)}
@@ -34,20 +37,25 @@ export default function SupportScreen() {
       >
         Create Ticket
       </button>
-      <ChannelList
-        filters={{
-          members: {
-            $in: [session.data!.user.streamUserId!],
-          },
-        }}
-      />
-      <Channel>
-        <Window>
-          <ChannelHeader />
-          <MessageList />
-          <MessageInput />
-        </Window>
-      </Channel>
-    </Chat>
+      <div className="flex h-full flex-grow">
+        <Chat client={client}>
+          <ChannelList
+            filters={{
+              members: {
+                $in: [session.data!.user.streamUserId!],
+              },
+            }}
+          />
+          <Channel>
+            <Window>
+              <ChannelHeader />
+              <MessageList />
+              <MessageInput />
+            </Window>
+            <Thread />
+          </Channel>
+        </Chat>
+      </div>
+    </div>
   );
 }
