@@ -27,7 +27,7 @@ export default function ChannelPreview({
       ? "Unread"
       : data.closed
         ? "Closed"
-          ? new Date().getTime() - lastActiveTime.getTime() > 48 * 60 * 60 * 1000
+        : new Date().getTime() - lastActiveTime.getTime() > 48 * 60 * 60 * 1000
           ? "Stale"
           : "Open";
 

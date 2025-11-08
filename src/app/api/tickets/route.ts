@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { isAdmin } from "@/lib/userUtils";
+import { isAdmin, isPartner } from "@/lib/userUtils";
 import StreamIoService from "@/services/streamIoService";
 import UserService from "@/services/userService";
 import {
@@ -48,6 +48,12 @@ export async function POST(req: Request) {
       const user = await UserService.getUserById(parsedBody.data.partnerId);
       if (!user) {
         throw new ArgumentError("No user found with the given partnerId");
+      }
+
+      if (!isPartner(user.type)) {
+        throw new ArgumentError(
+          "The specified user is not registered as a partner"
+        );
       }
 
       if (!user.streamUserId) {
