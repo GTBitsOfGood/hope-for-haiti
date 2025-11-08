@@ -16,7 +16,7 @@ async function deleteAllStreamUsers() {
 
   await Promise.all(
     users.map(async (user) => {
-      await StreamIoService.deactivateUser(user.streamUserId);
+      await StreamIoService.hardDeleteUser(user.streamUserId);
     })
   );
 }

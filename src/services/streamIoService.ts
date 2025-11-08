@@ -79,6 +79,16 @@ export default class StreamIoService {
     }
   }
 
+  /**
+   * Fully and permanently deletes a user and all their messages.
+   */
+  static async hardDeleteUser(userId: string): Promise<void> {
+    await StreamIoService.client.deleteUser(userId, {
+      hard_delete: true,
+      mark_messages_deleted: true,
+    });
+  }
+
   private static channelNameToId(name: string): string {
     return name.toLowerCase().replace(/\s+/g, "-");
   }
