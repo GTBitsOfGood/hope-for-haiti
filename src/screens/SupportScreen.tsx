@@ -4,7 +4,6 @@ import {
   Channel,
   ChannelList,
   Chat,
-  MessageInput,
   MessageList,
   Thread,
   Window,
@@ -13,6 +12,7 @@ import "stream-chat-react/dist/css/v2/index.css";
 import "@/app/support/support.css";
 import ChannelPreview from "@/components/tickets/ChannelPreview";
 import TicketChannelHeader from "@/components/tickets/TicketChannelHeader";
+import TicketMessageInput from "@/components/tickets/TicketMessageInput";
 
 export default function SupportScreen() {
   const session = useSession();
@@ -51,7 +51,7 @@ export default function SupportScreen() {
             <Window>
               <TicketChannelHeader />
               <MessageList />
-              <MessageInput />
+              <TicketMessageInput />
             </Window>
             <Thread />
           </Channel>
