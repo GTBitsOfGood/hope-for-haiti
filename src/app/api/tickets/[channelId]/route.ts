@@ -47,9 +47,10 @@ export async function PATCH(
     const channelId = parsedParams.data.channelId;
     const closed = parsedBody.data.closed;
 
-    await StreamIoService.updateChannelData(channelId, {
-      ...(closed !== undefined ? { closed } : {}),
-    });
+    await StreamIoService.updateChannelData(
+      channelId,
+      closed !== undefined ? { closed } : {}
+    );
 
     return ok();
   } catch (err) {
