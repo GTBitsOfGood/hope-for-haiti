@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { Prisma, UserType } from "@prisma/client";
-import { ArgumentError, NotFoundError, ConflictError } from "@/util/errors";
+import { ArgumentError, NotFoundError, ConflictError, AuthorizationError } from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from "uuid";
@@ -8,11 +8,13 @@ import { EmailClient } from "@/email";
 import {
   CreateUserFromInviteData,
   CreateUserInviteData,
+  PermissionFlags,
   UpdateUserData,
 } from "@/types/api/user.types";
 import { validatePassword } from "@/util/util";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import { User } from "next-auth";
 
 function parsePartnerDetails(raw?: string) {
   if (!raw) return undefined;
@@ -444,26 +446,9 @@ export default class UserService {
     });
   }
 
-  static isAdmin(userType: UserType): boolean {
-    return userType === UserType.ADMIN || userType === UserType.SUPER_ADMIN;
-  }
-
-  static isStaff(userType: UserType): boolean {
-    return (
-      userType === UserType.STAFF ||
-      userType === UserType.ADMIN ||
-      userType === UserType.SUPER_ADMIN
-    );
-  }
-
-  static isSuperAdmin(userType: UserType): boolean {
-    return userType === UserType.SUPER_ADMIN;
-  }
-
-  /**
-   * @returns false if user is undefined or not a partner, true if user is a partner
-   */
-  static isPartner(user: { type: UserType } | undefined) {
-    return user && user.type === UserType.PARTNER;
+  static checkPermission(user: User, permission: keyof PermissionFlags) {
+    if (!user.isSuper && !user[permission]) {
+      throw new AuthorizationError(`Must have ${permission} permission to access this route`)
+    }
   }
 }

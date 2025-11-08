@@ -24,9 +24,7 @@ export async function GET(request: NextRequest) {
     }
   
     const { user } = session;
-    if (!UserService.isStaff(user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(user, "userRead");
 
     const parsed = tableParamsSchema.safeParse({
       filters: request.nextUrl.searchParams.get("filters"),

@@ -8,15 +8,17 @@ import { INVALID_CREDENTIALS_ERR } from "./errors";
 import { UserType } from "@prisma/client";
 import { db } from "@/db";
 import { verify } from "argon2";
+import { PERMISSION_FIELDS, PermissionFlags } from "@/types/api/user.types";
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = INVALID_CREDENTIALS_ERR;
 }
 
 declare module "next-auth" {
-  interface User {
+  interface User extends PermissionFlags {
     type: UserType;
     enabled: boolean;
+    tag?: string;
   }
 
   interface Session {
@@ -25,15 +27,17 @@ declare module "next-auth" {
       type: UserType;
       tag?: string;
       enabled: boolean;
-    } & DefaultSession["user"];
+    } & DefaultSession["user"] &
+      PermissionFlags;
   }
 }
 
 declare module "next-auth/jwt" {
-  interface JWT {
+  interface JWT extends PermissionFlags {
     id: string;
     type: UserType;
     enabled: boolean;
+    tag?: string;
   }
 }
 
@@ -59,10 +63,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
         if (!passwordsMatch) throw new InvalidCredentialsError();
 
+        const permissions = PERMISSION_FIELDS.reduce((acc, field) => {
+          acc[field] = user[field];
+          return acc;
+        }, {} as PermissionFlags);
+
         return {
           id: user.id.toString(),
           type: user.type,
           enabled: user.enabled,
+          tag: user.tag ?? undefined,
+          ...permissions,
         };
       },
     }),
@@ -73,6 +84,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id || "";
         token.type = user.type;
         token.enabled = user.enabled;
+        token.tag = user.tag;
+        PERMISSION_FIELDS.forEach((field) => {
+          token[field] = user[field];
+        });
       }
 
       return token;
@@ -81,6 +96,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.id;
       session.user.type = token.type;
       session.user.enabled = token.enabled;
+      session.user.tag = token.tag;
+      PERMISSION_FIELDS.forEach((field) => {
+        session.user[field] = token[field];
+      });
 
       return session;
     },

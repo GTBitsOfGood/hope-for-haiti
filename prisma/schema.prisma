@@ -18,8 +18,6 @@ enum RequestPriority {
 }
 
 enum UserType {
-  SUPER_ADMIN
-  ADMIN
   STAFF
   PARTNER
 }
@@ -105,6 +103,26 @@ model User {
   tag          String?
   enabled      Boolean  @default(true)
   pending      Boolean  @default(true)
+  
+  isSuper            Boolean @default(false)
+  userRead           Boolean @default(false)
+  userWrite          Boolean @default(false)
+  itemNotify         Boolean @default(false)
+  offerWrite         Boolean @default(false)
+  requestRead        Boolean @default(false)
+  requestWrite       Boolean @default(false)
+  allocationRead     Boolean @default(false)
+  allocationWrite    Boolean @default(false)
+  archivedRead       Boolean @default(false)
+  distributionRead   Boolean @default(false)
+  distributionWrite  Boolean @default(false)
+  shipmentRead       Boolean @default(false)
+  shipmentWrite      Boolean @default(false)
+  signoffWrite       Boolean @default(false)
+  wishlistRead       Boolean @default(false)
+  supportRead        Boolean @default(false)
+  supportWrite       Boolean @default(false)
+  supportNotify      Boolean @default(false)
 
   donorOfferVisibilities DonorOffer[]
   partnerDetails         Json?
