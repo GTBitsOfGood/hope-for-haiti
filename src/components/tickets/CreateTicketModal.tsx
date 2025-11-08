@@ -5,6 +5,7 @@ import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Pencil } from "@phosphor-icons/react";
 
 export default function CreateTicketModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -76,9 +77,10 @@ export default function CreateTicketModal() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2 bg-blue-primary text-white rounded"
+        className="p-2 bg-blue-primary text-white rounded flex items-center gap-2 justify-center"
       >
-        Create Ticket
+        <Pencil size={16} />
+        <p>Create Ticket</p>
       </button>
       <GeneralModal
         isOpen={isOpen}
