@@ -33,9 +33,11 @@ export async function POST(req: Request) {
 
     const ticketName = parsedBody.data.ticketName;
     let partnerStreamUserId: string | null = null;
+    let partnerName: string | null = null;
 
     if (!isAdmin(session.user.type)) {
       partnerStreamUserId = session.user.streamUserId;
+      partnerName = session.user.name!;
     } else {
       if (!parsedBody.data.partnerId) {
         throw new ArgumentError(
@@ -55,7 +57,12 @@ export async function POST(req: Request) {
       }
 
       partnerStreamUserId = user.streamUserId;
+      partnerName = user.name;
     }
+
+    const channelImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      partnerName
+    )}&background=random&size=128`;
 
     const admins = await UserService.getUsers({
       type: {
@@ -70,6 +77,7 @@ export async function POST(req: Request) {
 
     const channel = await StreamIoService.createTicketChannel(
       ticketName,
+      channelImage,
       session!.user.streamUserId!,
       streamUsers
     );

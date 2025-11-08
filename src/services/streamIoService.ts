@@ -78,13 +78,17 @@ export default class StreamIoService {
     }
   }
 
+  private static channelNameToId(name: string): string {
+    return name.toLowerCase().replace(/\s+/g, "-");
+  }
+
   /**
-   * @param channelId channel name
    * @param memberIds stream user IDs, not DB user IDs
    * @param extraData extra config for the channel, including whether it's closed
    */
   static async createTicketChannel(
-    channelId: string,
+    channelName: string,
+    channelImage: string,
     createdById: string,
     memberIds: string[],
     extraData: ChannelData & {
@@ -93,10 +97,15 @@ export default class StreamIoService {
       closed: false,
     }
   ) {
+    const channelId = this.channelNameToId(channelName);
     const channel = StreamIoService.client.channel("ticket", channelId, {
       created_by_id: createdById,
       members: memberIds,
-      ...extraData,
+      ...{
+        name: channelName, // For some reason, TS has problems putting name outside this object
+        image: channelImage,
+        ...extraData,
+      },
     });
 
     await channel.create();

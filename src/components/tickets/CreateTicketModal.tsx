@@ -1,7 +1,7 @@
 import { useSession } from "next-auth/react";
-import GeneralModal from "./AccountManagement/GeneralModal";
+import GeneralModal from "@/components/AccountManagement/GeneralModal";
 import { isAdmin } from "@/lib/userUtils";
-import ConfiguredSelect from "./ConfiguredSelect";
+import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";

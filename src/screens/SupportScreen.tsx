@@ -1,4 +1,4 @@
-import CreateTicketModal from "@/components/CreateTicketModal";
+import CreateTicketModal from "@/components/tickets/CreateTicketModal";
 import useChat from "@/hooks/useChat";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
@@ -14,6 +14,7 @@ import {
 } from "stream-chat-react";
 import "stream-chat-react/dist/css/v2/index.css";
 import "@/app/support/support.css";
+import ChannelPreview from "@/components/tickets/ChannelPreview";
 
 export default function SupportScreen() {
   const session = useSession();
@@ -45,6 +46,16 @@ export default function SupportScreen() {
                 $in: [session.data!.user.streamUserId!],
               },
             }}
+            sort={[
+              {
+                last_message_at: -1,
+              },
+              {
+                closed: -1,
+              },
+            ]}
+            Preview={ChannelPreview}
+            showChannelSearch
           />
           <Channel>
             <Window>
