@@ -78,6 +78,7 @@ export async function POST(req: Request) {
     const channel = await StreamIoService.createTicketChannel(
       ticketName,
       channelImage,
+      partnerName!,
       session!.user.streamUserId!,
       streamUsers
     );

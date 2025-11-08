@@ -1,4 +1,5 @@
-import { ChannelData, StreamChat } from "stream-chat";
+import { ExtraChannelData } from "@/types/api/streamio.types";
+import { ChannelData, PartialUpdateChannel, StreamChat } from "stream-chat";
 
 export default class StreamIoService {
   private static client: StreamChat = StreamChat.getInstance(
@@ -89,6 +90,7 @@ export default class StreamIoService {
   static async createTicketChannel(
     channelName: string,
     channelImage: string,
+    partnerName: string,
     createdById: string,
     memberIds: string[],
     extraData: ChannelData & {
@@ -104,6 +106,7 @@ export default class StreamIoService {
       ...{
         name: channelName, // For some reason, TS has problems putting name outside this object
         image: channelImage,
+        partnerName,
         ...extraData,
       },
     });
@@ -111,5 +114,16 @@ export default class StreamIoService {
     await channel.create();
 
     return channel;
+  }
+
+  static async updateChannelData(
+    channelId: string,
+    data: PartialUpdateChannel["set"] & Partial<ExtraChannelData>
+  ) {
+    const channel = StreamIoService.client.channel("ticket", channelId);
+
+    await channel.updatePartial({
+      set: data,
+    });
   }
 }
