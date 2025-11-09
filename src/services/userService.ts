@@ -503,7 +503,7 @@ export default class UserService {
   }
 
   static checkAnyPermission(user: User, permissions: PermissionName[]) {
-    permissions.some(permission => UserService.hasPermission(user, permission));
+    return permissions.some(permission => UserService.hasPermission(user, permission));
   }
 
   static checkPermission(user: User, permission: PermissionName) {
