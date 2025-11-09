@@ -6,7 +6,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   InternalError,
   errorResponse,
 } from "@/util/errors";
@@ -21,11 +20,7 @@ export async function POST(req: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError(
-        "You are not allowed to create donor offers"
-      );
-    }
+    UserService.checkPermission(session.user, "offerWrite");
     const params = req.nextUrl.searchParams;
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -124,14 +119,17 @@ export async function GET(request: NextRequest) {
         page ?? undefined,
         pageSize ?? undefined
       );
-    } else if (UserService.isStaff(session.user.type)) {
+    } else {
+      UserService.checkAnyPermission(session.user, [
+        "requestRead",
+        "allocationRead",
+        "archivedRead",
+      ]);
       result = await DonorOfferService.getAdminDonorOffers(
         filters ?? undefined,
         page ?? undefined,
         pageSize ?? undefined
       );
-    } else {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
     }
 
     return NextResponse.json(result);

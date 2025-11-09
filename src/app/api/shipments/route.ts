@@ -5,7 +5,6 @@ import UserService from "@/services/userService";
 import {
   AuthenticationError,
   ArgumentError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -29,7 +28,7 @@ export async function GET(request: Request) {
       throw new AuthenticationError("Session required");
     }
 
-    const user = session.user;
+    UserService.checkPermission(session.user, "shipmentRead");
 
     const url = new URL(request.url);
     const parsed = tableParamsSchema.safeParse({
@@ -45,10 +44,6 @@ export async function GET(request: Request) {
     const page = parsed.data.page ?? undefined;
     const pageSize = parsed.data.pageSize ?? undefined;
     const filters = parsed.data.filters ?? undefined;
-
-    if (!UserService.isAdmin(user.type)) {
-      throw new AuthorizationError("You are not allowed to view this");
-    }
 
     const result = await ShippingStatusService.getShipments(
       page,
@@ -68,11 +63,7 @@ export async function PATCH(request: Request) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError(
-        "Must be an admin to update shipping statuses"
-      );
-    }
+    UserService.checkPermission(session.user, "shipmentWrite");
 
     const params = new URL(request.url).searchParams;
     const paramsResolved = {

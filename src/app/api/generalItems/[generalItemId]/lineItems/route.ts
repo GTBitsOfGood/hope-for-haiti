@@ -1,11 +1,10 @@
 import { auth } from "@/auth";
-import { isAdmin } from "@/lib/userUtils";
 import { lineItemFormSchema } from "@/schema/itemForm";
 import { LineItemService } from "@/services/lineItemService";
+import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
@@ -23,9 +22,7 @@ export async function GET(
       throw new AuthenticationError("Session required");
     }
 
-    if (!isAdmin(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to view items");
-    }
+    UserService.checkPermission(session.user, "allocationRead");
 
     const { generalItemId } = await params;
     const parsedParams = tableParamsSchema.safeParse({
@@ -64,9 +61,7 @@ export async function POST(
       throw new AuthenticationError("Session required");
     }
 
-    if (!isAdmin(session.user.type)) {
-      throw new AuthenticationError("You are not allowed to create items");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const { generalItemId } = await params;
     const form = await request.formData();

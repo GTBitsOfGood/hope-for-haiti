@@ -20,10 +20,9 @@ export const handler = schedule("@daily", async () => {
 
     const staffUsers = await db.user.findMany({
       where: {
-        type: {
-          in: [UserType.SUPER_ADMIN, UserType.ADMIN, UserType.STAFF],
-        },
+        type: UserType.STAFF,
         enabled: true,
+        OR: [{ itemNotify: true }],
       },
       select: {
         email: true,

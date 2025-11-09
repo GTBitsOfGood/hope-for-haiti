@@ -8,7 +8,13 @@ import { INVALID_CREDENTIALS_ERR } from "./errors";
 import { UserType } from "@prisma/client";
 import { db } from "@/db";
 import { verify } from "argon2";
-import { PERMISSION_FIELDS, PermissionFlags } from "@/types/api/user.types";
+import { PERMISSION_FIELDS, PermissionField, PermissionFlags } from "@/types/api/user.types";
+
+const permissionSelect: Record<PermissionField, true> =
+  PERMISSION_FIELDS.reduce((acc, field) => {
+    acc[field] = true;
+    return acc;
+  }, {} as Record<PermissionField, true>);
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = INVALID_CREDENTIALS_ERR;
@@ -54,6 +60,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: {
             email: credentials.email as string,
           },
+          select: {
+            id: true,
+            passwordHash: true,
+            type: true,
+            enabled: true,
+            tag: true,
+            ...permissionSelect,
+          },
         });
         if (!user) throw new InvalidCredentialsError();
 
@@ -63,17 +77,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
         if (!passwordsMatch) throw new InvalidCredentialsError();
 
-        const permissions = PERMISSION_FIELDS.reduce((acc, field) => {
-          acc[field] = user[field];
-          return acc;
-        }, {} as PermissionFlags);
-
         return {
+          ...user,
           id: user.id.toString(),
           type: user.type,
           enabled: user.enabled,
           tag: user.tag ?? undefined,
-          ...permissions,
         };
       },
     }),
@@ -86,7 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.enabled = user.enabled;
         token.tag = user.tag;
         PERMISSION_FIELDS.forEach((field) => {
-          token[field] = user[field];
+          token[field] = Boolean(token[field]);
         });
       }
 
@@ -98,7 +107,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.enabled = token.enabled;
       session.user.tag = token.tag;
       PERMISSION_FIELDS.forEach((field) => {
-        session.user[field] = token[field];
+        session.user[field] = Boolean(token[field]);
       });
 
       return session;

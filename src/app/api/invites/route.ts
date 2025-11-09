@@ -8,7 +8,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -35,9 +34,7 @@ export async function POST(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isSuperAdmin(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to create an invite");
-    }
+    UserService.checkPermission(session.user, "userWrite");
 
     const formData = await request.formData();
     const parseResult = schema.safeParse(formData);

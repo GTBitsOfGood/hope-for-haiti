@@ -44,4 +44,5 @@ export const PERMISSION_FIELDS = [
   "supportNotify",
 ] as const;
 
-export type PermissionFlags = Record<typeof PERMISSION_FIELDS[number], boolean>;
+export type PermissionField = typeof PERMISSION_FIELDS[number];
+export type PermissionFlags = Record<PermissionField, boolean>;

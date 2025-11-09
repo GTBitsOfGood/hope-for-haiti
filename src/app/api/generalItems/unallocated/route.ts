@@ -1,10 +1,9 @@
 import { auth } from "@/auth";
-import { isAdmin } from "@/lib/userUtils";
 import { GeneralItemService } from "@/services/generalItemService";
+import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
@@ -17,11 +16,7 @@ export async function GET(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!isAdmin(session.user.type)) {
-      throw new AuthorizationError(
-        "You are not allowed to view unallocated items"
-      );
-    }
+    UserService.checkPermission(session.user, "allocationRead");
 
     const parsedParams = tableParamsSchema.safeParse({
       filters: request.nextUrl.searchParams.get("filters"),

@@ -9,7 +9,6 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import UserService from "@/services/userService";
-import { isPartner } from "@/lib/userUtils";
 
 const paramSchema = z.object({
   signOffId: z.string().transform((val) => {
@@ -52,12 +51,12 @@ export async function GET(
 
     const signOff = await SignOffService.getSignOffById(parsed.data.signOffId);
 
-    if (isPartner(session.user.type)) {
+    if (UserService.isPartner(session.user)) {
       if (signOff?.partnerId !== parseInt(session.user.id!)) {
         throw new AuthorizationError("Access denied to this sign-off");
       }
-    } else if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
+    } else {
+      UserService.checkPermission(session.user, "shipmentRead");
     }
 
     return NextResponse.json(signOff, { status: 200 });
@@ -76,9 +75,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "signoffWrite");
 
     const resolvedParams = await params;
     const paramsParsed = paramSchema.safeParse(resolvedParams);
@@ -138,9 +135,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "signoffWrite");
 
     const resolvedParams = await params;
     const parsed = paramSchema.safeParse(resolvedParams);

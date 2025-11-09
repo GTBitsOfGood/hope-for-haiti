@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import {
   AuthenticationError,
-  AuthorizationError,
   ArgumentError,
   errorResponse,
   ok,

@@ -4,7 +4,6 @@ import { z } from "zod";
 import {
   errorResponse,
   AuthenticationError,
-  AuthorizationError,
   ArgumentError,
 } from "@/util/errors";
 import UserService from "@/services/userService";
@@ -26,9 +25,7 @@ export async function PATCH(req: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "requestWrite");
 
     const json = await req.json().catch(() => ({}));
     const parsed = bulkUpdateSchema.safeParse(json);
@@ -49,4 +46,3 @@ export async function PATCH(req: NextRequest) {
     return errorResponse(error);
   }
 }
-

@@ -42,10 +42,8 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
-    if (!UserService.isAdmin(session.user.type) && session.user.id !== userId) {
-      throw new AuthorizationError(
-        "Must be ADMIN, STAFF, SUPER_ADMIN or own profile"
-      );
+    if (session.user.id !== userId) {
+      UserService.checkPermission(session.user, "userRead");
     }
 
     const user = await UserService.getUserById(parsed.data.userId);
@@ -66,9 +64,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "userWrite");
 
     const { userId } = await params;
     const parsed = paramSchema.safeParse({ userId });
@@ -98,23 +94,10 @@ export async function PATCH(
         throw new ArgumentError("Cannot change role of a partner");
       }
       if (
-        UserService.isStaff(currentUser.type) &&
+        currentUser.type === UserType.STAFF &&
         requestedRole === UserType.PARTNER
       ) {
         throw new ArgumentError("Cannot change staff to partner");
-      }
-
-      if (
-        requestedRole === UserType.SUPER_ADMIN &&
-        session.user.type !== UserType.SUPER_ADMIN
-      ) {
-        throw new AuthorizationError(
-          "Only Super Admins can assign Super Admin role"
-        );
-      }
-
-      if (session.user.type === UserType.STAFF) {
-        throw new AuthorizationError("Staff users cannot modify roles");
       }
     }
 

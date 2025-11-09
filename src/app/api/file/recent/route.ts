@@ -5,7 +5,6 @@ import FileService from "@/services/fileService";
 import UserService from "@/services/userService";
 import {
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 
@@ -16,9 +15,7 @@ export async function GET() {
       throw new AuthenticationError("Session required");
     }
     
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to view this");
-    }
+    UserService.checkPermission(session.user, "requestRead");
 
     const result = await FileService.getMostRecentFile();
     

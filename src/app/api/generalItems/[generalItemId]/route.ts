@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { GeneralItemService } from "@/services/generalItemService";
 import UserService from "@/services/userService";
 import {
-  AuthorizationError,
   AuthenticationError,
   errorResponse,
   ok,
@@ -31,9 +30,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to modify items");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const { generalItemId } = await params;
 
@@ -82,9 +79,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to delete items");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const { generalItemId } = await params;
 

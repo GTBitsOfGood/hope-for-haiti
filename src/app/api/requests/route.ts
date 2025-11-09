@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { isPartner } from "@/lib/userUtils";
+import UserService from "@/services/userService";
 import { GeneralItemRequestService } from "@/services/generalItemRequestService";
 import {
   ArgumentError,
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!isPartner(session.user.type)) {
+    if (!UserService.isPartner(session.user)) {
       throw new AuthorizationError("Partner access required");
     }
 

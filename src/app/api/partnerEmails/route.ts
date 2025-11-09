@@ -12,9 +12,7 @@ export async function GET(): Promise<NextResponse> {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isSuperAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "userRead");
 
     const partnerEmails = await PartnerService.getPartnerEmails();
 

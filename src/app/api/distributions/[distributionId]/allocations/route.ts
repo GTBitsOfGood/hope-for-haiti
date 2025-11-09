@@ -5,7 +5,6 @@ import UserService from "@/services/userService";
 import { allocationSchema } from "@/types/api/allocation.types";
 import {
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -26,9 +25,7 @@ export async function POST(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "allocationWrite");
 
     const form = await request.formData();
     const formObj = {
@@ -78,9 +75,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "allocationWrite");
 
     const body = await request.json();
     const parsed = deleteSchema.safeParse(body);

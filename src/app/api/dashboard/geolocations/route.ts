@@ -1,9 +1,7 @@
 import { auth } from "@/auth";
-import { isAdmin } from "@/lib/userUtils";
 import UserService from "@/services/userService";
 import {
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 import { NextResponse } from "next/server";
@@ -16,9 +14,7 @@ export async function GET() {
       throw new AuthenticationError("User not authenticated");
     }
 
-    if (!isAdmin(session.user.type)) {
-      throw new AuthorizationError("User must be an admin");
-    }
+    UserService.checkStaff(session.user);
 
     const data = await UserService.getPartnerLocations();
 

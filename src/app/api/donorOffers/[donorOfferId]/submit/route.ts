@@ -8,7 +8,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   NotFoundError,
   errorResponse,
   ok,
@@ -31,9 +30,7 @@ export async function POST(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to submit donor offers");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const { donorOfferId: rawId } = await params;
     const parsedParams = paramSchema.safeParse({ donorOfferId: rawId });

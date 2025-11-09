@@ -15,9 +15,11 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    console.log("session", session);
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
 
-    if (!UserService.isPartner(session?.user)) {
+    if (!UserService.isPartner(session.user)) {
       throw new ArgumentError("Must be PARTNER");
     }
 
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const wishlist: CreateWishlistData = {
       ...result.data,
-      partnerId: Number(session!.user.id),
+      partnerId: Number(session.user.id),
       priority: result.data.priority as $Enums.RequestPriority,
     };
 
@@ -76,9 +78,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthenticationError("Must be staff");
-    }
+    UserService.checkPermission(session.user, "wishlistRead");
 
     const stats = await WishlistService.getWishlistsStatsByPartner();
     return NextResponse.json(stats, {

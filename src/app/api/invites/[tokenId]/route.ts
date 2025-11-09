@@ -5,7 +5,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -51,9 +50,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "userWrite");
 
     const { tokenId } = await params;
     
@@ -69,4 +66,3 @@ export async function DELETE(
     return errorResponse(error);
   }
 }
-
