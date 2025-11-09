@@ -1,6 +1,11 @@
 import { db } from "@/db";
 import { Prisma, UserType } from "@prisma/client";
-import { ArgumentError, NotFoundError, ConflictError, AuthorizationError } from "@/util/errors";
+import {
+  ArgumentError,
+  NotFoundError,
+  ConflictError,
+  AuthorizationError,
+} from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from "uuid";
@@ -8,7 +13,7 @@ import { EmailClient } from "@/email";
 import {
   CreateUserFromInviteData,
   CreateUserInviteData,
-  PermissionFlags,
+  PermissionField,
   UpdateUserData,
 } from "@/types/api/user.types";
 import { validatePassword } from "@/util/util";
@@ -446,9 +451,30 @@ export default class UserService {
     });
   }
 
-  static checkPermission(user: User, permission: keyof PermissionFlags) {
-    if (!user.isSuper && !user[permission]) {
-      throw new AuthorizationError(`Must have ${permission} permission to access this route`)
+  static isStaff(user: User) {
+    return user.type === UserType.STAFF;
+  }
+  
+  static checkStaff(user: User) {
+    if (!UserService.isStaff(user)) {
+      throw new AuthorizationError("Must be STAFF to access this route");
+    }
+  }
+
+  static isPartner(user: User) {
+    return user.type === UserType.PARTNER;
+  }
+
+  static hasPermission(user: User, permission: PermissionField) {
+    if (!user) return false;
+    return user.isSuper || user[permission];
+  }
+
+  static checkPermission(user: User, permission: PermissionField) {
+    if (!UserService.hasPermission(user, permission)) {
+      throw new AuthorizationError(
+        `Must have ${permission} permission to access this route`
+      );
     }
   }
 }
