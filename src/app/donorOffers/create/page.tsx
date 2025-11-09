@@ -18,6 +18,7 @@ import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useApiClient } from "@/hooks/useApiClient";
+import { hasPermission } from "@/lib/userUtils";
 
 export default function CreateDonorOfferPage() {
   const { data: session } = useSession();
@@ -84,6 +85,10 @@ export default function CreateDonorOfferPage() {
   const { isLoading: isSubmitting, apiClient } = useApiClient();
 
   if (session?.user?.type === "PARTNER") {
+    redirect("/donorOffers");
+  }
+
+  if (session?.user && !hasPermission(session.user, "offerWrite")) {
     redirect("/donorOffers");
   }
 

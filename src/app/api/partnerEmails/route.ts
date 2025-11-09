@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { errorResponse } from "@/util/errors";
 import { PartnerService } from "@/services/partnerService";
-import { AuthenticationError, AuthorizationError } from "@/util/errors";
+import { AuthenticationError } from "@/util/errors";
 import { NextResponse } from "next/server";
 import UserService from "@/services/userService";
 

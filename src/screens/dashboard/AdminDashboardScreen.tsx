@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@/components/context/UserContext";
-import { isAdmin } from "@/lib/userUtils";
+import { isStaff } from "@/lib/userUtils";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import AnalyticsSection from "@/components/dashboard/AnalyticsSection";
 import MapSection from "@/components/dashboard/MapSection";
@@ -27,7 +27,7 @@ export default function AdminDashboardScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (userLoading || !user || !isAdmin(user.type)) {
+    if (userLoading || !user || !isStaff(user.type)) {
       return;
     }
 
@@ -66,7 +66,7 @@ export default function AdminDashboardScreen() {
     );
   }
 
-  if (!user || !isAdmin(user.type)) {
+  if (!user || !isStaff(user.type)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>You do not have access to this page.</p>

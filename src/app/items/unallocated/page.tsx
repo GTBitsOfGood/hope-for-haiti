@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import AdminUnallocatedItemsScreen from "@/screens/AdminUnallocatedItemsScreen";
-import { isStaff, isPartner } from "@/lib/userUtils";
+import { hasPermission, isPartner } from "@/lib/userUtils";
 
 export default function UnallocatedItemsPage() {
   const { data: session } = useSession();
@@ -17,9 +17,9 @@ export default function UnallocatedItemsPage() {
     redirect("/");
   }
 
-  if (isStaff(session.user.type)) {
+  if (hasPermission(session.user, "allocationRead")) {
     return <AdminUnallocatedItemsScreen />;
   }
 
-  redirect("/signIn");
+  redirect("/");
 }

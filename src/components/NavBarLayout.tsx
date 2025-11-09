@@ -15,6 +15,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "./context/UserContext";
 import { useEffect, useState } from "react";
+import { hasAnyPermission, hasPermission, isPartner } from "@/lib/userUtils";
 
 function NavLink({
   href,
@@ -46,37 +47,47 @@ function NavLink({
 
 function NavLinks() {
   const { user } = useUser();
-  const isPartner = user?.type === "PARTNER";
-  const isStaff =
-    user?.type === "STAFF" ||
-    user?.type === "ADMIN" ||
-    user?.type === "SUPER_ADMIN";
+  const isPartnerUser = isPartner(user?.type);
+  const canViewAccounts = hasPermission(user, "userRead");
+  const canViewUnallocated = hasPermission(user, "allocationRead");
+  const canViewDonorOffers = hasAnyPermission(user, [
+    "requestRead",
+    "requestWrite",
+    "allocationRead",
+    "archivedRead",
+    "offerWrite",
+  ]);
+  const canViewWishlists = isPartnerUser || hasPermission(user, "wishlistRead");
+  const canViewDistributions = hasAnyPermission(user, [
+    "distributionRead",
+    "shipmentRead",
+  ]);
 
   return (
     <>
       <NavLink href="/" label="Home" icon={<House size={22} />} />
-      {isStaff && (
+      {canViewAccounts && (
         <NavLink
           href="/accountManagement"
           label="Account Management"
           icon={<UserList size={22} />}
         />
       )}
-      {isStaff && (
+      {canViewUnallocated && (
         <NavLink
           href="/unallocatedItems"
           label="Unallocated Items"
           icon={<Cube size={22} />}
         />
       )}
-      {isStaff && (
+      {canViewDonorOffers && (
         <NavLink
           href="/donorOffers"
           label="Donor Offers"
           icon={<HandHeart size={22} />}
         />
       )}
-      {isPartner && (
+      {isPartnerUser && (
         <>
           <NavLink
             href="/items"
@@ -90,12 +101,14 @@ function NavLinks() {
           />
         </>
       )}
-      <NavLink
-        href="/wishlists"
-        label="Wishlists"
-        icon={<ClipboardText size={22} />}
-      />
-      {isStaff && (
+      {canViewWishlists && (
+        <NavLink
+          href="/wishlists"
+          label="Wishlists"
+          icon={<ClipboardText size={22} />}
+        />
+      )}
+      {canViewDistributions && (
         <NavLink
           href="/distributions"
           label="Distributions"
@@ -114,10 +127,7 @@ function NavLinks() {
 
 function DesktopNavbar() {
   const { user } = useUser();
-  const isStaff =
-    user?.type === "STAFF" ||
-    user?.type === "ADMIN" ||
-    user?.type === "SUPER_ADMIN";
+  const isPartnerUser = isPartner(user?.type);
 
   return (
     <nav
@@ -128,7 +138,7 @@ function DesktopNavbar() {
       <img src="/logo.svg" alt="Hope for Haiti Logo" className="mt-6 mb-2" />
 
       <h1 className="mt-2 font-bold hidden md:block">
-        {isStaff ? "Admin Portal" : "Partner Portal"}
+        {isPartnerUser ? "Partner Portal" : "Staff Portal"}
       </h1>
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
@@ -141,6 +151,8 @@ function DesktopNavbar() {
 }
 
 function MobileNavbar() {
+  const { user } = useUser();
+  const isPartnerUser = isPartner(user?.type);
   const path = usePathname();
 
   const [open, setOpen] = useState(false);
@@ -158,7 +170,7 @@ function MobileNavbar() {
         className={`w-full h-full flex flex-col items-start transition-all ${open ? "opacity-100" : "opacity-0"}`}
       >
         <h1 className="m-1.5 mb-1 font-semibold whitespace-nowrap">
-          Partner Portal
+          {isPartnerUser ? "Partner Portal" : "Staff Portal"}
         </h1>
 
         <hr className="mt-4 mb-3 h-0.5 bg-blue-dark border-t-0 w-full" />

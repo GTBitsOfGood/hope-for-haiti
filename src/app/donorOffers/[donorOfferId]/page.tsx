@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { isStaff, isPartner } from "@/lib/userUtils";
+import { hasAnyPermission, isPartner } from "@/lib/userUtils";
 import AdminDynamicDonorOfferScreen from "@/screens/DonorOffersScreens/AdminDynamicDonorOfferScreen";
 
 export default function DonorOfferDetailsPage() {
@@ -17,9 +17,17 @@ export default function DonorOfferDetailsPage() {
     redirect("/");
   }
 
-  if (isStaff(session.user.type)) {
+  if (
+    hasAnyPermission(session.user, [
+      "requestRead",
+      "requestWrite",
+      "allocationRead",
+      "archivedRead",
+      "offerWrite",
+    ])
+  ) {
     return <AdminDynamicDonorOfferScreen />;
   }
 
-  redirect("/signIn");
+  redirect("/");
 }

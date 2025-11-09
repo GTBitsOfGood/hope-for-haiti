@@ -8,13 +8,7 @@ import { INVALID_CREDENTIALS_ERR } from "./errors";
 import { UserType } from "@prisma/client";
 import { db } from "@/db";
 import { verify } from "argon2";
-import { PERMISSION_FIELDS, PermissionField, PermissionFlags } from "@/types/api/user.types";
-
-const permissionSelect: Record<PermissionField, true> =
-  PERMISSION_FIELDS.reduce((acc, field) => {
-    acc[field] = true;
-    return acc;
-  }, {} as Record<PermissionField, true>);
+import { PERMISSION_FIELDS, PermissionFlags, PERMISSION_SELECT } from "@/types/api/user.types";
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = INVALID_CREDENTIALS_ERR;
@@ -66,7 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             type: true,
             enabled: true,
             tag: true,
-            ...permissionSelect,
+            ...PERMISSION_SELECT,
           },
         });
         if (!user) throw new InvalidCredentialsError();
@@ -95,7 +89,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.enabled = user.enabled;
         token.tag = user.tag;
         PERMISSION_FIELDS.forEach((field) => {
-          token[field] = Boolean(token[field]);
+          token[field] = user[field];
         });
       }
 

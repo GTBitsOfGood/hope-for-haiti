@@ -10,6 +10,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { UserType } from "@prisma/client";
+import { EDITABLE_PERMISSION_FIELDS } from "@/types/api/user.types";
 
 const paramSchema = z.object({
   userId: z
@@ -18,12 +19,28 @@ const paramSchema = z.object({
     .pipe(z.number().int().positive("User ID must be a positive integer")),
 });
 
+const permissionsSchema = z
+  .object(
+    EDITABLE_PERMISSION_FIELDS.reduce(
+      (shape, field) => {
+        shape[field] = z.boolean().optional();
+        return shape;
+      },
+      {} as Record<
+        (typeof EDITABLE_PERMISSION_FIELDS)[number],
+        z.ZodOptional<z.ZodBoolean>
+      >
+    )
+  )
+  .partial();
+
 const patchBodySchema = z.object({
   name: z.string().optional(),
   email: z.string().email().optional(),
   tag: z.string().optional(),
   role: z.nativeEnum(UserType).optional(),
   enabled: z.boolean().optional(),
+  permissions: permissionsSchema.optional(),
 });
 
 export async function GET(
@@ -108,6 +125,7 @@ export async function PATCH(
       type: bodyParsed.data.role,
       tag: bodyParsed.data.tag,
       enabled: bodyParsed.data.enabled,
+      permissions: bodyParsed.data.permissions,
     });
 
     return ok();

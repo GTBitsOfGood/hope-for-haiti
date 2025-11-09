@@ -7,8 +7,6 @@ import {
   Eye,
   Trash,
 } from "@phosphor-icons/react";
-import { useUser } from "@/components/context/UserContext";
-import { isAdmin } from "@/lib/userUtils";
 import Portal from "@/components/baseTable/Portal";
 
 interface DropdownItem {
@@ -25,6 +23,7 @@ interface AccountDropdownProps {
   onEditAccount?: () => void;
   onDeactivateAccount?: () => void;
   onSendReminder?: () => void;
+  canManage?: boolean;
 }
 
 export default function AccountDropdown({
@@ -34,12 +33,14 @@ export default function AccountDropdown({
   onEditAccount,
   onDeactivateAccount,
   onSendReminder,
+  canManage = true,
 }: AccountDropdownProps) {
-  const { user: currentUser } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const canEdit = currentUser && isAdmin(currentUser.type);
+  if (!canManage) {
+    return null;
+  }
 
   const getDropdownItems = (): DropdownItem[] => {
     if (isPending) {
@@ -59,45 +60,28 @@ export default function AccountDropdown({
             onDeleteAccount?.();
             setIsOpen(false);
           },
-          disabled: !canEdit,
         },
       ];
     } else {
       const isEnabled = user?.enabled !== false;
-      const items: DropdownItem[] = [];
-
-      if (canEdit) {
-        items.push({
+      return [
+        {
           icon: <PencilSimple size={18} />,
           label: "Edit account",
           onClick: () => {
             onEditAccount?.();
             setIsOpen(false);
           },
-        });
-      }
-
-      if (canEdit) {
-        items.push({
+        },
+        {
           icon: isEnabled ? <EyeSlash size={18} /> : <Eye size={18} />,
           label: isEnabled ? "Deactivate account" : "Activate account",
           onClick: () => {
             onDeactivateAccount?.();
             setIsOpen(false);
           },
-        });
-      }
-
-      if (!canEdit) {
-        items.push({
-          icon: <PencilSimple size={18} />,
-          label: "View only",
-          onClick: () => {},
-          disabled: true,
-        });
-      }
-
-      return items;
+        },
+      ];
     }
   };
 

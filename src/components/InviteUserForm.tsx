@@ -4,9 +4,13 @@ import { useState } from "react";
 import { UserType } from "@prisma/client";
 import { Open_Sans } from "next/font/google";
 import { useUser } from "@/components/context/UserContext";
-import { isAdmin } from "@/lib/userUtils";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import StaffPermissionsModal from "./AccountManagement/StaffPermissionsModal";
+import {
+  StaffPermissionFlags,
+} from "@/types/api/user.types";
+import { createEmptyStaffPermissionState } from "@/constants/staffPermissions";
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -30,10 +34,14 @@ export default function InviteUserForm({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [staffPermissions, setStaffPermissions] =
+    useState<StaffPermissionFlags>(createEmptyStaffPermissionState());
+  const [isPermissionModalOpen, setPermissionModalOpen] = useState(false);
+  const enabledStaffPermissions = Object.values(staffPermissions).filter(
+    Boolean
+  ).length;
 
-  const roleOptions = (["SUPER_ADMIN", "ADMIN", "STAFF", "PARTNER"] as const).filter(
-    (option) => !(currentUser && isAdmin(currentUser.type) && option === "SUPER_ADMIN")
-  );
+  const roleOptions = ["STAFF", "PARTNER"];
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -56,12 +64,13 @@ export default function InviteUserForm({
     try {
       const response = await fetch("/api/invites", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           email,
           name,
           userType: role.toUpperCase(),
-        }).toString(),
+          permissions: staffPermissions,
+        }),
       });
 
       if (!response.ok) throw new Error("Couldn't send invite.");
@@ -188,6 +197,32 @@ export default function InviteUserForm({
                 )}
               </div>
 
+              {role === "STAFF" && (
+                <div className="mt-5 rounded-lg border border-[#22070B]/15 bg-[#F9F9F9] p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-[#22070B]">
+                        Staff permissions
+                      </p>
+                      <p className="text-sm text-[#22070B]/70">
+                        {enabledStaffPermissions === 0
+                          ? "No permissions selected yet."
+                          : `${enabledStaffPermissions} permission${
+                              enabledStaffPermissions === 1 ? "" : "s"
+                            } enabled.`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded-md border border-mainRed px-4 py-2 text-sm font-semibold text-mainRed hover:bg-mainRed/10"
+                      onClick={() => setPermissionModalOpen(true)}
+                    >
+                      Configure
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {errorMessage && (
                 <p className="text-red-500 text-sm mt-2">{errorMessage}</p>
               )}
@@ -211,6 +246,21 @@ export default function InviteUserForm({
           </>
         )}
       </div>
+      {role === "STAFF" && (
+        <StaffPermissionsModal
+          isOpen={isPermissionModalOpen}
+          title={`Permissions for ${name || "new staff member"}`}
+          initialPermissions={staffPermissions}
+          onClose={() => setPermissionModalOpen(false)}
+          onCancel={() => setPermissionModalOpen(false)}
+          onSave={(nextPermissions) => {
+            setStaffPermissions(nextPermissions);
+            setPermissionModalOpen(false);
+          }}
+          isTargetSuper={false}
+          canGrantUserWrite={Boolean(currentUser?.isSuper)}
+        />
+      )}
     </div>
   );
 }

@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Plus, EyeSlash, Trash, Eye } from "@phosphor-icons/react";
 import { UserType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import InviteUserForm from "@/components/InviteUserForm";
 import ConfirmationModal from "@/components/AccountManagement/ConfirmationModal";
 import EditModal from "@/components/AccountManagement/EditModal";
+import StaffPermissionsModal from "@/components/AccountManagement/StaffPermissionsModal";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useFetch } from "@/hooks/useFetch";
-import { isStaff, formatUserType } from "@/lib/userUtils";
+import { formatUserType, isStaff, hasPermission } from "@/lib/userUtils";
 import AccountDropdown from "@/components/AccountManagement/AccountDropdown";
 import AccountStatusTag from "@/components/tags/AccountStatusTag";
 import AdvancedBaseTable from "@/components/baseTable/AdvancedBaseTable";
@@ -19,6 +20,13 @@ import {
   FilterList,
 } from "@/types/ui/table.types";
 import toast from "react-hot-toast";
+import { useUser } from "@/components/context/UserContext";
+import {
+  EDITABLE_PERMISSION_FIELDS,
+  PermissionFlags,
+  StaffPermissionFlags,
+} from "@/types/api/user.types";
+import { createEmptyStaffPermissionState } from "@/constants/staffPermissions";
 
 interface AccountUserResponse {
   id: number;
@@ -35,6 +43,7 @@ interface AccountUserResponse {
 }
 
 type AccountRow = AccountUserResponse;
+type AccountUserDetail = AccountUserResponse & PermissionFlags;
 
 function getStatusLabel(user: AccountUserResponse) {
   if (user.pending) {
@@ -51,6 +60,10 @@ function getStatusLabel(user: AccountUserResponse) {
 }
 
 export default function AccountManagementPage() {
+  const { user: currentUser, loading } = useUser();
+  const canViewAccounts = hasPermission(currentUser, "userRead");
+  const canManageAccounts = hasPermission(currentUser, "userWrite");
+
   const tableRef = useRef<AdvancedBaseTableHandle<AccountRow>>(null);
   const { apiClient } = useApiClient();
   const { data: tags, refetch: refetchTags } = useFetch<string[]>(
@@ -63,8 +76,32 @@ export default function AccountManagementPage() {
   const [isDeactivateModalOpen, setDeactivateModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AccountRow | null>(null);
+  const [isPermissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [permissionsModalLoading, setPermissionsModalLoading] = useState(false);
+  const [permissionsModalSaving, setPermissionsModalSaving] = useState(false);
+  const [permissionTarget, setPermissionTarget] = useState<{
+    userId: number;
+    name: string;
+    isSuper: boolean;
+    permissions: StaffPermissionFlags;
+  } | null>(null);
 
   const router = useRouter();
+  const mapPermissionsFromUser = (
+    user: Partial<PermissionFlags>
+  ): StaffPermissionFlags => {
+    const permissions = createEmptyStaffPermissionState();
+    EDITABLE_PERMISSION_FIELDS.forEach((field) => {
+      permissions[field] = Boolean(user[field]);
+    });
+    return permissions;
+  };
+
+  useEffect(() => {
+    if (!loading && !canViewAccounts) {
+      router.replace("/");
+    }
+  }, [loading, canViewAccounts, router]);
 
   const handleInviteSubmit = (role: UserType) => {
     if (role === "PARTNER") {
@@ -77,11 +114,13 @@ export default function AccountManagementPage() {
   };
 
   const handleDeleteAccount = (user: AccountRow) => {
+    if (!canManageAccounts) return;
     setSelectedUser(user);
     setDeleteModalOpen(true);
   };
-  
+
   const handleSendReminder = async (user: AccountRow) => {
+    if (!canManageAccounts) return;
     try {
       await apiClient.post(`/api/users/${user.id}/reminder`);
       toast.success(`Sent a reminder to ${user.name}`);
@@ -92,18 +131,21 @@ export default function AccountManagementPage() {
   }
 
   const handleEditAccount = (user: AccountRow) => {
+    if (!canManageAccounts) return;
     if (user.pending) return;
     setSelectedUser(user);
     setEditModalOpen(true);
   };
 
   const handleDeactivateAccount = (user: AccountRow) => {
+    if (!canManageAccounts) return;
     if (user.pending) return;
     setSelectedUser(user);
     setDeactivateModalOpen(true);
   };
 
   const confirmDeleteAccount = async () => {
+    if (!canManageAccounts) return;
     if (!selectedUser) return;
 
     try {
@@ -124,9 +166,9 @@ export default function AccountManagementPage() {
   const confirmEditAccount = async (data: {
     name: string;
     email: string;
-    role: UserType;
     tag: string;
   }) => {
+    if (!canManageAccounts) return;
     if (!selectedUser || selectedUser.pending) return;
 
     try {
@@ -134,7 +176,6 @@ export default function AccountManagementPage() {
         body: JSON.stringify({
           name: data.name,
           email: data.email,
-          role: data.role,
           tag: data.tag,
         }),
       });
@@ -143,7 +184,6 @@ export default function AccountManagementPage() {
         ...selectedUser,
         name: data.name,
         email: data.email,
-        type: data.role,
         tag: data.tag || null,
       };
 
@@ -159,6 +199,7 @@ export default function AccountManagementPage() {
   };
 
   const confirmDeactivateAccount = async () => {
+    if (!canManageAccounts) return;
     if (!selectedUser || selectedUser.pending) return;
 
     try {
@@ -184,6 +225,56 @@ export default function AccountManagementPage() {
     setSelectedUser(null);
   };
 
+  const closePermissionModal = () => {
+    setPermissionsModalOpen(false);
+    setPermissionTarget(null);
+    setPermissionsModalLoading(false);
+    setPermissionsModalSaving(false);
+  };
+
+  const handleManagePermissions = async (user: AccountRow) => {
+    if (user.pending || !isStaff(user.type)) return;
+    setPermissionsModalOpen(true);
+    setPermissionsModalLoading(true);
+    try {
+      const data = await apiClient.get<{ user: AccountUserDetail }>(
+        `/api/users/${user.id}`
+      );
+      const detailedUser = data.user;
+      setPermissionTarget({
+        userId: detailedUser.id,
+        name: detailedUser.name,
+        isSuper: Boolean(detailedUser.isSuper),
+        permissions: mapPermissionsFromUser(detailedUser),
+      });
+    } catch (error) {
+      console.error("Error loading permissions:", error);
+      toast.error("Unable to load permissions. Please try again.");
+      closePermissionModal();
+    } finally {
+      setPermissionsModalLoading(false);
+    }
+  };
+
+  const handleSavePermissions = async (
+    nextPermissions: StaffPermissionFlags
+  ) => {
+    if (!permissionTarget) return;
+    setPermissionsModalSaving(true);
+    try {
+      await apiClient.patch(`/api/users/${permissionTarget.userId}`, {
+        body: JSON.stringify({ permissions: nextPermissions }),
+      });
+      toast.success("Permissions updated");
+      closePermissionModal();
+    } catch (error) {
+      console.error("Error updating permissions:", error);
+      toast.error("Unable to update permissions. Please try again.");
+    } finally {
+      setPermissionsModalSaving(false);
+    }
+  };
+
   const fetchFn = useCallback(
     async (
       pageSize: number,
@@ -204,7 +295,7 @@ export default function AccountManagementPage() {
     [apiClient]
   );
 
-  const columns: ColumnDefinition<AccountRow>[] = [
+  const baseColumns: ColumnDefinition<AccountRow>[] = [
     "name",
     "email",
     {
@@ -229,7 +320,10 @@ export default function AccountManagementPage() {
       id: "status",
       cell: (item) => <AccountStatusTag status={getStatusLabel(item)} />,
     },
-    {
+  ];
+
+  if (canManageAccounts) {
+    baseColumns.push({
       id: "manage",
       cell: (item) => (
         <div
@@ -243,11 +337,16 @@ export default function AccountManagementPage() {
             onEditAccount={() => handleEditAccount(item)}
             onDeactivateAccount={() => handleDeactivateAccount(item)}
             onSendReminder={() => handleSendReminder(item)}
+            canManage={canManageAccounts}
           />
         </div>
       ),
-    },
-  ];
+    });
+  }
+
+  if (!canViewAccounts) {
+    return null;
+  }
 
   return (
     <>
@@ -257,31 +356,32 @@ export default function AccountManagementPage() {
 
       <AdvancedBaseTable
         ref={tableRef}
-        columns={columns}
+        columns={baseColumns}
         fetchFn={fetchFn}
         rowId="id"
         headerCellStyles="min-w-32"
         emptyState="No accounts to display"
         toolBar={
-          <>
+          canManageAccounts && (
             <button
               className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
               onClick={() => setInviteModalOpen(true)}
             >
               <Plus size={18} /> Add account
             </button>
-          </>
+          )
         }
       />
 
-      {isInviteModalOpen && (
+      {canManageAccounts && isInviteModalOpen && (
         <InviteUserForm
           closeModal={() => setInviteModalOpen(false)}
           onSubmit={handleInviteSubmit}
         />
       )}
 
-      <ConfirmationModal
+      {canManageAccounts && (
+        <ConfirmationModal
         title="Delete account"
         text={`Are you sure you would like to delete this account?
 Deleting an account will permanently remove all associated information from the database. This action is irreversible.`}
@@ -291,9 +391,11 @@ Deleting an account will permanently remove all associated information from the 
         onCancel={closeAllModals}
         onConfirm={confirmDeleteAccount}
         confirmText="Delete account"
-      />
+        />
+      )}
 
-      <ConfirmationModal
+      {canManageAccounts && (
+        <ConfirmationModal
         title={
           selectedUser && !selectedUser.pending && selectedUser.enabled
             ? "Deactivate account"
@@ -323,8 +425,10 @@ This will restore the user's access to the system.`
             : "Activate"
         }
       />
+      )}
 
-      <EditModal
+      {canManageAccounts && (
+        <EditModal
         title={
           selectedUser && !selectedUser.pending && isStaff(selectedUser.type)
             ? "Edit staff account"
@@ -349,11 +453,35 @@ This will restore the user's access to the system.`
             ? isStaff(selectedUser.type)
             : true
         }
-        selectedUserId={
-          selectedUser && !selectedUser.pending ? selectedUser.id : undefined
-        }
         existingTags={tags ?? []}
+        onManagePermissions={
+          selectedUser &&
+          !selectedUser.pending &&
+          isStaff(selectedUser.type)
+            ? () => handleManagePermissions(selectedUser)
+            : undefined
+        }
       />
+      )}
+
+      {canManageAccounts && (
+        <StaffPermissionsModal
+          isOpen={isPermissionsModalOpen}
+          title={
+            permissionTarget
+              ? `Permissions for ${permissionTarget.name}`
+              : "Staff permissions"
+          }
+          initialPermissions={permissionTarget?.permissions}
+          onClose={closePermissionModal}
+          onCancel={closePermissionModal}
+          onSave={handleSavePermissions}
+          isLoading={permissionsModalLoading}
+          isSaving={permissionsModalSaving}
+          isTargetSuper={Boolean(permissionTarget?.isSuper)}
+          canGrantUserWrite={Boolean(currentUser?.isSuper)}
+        />
+      )}
     </>
   );
 }

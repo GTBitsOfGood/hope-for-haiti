@@ -1,6 +1,7 @@
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
+  ColumnDefinition,
 } from "./baseTable/AdvancedBaseTable";
 import { useCallback, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
@@ -9,10 +10,15 @@ import toast from "react-hot-toast";
 import { CheckCircle, DotsThree } from "@phosphor-icons/react";
 import DistributionsGeneralItemChipGroup from "./chips/DistributionsGeneralItemChipGroup";
 import { TableDistribution } from "@/types/api/distribution.types";
+import { useUser } from "@/components/context/UserContext";
+import { hasPermission } from "@/lib/userUtils";
 
 export default function DistributionTable() {
   const { apiClient } = useApiClient();
   const [distributions, setDistributions] = useState<TableDistribution[]>([]);
+  const { user } = useUser();
+  const canManageDistributions = hasPermission(user, "distributionWrite");
+  const canTransferAllocations = hasPermission(user, "distributionWrite");
 
   const tableRef = useRef<AdvancedBaseTableHandle<TableDistribution>>(null);
 
@@ -41,10 +47,7 @@ export default function DistributionTable() {
     [apiClient]
   );
 
-  return (
-    <AdvancedBaseTable
-      ref={tableRef}
-      columns={[
+  const columns = [
         {
           id: "partnerName",
           header: "Partner Name",
@@ -83,17 +86,25 @@ export default function DistributionTable() {
             </div>
           ),
         },
-        {
-          id: "Manage",
-          header: "",
-          cell: (distribution) => (
-            <OptionsButton
-              distribution={distribution}
-              fetchTableData={tableRef.current!.reload}
-            />
-          ),
-        },
-      ]}
+      ] as ColumnDefinition<TableDistribution>[];
+
+  if (canManageDistributions) {
+    columns.push({
+      id: "Manage",
+      header: "",
+      cell: (distribution) => (
+        <OptionsButton
+          distribution={distribution}
+          fetchTableData={tableRef.current!.reload}
+        />
+      ),
+    });
+  }
+
+  return (
+    <AdvancedBaseTable
+      ref={tableRef}
+      columns={columns}
       fetchFn={fetchTableData}
       rowId={"id"}
       rowBody={(distribution) => (
@@ -104,6 +115,7 @@ export default function DistributionTable() {
           )}
           allocations={distribution.allocations}
           fetchTableData={tableRef.current!.reload}
+          canTransfer={canTransferAllocations}
         />
       )}
     />
