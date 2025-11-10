@@ -1,9 +1,12 @@
 import { db } from "@/db";
+import { Filters } from "@/types/api/filter.types";
 import {
   CreateWishlistData,
   UpdateWishlistData,
 } from "@/types/api/wishlist.types";
 import { NotFoundError, ArgumentError } from "@/util/errors";
+import { buildWhereFromFilters } from "@/util/table";
+import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export class WishlistService {
@@ -60,7 +63,10 @@ export class WishlistService {
     });
   }
 
-  static async linkWishlistToGeneralItem(wishlistId: number, generalItemId: number) {
+  static async linkWishlistToGeneralItem(
+    wishlistId: number,
+    generalItemId: number
+  ) {
     try {
       await db.wishlist.update({
         where: {
@@ -107,38 +113,23 @@ export class WishlistService {
     });
   }
 
-  static async getWishlistsStatsByPartner() {
-    const stats = await db.$queryRaw<
-      {
-        partnerId: number;
-        partnerName: string;
-        totalCount: bigint;
-        lowCount: bigint;
-        mediumCount: bigint;
-        highCount: bigint;
-      }[]
-    >`
-        SELECT 
-            u.id as "partnerId",
-            u.name as "partnerName",
-            COUNT(w.id) as "totalCount",
-            SUM(CASE WHEN w.priority = 'LOW' THEN 1 ELSE 0 END) as "lowCount",
-            SUM(CASE WHEN w.priority = 'MEDIUM' THEN 1 ELSE 0 END) as "mediumCount",
-            SUM(CASE WHEN w.priority = 'HIGH' THEN 1 ELSE 0 END) as "highCount"
-        FROM "User" u
-        LEFT JOIN "Wishlist" w ON u.id = w."partnerId"
-        WHERE u.type = 'PARTNER' AND u.enabled = true AND u.pending = false
-        GROUP BY u.id, u.name
-        ORDER BY u.id
-    `;
+  static async getAllWishlists(
+    filters?: Filters,
+    page?: number,
+    pageSize?: number
+  ) {
+    const filterWhere = buildWhereFromFilters<Prisma.WishlistWhereInput>(
+      Object.keys(Prisma.WishlistScalarFieldEnum),
+      filters
+    );
 
-    return stats.map((stat) => ({
-      partnerId: stat.partnerId,
-      partnerName: stat.partnerName,
-      totalCount: Number(stat.totalCount),
-      lowCount: Number(stat.lowCount),
-      mediumCount: Number(stat.mediumCount),
-      highCount: Number(stat.highCount),
-    }));
+    return await db.wishlist.findMany({
+      where: filterWhere,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
+      take: pageSize ?? undefined,
+      include: {
+        partner: true,
+      },
+    });
   }
 }
