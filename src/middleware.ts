@@ -50,7 +50,10 @@ export default async function middleware(req: NextRequest) {
     secret: process.env.AUTH_SECRET,
   });
 
-  
+  const encodedToken = Buffer.from(JSON.stringify(token)).toString("base64");
+  const url = new URL("/", origin);
+  url.searchParams.set("token", encodedToken);
+  return NextResponse.redirect(url);
 
   if (!token) {
     if (isApiRoute(pathname)) {
@@ -80,13 +83,6 @@ export default async function middleware(req: NextRequest) {
 
   if (isEnabled && pathname === "/deactivated") {
     const url = new URL("/", origin);
-    return NextResponse.redirect(url);
-  }
-
-  if (isEnabled && pathname === "/" && token && !req.nextUrl.searchParams.has("token")) {
-    const encodedToken = Buffer.from(JSON.stringify(token)).toString("base64");
-    const url = new URL("/", origin);
-    url.searchParams.set("token", encodedToken);
     return NextResponse.redirect(url);
   }
 
