@@ -95,27 +95,25 @@ export async function PATCH(
     if (!bodyParsed.success) {
       throw new ArgumentError(bodyParsed.error.message);
     }
+    
+    const userToEdit = await UserService.getUserById(parsed.data.userId);
+    const isSelf = session.user.id === parsed.data.userId.toString();
 
-    const currentUser = await UserService.getUserById(parsed.data.userId);
-    const requestedRole = bodyParsed.data.role;
-
-    if (requestedRole && session.user.id === parsed.data.userId.toString()) {
-      throw new AuthorizationError("Cannot change your own role");
+    if (isSelf) {
+      if (bodyParsed.data.permissions) {
+        throw new AuthorizationError("Cannot modify your own permissions");
+      }
+      if (bodyParsed.data.enabled !== undefined) {
+        throw new AuthorizationError("Cannot modify your own enabled status");
+      }
     }
 
-    if (requestedRole) {
-      if (
-        currentUser.type === UserType.PARTNER &&
-        requestedRole !== UserType.PARTNER
-      ) {
-        throw new ArgumentError("Cannot change role of a partner");
-      }
-      if (
-        currentUser.type === UserType.STAFF &&
-        requestedRole === UserType.PARTNER
-      ) {
-        throw new ArgumentError("Cannot change staff to partner");
-      }
+    if (bodyParsed.data.enabled === false && (userToEdit.userWrite || userToEdit.isSuper)) {
+      throw new AuthorizationError("Cannot deactivate users with userWrite or isSuper permissions");
+    }
+
+    if (bodyParsed.data.permissions?.userWrite !== undefined && !session.user.isSuper) {
+      throw new AuthorizationError("You must have isSuper to edit userWrite permission");
     }
 
     await UserService.updateUser({
