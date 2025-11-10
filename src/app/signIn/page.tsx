@@ -15,7 +15,7 @@ export default function SignInPage() {
       const resp = await signIn("credentials", {
         email,
         password,
-        redirect: false,
+        redirect: true,
       });
 
       if (resp?.code === INVALID_CREDENTIALS_ERR) {

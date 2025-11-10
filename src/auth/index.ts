@@ -8,6 +8,7 @@ import { INVALID_CREDENTIALS_ERR } from "./errors";
 import { UserType } from "@prisma/client";
 import { db } from "@/db";
 import { verify } from "argon2";
+import authConfig from "@/auth/auth.config";
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = INVALID_CREDENTIALS_ERR;
@@ -46,7 +47,7 @@ declare module "next-auth/jwt" {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.SECRET,
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {

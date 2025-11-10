@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import NextAuth from "next-auth";
+import authConfig from "@/auth/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 const publicPaths = [
   "/signIn",
@@ -26,8 +28,9 @@ function isApiRoute(pathname: string) {
   return pathname.startsWith("/api");
 }
 
-export default async function middleware(req: NextRequest) {
-  const { pathname, origin } = req.nextUrl;
+export default auth(async function middleware(req) {
+  const pathname = req.nextUrl.pathname;
+  const origin = req.nextUrl.origin;
 
   const isStaticAsset =
     pathname.startsWith("/_next") ||
@@ -45,9 +48,9 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const session = req.auth;
 
-  if (!token) {
+  if (!session) {
     if (isApiRoute(pathname)) {
       return NextResponse.json(
         { error: "Authentication required" },
@@ -58,7 +61,7 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const isEnabled = token?.enabled !== false;
+  const isEnabled = session.user.enabled !== false;
 
   if (!isEnabled) {
     if (isApiRoute(pathname)) {
@@ -79,12 +82,10 @@ export default async function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
-}
+})
 
 export const config = {
   matcher: [
     "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
   ],
 };
-
-
