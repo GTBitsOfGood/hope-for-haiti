@@ -4,6 +4,7 @@ import {
   Channel,
   ChannelList,
   Chat,
+  InfiniteScroll,
   MessageList,
   Thread,
   Window,
@@ -25,47 +26,46 @@ export default function SupportScreen() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex h-full flex-grow">
-        <Chat client={client}>
-          <ChannelList
-            filters={{
-              members: {
-                $in: [session.data!.user.streamUserId!],
-              },
-            }}
-            sort={[
-              {
-                closed: 1,
-              },
-              {
-                last_message_at: -1,
-              },
-            ]}
-            Preview={ChannelPreview}
-            showChannelSearch
-            additionalChannelSearchProps={{
-              searchForChannels: true,
-              searchForUsers: false,
-            }}
-            EmptyStateIndicator={() => (
-              <div className="w-full flex flex-col justify-center gap-2 my-8">
-                <ChatCircleSlash size={48} className="mx-auto text-gray-400" />
-                <p className="text-center">No tickets found.</p>
-                <CreateTicketModal />
-              </div>
-            )}
-          />
-          <Channel>
-            <Window>
-              <TicketChannelHeader />
-              <MessageList />
-              <TicketMessageInput />
-            </Window>
-            <Thread />
-          </Channel>
-        </Chat>
-      </div>
+    <div className="flex flex-grow h-full max-h-[calc(100vh-64px)]">
+      <Chat client={client}>
+        <ChannelList
+          filters={{
+            members: {
+              $in: [session.data!.user.streamUserId!],
+            },
+          }}
+          sort={[
+            {
+              closed: 1,
+            },
+            {
+              last_message_at: -1,
+            },
+          ]}
+          Preview={ChannelPreview}
+          Paginator={InfiniteScroll}
+          showChannelSearch
+          additionalChannelSearchProps={{
+            searchForChannels: true,
+            searchForUsers: false,
+          }}
+          EmptyStateIndicator={() => (
+            <div className="w-full flex flex-col justify-center gap-2 my-8">
+              <ChatCircleSlash size={48} className="mx-auto text-gray-400" />
+              <p className="text-center">No tickets found.</p>
+              <CreateTicketModal />
+            </div>
+          )}
+        />
+        <Channel>
+          <Window>
+            <TicketChannelHeader />
+            <MessageList />
+            <TicketMessageInput />
+          </Window>
+          <Thread />
+        </Channel>
+      </Chat>
     </div>
   );
 }
