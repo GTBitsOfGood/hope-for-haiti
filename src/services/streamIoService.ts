@@ -7,7 +7,7 @@ export default class StreamIoService {
     process.env.STREAMIO_SECRET_KEY!
   );
 
-  private static getUserIdFromUser(user: { email: string }): string {
+  static getUserIdFromUser(user: { email: string }): string {
     return user.email.toLowerCase().replace(".", "_");
   }
 

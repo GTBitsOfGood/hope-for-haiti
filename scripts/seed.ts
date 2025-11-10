@@ -21,13 +21,34 @@ const addDays = (daysFromToday: number) => {
   return base;
 };
 
+const existingStreamTokens: { [email: string]: string } = {};
+
+async function fetchExistingStreamTokens() {
+  const users = await db.user.findMany({
+    where: {
+      streamUserToken: {
+        not: null,
+      },
+    },
+  });
+
+  users.forEach((user) => {
+    existingStreamTokens[user.email] = user.streamUserToken!;
+  });
+}
+
 /**
  * Creates a user with a Stream Chat user token in the DB
  */
 async function createUser(
   user: Omit<Prisma.UserCreateInput, "streamUserToken">
 ): Promise<ReturnType<typeof db.user.create>> {
-  const streamUser = await StreamIoService.createUser(user);
+  const streamUser = existingStreamTokens[user.email]
+    ? {
+        userId: StreamIoService.getUserIdFromUser({ email: user.email }),
+        userToken: existingStreamTokens[user.email],
+      }
+    : await StreamIoService.createUser(user);
 
   return await db.user.create({
     data: {
@@ -87,6 +108,8 @@ const buildPartnerDetails = (
   }) as Prisma.JsonObject;
 
 async function buildSeedData() {
+  await fetchExistingStreamTokens();
+
   await db.allocation.deleteMany();
   await db.generalItemRequest.deleteMany();
   await db.lineItem.deleteMany();
