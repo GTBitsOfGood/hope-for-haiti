@@ -5,6 +5,9 @@ import { X } from "@phosphor-icons/react";
 import ModalFormRow from "@/components/ModalFormRow";
 import ModalTextField from "@/components/ModalTextField";
 import ModalLongTextField from "@/components/ModalLongTextField";
+import { $Enums } from "@prisma/client";
+import { titleCase } from "@/util/util";
+import ModalDropDown from "./ModalDropDown";
 
 export type WishlistEditable = {
   id: number;
@@ -20,6 +23,7 @@ interface EditWishlistModalProps {
   onSave: (updates: {
     id: number;
     quantity?: number;
+    priority: $Enums.RequestPriority;
     comments?: string;
   }) => Promise<void>;
 }
@@ -31,6 +35,7 @@ export default function EditWishlistModal({
   onSave,
 }: EditWishlistModalProps) {
   const [quantity, setQuantity] = useState<string>("");
+  const [priority, setPriority] = useState<$Enums.RequestPriority>();
   const [comments, setComments] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -50,6 +55,7 @@ export default function EditWishlistModal({
       await onSave({
         id: item.id,
         quantity: quantity === "" ? undefined : Number(quantity),
+        priority: priority || $Enums.RequestPriority.MEDIUM,
         comments: comments.trim() || undefined,
       });
       onClose();
@@ -85,16 +91,16 @@ export default function EditWishlistModal({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Title (read-only) + Quantity */}
+            <ModalTextField
+              label="Title"
+              name="name"
+              required
+              defaultValue={item.name}
+              className="bg-gray-100 cursor-not-allowed"
+              inputProps={{ readOnly: true }}
+            />
             <ModalFormRow>
-              <ModalTextField
-                label="Title"
-                name="name"
-                required
-                defaultValue={item.name}
-                className="bg-gray-100 cursor-not-allowed"
-                inputProps={{ readOnly: true }}
-              />
+              {/* Quantity + Priority */}
               <ModalTextField
                 label="Quantity Requested"
                 name="quantity"
@@ -103,6 +109,25 @@ export default function EditWishlistModal({
                 required
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
+              />
+              <ModalDropDown
+                label="Priority"
+                name="priority"
+                placeholder="Select priority"
+                required
+                className="w-1/4"
+                options={Object.values($Enums.RequestPriority).map((p) => ({
+                  label: titleCase(p),
+                  value: p,
+                }))}
+                onSelect={(priority) =>
+                  setPriority(priority as $Enums.RequestPriority)
+                }
+                defaultSelected={
+                  priority
+                    ? { label: titleCase(priority), value: priority }
+                    : undefined
+                }
               />
             </ModalFormRow>
 

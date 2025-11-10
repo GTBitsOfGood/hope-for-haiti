@@ -296,6 +296,9 @@ export default function AddToWishlistModal({
                       label: titleCase(p),
                       value: p,
                     }))}
+                    onSelect={(priority) =>
+                      (form.priority = priority as $Enums.RequestPriority)
+                    }
                     defaultSelected={
                       form.priority
                         ? {
