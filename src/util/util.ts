@@ -45,3 +45,7 @@ export const shippingStatusToText = {
   [$Enums.ShipmentStatus.INVENTORIES]: "Inventories",
   [$Enums.ShipmentStatus.LOAD_ON_SHIP_AIR]: "Load on Ship/Air",
 };
+
+export function titleCase(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}

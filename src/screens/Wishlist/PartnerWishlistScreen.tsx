@@ -14,6 +14,7 @@ import AdvancedBaseTable, {
 import AddToWishlistModal from "@/components/AddToWishlistModal";
 import EditWishlistModal from "@/components/EditWishlistModal";
 import DeleteWishlistModal from "@/components/DeleteWishlistModal";
+import { titleCase } from "@/util/util";
 
 type WishlistItem = Wishlist;
 
@@ -117,6 +118,12 @@ export default function PartnerWishlistScreen({
       header: "Quantity requested",
       cell: (it) => it.quantity,
       filterType: "number",
+    },
+    {
+      id: "priority",
+      header: "Priority",
+      cell: (it) => titleCase(it.priority),
+      filterType: "string",
     },
     {
       id: "comments",

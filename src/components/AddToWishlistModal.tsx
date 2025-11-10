@@ -13,6 +13,7 @@ import AdvancedBaseTable, {
 import Link from "next/link";
 import { $Enums, Wishlist } from "@prisma/client";
 import ModalDropDown from "./ModalDropDown";
+import { titleCase } from "@/util/util";
 
 type Suggestion = {
   id: number;
@@ -292,7 +293,7 @@ export default function AddToWishlistModal({
                     required
                     className="w-1/4"
                     options={Object.values($Enums.RequestPriority).map((p) => ({
-                      label: p.charAt(0) + p.slice(1).toLowerCase(),
+                      label: titleCase(p),
                       value: p,
                     }))}
                     defaultSelected={
