@@ -1,38 +1,72 @@
 "use client";
 
-import { useFetch } from "@/hooks/useFetch";
-import { WishlistAggregate } from "@/types/api/wishlist.types";
-import BaseTable from "@/components/baseTable/BaseTable";
-import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { User, Wishlist } from "@prisma/client";
+import AdvancedBaseTable, {
+  FilterList,
+} from "@/components/baseTable/AdvancedBaseTable";
+import { useApiClient } from "@/hooks/useApiClient";
+import { useCallback } from "react";
 
 export default function AdminWishlistScreen() {
-  const router = useRouter();
-  const { data } = useFetch<WishlistAggregate[]>("/api/wishlists", {
-    cache: "no-store",
-    onError: (error: unknown) => {
-      toast.error((error as Error).message);
+  const { apiClient } = useApiClient();
+
+  const fetch = useCallback(
+    async (
+      pageSize: number,
+      page: number,
+      filters: FilterList<Wishlist & { partner: User }>
+    ) => {
+      const searchParams = new URLSearchParams();
+      searchParams.append("pageSize", pageSize.toString());
+      searchParams.append("page", page.toString());
+      searchParams.append("filters", JSON.stringify(filters));
+
+      const response = await apiClient.get<(Wishlist & { partner: User })[]>(
+        `/api/wishlists?${searchParams}`
+      );
+
+      return {
+        data: response,
+        total: response.length,
+      };
     },
-  });
+    [apiClient]
+  );
 
   return (
     <div className="pb-32">
       <h1 className="text-2xl font-bold text-gray-primary">Wishlists</h1>
 
-      <BaseTable
-        headers={["Partner", "Total", "Low", "Medium", "High"]}
-        rows={
-          data?.map((r) => ({
-            cells: [
-              r.partnerName,
-              r.totalCount,
-              r.lowCount,
-              r.mediumCount,
-              r.highCount,
-            ],
-            onClick: () => router.push(`/wishlists/${r.partnerId}`),
-          })) || []
-        }
+      <AdvancedBaseTable
+        columns={[
+          {
+            header: "Name",
+            id: "name",
+            cell: (wishlist) => wishlist.name,
+          },
+          {
+            header: "Partner",
+            id: "partner",
+            cell: (wishlist) => wishlist.partner.name,
+          },
+          {
+            header: "Priority",
+            id: "priority",
+            cell: (wishlist) => wishlist.priority,
+          },
+          {
+            header: "Quantity",
+            id: "quantity",
+            cell: (wishlist) => wishlist.quantity,
+          },
+          {
+            header: "Comments",
+            id: "comments",
+            cell: (wishlist) => wishlist.comments || "",
+          },
+        ]}
+        fetchFn={fetch}
+        rowId={(wishlist: Wishlist) => wishlist.id}
       />
     </div>
   );
