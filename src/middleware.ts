@@ -44,16 +44,13 @@ export default async function middleware(req: NextRequest) {
   if (isPublicApiPath(pathname)) {
     return NextResponse.next();
   }
-
-  const forwardedProto = req.headers.get("x-forwarded-proto");
-  const protocol = forwardedProto ?? req.nextUrl.protocol;
-  const isSecureCookie = protocol === "https"; // Netlify terminates TLS before middleware, so sniff proto manually
-
+  
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
-    secureCookie: isSecureCookie,
   });
+
+  
 
   if (!token) {
     if (isApiRoute(pathname)) {
@@ -83,6 +80,13 @@ export default async function middleware(req: NextRequest) {
 
   if (isEnabled && pathname === "/deactivated") {
     const url = new URL("/", origin);
+    return NextResponse.redirect(url);
+  }
+
+  if (isEnabled && pathname === "/" && token && !req.nextUrl.searchParams.has("token")) {
+    const encodedToken = Buffer.from(JSON.stringify(token)).toString("base64");
+    const url = new URL("/", origin);
+    url.searchParams.set("token", encodedToken);
     return NextResponse.redirect(url);
   }
 

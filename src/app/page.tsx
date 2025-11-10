@@ -3,9 +3,25 @@
 import { useUser } from "@/components/context/UserContext";
 import { isAdmin } from "@/lib/userUtils";
 import AdminDashboardScreen from "@/screens/dashboard/AdminDashboardScreen";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function HomePage() {
   const { user, loading } = useUser();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const encodedToken = searchParams.get("token");
+    if (encodedToken) {
+      try {
+        const decodedString = atob(encodedToken);
+        const decodedToken = JSON.parse(decodedString);
+        console.log("Decoded token:", decodedToken);
+      } catch (error) {
+        console.error("Error decoding token:", error);
+      }
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (
