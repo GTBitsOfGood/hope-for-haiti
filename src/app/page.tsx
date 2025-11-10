@@ -14,8 +14,7 @@ export default function HomePage() {
     const encodedToken = searchParams.get("token");
     if (encodedToken) {
       try {
-        const decodedString = atob(encodedToken);
-        const decodedToken = JSON.parse(decodedString);
+        const decodedToken = JSON.parse(decodeURIComponent(encodedToken));
         console.log("Decoded token:", decodedToken);
       } catch (error) {
         console.error("Error decoding token:", error);

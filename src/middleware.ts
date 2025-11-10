@@ -50,7 +50,7 @@ export default async function middleware(req: NextRequest) {
     secret: process.env.AUTH_SECRET,
   });
 
-  const encodedToken = Buffer.from(JSON.stringify(token)).toString("base64");
+  const encodedToken = encodeURIComponent(JSON.stringify(token));
   const url = new URL("/", origin);
   url.searchParams.set("token", encodedToken);
   return NextResponse.redirect(url);
