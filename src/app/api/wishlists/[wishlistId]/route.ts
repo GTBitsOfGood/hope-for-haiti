@@ -3,7 +3,41 @@ import { idSchema, updateWishlistSchema } from "@/schema/wishlist";
 import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
 import { ArgumentError, errorResponse, ok } from "@/util/errors";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(
+  _: NextRequest,
+  { params }: { params: Promise<{ wishlistId: string }> }
+) {
+  try {
+    const session = await auth();
+
+    if (!UserService.isPartner(session?.user)) {
+      throw new ArgumentError("Must be PARTNER");
+    }
+
+    const parsedId = idSchema.safeParse((await params).wishlistId);
+    if (!parsedId.success) {
+      throw new ArgumentError("Invalid wishlist ID");
+    }
+
+    const wishlistId = parsedId.data;
+    const wishlistItem = await WishlistService.getWishlistItem(wishlistId);
+
+    // Check ID first to avoid revealing the existence/non-existence of the wishlist item to an unauthorized user
+    if (wishlistItem?.partnerId !== Number(session!.user.id)) {
+      throw new ArgumentError("Wishlist item not found");
+    }
+
+    if (!wishlistItem) {
+      throw new ArgumentError("Wishlist item not found");
+    }
+
+    return NextResponse.json(wishlistItem);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
 
 /**
  * Updates a wishlist item. Allows changes to name, unit size, quantity, priority, and comments.
