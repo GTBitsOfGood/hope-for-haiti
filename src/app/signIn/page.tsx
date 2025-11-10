@@ -18,6 +18,8 @@ export default function SignInPage() {
         redirect: false,
       });
 
+      console.log(resp);
+
       if (resp?.code === INVALID_CREDENTIALS_ERR) {
         return toast.error("Invalid credentials");
       }

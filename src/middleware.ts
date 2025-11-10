@@ -45,7 +45,15 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const forwardedProto = req.headers.get("x-forwarded-proto");
+  const protocol = forwardedProto ?? req.nextUrl.protocol;
+  const isSecureCookie = protocol === "https"; // Netlify terminates TLS before middleware, so sniff proto manually
+
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+    secureCookie: isSecureCookie,
+  });
 
   if (!token) {
     if (isApiRoute(pathname)) {
@@ -86,5 +94,3 @@ export const config = {
     "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
   ],
 };
-
-
