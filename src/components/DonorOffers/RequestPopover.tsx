@@ -71,6 +71,7 @@ export default function RequestPopover({
     apiClient
       .get<Wishlist>(`api/wishlists/${wishlistMatch?.wishlistId}`)
       .then((data) => {
+        // Don't overwrite user edits
         setQuantity((quantity) => quantity || data.quantity?.toString() || "");
         setPriority((prev) => prev || (data.priority as RequestPriority) || "");
         setComments((comments) => comments || data.comments || "");
