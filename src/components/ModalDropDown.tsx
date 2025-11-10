@@ -25,6 +25,7 @@ interface ModalDropDownProps {
   onSelect?: (value: string) => void;
   renderOption?: (option: ModalDropDownOption) => ReactNode;
   renderValue?: (option: ModalDropDownOption) => ReactNode;
+  className?: string;
 }
 
 export default function ModalDropDown({
@@ -37,6 +38,7 @@ export default function ModalDropDown({
   onSelect,
   renderOption,
   renderValue,
+  className,
 }: ModalDropDownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOptionValue, setSelectedOptionValue] = useState(
@@ -128,7 +130,7 @@ export default function ModalDropDown({
   }, [options, selectedOptionValue]);
 
   return (
-    <div className="grow relative">
+    <div className={`grow relative ${className}`}>
       {label && (
         <label className="block">
           {label}

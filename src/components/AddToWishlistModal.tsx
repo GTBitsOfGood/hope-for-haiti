@@ -11,7 +11,8 @@ import AdvancedBaseTable, {
   TableQuery,
 } from "./baseTable/AdvancedBaseTable";
 import Link from "next/link";
-import { Wishlist } from "@prisma/client";
+import { $Enums, Wishlist } from "@prisma/client";
+import ModalDropDown from "./ModalDropDown";
 
 type Suggestion = {
   id: number;
@@ -24,6 +25,7 @@ type Suggestion = {
 
 export type AddToWishlistForm = {
   name: string; // Title
+  priority?: $Enums.RequestPriority; // Step 2
   quantity?: number; // Step 2
   comments?: string; // Step 2
 };
@@ -117,7 +119,7 @@ export default function AddToWishlistModal({
       name: form.name.trim(),
       quantity: form.quantity ?? null,
       comments: form.comments?.trim() ?? "",
-      priority: "LOW",
+      priority: form.priority ?? $Enums.RequestPriority.MEDIUM,
       lastUpdated: new Date(),
     };
 
@@ -151,7 +153,7 @@ export default function AddToWishlistModal({
           {/* Header */}
           <div className="flex items-start justify-between mb-6 md:mb-8">
             <h2 className="text-2xl font-semibold text-gray-900">
-              {step === 1 ? "Add to Wishlist" : "Add to Wishlist – Details"}
+              Add to Wishlist
             </h2>
             <button
               type="button"
@@ -256,16 +258,16 @@ export default function AddToWishlistModal({
 
             {step === 2 && (
               <>
-                {/* Title (read-only) + Quantity (same row) */}
+                <ModalTextField
+                  label="Title"
+                  name="name"
+                  required
+                  defaultValue={form.name}
+                  className="bg-gray-100 cursor-not-allowed"
+                  inputProps={{ readOnly: true }}
+                />
                 <ModalFormRow>
-                  <ModalTextField
-                    label="Title"
-                    name="name"
-                    required
-                    defaultValue={form.name}
-                    className="bg-gray-100 cursor-not-allowed"
-                    inputProps={{ readOnly: true }}
-                  />
+                  {/* Quantity + Priority (same row) */}
                   <ModalTextField
                     label="Quantity Requested"
                     name="quantity"
@@ -281,6 +283,27 @@ export default function AddToWishlistModal({
                             ? undefined
                             : Number(e.target.value),
                       }))
+                    }
+                  />
+                  <ModalDropDown
+                    label="Priority"
+                    name="priority"
+                    placeholder="Select priority"
+                    required
+                    className="w-1/4"
+                    options={Object.values($Enums.RequestPriority).map((p) => ({
+                      label: p.charAt(0) + p.slice(1).toLowerCase(),
+                      value: p,
+                    }))}
+                    defaultSelected={
+                      form.priority
+                        ? {
+                            label:
+                              form.priority?.charAt(0) +
+                              form.priority?.slice(1).toLowerCase(),
+                            value: form.priority,
+                          }
+                        : undefined
                     }
                   />
                 </ModalFormRow>
