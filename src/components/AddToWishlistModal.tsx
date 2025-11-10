@@ -20,7 +20,6 @@ type Suggestion = {
   similarity: number; // 0..1
   strength: "soft" | "hard";
   quantity: number;
-  unitSize: string;
 };
 
 export type AddToWishlistForm = {
@@ -57,12 +56,6 @@ export default function AddToWishlistModal({
       id: "title",
       header: "Title",
       cell: (s) => s.title,
-      filterType: "string",
-    },
-    {
-      id: "unitSize",
-      header: "Unit Size",
-      cell: (s) => s.unitSize ?? "-",
       filterType: "string",
     },
     {
@@ -120,12 +113,12 @@ export default function AddToWishlistModal({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const payload = {
+    const payload: Omit<Wishlist, "id" | "generalItemId" | "partnerId"> = {
       name: form.name.trim(),
-      quantity: form.quantity,
-      comments: form.comments?.trim() || undefined,
-      unitSize: "N/A",
+      quantity: form.quantity ?? null,
+      comments: form.comments?.trim() ?? "",
       priority: "LOW",
+      lastUpdated: new Date(),
     };
 
     console.log("Submitting wish:", payload);
