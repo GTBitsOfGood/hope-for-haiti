@@ -132,4 +132,12 @@ export class WishlistService {
       },
     });
   }
+
+  static async getUnfulfilledWishlists() {
+    return await db.wishlist.findMany({
+      where: {
+        // TODO
+      },
+    });
+  }
 }

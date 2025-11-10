@@ -6,6 +6,9 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useCallback } from "react";
+import WishlistSummary from "@/components/WishlistSummary";
+import { ChatTeardropText } from "@phosphor-icons/react";
+import { Tooltip } from "react-tooltip";
 
 export default function AdminWishlistScreen() {
   const { apiClient } = useApiClient();
@@ -36,6 +39,7 @@ export default function AdminWishlistScreen() {
   return (
     <div className="pb-32">
       <h1 className="text-2xl font-bold text-gray-primary">Wishlists</h1>
+      <WishlistSummary />
 
       <AdvancedBaseTable
         columns={[
@@ -62,7 +66,24 @@ export default function AdminWishlistScreen() {
           {
             header: "Comments",
             id: "comments",
-            cell: (wishlist) => wishlist.comments || "",
+            cell: (wishlist) => (
+              <div className="w-1/3 flex items-center justify-center">
+                <ChatTeardropText
+                  size={22}
+                  className={wishlist.comments ? "text-black" : "text-gray-300"}
+                  data-tooltip-id={`wishlist-comment-${wishlist.id}`}
+                  data-tooltip-content={
+                    wishlist.comments ? wishlist.comments : "(no comment)"
+                  }
+                />
+                {wishlist.comments && (
+                  <Tooltip
+                    id={`wishlist-comment-${wishlist.id}`}
+                    className="max-w-64 whitespace-pre-wrap"
+                  />
+                )}
+              </div>
+            ),
           },
         ]}
         fetchFn={fetch}
