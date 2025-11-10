@@ -132,7 +132,7 @@ export default function PartnerWishlistScreen({
         const text = it.comments || "";
         const hasComment = text.trim().length > 0;
         return (
-          <div className="flex items-center justify-center">
+          <div className="w-1/3 flex items-center justify-center">
             <ChatTeardropText
               size={22}
               className={hasComment ? "text-black" : "text-gray-300"}
