@@ -124,7 +124,6 @@ export default function AddToWishlistModal({
       lastUpdated: new Date(),
     };
 
-    console.log("Submitting wish:", payload);
     await apiClient.post("/api/wishlists", {
       body: JSON.stringify(payload),
     });
