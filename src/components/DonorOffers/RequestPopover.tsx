@@ -116,7 +116,11 @@ export default function RequestPopover({
       className="w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4"
     >
       <div className="space-y-4">
-        {wishlistMatch && <p>Details pre-populated from wishlist</p>}
+        {wishlistMatch && (
+          <div className="bg-red-primary/5 border-2 border-red-primary/30 rounded-lg p-2.5">
+            Details pre-populated from wishlist
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Quantity
@@ -176,7 +180,7 @@ export default function RequestPopover({
                   </span>
                 </span>
                 <span className="text-gray-600 text-xs">
-                 fulfills on request
+                  fulfills on request
                 </span>
               </div>
             ) : (
