@@ -5,9 +5,14 @@ import { useEffect, useState } from "react";
 
 export default function WishlistSummary() {
   const { data } = useFetch<{ summary: string }>("/api/wishlists/summary");
-  const [text, setText] = useState<string>();
+  const [text, setText] = useState<string>("Loading wishlist summary...");
 
   useEffect(() => {
+    if (data?.summary === "") {
+      setText("No summary available.");
+      return;
+    }
+
     if (!data?.summary) {
       return;
     }
@@ -29,7 +34,7 @@ export default function WishlistSummary() {
     // I don't like hardcoding the height, but I couldn't find a better way to animate height based on content.
     // Other approaches animated the initial box appearance, but wouldn't animate when the text wrapped to a new line.
     <div
-      className={`${text ? "min-h-20 p-4 rounded border border-red-primary" : "h-0"} transition-all duration-200`}
+      className={`${text ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" : "h-0"} transition-all duration-200`}
     >
       {text}
     </div>
