@@ -8,7 +8,11 @@ export default function ConfiguredSelect<
   Option = unknown,
   IsMulti extends boolean = false,
   Group extends GroupBase<Option> = GroupBase<Option>,
->(props: ComponentProps<typeof Select<Option, IsMulti, Group>>) {
+>(
+  props: ComponentProps<typeof Select<Option, IsMulti, Group>> & {
+    controlStyle?: React.CSSProperties;
+  }
+) {
   return (
     <Select
       className="react-select-container"
@@ -24,6 +28,7 @@ export default function ConfiguredSelect<
           "&:hover": {
             borderColor: state.isFocused ? "#ef4444" : "#d1d5db",
           },
+          ...(props.controlStyle || {}),
         }),
       }}
       {...props}
