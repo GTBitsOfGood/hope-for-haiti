@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
  * The bug should not appear in production.
  */
 export default function WishlistSummary() {
-  const { data } = useFetch<{ summary: string }>("/api/wishlists/summarize");
+  const { data } = useFetch<{ summary: string }>("/api/wishlists/summary");
   const [text, setText] = useState<string>();
 
   useEffect(() => {
