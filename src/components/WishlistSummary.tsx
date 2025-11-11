@@ -3,10 +3,6 @@
 import { useFetch } from "@/hooks/useFetch";
 import { useEffect, useState } from "react";
 
-/**
- * There's a bug with this in development mode due to React Strict Mode causing double rendering.
- * The bug should not appear in production.
- */
 export default function WishlistSummary() {
   const { data } = useFetch<{ summary: string }>("/api/wishlists/summary");
   const [text, setText] = useState<string>();
