@@ -81,6 +81,7 @@ export default function PartnerWishlistScreen({
       id: item.id,
       name: item.name,
       quantity: item.quantity,
+      priority: item.priority,
       comments: item.comments,
     });
   };

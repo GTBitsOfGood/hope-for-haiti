@@ -44,6 +44,7 @@ export default function EditWishlistModal({
     if (!isOpen || !item) return;
     setQuantity(item.quantity?.toString() ?? "");
     setComments(item.comments ?? "");
+    setPriority(item.priority);
   }, [isOpen, item]);
 
   if (!isOpen || !item) return null;
