@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
+import { DonorOfferState } from "@prisma/client";
 
 export default function EditDonorOfferPage() {
   const { donorOfferId } = useParams();
@@ -21,6 +22,7 @@ export default function EditDonorOfferPage() {
   const [partnerResponseDeadline, setPartnerResponseDeadline] = useState("");
   const [donorResponseDeadline, setDonorResponseDeadline] = useState("");
   const [selectedPartners, setSelectedPartners] = useState<Partner[]>([]);
+  const [isArchived, setIsArchived] = useState(false);
 
   const { isLoading: isLoadingDetails } = useFetch<{
     offerName: string;
@@ -28,8 +30,17 @@ export default function EditDonorOfferPage() {
     donorResponseDeadline: string;
     partnerResponseDeadline: string;
     partners: Partner[];
+    state: DonorOfferState;
   }>(`/api/donorOffers/${donorOfferId}?requests=false`, {
     onSuccess: (data) => {
+      // Check if the offer is archived
+      if (data.state === DonorOfferState.ARCHIVED) {
+        setIsArchived(true);
+        toast.error("This donor offer is archived and cannot be edited.");
+        router.push("/donorOffers");
+        return;
+      }
+      
       setOfferName(data.offerName);
       setDonorName(data.donorName);
       setPartnerResponseDeadline(
@@ -70,7 +81,7 @@ export default function EditDonorOfferPage() {
     }
   };
 
-  if (isLoadingDetails) {
+  if (isLoadingDetails || isArchived) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>

@@ -1056,6 +1056,19 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
+    // Prevent editing archived donor offers (except when archiving a finalized offer)
+    if (existingOffer.state === DonorOfferState.ARCHIVED) {
+      // Allow state changes FROM archived (e.g., unarchiving if needed)
+      const isOnlyChangingState = 
+        Object.keys(updateData).length === 1 && updateData.state !== undefined;
+      
+      if (!isOnlyChangingState) {
+        throw new ArgumentError(
+          "Cannot edit an archived donor offer. Archived offers are read-only."
+        );
+      }
+    }
+
     const existingPartnerIds = new Set(existingOffer.partnerVisibilities.map((partner) => partner.id));
 
     const addedPartnerIds = updateData.partners?.filter(id => !existingPartnerIds.has(id)) ?? [];
@@ -1128,6 +1141,17 @@ export default class DonorOfferService {
 
   static async deleteDonorOffer(donorOfferId: number): Promise<void> {
     try {
+      // Check if the donor offer is archived
+      const existingOffer = await db.donorOffer.findUnique({
+        where: { id: donorOfferId },
+      });
+
+      if (existingOffer?.state === DonorOfferState.ARCHIVED) {
+        throw new ArgumentError(
+          "Cannot delete an archived donor offer. Archived offers are read-only."
+        );
+      }
+
       await db.donorOffer.delete({ where: { id: donorOfferId } });
     } catch (error) {
       if (
