@@ -29,12 +29,12 @@ export default function WishlistSummary() {
     return () => clearInterval(interval);
   }, [data]);
 
-  if (!text) {
-    return null;
-  }
-
   return (
-    <div className="m-2 p-4 rounded border border-red-primary h-auto transition-height duration-100">
+    // I don't like hardcoding the height, but I couldn't find a better way to animate height based on content.
+    // Other approaches animated the initial box appearance, but wouldn't animate when the text wrapped to a new line.
+    <div
+      className={`${text ? "h-20 p-4 rounded border border-red-primary" : "h-0"} transition-all duration-200`}
+    >
       {text}
     </div>
   );
