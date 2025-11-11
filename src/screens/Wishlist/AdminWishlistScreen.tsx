@@ -71,7 +71,7 @@ export default function AdminWishlistScreen() {
               <div className="w-1/3 flex items-center justify-center">
                 <ChatTeardropText
                   size={22}
-                  className={wishlist.comments ? "text-black" : "text-gray-300"}
+                  className={wishlist.comments ? "text-black" : "text-gray-primary/50"}
                   data-tooltip-id={`wishlist-comment-${wishlist.id}`}
                   data-tooltip-content={
                     wishlist.comments ? wishlist.comments : "(no comment)"
