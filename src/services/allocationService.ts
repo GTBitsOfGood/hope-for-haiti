@@ -226,6 +226,22 @@ export default class AllocationService {
     }
   ) {
     try {
+      // Check if any allocations belong to an approved distribution
+      const allocations = await db.allocation.findMany({
+        where: { id: { in: ids } },
+        include: {
+          distribution: true,
+        },
+      });
+
+      for (const allocation of allocations) {
+        if (!allocation.distribution.pending) {
+          throw new ArgumentError(
+            "Cannot transfer items from an approved distribution. Approved distributions are locked."
+          );
+        }
+      }
+
       return await db.allocation.updateMany({
         where: { id: { in: ids } },
         data: {
@@ -245,6 +261,20 @@ export default class AllocationService {
 
   static async deleteAllocation(id: number) {
     try {
+      // Check if the allocation belongs to an approved distribution
+      const allocation = await db.allocation.findUnique({
+        where: { id },
+        include: {
+          distribution: true,
+        },
+      });
+
+      if (allocation && !allocation.distribution.pending) {
+        throw new ArgumentError(
+          "Cannot remove items from an approved distribution. Approved distributions are locked."
+        );
+      }
+
       await db.allocation.delete({
         where: { id },
       });
@@ -259,6 +289,22 @@ export default class AllocationService {
   }
 
   static async deleteManyAllocations(ids: number[]) {
+    // Check if any allocations belong to an approved distribution
+    const allocations = await db.allocation.findMany({
+      where: { id: { in: ids } },
+      include: {
+        distribution: true,
+      },
+    });
+
+    for (const allocation of allocations) {
+      if (!allocation.distribution.pending) {
+        throw new ArgumentError(
+          "Cannot remove items from an approved distribution. Approved distributions are locked."
+        );
+      }
+    }
+
     await db.allocation.deleteMany({
       where: { id: { in: ids } },
     });

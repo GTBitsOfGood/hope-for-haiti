@@ -107,6 +107,26 @@ export async function PATCH(request: NextRequest) {
       throw new ArgumentError(parsedBody.error.message);
     }
 
+    // Check if any of the allocations belong to an approved distribution
+    const allocationIds = parsedBody.data.allocations.map((allocation) => allocation.id);
+    const allocations = await Promise.all(
+      allocationIds.map((id) => AllocationService.getAllocation(id))
+    );
+
+    for (const allocation of allocations) {
+      if (!allocation) continue;
+      
+      const distribution = await DistributionService.getDistribution(
+        allocation.distributionId
+      );
+
+      if (!distribution.pending) {
+        throw new ArgumentError(
+          "Cannot transfer items from an approved distribution. Approved distributions are locked."
+        );
+      }
+    }
+
     await AllocationService.updateAllocationBatch(
       parsedBody.data.allocations.map((allocation) => allocation.id),
       {

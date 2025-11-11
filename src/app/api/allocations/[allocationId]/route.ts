@@ -34,6 +34,19 @@ export async function DELETE(
 
     const allocation = await AllocationService.getAllocation(parsed.data);
 
+    // Check if the allocation belongs to an approved distribution
+    if (allocation?.distributionId) {
+      const distribution = await DistributionService.getDistribution(
+        allocation.distributionId
+      );
+
+      if (!distribution.pending) {
+        throw new ArgumentError(
+          "Cannot remove items from an approved distribution. Approved distributions are locked."
+        );
+      }
+    }
+
     await AllocationService.deleteAllocation(parsed.data);
 
     let deletedDistribution = false;
