@@ -25,13 +25,14 @@ export default function AdminWishlistScreen() {
       searchParams.append("page", page.toString());
       searchParams.append("filters", JSON.stringify(filters));
 
-      const response = await apiClient.get<(Wishlist & { partner: User })[]>(
-        `/api/wishlists?${searchParams}`
-      );
+      const response = await apiClient.get<{
+        wishlists: (Wishlist & { partner: User })[];
+        total: number;
+      }>(`/api/wishlists?${searchParams}`);
 
       return {
-        data: response,
-        total: response.length,
+        data: response.wishlists,
+        total: response.total,
       };
     },
     [apiClient]
@@ -71,7 +72,9 @@ export default function AdminWishlistScreen() {
               <div className="w-1/3 flex items-center justify-center">
                 <ChatTeardropText
                   size={22}
-                  className={wishlist.comments ? "text-black" : "text-gray-primary/50"}
+                  className={
+                    wishlist.comments ? "text-black" : "text-gray-primary/50"
+                  }
                   data-tooltip-id={`wishlist-comment-${wishlist.id}`}
                   data-tooltip-content={
                     wishlist.comments ? wishlist.comments : "(no comment)"

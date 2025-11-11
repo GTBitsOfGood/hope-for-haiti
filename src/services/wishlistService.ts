@@ -123,14 +123,24 @@ export class WishlistService {
       filters
     );
 
-    return await db.wishlist.findMany({
+    const query = {
       where: filterWhere,
       skip: page && pageSize ? (page - 1) * pageSize : undefined,
       take: pageSize ?? undefined,
       include: {
         partner: true,
       },
-    });
+    };
+
+    const [wishlists, total] = await Promise.all([
+      db.wishlist.findMany(query),
+      db.wishlist.count({ where: filterWhere }),
+    ]);
+
+    return {
+      wishlists,
+      total,
+    };
   }
 
   static async getUnfulfilledWishlists() {
