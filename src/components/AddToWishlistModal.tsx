@@ -296,7 +296,9 @@ export default function AddToWishlistModal({
                       value: p,
                     }))}
                     onSelect={(priority) =>
-                      (form.priority = priority as $Enums.RequestPriority)
+                    onSelect={(priority) =>
+                      setForm((f) => ({ ...f, priority: priority as $Enums.RequestPriority }))
+                    }
                     }
                     defaultSelected={
                       form.priority
