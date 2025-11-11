@@ -101,7 +101,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(wishlists);
   } catch (error) {
-    console.error(error);
     return errorResponse(error);
   }
 }
