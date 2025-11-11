@@ -1,5 +1,4 @@
-import { ExtraChannelData } from "@/types/api/streamio.types";
-import { ChannelData, PartialUpdateChannel, StreamChat } from "stream-chat";
+import { ChannelData, StreamChat } from "stream-chat";
 
 export default class StreamIoService {
   private static client: StreamChat = StreamChat.getInstance(
@@ -103,37 +102,21 @@ export default class StreamIoService {
     partnerName: string,
     createdById: string,
     memberIds: string[],
-    extraData: ChannelData & {
-      closed: boolean;
-    } = {
-      closed: false,
-    }
+    extraData: ChannelData
   ) {
+
     const channelId = this.channelNameToId(channelName);
     const channel = StreamIoService.client.channel("ticket", channelId, {
       created_by_id: createdById,
       members: memberIds,
-      ...{
-        name: channelName, // For some reason, TS has problems putting name outside this object
-        image: channelImage,
-        partnerName,
-        ...extraData,
-      },
-    });
+      name: channelName,
+      image: channelImage,
+      partnerName,
+      ...extraData,
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     await channel.create();
 
     return channel;
-  }
-
-  static async updateChannelData(
-    channelId: string,
-    data: PartialUpdateChannel["set"] & Partial<ExtraChannelData>
-  ) {
-    const channel = StreamIoService.client.channel("ticket", channelId);
-
-    await channel.updatePartial({
-      set: data,
-    });
   }
 }

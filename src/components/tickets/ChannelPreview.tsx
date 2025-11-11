@@ -3,14 +3,18 @@ import { ExtraChannelData } from "@/types/api/streamio.types";
 import { useSession } from "next-auth/react";
 import { ChannelPreviewUIComponentProps } from "stream-chat-react";
 import ChannelOptionsButton from "./ChannelOptionsButton";
+import { formatRelativeDate } from "@/util/relativeDate";
+
+interface ChannelPreviewProps extends ChannelPreviewUIComponentProps {
+  isActive?: boolean;
+}
 
 export default function ChannelPreview({
   channel,
-  displayTitle,
   latestMessagePreview,
-  unread,
   setActiveChannel,
-}: ChannelPreviewUIComponentProps) {
+  isActive = false,
+}: ChannelPreviewProps) {
   const session = useSession();
 
   const admin = session.data ? isAdmin(session.data.user.type) : false;
@@ -22,50 +26,41 @@ export default function ChannelPreview({
     : channel.data?.created_at
       ? new Date(channel.data?.created_at)
       : new Date();
-  const status =
-    unread && unread > 0
-      ? "Unread"
-      : data.closed
-        ? "Closed"
-        : new Date().getTime() - lastActiveTime.getTime() > 48 * 60 * 60 * 1000
-          ? "Stale"
-          : "Open";
 
-  const statusColors: Record<typeof status, string> = {
-    Unread: "bg-blue-primary/30",
-    Open: "",
-    Stale: "bg-gray-primary/5",
-    Closed: "bg-gray-primary/15",
-  };
+  const relativeDate = formatRelativeDate(lastActiveTime);
 
   return (
     // Use <a> instead of <button> because we need buttons inside and buttons cannot have other buttons inside them
     <a
       onClick={() => setActiveChannel?.(channel)}
-      className={`w-full flex p-2 ${statusColors[status]} hover:bg-blue-primary/50 transition-all duration-200`}
+      className={`flex flex-col p-3 rounded-lg my-1 ${
+        isActive ? "bg-blue-light" : "bg-white"
+      } hover:bg-blue-dark/75 transition-all duration-200 cursor-default`}
     >
-      <img
-        src={data.image}
-        alt={data.name ?? displayTitle}
-        className="w-10 h-10 rounded-full mr-3"
-      />
-      <div className="w-full flex flex-col text-left">
-        <div className="flex justify-between items-center">
-          <div className="font-semibold">
-            {data.name}
-            {admin && ` (${data.partnerName})`}
-          </div>
-          {admin && status !== "Closed" && (
-            <ChannelOptionsButton channel={channel} />
+      {/* Top Row */}
+      <div className="flex items-start mb-1 gap-2 min-w-0">
+        <div className="font-semibold text-left flex-1 min-w-0 overflow-hidden">
+          <span className="inline">{data.name}</span>
+          {admin && data.partnerName && (
+            <span className="text-sm text-gray-500 font-normal ml-2">
+              {data.partnerName}
+            </span>
           )}
         </div>
-        <div className="text-sm text-gray-600 flex gap-1">
-          {latestMessagePreview}
-          {unread && unread > 0 ? (
-            <span className="text-red-primary">({unread} unread)</span>
-          ) : (
-            ""
-          )}
+        {admin && !data.closed && (
+          <div className="flex-shrink-0">
+            <ChannelOptionsButton channel={channel} />
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Row */}
+      <div className="flex justify-between items-center text-sm text-gray-600">
+        <div className="flex-1 min-w-0 max-w-[170px] truncate text-ellipsis">
+          {latestMessagePreview || "No messages yet"}
+        </div>
+        <div className="text-xs text-gray-500 whitespace-nowrap">
+          {relativeDate}
         </div>
       </div>
     </a>

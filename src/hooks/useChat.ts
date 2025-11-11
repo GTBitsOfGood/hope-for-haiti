@@ -15,7 +15,7 @@ export default function useChat() {
       name: user.name ?? undefined,
       image: `https://ui-avatars.com/api/?name=${encodeURIComponent(
         user.name ?? "User"
-      )}&background=random&size=128`,
+      )}&background=f6f7ff&color=ef3340&size=128`,
     },
   });
 

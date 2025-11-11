@@ -1,8 +1,7 @@
-import { Channel } from "stream-chat";
+import { Channel, ChannelData } from "stream-chat";
 import Portal from "../baseTable/Portal";
 import { useState, useRef } from "react";
 import { DotsThree } from "@phosphor-icons/react";
-import { useApiClient } from "@/hooks/useApiClient";
 import { toast } from "react-hot-toast";
 
 export default function ChannelOptionsButton({
@@ -13,19 +12,13 @@ export default function ChannelOptionsButton({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { apiClient } = useApiClient();
-
   async function closeTicket() {
-    if (!apiClient) {
-      toast.error("API client not available");
-      return;
-    }
-
-    const promise = apiClient.patch(`/api/tickets/${channel.id}`, {
-      body: JSON.stringify({
-        closed: true,
-      }),
-    });
+    // Update the channel directly through Stream Chat
+    // This updates the backend and broadcasts to all listeners
+    const promise = channel.update({
+      ...channel.data,
+      closed: true,
+    } as ChannelData & { closed: boolean }); 
 
     toast.promise(promise, {
       loading: "Closing ticket...",
@@ -34,8 +27,6 @@ export default function ChannelOptionsButton({
     });
 
     await promise;
-
-    channel.watch(); // Refresh channel data
 
     setIsDropdownOpen(false);
   }
@@ -57,14 +48,14 @@ export default function ChannelOptionsButton({
         onClose={() => setIsDropdownOpen(false)}
         triggerRef={buttonRef}
         position="bottom-right"
-        className="w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5 py-1"
+        className="w-36 rounded-md bg-white shadow-lg ring-1 ring-black/5"
       >
         <button
           onClick={(e) => {
             e.stopPropagation();
             closeTicket();
           }}
-          className="w-full text-left px-4 py-2 hover:bg-gray-100"
+          className="w-full text-sm text-left px-4 py-2 hover:bg-gray-100"
         >
           Close Ticket
         </button>

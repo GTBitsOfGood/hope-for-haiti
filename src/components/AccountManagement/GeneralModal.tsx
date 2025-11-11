@@ -38,7 +38,7 @@ export default function GeneralModal({
 
         <div className="px-6 pt-4">{children}</div>
 
-        <div className="flex items-center justify-center gap-3 p-6">
+        <div className="flex items-center justify-end gap-3 p-6">
           <button
             onClick={onCancel}
             className="px-8 py-1.5 text-red-primary bg-white border border-red-primary rounded-md hover:bg-gray-50 transition-colors"

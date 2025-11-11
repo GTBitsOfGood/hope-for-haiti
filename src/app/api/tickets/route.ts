@@ -9,6 +9,7 @@ import {
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { ChannelData } from "stream-chat";
 import { z } from "zod";
 
 const postSchema = z.object({
@@ -79,14 +80,19 @@ export async function POST(req: Request) {
 
     const streamUsers = admins.users
       .map((admin) => admin.streamUserId!)
-      .concat(partnerStreamUserId!);
+      .concat([partnerStreamUserId!]);
+
+    const extraData: ChannelData & { closed: boolean } = {
+      closed: false,
+    };
 
     const channel = await StreamIoService.createTicketChannel(
       ticketName,
       channelImage,
       partnerName!,
       session!.user.streamUserId!,
-      streamUsers
+      streamUsers,
+      extraData
     );
 
     return NextResponse.json({ channelId: channel.id });

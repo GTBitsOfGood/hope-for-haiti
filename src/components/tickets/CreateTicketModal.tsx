@@ -7,7 +7,13 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Pencil } from "@phosphor-icons/react";
 
-export default function CreateTicketModal() {
+interface CreateTicketModalProps {
+  onTicketCreated?: (channelId: string) => void;
+}
+
+export default function CreateTicketModal({
+  onTicketCreated,
+}: CreateTicketModalProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const session = useSession();
@@ -52,7 +58,7 @@ export default function CreateTicketModal() {
       return;
     }
 
-    const promise = apiClient.post("/api/tickets", {
+    const promise = apiClient.post<{ channelId: string }>("/api/tickets", {
       body: JSON.stringify({
         ticketName: ticketName.trim(),
         partnerId: partnerId,
@@ -65,22 +71,24 @@ export default function CreateTicketModal() {
       error: "Failed to create ticket.",
     });
 
-    await promise;
+    const response = await promise;
 
     setTicketName("");
     setPartnerId(undefined);
-
     setIsOpen(false);
+
+    if (response.channelId && onTicketCreated) {
+      onTicketCreated(response.channelId);
+    }
   }
 
   return (
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2 bg-blue-primary text-white rounded flex items-center gap-2 justify-center"
+        className="p-2 bg-blue-primary/90 hover:bg-blue-primary transition-all duration-200 text-white rounded flex items-center gap-2 justify-center"
       >
-        <Pencil size={16} />
-        <p>Create Ticket</p>
+        <Pencil size={20} />
       </button>
       <GeneralModal
         isOpen={isOpen}
