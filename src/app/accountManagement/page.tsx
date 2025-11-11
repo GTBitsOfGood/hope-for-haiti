@@ -78,12 +78,10 @@ export default function AccountManagementPage() {
   const [selectedUser, setSelectedUser] = useState<AccountRow | null>(null);
   const [isPermissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [permissionsModalLoading, setPermissionsModalLoading] = useState(false);
-  const [permissionsModalSaving, setPermissionsModalSaving] = useState(false);
-  const [permissionTarget, setPermissionTarget] = useState<{
+  const [permissionState, setPermissionState] = useState<{
     userId: number;
-    name: string;
-    isSuper: boolean;
     permissions: StaffPermissionFlags;
+    isSuper: boolean;
   } | null>(null);
 
   const router = useRouter();
@@ -134,6 +132,9 @@ export default function AccountManagementPage() {
     if (!canManageAccounts) return;
     if (user.pending) return;
     setSelectedUser(user);
+    setPermissionState(null);
+    setPermissionsModalOpen(false);
+    setPermissionsModalLoading(false);
     setEditModalOpen(true);
   };
 
@@ -172,12 +173,22 @@ export default function AccountManagementPage() {
     if (!selectedUser || selectedUser.pending) return;
 
     try {
+      const payload: Record<string, unknown> = {
+        name: data.name,
+        email: data.email,
+        tag: data.tag,
+      };
+
+      if (
+        isStaff(selectedUser.type) &&
+        permissionState &&
+        permissionState.userId === selectedUser.id
+      ) {
+        payload.permissions = permissionState.permissions;
+      }
+
       await apiClient.patch(`/api/users/${selectedUser.id}`, {
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          tag: data.tag,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const nextUser: AccountRow = {
@@ -196,6 +207,9 @@ export default function AccountManagementPage() {
 
     setEditModalOpen(false);
     setSelectedUser(null);
+    setPermissionState(null);
+    setPermissionsModalOpen(false);
+    setPermissionsModalLoading(false);
   };
 
   const confirmDeactivateAccount = async () => {
@@ -223,56 +237,54 @@ export default function AccountManagementPage() {
     setEditModalOpen(false);
     setDeactivateModalOpen(false);
     setSelectedUser(null);
+    setPermissionState(null);
+    setPermissionsModalOpen(false);
+    setPermissionsModalLoading(false);
   };
 
   const closePermissionModal = () => {
     setPermissionsModalOpen(false);
-    setPermissionTarget(null);
     setPermissionsModalLoading(false);
-    setPermissionsModalSaving(false);
   };
 
   const handleManagePermissions = async (user: AccountRow) => {
     if (user.pending || !isStaff(user.type)) return;
     setPermissionsModalOpen(true);
+
+    if (permissionState && permissionState.userId === user.id) {
+      setPermissionsModalLoading(false);
+      return;
+    }
+
     setPermissionsModalLoading(true);
     try {
       const data = await apiClient.get<{ user: AccountUserDetail }>(
         `/api/users/${user.id}`
       );
       const detailedUser = data.user;
-      setPermissionTarget({
+      setPermissionState({
         userId: detailedUser.id,
-        name: detailedUser.name,
-        isSuper: Boolean(detailedUser.isSuper),
         permissions: mapPermissionsFromUser(detailedUser),
+        isSuper: Boolean(detailedUser.isSuper),
       });
     } catch (error) {
       console.error("Error loading permissions:", error);
       toast.error("Unable to load permissions. Please try again.");
+      setPermissionState(null);
       closePermissionModal();
     } finally {
       setPermissionsModalLoading(false);
     }
   };
 
-  const handleSavePermissions = async (
-    nextPermissions: StaffPermissionFlags
-  ) => {
-    if (!permissionTarget) return;
-    setPermissionsModalSaving(true);
-    try {
-      await apiClient.patch(`/api/users/${permissionTarget.userId}`, {
-        body: JSON.stringify({ permissions: nextPermissions }),
-      });
-      toast.success("Permissions updated");
-      closePermissionModal();
-    } catch (error) {
-      console.error("Error updating permissions:", error);
-      toast.error("Unable to update permissions. Please try again.");
-    } finally {
-      setPermissionsModalSaving(false);
-    }
+  const handleSavePermissions = (nextPermissions: StaffPermissionFlags) => {
+    if (!selectedUser) return;
+    setPermissionState((prev) => ({
+      userId: selectedUser.id,
+      permissions: nextPermissions,
+      isSuper: prev?.isSuper ?? false,
+    }));
+    closePermissionModal();
   };
 
   const fetchFn = useCallback(
@@ -468,17 +480,22 @@ This will restore the user's access to the system.`
         <StaffPermissionsModal
           isOpen={isPermissionsModalOpen}
           title={
-            permissionTarget
-              ? `Permissions for ${permissionTarget.name}`
+            selectedUser
+              ? `Permissions for ${selectedUser.name}`
               : "Staff permissions"
           }
-          initialPermissions={permissionTarget?.permissions}
+          initialPermissions={
+            permissionState &&
+            selectedUser &&
+            permissionState.userId === selectedUser.id
+              ? permissionState.permissions
+              : undefined
+          }
           onClose={closePermissionModal}
           onCancel={closePermissionModal}
           onSave={handleSavePermissions}
           isLoading={permissionsModalLoading}
-          isSaving={permissionsModalSaving}
-          isTargetSuper={Boolean(permissionTarget?.isSuper)}
+          isTargetSuper={Boolean(permissionState?.isSuper)}
           canGrantUserWrite={Boolean(currentUser?.isSuper)}
         />
       )}
