@@ -24,7 +24,7 @@ export async function GET() {
 
     if (wishlists.length < 10) {
       return NextResponse.json({
-        summary: "Not enough wishlists to generate a summary.",
+        summary: "",
       });
     }
 
