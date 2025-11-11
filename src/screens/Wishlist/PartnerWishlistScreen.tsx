@@ -14,7 +14,7 @@ import AdvancedBaseTable, {
 import AddToWishlistModal from "@/components/AddToWishlistModal";
 import EditWishlistModal from "@/components/EditWishlistModal";
 import DeleteWishlistModal from "@/components/DeleteWishlistModal";
-import { titleCase } from "@/util/util";
+import PriorityTag from "@/components/tags/PriorityTag";
 
 type WishlistItem = Wishlist;
 
@@ -122,7 +122,7 @@ export default function PartnerWishlistScreen({
     {
       id: "priority",
       header: "Priority",
-      cell: (it) => titleCase(it.priority),
+      cell: (it) => <PriorityTag priority={it.priority} />,
       filterType: "string",
     },
     {

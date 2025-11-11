@@ -7,7 +7,6 @@ import {
   AuthenticationError,
   errorResponse,
 } from "@/util/errors";
-import { titleCase } from "@/util/util";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -41,7 +40,7 @@ export async function GET() {
     const userPrompt = `Here is the list of unfulfilled wishlists:\n${wishlists
       .map(
         (w) =>
-          `- ${w.name} (Priority: ${titleCase(w.priority)}, Quantity: ${w.quantity}, Comments: ${w.comments || "None"})`
+          `- ${w.name} (Priority: ${w.priority.toLowerCase()}, Quantity: ${w.quantity}, Comments: ${w.comments || "None"})`
       )
       .join("\n")}\n\nPlease provide a concise summary.`;
 

@@ -9,6 +9,7 @@ import { useCallback } from "react";
 import WishlistSummary from "@/components/WishlistSummary";
 import { ChatTeardropText } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
+import PriorityTag from "@/components/tags/PriorityTag";
 
 export default function AdminWishlistScreen() {
   const { apiClient } = useApiClient();
@@ -56,7 +57,7 @@ export default function AdminWishlistScreen() {
           {
             header: "Priority",
             id: "priority",
-            cell: (wishlist) => wishlist.priority,
+            cell: (wishlist) => <PriorityTag priority={wishlist.priority} />,
           },
           {
             header: "Quantity",
