@@ -18,11 +18,13 @@ import {
   PermissionName,
   PermissionFlags,
   UpdateUserData,
+  EditablePermissionField,
 } from "@/types/api/user.types";
 import { validatePassword } from "@/util/util";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { User } from "next-auth";
+import { STAFF_PERMISSION_DEPENDENCIES } from "@/constants/staffPermissions";
 
 function parsePartnerDetails(raw?: string) {
   if (!raw) return undefined;
@@ -374,6 +376,27 @@ export default class UserService {
 
     if (data.name && data.name.trim().length === 0) {
       throw new ArgumentError("Name cannot be empty");
+    }
+
+    if (data.enabled === false && (existingUser.userWrite || existingUser.isSuper)) {
+      throw new AuthorizationError("Cannot deactivate users with userWrite or isSuper permissions");
+    }
+
+    if (data.permissions) {
+      const finalPermissions = {
+          ...existingUser,
+          ...data.permissions
+      }
+
+      for (const [field, value] of Object.entries(finalPermissions)) {
+        if (value && STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField]) {
+          const deps = STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField];
+          const missingDeps = deps.filter(dep => !finalPermissions[dep]);
+          if (missingDeps.length > 0) {
+            throw new ArgumentError(`Cannot enable ${field} without enabling dependencies: ${missingDeps.join(', ')}`);
+          }
+        }
+      }
     }
 
     const updateData: Record<string, unknown> = {};

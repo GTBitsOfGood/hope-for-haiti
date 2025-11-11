@@ -96,7 +96,7 @@ export async function PATCH(
       throw new ArgumentError(bodyParsed.error.message);
     }
     
-    const userToEdit = await UserService.getUserById(parsed.data.userId);
+    // These checks relate to the session user - the ones in userService relate to the target user
     const isSelf = session.user.id === parsed.data.userId.toString();
 
     if (isSelf) {
@@ -106,10 +106,6 @@ export async function PATCH(
       if (bodyParsed.data.enabled !== undefined) {
         throw new AuthorizationError("Cannot modify your own enabled status");
       }
-    }
-
-    if (bodyParsed.data.enabled === false && (userToEdit.userWrite || userToEdit.isSuper)) {
-      throw new AuthorizationError("Cannot deactivate users with userWrite or isSuper permissions");
     }
 
     if (bodyParsed.data.permissions?.userWrite !== undefined && !session.user.isSuper) {
