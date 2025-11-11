@@ -13,6 +13,7 @@ export type WishlistEditable = {
   id: number;
   name: string; // Title (read-only)
   quantity?: number | null;
+  priority?: $Enums.RequestPriority;
   comments?: string | null;
 };
 

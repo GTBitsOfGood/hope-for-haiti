@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
-import { Wishlist } from "@prisma/client";
+import { $Enums, Wishlist } from "@prisma/client";
 import { PencilSimple, ChatTeardropText, Trash } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
 import AdvancedBaseTable, {
@@ -22,6 +22,7 @@ type WishlistEditable = {
   id: number;
   name: string;
   quantity?: number | null;
+  priority?: $Enums.RequestPriority;
   comments?: string | null;
 };
 
