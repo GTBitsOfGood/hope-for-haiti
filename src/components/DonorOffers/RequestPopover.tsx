@@ -176,7 +176,7 @@ export default function RequestPopover({
                   </span>
                 </span>
                 <span className="text-gray-600 text-xs">
-                  — auto-connects on request
+                 fulfills on request
                 </span>
               </div>
             ) : (
