@@ -120,7 +120,7 @@ export default function AddToWishlistModal({
       name: form.name.trim(),
       quantity: form.quantity ?? null,
       comments: form.comments?.trim() ?? "",
-      priority: form.priority ?? $Enums.RequestPriority.MEDIUM,
+      priority: form.priority ?? $Enums.RequestPriority.LOW,
       lastUpdated: new Date(),
     };
 

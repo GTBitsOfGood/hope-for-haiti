@@ -55,7 +55,7 @@ export default function EditWishlistModal({
       await onSave({
         id: item.id,
         quantity: quantity === "" ? undefined : Number(quantity),
-        priority: priority || $Enums.RequestPriority.MEDIUM,
+        priority: priority || $Enums.RequestPriority.LOW,
         comments: comments.trim() || undefined,
       });
       onClose();
