@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { RequestPriority, Wishlist } from "@prisma/client";
 import Portal from "@/components/baseTable/Portal";
-import { useApiClient } from "@/hooks/useApiClient";
+import { useFetch } from "@/hooks/useFetch";
 
 interface RequestPopoverProps {
   isOpen: boolean;
@@ -54,8 +54,6 @@ export default function RequestPopover({
   item,
   wishlistMatch,
 }: RequestPopoverProps) {
-  const { apiClient } = useApiClient();
-
   const [quantity, setQuantity] = useState<string>(
     initialData?.quantity ? initialData.quantity.toString() : ""
   );
@@ -65,18 +63,15 @@ export default function RequestPopover({
   const [comments, setComments] = useState(initialData?.comments || "");
   const [connectWishlist, setConnectWishlist] = useState(false);
 
-  useEffect(() => {
-    if (!wishlistMatch) return;
-
-    apiClient
-      .get<Wishlist>(`api/wishlists/${wishlistMatch?.wishlistId}`)
-      .then((data) => {
-        // Don't overwrite user edits
-        setQuantity((quantity) => quantity || data.quantity?.toString() || "");
-        setPriority((prev) => prev || (data.priority as RequestPriority) || "");
-        setComments((comments) => comments || data.comments || "");
-      });
-  }, [apiClient, wishlistMatch]);
+  useFetch(`api/wishlists/${wishlistMatch?.wishlistId}`, {
+    conditionalFetch: wishlistMatch != undefined,
+    onSuccess: (data: Wishlist) => {
+      // Don't overwrite user edits
+      setQuantity((quantity) => quantity || data.quantity?.toString() || "");
+      setPriority((prev) => prev || (data.priority as RequestPriority) || "");
+      setComments((comments) => comments || data.comments || "");
+    },
+  });
 
   useEffect(() => {
     setQuantity(initialData?.quantity ? initialData.quantity.toString() : "");
