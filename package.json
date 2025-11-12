@@ -18,6 +18,7 @@
     "email:dev": "email dev --dir ./src/email --port 4000"
   },
   "dependencies": {
+    "@ably/chat": "^1.1.0",
     "@azure/storage-blob": "^12.27.0",
     "@chroma-core/default-embed": "^0.1.8",
     "@chroma-core/openai": "^0.1.7",
@@ -34,9 +35,10 @@
     "@types/leaflet": "^1.9.21",
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/tmp": "^0.2.6",
+    "ably": "^2.14.0",
     "argon2": "^0.41.1",
-    "chromadb": "^3.1.0",
     "chart.js": "^4.5.1",
+    "chromadb": "^3.1.0",
     "date-fns": "^4.1.0",
     "formidable": "^3.5.2",
     "highs": "^1.8.0",
