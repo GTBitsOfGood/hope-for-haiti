@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   NotFoundError,
 } from "@/util/errors";
 import { errorResponse, ok } from "@/util/errors";
@@ -58,9 +57,7 @@ export async function GET(
       return NextResponse.json(distribution);
     }
 
-    if (!UserService.isAdmin(user.type)) {
-      throw new AuthorizationError("You are not allowed to view this");
-    }
+    UserService.checkPermission(user, "distributionRead");
 
     return NextResponse.json(distribution);
   } catch (error) {
@@ -78,9 +75,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "distributionWrite");
 
     const parsedParams = paramSchema.safeParse({
       distributionId: (await params).distributionId,
@@ -125,9 +120,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "distributionWrite");
 
     const parsed = paramSchema.safeParse({
       distributionId: (await params).distributionId,

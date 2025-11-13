@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { errorResponse } from "@/util/errors";
 import { PartnerService } from "@/services/partnerService";
-import { AuthenticationError, AuthorizationError, ArgumentError } from "@/util/errors";
+import { AuthenticationError, ArgumentError } from "@/util/errors";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import UserService from "@/services/userService";
@@ -17,9 +17,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "userRead");
 
     const { searchParams } = new URL(request.url);
     const parsed = searchParamsSchema.safeParse({

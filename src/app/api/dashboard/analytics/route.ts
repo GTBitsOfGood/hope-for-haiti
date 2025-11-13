@@ -1,11 +1,9 @@
 import { auth } from "@/auth";
-import { isAdmin } from "@/lib/userUtils";
 import { LineItemService } from "@/services/lineItemService";
 import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 import { NextResponse } from "next/server";
@@ -34,9 +32,7 @@ export async function GET(request: Request) {
       throw new AuthenticationError("User not authenticated");
     }
 
-    if (!isAdmin(session.user.type)) {
-      throw new AuthorizationError("User must be an admin");
-    }
+    UserService.checkStaff(session.user);
 
     const url = new URL(request.url);
     const parsedQuery = querySchema.safeParse(

@@ -3,6 +3,7 @@ import { useRef, useCallback, useState } from "react";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
+  ColumnDefinition,
 } from "./baseTable/AdvancedBaseTable";
 import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./chips/Chip";
@@ -11,9 +12,13 @@ import Portal from "./baseTable/Portal";
 import ChangeShippingStatusMenu from "./ChangeShippingStatusMenu";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
 import ShipmentsLineItemChipGroup from "./chips/ShipmentsLineItemChipGroup";
+import { useUser } from "@/components/context/UserContext";
+import { hasPermission } from "@/lib/userUtils";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
+  const { user } = useUser();
+  const canManageShipments = hasPermission(user, "shipmentWrite");
 
   const tableRef = useRef<AdvancedBaseTableHandle<Shipment>>(null);
 
@@ -36,10 +41,7 @@ export default function ShipmentsTable() {
     [apiClient]
   );
 
-  return (
-    <AdvancedBaseTable
-      ref={tableRef}
-      columns={[
+  const columns: ColumnDefinition<Shipment>[] = [
         {
           id: "donorShippingNumber",
           header: "Donor Shipping #",
@@ -66,17 +68,25 @@ export default function ShipmentsTable() {
               />
             )),
         },
-        {
-          id: "manage",
-          header: "Manage",
-          cell: (shipment) => (
-            <OptionsButton
-              shipment={shipment}
-              fetchTableData={() => tableRef.current?.reload()}
-            />
-          ),
-        },
-      ]}
+      ];
+
+  if (canManageShipments) {
+    columns.push({
+      id: "manage",
+      header: "Manage",
+      cell: (shipment) => (
+        <OptionsButton
+          shipment={shipment}
+          fetchTableData={() => tableRef.current?.reload()}
+        />
+      ),
+    });
+  }
+
+  return (
+    <AdvancedBaseTable
+      ref={tableRef}
+      columns={columns}
       fetchFn={fetchTableData}
       rowId={"id"}
       rowBody={(shipment) => (

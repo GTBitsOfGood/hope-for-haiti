@@ -2,8 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { isPartner } from "@/lib/userUtils";
 import PartnerRequestsScreen from "@/screens/PartnerRequestsScreen";
+import { isPartner } from "@/lib/userUtils";
 
 export default function RequestsPage() {
   const { data: session } = useSession();

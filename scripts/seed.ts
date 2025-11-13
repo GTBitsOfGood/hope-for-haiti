@@ -124,32 +124,99 @@ async function buildSeedData() {
 
   const passwordHash = await hash("root");
 
-  // Create staff users
+  // Create staff users with Stream credentials
   const superAdmin = await createUser({
     email: "superadmin@test.com",
     name: "Super Admin",
     passwordHash,
-    type: UserType.SUPER_ADMIN,
+    type: UserType.STAFF,
     enabled: true,
     pending: false,
+    isSuper: true,
+    userRead: true,
+    userWrite: true,
+    itemNotify: true,
+    offerWrite: true,
+    requestRead: true,
+    requestWrite: true,
+    allocationRead: true,
+    allocationWrite: true,
+    archivedRead: true,
+    distributionRead: true,
+    distributionWrite: true,
+    shipmentRead: true,
+    shipmentWrite: true,
+    signoffWrite: true,
+    wishlistRead: true,
+    supportRead: true,
+    supportWrite: true,
+    supportNotify: true,
   });
 
-  const admin = await createUser({
-    email: "admin@test.com",
-    name: "Admin User",
-    passwordHash,
-    type: UserType.ADMIN,
-    enabled: true,
-    pending: false,
-  });
-
-  const staff = await createUser({
-    email: "staff@test.com",
-    name: "Staff Member",
+  const distributionLead = await createUser({
+    email: "distribution@test.com",
+    name: "Distribution Lead",
     passwordHash,
     type: UserType.STAFF,
     enabled: true,
     pending: false,
+    userRead: false,
+    userWrite: false,
+    requestRead: true,
+    allocationRead: true,
+    allocationWrite: true,
+    archivedRead: true,
+    distributionRead: true,
+    distributionWrite: true,
+    shipmentRead: true,
+    shipmentWrite: true,
+    signoffWrite: true,
+    wishlistRead: false,
+    offerWrite: false,
+    requestWrite: false,
+    itemNotify: false,
+    supportRead: true,
+    supportWrite: false,
+    supportNotify: false,
+  });
+
+  const donorOfferManager = await createUser({
+    email: "donoroffers@test.com",
+    name: "Donor Offer Manager",
+    passwordHash,
+    type: UserType.STAFF,
+    enabled: true,
+    pending: false,
+    requestRead: true,
+    requestWrite: true,
+    allocationRead: true,
+    allocationWrite: true,
+    archivedRead: true,
+    offerWrite: true,
+    itemNotify: true,
+    wishlistRead: true,
+    supportRead: true,
+    supportWrite: true,
+    supportNotify: true,
+  });
+
+  const readOnlyStaff = await createUser({
+    email: "readonly@test.com",
+    name: "Read Only Staff",
+    passwordHash,
+    type: UserType.STAFF,
+    enabled: true,
+    pending: false,
+    userRead: true,
+    requestRead: true,
+    allocationRead: true,
+    archivedRead: true,
+    distributionRead: true,
+    shipmentRead: true,
+    wishlistRead: true,
+    supportRead: true,
+    itemNotify: true,
+    supportNotify: true,
   });
 
   // Create partner users
@@ -909,7 +976,7 @@ async function buildSeedData() {
   // Create sign-off for approved distribution
   const signOff = await db.signOff.create({
     data: {
-      staffMemberName: staff.name,
+      staffMemberName: distributionLead.name,
       partnerId: externalPartner.id,
       partnerName: externalPartner.name,
       date: addDays(-10),

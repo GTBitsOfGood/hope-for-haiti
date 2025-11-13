@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { isPartner } from "@/lib/userUtils";
+import UserService from "@/services/userService";
 import { GeneralItemRequestService } from "@/services/generalItemRequestService";
 import { WishlistService } from "@/services/wishlistService";
 import {
@@ -37,6 +37,9 @@ export async function GET(
     }
 
     const { generalItemId } = await params;
+    
+    UserService.checkPermission(session.user, "requestRead");
+
     const parsedParams = tableParamsSchema.safeParse({
       filters: request.nextUrl.searchParams.get("filters"),
       page: request.nextUrl.searchParams.get("page"),
@@ -73,7 +76,7 @@ export async function POST(
       throw new AuthenticationError("Session required");
     }
 
-    if (!isPartner(session.user.type)) {
+    if (!UserService.isPartner(session.user)) {
       throw new AuthorizationError("Partner access required");
     }
 
@@ -115,4 +118,3 @@ export async function POST(
     return errorResponse(error);
   }
 }
-

@@ -6,7 +6,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -28,9 +27,7 @@ export async function POST(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to send an invite reminder");
-    }
+    UserService.checkPermission(session.user, "userWrite");
 
     const { userId } = await params;
     const parsed = paramSchema.safeParse({ userId });

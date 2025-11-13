@@ -5,11 +5,9 @@ import { auth } from "@/auth";
 import DonorOfferService from "@/services/donorOfferService";
 import { GeneralItemRequestService } from "@/services/generalItemRequestService";
 import UserService from "@/services/userService";
-import { isPartner } from "@/lib/userUtils";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -58,7 +56,7 @@ export async function PATCH(
     const contentType = req.headers.get("content-type");
     const isFormData = contentType?.includes("multipart/form-data");
 
-    if (isPartner(session.user.type)) {
+    if (UserService.isPartner(session.user)) {
       if (!isFormData) {
         throw new ArgumentError("Partners must submit FormData");
       }
@@ -82,7 +80,8 @@ export async function PATCH(
       );
 
       return NextResponse.json(ok());
-    } else if (UserService.isStaff(session.user.type)) {
+    } else {
+      UserService.checkPermission(session.user, "requestWrite");
       if (isFormData) {
         throw new ArgumentError("Staff must submit JSON");
       }
@@ -102,8 +101,6 @@ export async function PATCH(
       );
 
       return NextResponse.json(ok());
-    } else {
-      throw new AuthorizationError("Unauthorized to update requests");
     }
   } catch (error) {
     return errorResponse(error);
@@ -120,9 +117,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "requestWrite");
 
     const { generalItemId, requestId } = await params;
     const parsed = paramSchema.safeParse({ generalItemId, requestId });

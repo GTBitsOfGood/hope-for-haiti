@@ -4,7 +4,6 @@ import DistributionService from "@/services/distributionService";
 import UserService from "@/services/userService";
 import {
   AuthenticationError,
-  AuthorizationError,
   ArgumentError,
   errorResponse,
 } from "@/util/errors";
@@ -23,9 +22,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "allocationWrite");
 
     const parsed = idSchema.safeParse(Number((await params).allocationId));
     if (!parsed.success) {

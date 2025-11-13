@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { UserType } from "@prisma/client";
 import GeneralModal from "./GeneralModal";
-import { useUser } from "@/components/context/UserContext";
-import { isAdmin } from "@/lib/userUtils";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 
 interface EditModalProps {
@@ -13,7 +11,6 @@ interface EditModalProps {
   onConfirm: (data: {
     name: string;
     email: string;
-    role: UserType;
     tag: string;
   }) => void;
   initialData?: {
@@ -25,8 +22,8 @@ interface EditModalProps {
   confirmText?: string;
   cancelText?: string;
   isStaffAccount?: boolean;
-  selectedUserId?: number;
   existingTags?: string[];
+  onManagePermissions?: () => void;
 }
 
 export default function EditModal({
@@ -39,14 +36,12 @@ export default function EditModal({
   confirmText = "Save changes",
   cancelText = "Cancel",
   isStaffAccount = true,
-  selectedUserId,
   existingTags = [],
+  onManagePermissions,
 }: EditModalProps) {
-  const { user: currentUser } = useUser();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "STAFF" as UserType,
     tag: "",
   });
 
@@ -55,7 +50,6 @@ export default function EditModal({
       setFormData({
         name: initialData.name,
         email: initialData.email,
-        role: initialData.role,
         tag: initialData.tag || "",
       });
     }
@@ -77,55 +71,12 @@ export default function EditModal({
       setFormData({
         name: initialData.name,
         email: initialData.email,
-        role: initialData.role,
         tag: initialData.tag || "",
       });
     }
     onCancel();
   };
 
-  // Determine if the current user can edit roles
-  const canEditRoles = currentUser && isAdmin(currentUser.type);
-
-  // Check if editing own account
-  const isEditingOwnAccount =
-    currentUser &&
-    selectedUserId &&
-    parseInt(currentUser.id) === selectedUserId;
-
-  // Determine available role options based on current user's permissions
-  const getAvailableRoleOptions = () => {
-    if (!currentUser || !canEditRoles) return [];
-
-    // If editing own account, don't allow role changes
-    if (isEditingOwnAccount) return [];
-
-    // SUPER_ADMIN can assign any role except PARTNER (handled elsewhere)
-    if (currentUser.type === "SUPER_ADMIN") {
-      return [
-        { value: "STAFF", label: "Staff" },
-        { value: "ADMIN", label: "Admin" },
-        { value: "SUPER_ADMIN", label: "Super Admin" },
-      ];
-    }
-
-    // ADMIN can only assign STAFF and ADMIN roles, not SUPER_ADMIN
-    if (currentUser.type === "ADMIN") {
-      return [
-        { value: "STAFF", label: "Staff" },
-        { value: "ADMIN", label: "Admin" },
-      ];
-    }
-
-    return [];
-  };
-
-  const availableRoleOptions = getAvailableRoleOptions();
-  const shouldShowRoleField =
-    isStaffAccount &&
-    canEditRoles &&
-    !isEditingOwnAccount &&
-    availableRoleOptions.length > 0;
 
   return (
     <GeneralModal
@@ -165,34 +116,6 @@ export default function EditModal({
           />
         </div>
 
-        {shouldShowRoleField && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Role
-            </label>
-            <select
-              value={formData.role}
-              onChange={(e) =>
-                handleInputChange("role", e.target.value as UserType)
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-            >
-              {availableRoleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {isEditingOwnAccount && isStaffAccount && (
-          <div className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-            <strong>Note:</strong> You cannot change your own role for security
-            reasons.
-          </div>
-        )}
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Tag
@@ -212,6 +135,22 @@ export default function EditModal({
             placeholder="Select or create a tag..."
           />
         </div>
+
+        {isStaffAccount && onManagePermissions && (
+          <div className="rounded-lg border border-gray-200 bg-red-50/30 px-4 py-3">
+            <p className="text-sm text-gray-700">
+              Permissions control what this staff member can view or edit across the
+              platform.
+            </p>
+            <button
+              type="button"
+              onClick={onManagePermissions}
+              className="mt-2 text-sm font-semibold text-red-500 hover:text-red-600"
+            >
+              Manage permissions
+            </button>
+          </div>
+        )}
       </div>
     </GeneralModal>
   );

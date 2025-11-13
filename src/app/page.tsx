@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@/components/context/UserContext";
-import { isAdmin } from "@/lib/userUtils";
+import { isStaff } from "@/lib/userUtils";
 import AdminDashboardScreen from "@/screens/dashboard/AdminDashboardScreen";
 
 export default function HomePage() {
@@ -16,7 +16,7 @@ export default function HomePage() {
   }
 
   // Show admin dashboard for admin users
-  if (user && isAdmin(user.type)) {
+  if (user && isStaff(user.type)) {
     return <AdminDashboardScreen />;
   }
 

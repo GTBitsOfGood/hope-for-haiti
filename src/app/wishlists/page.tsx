@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { isStaff } from "@/lib/userUtils";
+import { hasPermission, isPartner } from "@/lib/userUtils";
 import AdminWishlistScreen from "@/screens/Wishlist/AdminWishlistScreen";
 import PartnerWishlistScreen from "@/screens/Wishlist/PartnerWishlistScreen";
 
@@ -13,11 +13,13 @@ export default function WishlistsPage() {
 		redirect("/signIn");
 	}
 
-	if (isStaff(session.user.type)) {
+	if (hasPermission(session.user, "wishlistRead")) {
 		return <AdminWishlistScreen />;
 	}
 
-	// Partner sees their own wishlist
-	return <PartnerWishlistScreen />;
-}
+	if (isPartner(session.user.type)) {
+		return <PartnerWishlistScreen />;
+	}
 
+	redirect("/");
+}

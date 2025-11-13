@@ -5,7 +5,6 @@ import { RequestPriority, Prisma } from "@prisma/client";
 import {
   errorResponse,
   AuthenticationError,
-  AuthorizationError,
   ArgumentError,
 } from "@/util/errors";
 import UserService from "@/services/userService";
@@ -63,9 +62,7 @@ export async function POST(req: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "requestWrite");
 
     const json = await req.json().catch(() => ({}));
     const parsed = bodySchema.safeParse(json);

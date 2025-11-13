@@ -7,7 +7,6 @@ import DistributionService from "@/services/distributionService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 import { allocationSchema } from "@/types/api/allocation.types";
@@ -54,9 +53,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    if (!UserService.isAdmin(user.type)) {
-      throw new AuthorizationError("You are not allowed to view this");
-    }
+    UserService.checkPermission(user, "distributionRead");
 
     const result = await DistributionService.getAllDistributions(
       page,
@@ -76,9 +73,7 @@ export async function POST(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "distributionWrite");
 
     const form = await request.formData();
     const formObj = {

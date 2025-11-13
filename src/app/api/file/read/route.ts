@@ -24,9 +24,7 @@ export async function GET(req: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthenticationError("You are not allowed to access this");
-    }
+    UserService.checkPermission(session.user, "requestRead");
 
     const params = req.nextUrl.searchParams;
     const parsed = paramSchema.safeParse({

@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import AdminAllocateDonorOfferScreen from "@/screens/DonorOffersScreens/AdminAllocateDonorOfferScreen";
-import { isStaff } from "@/lib/userUtils";
+import { hasPermission } from "@/lib/userUtils";
 
 export default function DonorOffersAllocatePage() {
   const { data: session } = useSession();
@@ -12,7 +12,7 @@ export default function DonorOffersAllocatePage() {
     redirect("/signIn");
   }
 
-  if (isStaff(session.user.type)) {
+  if (hasPermission(session.user, "allocationWrite")) {
     return <AdminAllocateDonorOfferScreen />;
   }
 

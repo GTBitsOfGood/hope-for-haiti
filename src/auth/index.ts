@@ -9,17 +9,19 @@ import { UserType } from "@prisma/client";
 import { db } from "@/db";
 import { verify } from "argon2";
 import authConfig from "@/auth/auth.config";
+import { PERMISSION_FIELDS, PermissionFlags, PERMISSION_SELECT } from "@/types/api/user.types";
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = INVALID_CREDENTIALS_ERR;
 }
 
 declare module "next-auth" {
-  interface User {
+  interface User extends PermissionFlags {
     type: UserType;
     streamUserId: string | null;
     streamUserToken: string | null;
     enabled: boolean;
+    tag?: string;
   }
 
   interface Session {
@@ -31,18 +33,20 @@ declare module "next-auth" {
       streamUserToken: string | null;
       tag?: string;
       enabled: boolean;
-    } & DefaultSession["user"];
+    } & DefaultSession["user"] &
+      PermissionFlags;
   }
 }
 
 declare module "next-auth/jwt" {
-  interface JWT {
+  interface JWT extends PermissionFlags {
     id: string;
     type: UserType;
     enabled: boolean;
     name: string | null | undefined;
     streamUserId: string | null;
     streamUserToken: string | null;
+    tag?: string;
   }
 }
 
@@ -59,6 +63,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: {
             email: credentials.email as string,
           },
+          select: {
+            id: true,
+            name: true,
+            passwordHash: true,
+            type: true,
+            enabled: true,
+            tag: true,
+            streamUserId: true,
+            streamUserToken: true,
+            ...PERMISSION_SELECT,
+          },
         });
         if (!user) throw new InvalidCredentialsError();
 
@@ -69,12 +84,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!passwordsMatch) throw new InvalidCredentialsError();
 
         return {
+          ...user,
           id: user.id.toString(),
           type: user.type,
           enabled: user.enabled,
           name: user.name,
           streamUserId: user.streamUserId,
           streamUserToken: user.streamUserToken,
+          tag: user.tag ?? undefined,
         };
       },
     }),
@@ -88,6 +105,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.name = user.name ?? user.email ?? `User ${user.id}`;
         token.streamUserId = user.streamUserId;
         token.streamUserToken = user.streamUserToken;
+        token.tag = user.tag;
+        PERMISSION_FIELDS.forEach((field) => {
+          token[field] = user[field];
+        });
       }
 
       return token;
@@ -99,6 +120,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.name = token.name;
       session.user.streamUserId = token.streamUserId;
       session.user.streamUserToken = token.streamUserToken;
+      session.user.tag = token.tag;
+      PERMISSION_FIELDS.forEach((field) => {
+        session.user[field] = Boolean(token[field]);
+      });
 
       return session;
     },

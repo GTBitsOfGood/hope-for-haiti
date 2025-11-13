@@ -10,6 +10,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { UserType } from "@prisma/client";
+import { EDITABLE_PERMISSION_FIELDS } from "@/types/api/user.types";
 
 const paramSchema = z.object({
   userId: z
@@ -18,12 +19,28 @@ const paramSchema = z.object({
     .pipe(z.number().int().positive("User ID must be a positive integer")),
 });
 
+const permissionsSchema = z
+  .object(
+    EDITABLE_PERMISSION_FIELDS.reduce(
+      (shape, field) => {
+        shape[field] = z.boolean().optional();
+        return shape;
+      },
+      {} as Record<
+        (typeof EDITABLE_PERMISSION_FIELDS)[number],
+        z.ZodOptional<z.ZodBoolean>
+      >
+    )
+  )
+  .partial();
+
 const patchBodySchema = z.object({
   name: z.string().optional(),
   email: z.string().email().optional(),
   tag: z.string().optional(),
   role: z.nativeEnum(UserType).optional(),
   enabled: z.boolean().optional(),
+  permissions: permissionsSchema.optional(),
 });
 
 export async function GET(
@@ -42,10 +59,8 @@ export async function GET(
       throw new ArgumentError(parsed.error.message);
     }
 
-    if (!UserService.isAdmin(session.user.type) && session.user.id !== userId) {
-      throw new AuthorizationError(
-        "Must be ADMIN, STAFF, SUPER_ADMIN or own profile"
-      );
+    if (session.user.id !== userId) {
+      UserService.checkPermission(session.user, "userRead");
     }
 
     const user = await UserService.getUserById(parsed.data.userId);
@@ -66,9 +81,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be ADMIN or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "userWrite");
 
     const { userId } = await params;
     const parsed = paramSchema.safeParse({ userId });
@@ -82,40 +95,21 @@ export async function PATCH(
     if (!bodyParsed.success) {
       throw new ArgumentError(bodyParsed.error.message);
     }
+    
+    // These checks relate to the session user - the ones in userService relate to the target user
+    const isSelf = session.user.id === parsed.data.userId.toString();
 
-    const currentUser = await UserService.getUserById(parsed.data.userId);
-    const requestedRole = bodyParsed.data.role;
-
-    if (requestedRole && session.user.id === parsed.data.userId.toString()) {
-      throw new AuthorizationError("Cannot change your own role");
+    if (isSelf) {
+      if (bodyParsed.data.permissions) {
+        throw new AuthorizationError("Cannot modify your own permissions");
+      }
+      if (bodyParsed.data.enabled !== undefined) {
+        throw new AuthorizationError("Cannot modify your own enabled status");
+      }
     }
 
-    if (requestedRole) {
-      if (
-        currentUser.type === UserType.PARTNER &&
-        requestedRole !== UserType.PARTNER
-      ) {
-        throw new ArgumentError("Cannot change role of a partner");
-      }
-      if (
-        UserService.isStaff(currentUser.type) &&
-        requestedRole === UserType.PARTNER
-      ) {
-        throw new ArgumentError("Cannot change staff to partner");
-      }
-
-      if (
-        requestedRole === UserType.SUPER_ADMIN &&
-        session.user.type !== UserType.SUPER_ADMIN
-      ) {
-        throw new AuthorizationError(
-          "Only Super Admins can assign Super Admin role"
-        );
-      }
-
-      if (session.user.type === UserType.STAFF) {
-        throw new AuthorizationError("Staff users cannot modify roles");
-      }
+    if (bodyParsed.data.permissions?.userWrite !== undefined && !session.user.isSuper) {
+      throw new AuthorizationError("You must have isSuper to edit userWrite permission");
     }
 
     await UserService.updateUser({
@@ -125,6 +119,7 @@ export async function PATCH(
       type: bodyParsed.data.role,
       tag: bodyParsed.data.tag,
       enabled: bodyParsed.data.enabled,
+      permissions: bodyParsed.data.permissions,
     });
 
     return ok();

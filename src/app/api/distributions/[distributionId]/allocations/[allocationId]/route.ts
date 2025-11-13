@@ -4,7 +4,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -29,9 +28,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "allocationWrite");
 
     const form = await request.formData();
     const formObj = {
@@ -85,9 +82,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "allocationWrite");
 
     const allocationId = parseInt((await params).allocationId);
     if (isNaN(allocationId) || allocationId <= 0) {

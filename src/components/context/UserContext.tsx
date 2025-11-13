@@ -2,13 +2,15 @@
 
 import { UserType } from "@prisma/client";
 import { useSession } from "next-auth/react";
+import { PermissionFlags } from "@/types/api/user.types";
 
-interface SessionUser {
+export type SessionUser = PermissionFlags & {
   id: string;
   type: UserType;
   name: string | null | undefined;
   streamUserToken: string | null;
   streamUserId: string | null;
+  tag?: string;
 }
 
 interface UseUserType {
@@ -18,8 +20,8 @@ interface UseUserType {
 
 export const useUser = (): UseUserType => {
   const { data: session, status } = useSession();
-  const loading = status === "loading" ? true : false;
-  const user = session?.user || null;
+  const loading = status === "loading";
+  const user = (session?.user as SessionUser) || null;
 
   return { loading, user };
 };

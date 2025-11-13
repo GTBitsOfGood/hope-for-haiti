@@ -3,13 +3,11 @@ import { errorResponse } from "@/util/errors";
 import { SignOffService } from "@/services/signOffService";
 import {
   AuthenticationError,
-  AuthorizationError,
   ArgumentError,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import UserService from "@/services/userService";
-import { isPartner } from "@/lib/userUtils";
 import { tableParamsSchema } from "@/schema/tableParams";
 
 const createSignOffSchema = z.object({
@@ -28,16 +26,14 @@ export async function GET(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (isPartner(session.user.type)) {
+    if (UserService.isPartner(session.user)) {
       const signOffs = await SignOffService.getSignOffsByPartner(
         parseInt(session.user.id!)
       );
       return NextResponse.json(signOffs);
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "shipmentRead");
 
     const parsedParams = tableParamsSchema.safeParse({
       filters: request.nextUrl.searchParams.get("filters"),
@@ -69,9 +65,7 @@ export async function POST(req: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "signoffWrite");
 
     const form = await req.formData();
     const formObj = {

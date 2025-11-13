@@ -8,7 +8,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
@@ -101,7 +100,7 @@ export async function GET(
         page ?? undefined,
         pageSize ?? undefined
       );
-    } else if (UserService.isStaff(session.user.type)) {
+    } else {
       const includeRequests = requests ?? undefined;
       result = await DonorOfferService.getAdminDonorOfferDetails(
         parsed.data.donorOfferId,
@@ -109,6 +108,14 @@ export async function GET(
       );
 
       const donorOffer = result.donorOffer;
+
+      if (donorOffer.state === "UNFINALIZED") {
+        UserService.checkPermission(session.user, "requestRead");
+      } else if (donorOffer.state === "FINALIZED") {
+        UserService.checkPermission(session.user, "allocationRead");
+      } else if (donorOffer.state === "ARCHIVED") {
+        UserService.checkPermission(session.user, "archivedRead");
+      }
 
       return NextResponse.json({
         donorOffer,
@@ -119,8 +126,6 @@ export async function GET(
         partnerResponseDeadline: donorOffer.partnerResponseDeadline,
         donorResponseDeadline: donorOffer.donorResponseDeadline,
       });
-    } else {
-      throw new AuthorizationError("Unauthorized user type");
     }
 
     return NextResponse.json(result);
@@ -146,9 +151,7 @@ export async function DELETE(
       throw new ArgumentError(parsed.error.message);
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     await DonorOfferService.deleteDonorOffer(parsed.data.donorOfferId);
     return ok();
@@ -167,9 +170,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to edit this");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const { donorOfferId } = await params;
     const parsed = paramSchema.safeParse({ donorOfferId });

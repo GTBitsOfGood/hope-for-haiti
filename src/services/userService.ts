@@ -1,6 +1,11 @@
 import { db } from "@/db";
 import { Prisma, UserType } from "@prisma/client";
-import { ArgumentError, NotFoundError, ConflictError } from "@/util/errors";
+import {
+  ArgumentError,
+  NotFoundError,
+  ConflictError,
+  AuthorizationError,
+} from "@/util/errors";
 import * as argon2 from "argon2";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from "uuid";
@@ -8,12 +13,19 @@ import { EmailClient } from "@/email";
 import {
   CreateUserFromInviteData,
   CreateUserInviteData,
+  EDITABLE_PERMISSION_FIELDS,
+  PERMISSION_SELECT,
+  PermissionName,
+  PermissionFlags,
   UpdateUserData,
+  EditablePermissionField,
 } from "@/types/api/user.types";
 import { validatePassword } from "@/util/util";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import StreamIoService from "./streamIoService";
+import { User } from "next-auth";
+import { STAFF_PERMISSION_DEPENDENCIES } from "@/constants/staffPermissions";
 
 function parsePartnerDetails(raw?: string) {
   if (!raw) return undefined;
@@ -29,6 +41,20 @@ function inviteExpirationDate() {
   const expiration = new Date();
   expiration.setDate(expiration.getDate() + 1);
   return expiration;
+}
+
+function sanitizePermissionUpdate(
+  permissions?: Partial<PermissionFlags>
+): Partial<PermissionFlags> {
+  if (!permissions) return {};
+
+  return EDITABLE_PERMISSION_FIELDS.reduce((acc, field) => {
+    const value = permissions[field];
+    if (typeof value === "boolean") {
+      acc[field] = value;
+    }
+    return acc;
+  }, {} as Partial<PermissionFlags>);
 }
 
 export default class UserService {
@@ -84,6 +110,7 @@ export default class UserService {
         partnerDetails: true,
         streamUserId: true,
         streamUserToken: true,
+        ...PERMISSION_SELECT,
         invite: {
           select: {
             token: true,
@@ -152,6 +179,10 @@ export default class UserService {
     const partnerDetails = parsePartnerDetails(data.partnerDetails);
     const expiration = inviteExpirationDate();
     const token = uuidv4();
+    const permissionUpdate =
+      data.userType === UserType.STAFF
+        ? sanitizePermissionUpdate(data.permissions)
+        : {};
 
     await db.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
@@ -180,6 +211,7 @@ export default class UserService {
             partnerDetails: partnerDetails ?? undefined,
             pending: true,
             enabled: false,
+            ...permissionUpdate,
           },
         });
 
@@ -217,6 +249,7 @@ export default class UserService {
           pending: true,
           passwordHash: placeholderPassword,
           partnerDetails: partnerDetails ?? undefined,
+          ...permissionUpdate,
         },
       });
 
@@ -354,12 +387,41 @@ export default class UserService {
       throw new ArgumentError("Name cannot be empty");
     }
 
+    if (data.enabled === false && (existingUser.userWrite || existingUser.isSuper)) {
+      throw new AuthorizationError("Cannot deactivate users with userWrite or isSuper permissions");
+    }
+
+    if (data.permissions) {
+      const finalPermissions = {
+          ...existingUser,
+          ...data.permissions
+      }
+
+      for (const [field, value] of Object.entries(finalPermissions)) {
+        if (value && STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField]) {
+          const deps = STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField];
+          const missingDeps = deps.filter(dep => !finalPermissions[dep]);
+          if (missingDeps.length > 0) {
+            throw new ArgumentError(`Cannot enable ${field} without enabling dependencies: ${missingDeps.join(', ')}`);
+          }
+        }
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.type !== undefined) updateData.type = data.type;
     if (data.tag !== undefined) updateData.tag = data.tag;
     if (data.enabled !== undefined) updateData.enabled = data.enabled;
+    if (data.permissions) {
+      if (existingUser.type !== UserType.STAFF) {
+        throw new ArgumentError("Cannot update permissions for non-staff user");
+      }
+
+      const permissionUpdate = sanitizePermissionUpdate(data.permissions);
+      Object.assign(updateData, permissionUpdate);
+    }
 
     try {
       await db.user.update({
@@ -453,26 +515,34 @@ export default class UserService {
     });
   }
 
-  static isAdmin(userType: UserType): boolean {
-    return userType === UserType.ADMIN || userType === UserType.SUPER_ADMIN;
+  static isStaff(user: User) {
+    return user.type === UserType.STAFF;
+  }
+  
+  static checkStaff(user: User) {
+    if (!UserService.isStaff(user)) {
+      throw new AuthorizationError("Must be STAFF to access this route");
+    }
   }
 
-  static isStaff(userType: UserType): boolean {
-    return (
-      userType === UserType.STAFF ||
-      userType === UserType.ADMIN ||
-      userType === UserType.SUPER_ADMIN
-    );
+  static isPartner(user: User) {
+    return user.type === UserType.PARTNER;
   }
 
-  static isSuperAdmin(userType: UserType): boolean {
-    return userType === UserType.SUPER_ADMIN;
+  static hasPermission(user: User, permission: PermissionName) {
+    if (!user) return false;
+    return user.isSuper || user[permission];
   }
 
-  /**
-   * @returns false if user is undefined or not a partner, true if user is a partner
-   */
-  static isPartner(user: { type: UserType } | undefined) {
-    return user && user.type === UserType.PARTNER;
+  static checkAnyPermission(user: User, permissions: PermissionName[]) {
+    return permissions.some(permission => UserService.hasPermission(user, permission));
+  }
+
+  static checkPermission(user: User, permission: PermissionName) {
+    if (!UserService.hasPermission(user, permission)) {
+      throw new AuthorizationError(
+        `Must have ${permission} permission to access this route`
+      );
+    }
   }
 }

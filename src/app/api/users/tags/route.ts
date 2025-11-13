@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import UserService from "@/services/userService";
-import { AuthenticationError, AuthorizationError, errorResponse } from "@/util/errors";
+import { AuthenticationError, errorResponse } from "@/util/errors";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -10,9 +10,7 @@ export async function GET() {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isStaff(session.user.type)) {
-      throw new AuthorizationError("Must be STAFF, ADMIN, or SUPER_ADMIN");
-    }
+    UserService.checkPermission(session.user, "userRead");
 
     const tags = await UserService.getDistinctUserTags();
     return NextResponse.json(tags, { status: 200 });

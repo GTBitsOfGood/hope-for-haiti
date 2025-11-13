@@ -11,7 +11,6 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { tableParamsSchema } from "@/schema/tableParams";
-import { isPartner } from "@/lib/userUtils";
 import { MatchingService } from "@/services/matchingService";
 import { WishlistService } from "@/services/wishlistService";
 
@@ -38,11 +37,7 @@ export async function POST(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError(
-        "You are not allowed to create donor offers"
-      );
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const form = await request.formData();
     const obj = {
@@ -88,7 +83,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user) {
       throw new AuthenticationError("Session required");
     }
-    if (!isPartner(session.user.type)) {
+    if (!UserService.isPartner(session.user)) {
       throw new AuthorizationError(
         "You are not allowed to view available items"
       );

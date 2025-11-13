@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
-import { isAdmin, isPartner } from "@/lib/userUtils";
+import { hasPermission, isPartner, isStaff } from "@/lib/userUtils";
 import StreamIoService from "@/services/streamIoService";
 import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
+  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 import { $Enums } from "@prisma/client";
@@ -25,6 +26,10 @@ export async function POST(req: Request) {
       throw new AuthenticationError("Not authenticated");
     }
 
+    if (!hasPermission(session.user, "supportWrite")) {
+      throw new AuthorizationError("You don't have permission to create support tickets");
+    }
+
     const body = await req.json();
     const parsedBody = postSchema.safeParse(body);
 
@@ -36,7 +41,7 @@ export async function POST(req: Request) {
     let partnerStreamUserId: string | null = null;
     let partnerName: string | null = null;
 
-    if (!isAdmin(session.user.type)) {
+    if (!isStaff(session.user.type)) {
       partnerStreamUserId = session.user.streamUserId;
       partnerName = session.user.name!;
     } else {
@@ -71,15 +76,16 @@ export async function POST(req: Request) {
       partnerName
     )}&background=random&size=128`;
 
-    const admins = await UserService.getUsers({
+    const staffUsers = await UserService.getUsers({
       type: {
         type: "enum",
-        values: [$Enums.UserType.ADMIN, $Enums.UserType.SUPER_ADMIN],
+        values: [$Enums.UserType.STAFF],
       },
     });
 
-    const streamUsers = admins.users
-      .map((admin) => admin.streamUserId!)
+    const streamUsers = staffUsers.users
+      .map((staff) => staff.streamUserId!)
+      .filter(Boolean)
       .concat([partnerStreamUserId!]);
 
     const extraData: ChannelData & { closed: boolean } = {

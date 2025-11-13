@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/userUtils";
+import { isStaff } from "@/lib/userUtils";
 import { ExtraChannelData } from "@/types/api/streamio.types";
 import { useSession } from "next-auth/react";
 import { ChannelPreviewUIComponentProps } from "stream-chat-react";
@@ -18,7 +18,7 @@ export default function ChannelPreview({
 }: ChannelPreviewProps) {
   const session = useSession();
 
-  const admin = session.data ? isAdmin(session.data.user.type) : false;
+  const isStaffUser = session.data ? isStaff(session.data.user.type) : false;
 
   const data = channel.data as ExtraChannelData;
 
@@ -44,13 +44,13 @@ export default function ChannelPreview({
       <div className="flex items-start mb-1 gap-2 min-w-0">
         <div className="font-semibold text-left flex-1 min-w-0 overflow-hidden">
           <span className="inline">{data.name}</span>
-          {admin && data.partnerName && (
+          {isStaffUser && data.partnerName && (
             <span className="text-sm text-gray-500 font-normal ml-2">
               {data.partnerName}
             </span>
           )}
         </div>
-        {admin && !data.closed && (
+        {isStaffUser && !data.closed && (
           <div className="flex-shrink-0">
             <ChannelOptionsButton channel={channel} />
           </div>

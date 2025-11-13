@@ -1,6 +1,6 @@
 import { useSession } from "next-auth/react";
 import GeneralModal from "@/components/AccountManagement/GeneralModal";
-import { isAdmin } from "@/lib/userUtils";
+import { hasPermission, isStaff } from "@/lib/userUtils";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useEffect, useState } from "react";
@@ -18,7 +18,8 @@ export default function CreateTicketModal({
 
   const session = useSession();
   const user = session.data?.user;
-  const admin = user ? isAdmin(user.type) : false;
+  const canWrite = user ? hasPermission(user, "supportWrite") : false;
+  const isStaffUser = user ? isStaff(user.type) : false;
 
   const { apiClient } = useApiClient();
 
@@ -33,14 +34,14 @@ export default function CreateTicketModal({
   const [partnerId, setPartnerId] = useState<number>();
 
   useEffect(() => {
-    if (!apiClient || !admin) return;
+    if (!apiClient || !isStaffUser) return;
 
     apiClient
       .get<{
         partners: typeof partners;
       }>("/api/partners")
       .then((response) => setPartners(response.partners));
-  }, [apiClient, admin]);
+  }, [apiClient, isStaffUser]);
 
   async function createTicket() {
     if (!apiClient) {
@@ -53,7 +54,7 @@ export default function CreateTicketModal({
       return;
     }
 
-    if (partnerId === undefined && admin) {
+    if (partnerId === undefined && isStaffUser) {
       toast.error("Please select a partner for the ticket");
       return;
     }
@@ -86,7 +87,8 @@ export default function CreateTicketModal({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2 bg-blue-primary/90 hover:bg-blue-primary transition-all duration-200 text-white rounded flex items-center gap-2 justify-center"
+        disabled={!canWrite}
+        className="p-2 bg-blue-primary/90 hover:bg-blue-primary transition-all duration-200 text-white rounded flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Pencil size={20} />
       </button>
@@ -106,7 +108,7 @@ export default function CreateTicketModal({
             value={ticketName}
             onChange={(e) => setTicketName(e.target.value)}
           />
-          {admin && (
+          {isStaffUser && (
             <ConfiguredSelect
               name="partner"
               placeholder="Select Partner"

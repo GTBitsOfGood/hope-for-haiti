@@ -8,7 +8,6 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 
@@ -54,9 +53,7 @@ export async function POST(
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "allocationWrite");
 
     const { distributionId: rawDistributionId } = await params;
     const parsedParams = paramSchema.safeParse({
@@ -97,9 +94,7 @@ export async function PATCH(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isAdmin(session.user.type)) {
-      throw new AuthorizationError("Admin access required");
-    }
+    UserService.checkPermission(session.user, "allocationWrite");
 
     const body = await request.json();
     const parsedBody = patchRequestSchema.safeParse(body);

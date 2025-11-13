@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import PartnerWishlistScreen from "@/screens/Wishlist/PartnerWishlistScreen";
-import { isStaff } from "@/lib/userUtils";
+import { hasPermission } from "@/lib/userUtils";
 
 export default function PartnerWishlistPage() {
   const params = useParams();
@@ -15,8 +15,8 @@ export default function PartnerWishlistPage() {
     redirect("/signIn");
   }
 
-  // Only staff or above can access arbitrary partnerId; partners should use /wishlists
-  if (!isStaff(session.user.type)) {
+  // Only users with wishlist access can view arbitrary partner wishlists
+  if (!hasPermission(session.user, "wishlistRead")) {
     redirect("/wishlists");
   }
 

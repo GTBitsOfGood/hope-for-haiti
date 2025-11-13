@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { zfd } from "zod-form-data";
 import { UserType } from "@prisma/client";
 
 import { auth } from "@/auth";
@@ -8,17 +7,35 @@ import UserService from "@/services/userService";
 import {
   ArgumentError,
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
   ok,
 } from "@/util/errors";
 
-const schema = zfd
-  .formData({
-    email: zfd.text(z.string().email()),
-    name: zfd.text(z.string()),
-    userType: zfd.text(z.nativeEnum(UserType)),
-    partnerDetails: zfd.text().optional(),
+import {
+  EDITABLE_PERMISSION_FIELDS,
+  PermissionFlags,
+} from "@/types/api/user.types";
+
+const permissionShape = EDITABLE_PERMISSION_FIELDS.reduce(
+  (shape, field) => {
+    shape[field] = z.boolean().optional();
+    return shape;
+  },
+  {} as Record<
+    (typeof EDITABLE_PERMISSION_FIELDS)[number],
+    z.ZodOptional<z.ZodBoolean>
+  >
+);
+
+const permissionsSchema = z.object(permissionShape).partial();
+
+const schema = z
+  .object({
+    email: z.string().email(),
+    name: z.string(),
+    userType: z.nativeEnum(UserType),
+    partnerDetails: z.string().optional(),
+    permissions: permissionsSchema.optional(),
   })
   .refine(
     (data) => !(data.userType === UserType.PARTNER && !data.partnerDetails),
@@ -35,17 +52,16 @@ export async function POST(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    if (!UserService.isSuperAdmin(session.user.type)) {
-      throw new AuthorizationError("You are not allowed to create an invite");
-    }
+    UserService.checkPermission(session.user, "userWrite");
 
-    const formData = await request.formData();
-    const parseResult = schema.safeParse(formData);
+    const payload = await request.json();
+    const parseResult = schema.safeParse(payload);
     if (!parseResult.success) {
       throw new ArgumentError(parseResult.error.message);
     }
 
-    const { email, name, userType, partnerDetails } = parseResult.data;
+    const { email, name, userType, partnerDetails, permissions } =
+      parseResult.data;
 
     await UserService.createUserInvite({
       email,
@@ -53,6 +69,7 @@ export async function POST(request: NextRequest) {
       userType,
       partnerDetails,
       origin: request.nextUrl.origin,
+      permissions: permissions as Partial<PermissionFlags> | undefined,
     });
 
     return ok();

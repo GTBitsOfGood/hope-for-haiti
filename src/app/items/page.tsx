@@ -2,8 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { isPartner } from "@/lib/userUtils";
 import PartnerItemsScreen from "@/screens/PartnerItemsScreen";
+import { isPartner } from "@/lib/userUtils";
 
 export default function ItemsPage() {
   const { data: session } = useSession();

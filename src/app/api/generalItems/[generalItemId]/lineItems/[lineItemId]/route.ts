@@ -1,12 +1,11 @@
 import { auth } from "@/auth";
-import { isAdmin } from "@/lib/userUtils";
 import {
   LineItemService,
   singleLineItemSchema,
 } from "@/services/lineItemService";
+import UserService from "@/services/userService";
 import {
   AuthenticationError,
-  AuthorizationError,
   errorResponse,
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
@@ -24,9 +23,7 @@ export async function PATCH(
       throw new AuthenticationError("Session required");
     }
 
-    if (!isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be ADMIN");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const { lineItemId } = await params;
     const form = await request.formData();
@@ -58,9 +55,7 @@ export async function DELETE(
       throw new AuthenticationError("Session required");
     }
 
-    if (!isAdmin(session.user.type)) {
-      throw new AuthorizationError("Must be ADMIN");
-    }
+    UserService.checkPermission(session.user, "offerWrite");
 
     const { lineItemId } = await params;
 
