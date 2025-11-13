@@ -13,6 +13,7 @@ import {
 import { validatePassword } from "@/util/util";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import StreamIoService from "./streamIoService";
 
 function parsePartnerDetails(raw?: string) {
   if (!raw) return undefined;
@@ -48,6 +49,8 @@ export default class UserService {
         enabled: true,
         pending: true,
         partnerDetails: true,
+        streamUserId: true,
+        streamUserToken: true,
         invite: {
           select: {
             token: true,
@@ -79,6 +82,8 @@ export default class UserService {
         enabled: true,
         pending: true,
         partnerDetails: true,
+        streamUserId: true,
+        streamUserToken: true,
         invite: {
           select: {
             token: true,
@@ -279,12 +284,16 @@ export default class UserService {
     const passwordHash = await argon2.hash(data.password);
 
     await db.$transaction(async (tx) => {
+      const streamUser = await StreamIoService.createUser(invite.user);
+
       await tx.user.update({
         where: { id: invite.userId },
         data: {
           passwordHash,
           pending: false,
           enabled: true,
+          streamUserId: streamUser.userId,
+          streamUserToken: streamUser.userToken,
         },
       });
 
@@ -301,7 +310,7 @@ export default class UserService {
     });
 
     if (!user) {
-      throw new NotFoundError("User does not exist")
+      throw new NotFoundError("User does not exist");
     }
     if (!user.pending) {
       throw new ConflictError("User does not have a pending invite");
@@ -320,8 +329,8 @@ export default class UserService {
 
     await EmailClient.sendUserInviteReminder(user.email, {
       userRole: user.type,
-      token: token
-    })
+      token: token,
+    });
   }
 
   static async updateUser(data: UpdateUserData) {

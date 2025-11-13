@@ -13,6 +13,7 @@ import {
 import type { Notification } from "@/components/dashboard/types";
 import type { DashboardWidget } from "@/components/dashboard/analyticsData";
 import { useEffect, useState } from "react";
+import LoadingScreen from "@/screens/LoadingScreen";
 
 export default function AdminDashboardScreen() {
   const { user, loading: userLoading } = useUser();
@@ -59,11 +60,7 @@ export default function AdminDashboardScreen() {
   }, [user, userLoading]);
 
   if (userLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!user || !isAdmin(user.type)) {

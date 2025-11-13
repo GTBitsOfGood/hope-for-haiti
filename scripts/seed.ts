@@ -12,6 +12,7 @@ import {
 import { db } from "@/db";
 import type { Prisma } from "@prisma/client";
 import { MatchingService } from "@/services/matchingService";
+import StreamIoService from "@/services/streamIoService";
 
 const addDays = (daysFromToday: number) => {
   const base = new Date();
@@ -19,6 +20,44 @@ const addDays = (daysFromToday: number) => {
   base.setDate(base.getDate() + daysFromToday);
   return base;
 };
+
+const existingStreamTokens: { [email: string]: string } = {};
+
+async function fetchExistingStreamTokens() {
+  const users = await db.user.findMany({
+    where: {
+      streamUserToken: {
+        not: null,
+      },
+    },
+  });
+
+  users.forEach((user) => {
+    existingStreamTokens[user.email] = user.streamUserToken!;
+  });
+}
+
+/**
+ * Creates a user with a Stream Chat user token in the DB
+ */
+async function createUser(
+  user: Omit<Prisma.UserCreateInput, "streamUserToken">
+): Promise<ReturnType<typeof db.user.create>> {
+  const streamUser = existingStreamTokens[user.email]
+    ? {
+        userId: StreamIoService.getUserIdFromUser({ email: user.email }),
+        userToken: existingStreamTokens[user.email],
+      }
+    : await StreamIoService.createUser(user);
+
+  return await db.user.create({
+    data: {
+      ...user,
+      streamUserId: streamUser.userId,
+      streamUserToken: streamUser.userToken,
+    },
+  });
+}
 
 const buildPartnerDetails = (
   siteName: string,
@@ -69,6 +108,7 @@ const buildPartnerDetails = (
   }) as Prisma.JsonObject;
 
 async function buildSeedData() {
+  await fetchExistingStreamTokens();
 
   await db.allocation.deleteMany();
   await db.generalItemRequest.deleteMany();
@@ -85,76 +125,66 @@ async function buildSeedData() {
   const passwordHash = await hash("root");
 
   // Create staff users
-  const superAdmin = await db.user.create({
-    data: {
-      email: "superadmin@test.com",
-      name: "Super Admin",
-      passwordHash,
-      type: UserType.SUPER_ADMIN,
-      enabled: true,
-      pending: false,
-    },
+  const superAdmin = await createUser({
+    email: "superadmin@test.com",
+    name: "Super Admin",
+    passwordHash,
+    type: UserType.SUPER_ADMIN,
+    enabled: true,
+    pending: false,
   });
 
-  const admin = await db.user.create({
-    data: {
-      email: "admin@test.com",
-      name: "Admin User",
-      passwordHash,
-      type: UserType.ADMIN,
-      enabled: true,
-      pending: false,
-    },
+  const admin = await createUser({
+    email: "admin@test.com",
+    name: "Admin User",
+    passwordHash,
+    type: UserType.ADMIN,
+    enabled: true,
+    pending: false,
   });
 
-  const staff = await db.user.create({
-    data: {
-      email: "staff@test.com",
-      name: "Staff Member",
-      passwordHash,
-      type: UserType.STAFF,
-      enabled: true,
-      pending: false,
-    },
+  const staff = await createUser({
+    email: "staff@test.com",
+    name: "Staff Member",
+    passwordHash,
+    type: UserType.STAFF,
+    enabled: true,
+    pending: false,
   });
 
   // Create partner users
-  const internalPartner = await db.user.create({
-    data: {
-      email: "internal@test.com",
-      name: "Hope Medical Center",
-      passwordHash,
-      type: UserType.PARTNER,
-      tag: "internal",
-      enabled: true,
-      pending: false,
-      partnerDetails: buildPartnerDetails(
-        "Hope Medical Center",
-        "Ouest",
-        "hopecenter",
-        18.5392,
-        -72.335
-      ),
-    },
+  const internalPartner = await createUser({
+    email: "internal@test.com",
+    name: "Hope Medical Center",
+    passwordHash,
+    type: UserType.PARTNER,
+    tag: "internal",
+    enabled: true,
+    pending: false,
+    partnerDetails: buildPartnerDetails(
+      "Hope Medical Center",
+      "Ouest",
+      "hopecenter",
+      18.5392,
+      -72.335
+    ),
   });
 
-  const externalPartner = await db.user.create({
-    data: {
-      email: "external@test.com",
-      name: "Les Cayes Community Hospital",
-      passwordHash,
-      type: UserType.PARTNER,
-      tag: "external",
-      enabled: true,
-      pending: false,
-      partnerDetails: buildPartnerDetails(
-        "Les Cayes Community Hospital",
-        "Sud",
-        "lescayes",
-        18.25,
-        -73.75
-      ),
-    },
+  const externalPartner = await createUser({
+    email: "external@test.com",
+    name: "Les Cayes Community Hospital",
+    passwordHash,
+    type: UserType.PARTNER,
+    tag: "external",
+    enabled: true,
+    pending: false,
+    partnerDetails: buildPartnerDetails(
+      "Les Cayes Community Hospital",
+      "Sud",
+      "lescayes",
+      18.25,
+      -73.75
+    ),
   });
 
   console.log("✓ Created users");
@@ -955,7 +985,9 @@ async function buildSeedData() {
           donorOfferId: item.donorOfferId,
         }))
       );
-      console.log(`✓ Created ${unfinalizedItems.length} embeddings for unfinalized items`);
+      console.log(
+        `✓ Created ${unfinalizedItems.length} embeddings for unfinalized items`
+      );
     }
   } catch (error) {
     console.warn(

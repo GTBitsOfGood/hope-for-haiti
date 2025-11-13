@@ -6,6 +6,9 @@ import { useSession } from "next-auth/react";
 interface SessionUser {
   id: string;
   type: UserType;
+  name: string | null | undefined;
+  streamUserToken: string | null;
+  streamUserId: string | null;
 }
 
 interface UseUserType {
