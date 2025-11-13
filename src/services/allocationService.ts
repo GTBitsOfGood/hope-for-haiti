@@ -33,6 +33,24 @@ export default class AllocationService {
     let itemId: number | undefined;
     if (data.itemId) {
       itemId = data.itemId;
+      
+      // Check if the line item belongs to an archived donor offer
+      const lineItem = await db.lineItem.findUnique({
+        where: { id: itemId },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new ArgumentError("Cannot create allocations for archived donor offers. Archived offers are read-only.");
+      }
     } else {
       if (
         !data.title ||
@@ -141,6 +159,31 @@ export default class AllocationService {
       );
     }
 
+    // Check if any line items belong to archived donor offers
+    const lineItemIds = allocations.map(a => a.lineItemId);
+    const lineItems = await db.lineItem.findMany({
+      where: { id: { in: lineItemIds } },
+      include: {
+        generalItem: {
+          include: {
+            donorOffer: {
+              select: { state: true }
+            }
+          }
+        }
+      }
+    });
+
+    const archivedLineItems = lineItems.filter(
+      li => li.generalItem?.donorOffer?.state === "ARCHIVED"
+    );
+
+    if (archivedLineItems.length > 0) {
+      throw new ArgumentError(
+        "Cannot create allocations for archived donor offers. Archived offers are read-only."
+      );
+    }
+
     try {
       return await db.$transaction(
         allocations.map((allocation) =>
@@ -245,6 +288,28 @@ export default class AllocationService {
 
   static async deleteAllocation(id: number) {
     try {
+      // Check if the allocation's line item belongs to an archived donor offer
+      const allocation = await db.allocation.findUnique({
+        where: { id },
+        include: {
+          lineItem: {
+            include: {
+              generalItem: {
+                include: {
+                  donorOffer: {
+                    select: { state: true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (allocation?.lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new ArgumentError("Cannot delete allocations for archived donor offers. Archived offers are read-only.");
+      }
+
       await db.allocation.delete({
         where: { id },
       });

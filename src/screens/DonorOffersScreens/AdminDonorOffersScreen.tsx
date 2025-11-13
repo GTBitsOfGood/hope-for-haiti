@@ -210,13 +210,6 @@ export default function AdminDonorOffersScreen() {
               </div>,
             ],
             onClick: () => {
-              if (
-                offer.state === DonorOfferState.FINALIZED ||
-                offer.state === DonorOfferState.ARCHIVED
-              ) {
-                router.push(`/donorOffers/${offer.donorOfferId}/allocate`);
-                return;
-              }
               router.push(`/donorOffers/${offer.donorOfferId}`);
             }
           }))}

@@ -20,6 +20,7 @@ export default function PartnerRequestChipGroup({
   generalItemId,
   onRequestUpdated,
   isLLMMode = false,
+  readOnly = false,
 }: {
   requests: PartnerRequestChipData[];
   onChange?: (updated: PartnerRequestChipData[]) => void;
@@ -29,6 +30,7 @@ export default function PartnerRequestChipGroup({
     updatedRequests?: PartnerRequestChipData[]
   ) => void;
   isLLMMode?: boolean;
+  readOnly?: boolean;
 }) {
   const [data, setData] = useState<PartnerRequestChipData[]>(() =>
     requests.map((r) => ({ ...r }))
@@ -59,6 +61,7 @@ export default function PartnerRequestChipGroup({
             request={req}
             generalItemId={generalItemId}
             isLLMMode={isLLMMode}
+            readOnly={readOnly}
             onSave={(finalQuantity) => {
               const updatedData = data.map((p) =>
                 p.id === req.id ? { ...p, finalQuantity } : p
@@ -78,11 +81,13 @@ function PartnerRequestChip({
   onSave,
   generalItemId,
   isLLMMode = false,
+  readOnly = false,
 }: {
   request: PartnerRequestChipData;
   onSave: (finalQuantity: number) => void;
   generalItemId?: number;
   isLLMMode?: boolean;
+  readOnly?: boolean;
 }) {
   const [inputValue, setInputValue] = useState(String(request.finalQuantity));
   const [isSaving, setIsSaving] = useState(false);
@@ -127,41 +132,43 @@ function PartnerRequestChip({
       revisedAmount={request.finalQuantity}
       setIsDropdownOpenRef={setIsDropdownOpenRef}
       popover={
-        <>
-          <div className="mb-2">
-            <label className="block text-xs text-gray-primary/70 mb-1">
-              Revised quantity
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.currentTarget.value)}
-              className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="px-3 py-1 rounded border border-gray-primary/20 text-gray-primary hover:bg-gray-50"
-              onClick={() => setIsDropdownOpenRef.current?.(false)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1 rounded bg-blue-primary text-white hover:bg-blue-600 disabled:opacity-50"
-              disabled={
-                !Number.isFinite(Number(inputValue)) ||
-                Number(inputValue) < 0 ||
-                isSaving
-              }
-              onClick={handleSave}
-            >
-              {isSaving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </>
+        readOnly ? undefined : (
+          <>
+            <div className="mb-2">
+              <label className="block text-xs text-gray-primary/70 mb-1">
+                Revised quantity
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.currentTarget.value)}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-3 py-1 rounded border border-gray-primary/20 text-gray-primary hover:bg-gray-50"
+                onClick={() => setIsDropdownOpenRef.current?.(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1 rounded bg-blue-primary text-white hover:bg-blue-600 disabled:opacity-50"
+                disabled={
+                  !Number.isFinite(Number(inputValue)) ||
+                  Number(inputValue) < 0 ||
+                  isSaving
+                }
+                onClick={handleSave}
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </>
+        )
       }
     />
   );

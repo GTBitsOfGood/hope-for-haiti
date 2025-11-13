@@ -1,20 +1,13 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
-import AdminAllocateDonorOfferScreen from "@/screens/DonorOffersScreens/AdminAllocateDonorOfferScreen";
-import { isStaff } from "@/lib/userUtils";
+import { useParams, redirect } from "next/navigation";
 
+// This route has been deprecated. All donor offer functionality
+// is now handled at /donorOffers/[donorOfferId]
 export default function DonorOffersAllocatePage() {
-  const { data: session } = useSession();
-
-  if (!session?.user.type) {
-    redirect("/signIn");
-  }
-
-  if (isStaff(session.user.type)) {
-    return <AdminAllocateDonorOfferScreen />;
-  }
-
-  redirect("/");
+  const params = useParams();
+  const donorOfferId = params.donorOfferId as string;
+  
+  // Redirect to the main donor offer page
+  redirect(`/donorOffers/${donorOfferId}`);
 }

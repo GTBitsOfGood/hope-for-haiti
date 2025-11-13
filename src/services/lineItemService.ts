@@ -95,6 +95,22 @@ export const singleLineItemSchema = z.object({
 
 export class LineItemService {
   static async createItem(data: CreateItemData, generalItemId?: number) {
+    // Check if the general item belongs to an archived donor offer
+    if (generalItemId !== undefined) {
+      const generalItem = await db.generalItem.findUnique({
+        where: { id: generalItemId },
+        include: {
+          donorOffer: {
+            select: { state: true }
+          }
+        }
+      });
+
+      if (generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new Error("Cannot create line items for archived donor offers. Archived offers are read-only.");
+      }
+    }
+
     const createdItem = await db.lineItem.create({
       data: {
         ...data,
@@ -112,6 +128,24 @@ export class LineItemService {
     data: Partial<CreateItemData>
   ) {
     try {
+      // Check if the line item belongs to an archived donor offer
+      const lineItem = await db.lineItem.findUnique({
+        where: { id: lineItemId },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new Error("Cannot update line items for archived donor offers. Archived offers are read-only.");
+      }
+
       const updatedItem = await db.lineItem.update({
         where: { id: lineItemId },
         data,
@@ -130,6 +164,24 @@ export class LineItemService {
 
   static async deleteLineItem(lineItemId: number) {
     try {
+      // Check if the line item belongs to an archived donor offer
+      const lineItem = await db.lineItem.findUnique({
+        where: { id: lineItemId },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new Error("Cannot delete line items for archived donor offers. Archived offers are read-only.");
+      }
+
       await db.lineItem.delete({
         where: { id: lineItemId },
       });

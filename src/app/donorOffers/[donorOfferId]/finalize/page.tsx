@@ -55,6 +55,11 @@ export default function FinalizeDonorOfferPage() {
     },
   });
 
+  // Redirect if the donor offer is not finalized
+  if (data?.donorOffer && data.donorOffer.state !== "FINALIZED") {
+    redirect(`/donorOffers/${donorOfferId}`);
+  }
+
   const {
     fileName,
     fileSize,

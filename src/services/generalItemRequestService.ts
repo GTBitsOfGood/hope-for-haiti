@@ -95,6 +95,20 @@ export class GeneralItemRequestService {
       throw new ArgumentError("Cannot create request for pending partner");
     }
     
+    // Check if the general item belongs to an archived donor offer
+    const generalItem = await db.generalItem.findUnique({
+      where: { id: data.generalItemId },
+      include: {
+        donorOffer: {
+          select: { state: true }
+        }
+      }
+    });
+
+    if (generalItem?.donorOffer?.state === "ARCHIVED") {
+      throw new ArgumentError("Cannot create requests for archived donor offers. Archived offers are read-only.");
+    }
+    
     const newRequest = await db.generalItemRequest.create({
       data: {
         generalItem: {
@@ -113,6 +127,24 @@ export class GeneralItemRequestService {
 
   static async updateRequest(id: number, data: Partial<UpdateGeneralItemRequestData>) {
     try {
+      // Check if the request's general item belongs to an archived donor offer
+      const request = await db.generalItemRequest.findUnique({
+        where: { id },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+      }
+
       const updatedRequest = await db.generalItemRequest.update({
         where: { id },
         data
@@ -132,6 +164,29 @@ export class GeneralItemRequestService {
   static async bulkUpdateRequests(
     updates: Array<{ requestId: number; finalQuantity: number }>
   ) {
+    // Check if any of the requests belong to archived donor offers
+    const requestIds = updates.map(u => u.requestId);
+    const requests = await db.generalItemRequest.findMany({
+      where: { id: { in: requestIds } },
+      include: {
+        generalItem: {
+          include: {
+            donorOffer: {
+              select: { state: true }
+            }
+          }
+        }
+      }
+    });
+
+    const archivedRequests = requests.filter(
+      r => r.generalItem?.donorOffer?.state === "ARCHIVED"
+    );
+
+    if (archivedRequests.length > 0) {
+      throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+    }
+
     const results = await db.$transaction(
       updates.map(({ requestId, finalQuantity }) =>
         db.generalItemRequest.update({
@@ -146,6 +201,24 @@ export class GeneralItemRequestService {
 
   static async deleteRequest(id: number) {
     try {
+      // Check if the request's general item belongs to an archived donor offer
+      const request = await db.generalItemRequest.findUnique({
+        where: { id },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new ArgumentError("Cannot delete requests for archived donor offers. Archived offers are read-only.");
+      }
+
       await db.generalItemRequest.delete({
         where: { id },
       });
