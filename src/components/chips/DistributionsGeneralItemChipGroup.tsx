@@ -13,13 +13,15 @@ export default function DistributionsGeneralItemChipGroup({
   otherDistributions,
   allocations,
   fetchTableData,
-  canTransfer = true,
+  pending,
+  canTransfer,
 }: {
   generalItems: TableDistribution["generalItems"];
   otherDistributions: TableDistribution[];
   allocations: TableAllocation[];
   fetchTableData: () => void;
-  canTransfer?: boolean;
+  pending: boolean;
+  canTransfer: boolean;
 }) {
   return (
     <div className="w-full bg-sunken flex flex-wrap p-2">
@@ -35,6 +37,7 @@ export default function DistributionsGeneralItemChipGroup({
           otherDistributions={otherDistributions}
           allocations={allocations}
           fetchTableData={fetchTableData}
+          pending={pending}
           canTransfer={canTransfer}
         />
       ))}
@@ -47,12 +50,14 @@ function GeneralItemChip({
   otherDistributions,
   allocations,
   fetchTableData,
+  pending,
   canTransfer,
 }: {
   generalItem: TableDistribution["generalItems"][number];
   otherDistributions: TableDistribution[];
   allocations: TableAllocation[];
   fetchTableData: () => void;
+  pending: boolean;
   canTransfer: boolean;
 }) {
   const [selectedDistribution, setSelectedDistribution] = useState<number>();
@@ -91,7 +96,7 @@ function GeneralItemChip({
     }
 
     const promise = apiClient.patch(
-      `/api/distributions/${distribution.id}/allocations/batch`,
+      `/api/distributions/${distribution.id}/allocations/batch?transfer=true`,
       {
         body: JSON.stringify({
           allocations: allocationIds.map((id) => ({ id })),
@@ -115,63 +120,68 @@ function GeneralItemChip({
     fetchTableData();
   }
 
-  const popoverContent = (
-    <div className="flex flex-col gap-2">
-      <p className="text-gray-primary font-bold mb-1">Transfer Item</p>
-      <p className="text-sm text-gray-primary font-normal">
-        Select Distribution
-      </p>
-      <ConfiguredSelect
-        value={
-          selectedDistribution
-            ? {
-                value: selectedDistribution,
-                label:
-                  otherDistributions.find(
-                    (d) => d.id === selectedDistribution
-                  )?.partner.name || "",
-              }
-            : undefined
-        }
-        onChange={(newVal) => setSelectedDistribution(newVal?.value)}
-        options={otherDistributions.map((distribution) => ({
-          value: distribution.id,
-          label: distribution.partner.name,
-        }))}
-        isClearable
-        placeholder="Choose distribution..."
-      />
-      <p className="text-sm text-gray-primary font-normal">
-        Select Line Items
-      </p>
-      <ConfiguredSelect
-        value={selectedLineItems.map((id) => ({
-          value: id,
-          label: lineItemLabel(
-            generalItem.lineItems.find((li) => li.id === id)!
-          ),
-        }))}
-        onChange={(newVal) =>
-          setSelectedLineItems(newVal.map((item) => item.value))
-        }
-        options={generalItem.lineItems.map((lineItem) => ({
-          value: lineItem.id,
-          label: lineItemLabel(lineItem),
-        }))}
-        isClearable
-        isMulti
-        placeholder="Choose line items..."
-      />
-      <div className="w-full flex justify-end">
-        <button
-          onClick={transferLineItems}
-          className="rounded bg-blue-primary text-white px-3 py-1"
-        >
-          Transfer
-        </button>
-      </div>
-    </div>
+  return (
+    <Chip
+      title={generalItem.title}
+      popover={
+        pending && canTransfer &&
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-primary font-bold mb-1">Transfer Item</p>
+          <p className="text-sm text-gray-primary font-normal">
+            Select Distribution
+          </p>
+          <ConfiguredSelect
+            value={
+              selectedDistribution
+                ? {
+                    value: selectedDistribution,
+                    label:
+                      otherDistributions.find(
+                        (d) => d.id === selectedDistribution
+                      )?.partner.name || "",
+                  }
+                : undefined
+            }
+            onChange={(newVal) => setSelectedDistribution(newVal?.value)}
+            options={otherDistributions.map((distribution) => ({
+              value: distribution.id,
+              label: distribution.partner.name,
+            }))}
+            isClearable
+            placeholder="Choose distribution..."
+          />
+          <p className="text-sm text-gray-primary font-normal">
+            Select Line Items
+          </p>
+          <ConfiguredSelect
+            value={selectedLineItems.map((id) => ({
+              value: id,
+              label: lineItemLabel(
+                generalItem.lineItems.find((li) => li.id === id)!
+              ),
+            }))}
+            onChange={(newVal) =>
+              setSelectedLineItems(newVal.map((item) => item.value))
+            }
+            options={generalItem.lineItems.map((lineItem) => ({
+              value: lineItem.id,
+              label: lineItemLabel(lineItem),
+            }))}
+            isClearable
+            isMulti
+            placeholder="Choose line items..."
+          />
+          <div className="w-full flex justify-end">
+            <button
+              onClick={transferLineItems}
+              className="rounded bg-blue-primary text-white px-3 py-1"
+            >
+              Transfer
+            </button>
+          </div>
+        </div>
+      }
+    />
   );
 
-  return <Chip title={generalItem.title} popover={canTransfer ? popoverContent : undefined} />;
 }

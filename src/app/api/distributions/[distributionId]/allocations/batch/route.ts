@@ -94,12 +94,57 @@ export async function PATCH(request: NextRequest) {
       throw new AuthenticationError("Session required");
     }
 
-    UserService.checkPermission(session.user, "allocationWrite");
+    // Check if this is a transfer operation (from DistributionTable)
+    const searchParams = new URL(request.url).searchParams;
+    const isTransfer = searchParams.get("transfer") === "true";
+
+    // Transfers require distributionWrite, regular allocation operations require allocationWrite
+    if (isTransfer) {
+      UserService.checkPermission(session.user, "distributionWrite");
+    } else {
+      UserService.checkPermission(session.user, "allocationWrite");
+    }
 
     const body = await request.json();
     const parsedBody = patchRequestSchema.safeParse(body);
     if (!parsedBody.success) {
       throw new ArgumentError(parsedBody.error.message);
+    }
+
+    // For transfer operations, enforce additional validation rules
+    if (isTransfer) {
+      // Check if any of the allocations belong to an approved distribution
+      const allocationIds = parsedBody.data.allocations.map((allocation) => allocation.id);
+      const allocations = await Promise.all(
+        allocationIds.map((id) => AllocationService.getAllocation(id))
+      );
+
+      for (const allocation of allocations) {
+        if (!allocation) continue;
+
+        const distribution = await DistributionService.getDistribution(
+          allocation.distributionId
+        );
+
+        if (!distribution.pending) {
+          throw new ArgumentError(
+            "Cannot transfer items from an approved distribution. Approved distributions are locked."
+          );
+        }
+      }
+
+      // Check if the target distribution is approved (only approved distributions can receive transfers)
+      if (parsedBody.data.distributionId) {
+        const targetDistribution = await DistributionService.getDistribution(
+          parsedBody.data.distributionId
+        );
+
+        if (targetDistribution.pending) {
+          throw new ArgumentError(
+            "Cannot transfer items to a pending distribution. Only approved distributions can receive transfers."
+          );
+        }
+      }
     }
 
     await AllocationService.updateAllocationBatch(

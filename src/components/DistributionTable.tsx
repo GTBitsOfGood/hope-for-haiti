@@ -18,7 +18,6 @@ export default function DistributionTable() {
   const [distributions, setDistributions] = useState<TableDistribution[]>([]);
   const { user } = useUser();
   const canManageDistributions = hasPermission(user, "distributionWrite");
-  const canTransferAllocations = hasPermission(user, "distributionWrite");
 
   const tableRef = useRef<AdvancedBaseTableHandle<TableDistribution>>(null);
 
@@ -111,11 +110,12 @@ export default function DistributionTable() {
         <DistributionsGeneralItemChipGroup
           generalItems={distribution.generalItems}
           otherDistributions={distributions.filter(
-            (d) => d.id !== distribution.id && d.pending
+            (d) => d.id !== distribution.id && !d.pending
           )}
           allocations={distribution.allocations}
           fetchTableData={tableRef.current!.reload}
-          canTransfer={canTransferAllocations}
+          pending={distribution.pending}
+          canTransfer={canManageDistributions}
         />
       )}
     />
