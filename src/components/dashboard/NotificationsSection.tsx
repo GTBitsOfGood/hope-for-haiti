@@ -3,7 +3,7 @@
 import { useState } from "react";
 import NotificationCard from "./NotificationCard";
 import NotificationsPanel from "./NotificationsPanel";
-import type { Notification } from "./types";
+import { Notification } from "@prisma/client";
 
 interface NotificationsSectionProps {
   notifications: Notification[];
@@ -38,9 +38,10 @@ export default function NotificationsSection({
           {displayedNotifications.map((notification) => (
             <NotificationCard
               key={notification.id}
-              message={notification.message}
-              actionText={notification.actionText}
-              actionUrl={notification.actionUrl}
+              id={notification.id}
+              message={notification.title}
+              actionText={notification.actionText ?? undefined}
+              actionUrl={notification.action ?? undefined}
             />
           ))}
           {hasMore && (

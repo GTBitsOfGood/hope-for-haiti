@@ -5,15 +5,20 @@ import {
   AuthenticationError,
   errorResponse,
 } from "@/util/errors";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const idSchema = z.object({
   notificationId: z.coerce.number().int().positive(),
 });
 
+const searchParamsSchema = z.object({
+  view: z.coerce.boolean().optional().nullable(),
+  delivery: z.coerce.boolean().optional().nullable(),
+});
+
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ notificationId: string }> }
 ) {
   try {
@@ -23,30 +28,34 @@ export async function PATCH(
       throw new AuthenticationError("User not authenticated");
     }
 
-    const parsed = idSchema.safeParse(await params);
-    if (!parsed.success) {
-      throw new ArgumentError(parsed.error.message);
+    const idParsed = idSchema.safeParse(await params);
+    if (!idParsed.success) {
+      throw new ArgumentError(idParsed.error.message);
     }
 
-    const notificationIdNum = parsed.data.notificationId;
+    const { notificationId } = idParsed.data;
 
-    const existingNotification =
-      await NotificationService.getNotificationById(notificationIdNum);
+    const existingNotification = await NotificationService.getNotificationById(notificationId);
 
     if (
-      !existingNotification ||
-      existingNotification.userId !== Number(session.user.id)
+      !existingNotification || existingNotification.userId !== Number(session.user.id)
     ) {
       throw new ArgumentError("Notification not found");
     }
 
-    if (existingNotification.dateViewed) {
-      // Notification already viewed, no update needed
-      return NextResponse.json({ notification: existingNotification });
+    const searchParams = searchParamsSchema.safeParse({
+      delivery: request.nextUrl.searchParams.get("delivery"),
+      view: request.nextUrl.searchParams.get("view"),
+    });
+
+    if (!searchParams.success) {
+      throw new ArgumentError(searchParams.error.message);
     }
 
-    const updatedNotification =
-      await NotificationService.markNotificationAsViewed(notificationIdNum);
+    const updatedNotification = NotificationService.updateNotification(notificationId, {
+      delivery: searchParams.data.delivery ?? undefined,
+      view: searchParams.data.view ?? undefined,
+    });
 
     return NextResponse.json({ notification: updatedNotification });
   } catch (error) {

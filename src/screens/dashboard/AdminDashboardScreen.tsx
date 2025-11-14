@@ -1,22 +1,21 @@
 "use client";
 
+import { useNotifications } from "@/components/NotificationHandler";
 import { useUser } from "@/components/context/UserContext";
 import { isAdmin } from "@/lib/userUtils";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import AnalyticsSection from "@/components/dashboard/AnalyticsSection";
 import MapSection from "@/components/dashboard/MapSection";
 import {
-  fetchNotifications,
   fetchAnalytics,
   fetchPartnerLocations,
 } from "@/lib/dashboardApi";
-import type { Notification } from "@/components/dashboard/types";
 import type { DashboardWidget } from "@/components/dashboard/analyticsData";
 import { useEffect, useState } from "react";
 
 export default function AdminDashboardScreen() {
   const { user, loading: userLoading } = useUser();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { notifications } = useNotifications();
   const [analyticsWidgets, setAnalyticsWidgets] = useState<DashboardWidget[]>(
     []
   );
@@ -36,13 +35,11 @@ export default function AdminDashboardScreen() {
         setLoading(true);
         setError(null);
 
-        const [notifs, analytics, partners] = await Promise.all([
-          fetchNotifications(),
+        const [analytics, partners] = await Promise.all([
           fetchAnalytics(),
           fetchPartnerLocations(),
         ]);
 
-        setNotifications(notifs);
         setAnalyticsWidgets(analytics);
         setPartnerLocations(partners);
       } catch (err) {

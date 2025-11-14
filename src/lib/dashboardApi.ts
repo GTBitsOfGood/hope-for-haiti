@@ -1,17 +1,5 @@
 import type { DashboardWidget } from "@/components/dashboard/analyticsData";
 import { mockAnalyticsData } from "@/components/dashboard/analyticsData";
-import type { Notification } from "@/components/dashboard/types";
-
-// Backend notification type
-interface BackendNotification {
-  id: number;
-  title: string;
-  action: string | null;
-  actionText: string | null;
-  dateCreated: Date | string;
-  dateViewed: Date | string | null;
-  userId: number;
-}
 
 // Backend analytics response type
 interface BackendAnalyticsResponse {
@@ -31,28 +19,6 @@ interface BackendPartnerLocation {
   name: string;
   latitude: number | null;
   longitude: number | null;
-}
-
-/**
- * Fetch unread notifications for the current user
- */
-export async function fetchNotifications(): Promise<Notification[]> {
-  const response = await fetch("/api/notifications");
-  if (!response.ok) {
-    throw new Error("Failed to fetch notifications");
-  }
-  const data = await response.json();
-  const backendNotifications: BackendNotification[] = data.notifications;
-
-  // Transform backend notifications to frontend format
-  return backendNotifications.map((notif) => ({
-    id: String(notif.id),
-    message: notif.title,
-    actionText: notif.actionText || "View",
-    actionUrl: notif.action || "#",
-    timestamp: new Date(notif.dateCreated),
-    type: "other" as const,
-  }));
 }
 
 /**
