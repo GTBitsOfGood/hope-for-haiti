@@ -16,7 +16,6 @@ import TicketMessageInput from "@/components/tickets/TicketMessageInput";
 import ChannelListTabs from "@/components/tickets/ChannelListTabs";
 import TicketSearchBar from "@/components/tickets/TicketSearchBar";
 
-import "@/app/support/support.css";
 import CreateTicketModal from "@/components/tickets/CreateTicketModal";
 import { ChatCircleSlash } from "@phosphor-icons/react";
 

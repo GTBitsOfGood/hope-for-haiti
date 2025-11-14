@@ -89,7 +89,10 @@ export default class StreamIoService {
   }
 
   private static channelNameToId(name: string): string {
-    return name.toLowerCase().replace(/\s+/g, "-");
+    const baseId = name.toLowerCase().replace(/\s+/g, "-");
+    // Add timestamp to ensure uniqueness (prevents reusing closed channels)
+    const timestamp = Date.now();
+    return `${baseId}-${timestamp}`;
   }
 
   /**
@@ -118,5 +121,50 @@ export default class StreamIoService {
     await channel.create();
 
     return channel;
+  }
+
+  /**
+   * Deletes all channels from Stream Chat.
+   * This is used for clearing/resetting the chat system.
+   */
+  static async deleteAllChannels(): Promise<void> {
+    let offset = 0;
+    const limit = 100;
+    let hasMore = true;
+
+    while (hasMore) {
+      try {
+        const channels = await StreamIoService.client.queryChannels(
+          { type: "ticket" },
+          {},
+          { limit, offset }
+        );
+        
+        if (channels.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        // Delete each channel
+        await Promise.all(
+          channels.map(async (channel) => {
+            try {
+              await channel.delete();
+            } catch (err) {
+              console.error(`Failed to delete channel ${channel.id}:`, err);
+            }
+          })
+        );
+
+        if (channels.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
+        }
+      } catch (err) {
+        console.error("Error querying/deleting channels:", err);
+        throw err;
+      }
+    }
   }
 }

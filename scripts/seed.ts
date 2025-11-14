@@ -110,6 +110,9 @@ const buildPartnerDetails = (
 async function buildSeedData() {
   await fetchExistingStreamTokens();
 
+  // Clear all Stream Chat channels before seeding
+  await StreamIoService.deleteAllChannels();
+
   await db.allocation.deleteMany();
   await db.generalItemRequest.deleteMany();
   await db.lineItem.deleteMany();

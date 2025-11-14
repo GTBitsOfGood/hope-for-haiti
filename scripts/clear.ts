@@ -21,7 +21,12 @@ async function deleteAllStreamUsers() {
   );
 }
 
+async function deleteAllStreamChannels() {
+  await StreamIoService.deleteAllChannels();
+}
+
 async function run() {
+  await deleteAllStreamChannels();
   await deleteAllStreamUsers();
 
   await db.$transaction(async (tx) => {
