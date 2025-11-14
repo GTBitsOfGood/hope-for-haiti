@@ -26,7 +26,8 @@ export async function POST(req: Request) {
       throw new AuthenticationError("Not authenticated");
     }
 
-    if (!hasPermission(session.user, "supportWrite")) {
+    // Partners can always create tickets, staff needs supportWrite permission
+    if (!isPartner(session.user.type) && !hasPermission(session.user, "supportWrite")) {
       throw new AuthorizationError("You don't have permission to create support tickets");
     }
 

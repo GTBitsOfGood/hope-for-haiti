@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { RequestPriority } from "@prisma/client";
+import { RequestPriority, Wishlist } from "@prisma/client";
 import Portal from "@/components/baseTable/Portal";
+import { useFetch } from "@/hooks/useFetch";
 
 interface RequestPopoverProps {
   isOpen: boolean;
@@ -62,6 +63,16 @@ export default function RequestPopover({
   const [comments, setComments] = useState(initialData?.comments || "");
   const [connectWishlist, setConnectWishlist] = useState(false);
 
+  useFetch(`api/wishlists/${wishlistMatch?.wishlistId}`, {
+    conditionalFetch: wishlistMatch != undefined,
+    onSuccess: (data: Wishlist) => {
+      // Don't overwrite user edits
+      setQuantity((quantity) => quantity || data.quantity?.toString() || "");
+      setPriority((prev) => prev || (data.priority as RequestPriority) || "");
+      setComments((comments) => comments || data.comments || "");
+    },
+  });
+
   useEffect(() => {
     setQuantity(initialData?.quantity ? initialData.quantity.toString() : "");
     setPriority(initialData?.priority || "");
@@ -83,7 +94,9 @@ export default function RequestPopover({
       quantity: quantityNum,
       priority: priority as RequestPriority,
       comments,
-      removeFromWishlist: wishlistMatch ? (wishlistMatch.strength === "hard" || connectWishlist) : undefined,
+      removeFromWishlist: wishlistMatch
+        ? wishlistMatch.strength === "hard" || connectWishlist
+        : undefined,
       wishlistId: wishlistMatch?.wishlistId,
     });
     onClose();
@@ -98,6 +111,11 @@ export default function RequestPopover({
       className="w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4"
     >
       <div className="space-y-4">
+        {wishlistMatch && (
+          <div className="bg-red-primary/5 border-2 border-red-primary/30 rounded-lg p-2.5">
+            Details pre-populated from wishlist
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Quantity
@@ -118,7 +136,9 @@ export default function RequestPopover({
           </label>
           <select
             value={priority}
-            onChange={(e) => setPriority(e.target.value as RequestPriority | "")}
+            onChange={(e) =>
+              setPriority(e.target.value as RequestPriority | "")
+            }
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
             style={{
               backgroundColor: getPriorityColor(priority),
@@ -149,14 +169,22 @@ export default function RequestPopover({
             {wishlistMatch.strength === "hard" ? (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-red-primary font-medium">
-                  ✓ Matches <span className="font-bold">{wishlistMatch.wishlistTitle}</span>
+                  ✓ Matches{" "}
+                  <span className="font-bold">
+                    {wishlistMatch.wishlistTitle}
+                  </span>
                 </span>
-                <span className="text-gray-600 text-xs">— auto-connects on request</span>
+                <span className="text-gray-600 text-xs">
+                  fulfills on request
+                </span>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3">
                 <span className="text-red-primary font-medium text-sm">
-                  Similar to <span className="font-bold">{wishlistMatch.wishlistTitle}</span>
+                  Similar to{" "}
+                  <span className="font-bold">
+                    {wishlistMatch.wishlistTitle}
+                  </span>
                 </span>
                 <button
                   type="button"

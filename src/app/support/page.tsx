@@ -7,7 +7,7 @@ import { useState } from "react";
 import useChat from "@/hooks/useChat";
 import { Chat } from "stream-chat-react";
 import LoadingScreen from "@/screens/LoadingScreen";
-import { hasPermission } from "@/lib/userUtils";
+import { hasPermission, isPartner } from "@/lib/userUtils";
 
 export default function SupportPage() {
   const { data: session } = useSession();
@@ -19,7 +19,7 @@ export default function SupportPage() {
     redirect("/signIn");
   }
 
-  if (!hasPermission(session.user, "supportRead")) {
+  if (!isPartner(session.user.type) && !hasPermission(session.user, "supportRead")) {
     redirect("/");
   }
 

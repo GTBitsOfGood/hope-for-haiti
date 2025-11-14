@@ -1021,6 +1021,120 @@ async function buildSeedData() {
 
   console.log("✓ Created shipping statuses");
 
+  // ============================================================================
+  // Wishlists
+  // ============================================================================
+
+  // Create wishlists for Internal Partner (Hope Medical Center)
+  await db.wishlist.createMany({
+    data: [
+      // 1. Strong correlation (≥0.75) - very similar to "Amoxicillin 500mg Capsules"
+      {
+        name: "Amoxicillin 500mg antibiotic capsules for infections",
+        quantity: 200,
+        priority: RequestPriority.HIGH,
+        comments: "Needed for treating bacterial infections in our primary care clinic",
+        partnerId: internalPartner.id,
+      },
+      // 2. Medium correlation (0.6-0.75) - related to antibiotic items
+      {
+        name: "Antibiotic medications for bacterial treatment",
+        quantity: 150,
+        priority: RequestPriority.MEDIUM,
+        comments: "General antibiotic supplies for various infections",
+        partnerId: internalPartner.id,
+      },
+      // 3. Medium correlation (0.6-0.75) - related to ORS/IV fluids
+      {
+        name: "Oral rehydration and fluid replacement therapy",
+        quantity: 300,
+        priority: RequestPriority.HIGH,
+        comments: "Critical for dehydration cases especially during cholera outbreaks",
+        partnerId: internalPartner.id,
+      },
+      // 4. No correlation - completely unrelated
+      {
+        name: "Office desks chairs and filing cabinets",
+        quantity: 10,
+        priority: RequestPriority.LOW,
+        comments: "Administrative office furniture for new clinic wing",
+        partnerId: internalPartner.id,
+      },
+      // 5. No correlation - completely unrelated
+      {
+        name: "Educational textbooks and learning materials",
+        quantity: 50,
+        priority: RequestPriority.LOW,
+        comments: "For community health education programs",
+        partnerId: internalPartner.id,
+      },
+      // 6. No correlation - completely unrelated
+      {
+        name: "Agricultural farming tools and equipment",
+        quantity: 25,
+        priority: RequestPriority.LOW,
+        comments: "For community agriculture sustainability program",
+        partnerId: internalPartner.id,
+      },
+    ],
+  });
+
+  // Create wishlists for External Partner (Les Cayes Community Hospital)
+  await db.wishlist.createMany({
+    data: [
+      // 1. Strong correlation (≥0.75) - very similar to "Azithromycin 250mg Tablets"
+      {
+        name: "Azithromycin 250mg antibiotic tablets medication",
+        quantity: 180,
+        priority: RequestPriority.HIGH,
+        comments: "Essential for respiratory and bacterial infections",
+        partnerId: externalPartner.id,
+      },
+      // 2. Medium correlation (0.6-0.75) - related to PPE items
+      {
+        name: "Personal protective equipment surgical gowns masks",
+        quantity: 400,
+        priority: RequestPriority.HIGH,
+        comments: "PPE supplies for surgical ward and isolation units",
+        partnerId: externalPartner.id,
+      },
+      // 3. Medium correlation (0.6-0.75) - related to nutrition/vitamins
+      {
+        name: "Nutritional supplements vitamins and minerals",
+        quantity: 250,
+        priority: RequestPriority.MEDIUM,
+        comments: "For maternal health and pediatric malnutrition programs",
+        partnerId: externalPartner.id,
+      },
+      // 4. No correlation - completely unrelated
+      {
+        name: "Construction building materials cement blocks",
+        quantity: 500,
+        priority: RequestPriority.LOW,
+        comments: "For hospital expansion construction project",
+        partnerId: externalPartner.id,
+      },
+      // 5. No correlation - completely unrelated
+      {
+        name: "Sports recreation equipment balls nets",
+        quantity: 30,
+        priority: RequestPriority.LOW,
+        comments: "For patient rehabilitation and community wellness programs",
+        partnerId: externalPartner.id,
+      },
+      // 6. No correlation - completely unrelated
+      {
+        name: "Household cleaning supplies detergents soap",
+        quantity: 100,
+        priority: RequestPriority.LOW,
+        comments: "General cleaning and sanitation supplies",
+        partnerId: externalPartner.id,
+      },
+    ],
+  });
+
+  console.log("✓ Created 12 wishlists (6 per partner)");
+
   try {
     const unfinalizedItems = await db.generalItem.findMany({
       where: {
@@ -1053,7 +1167,7 @@ async function buildSeedData() {
         }))
       );
       console.log(
-        `✓ Created ${unfinalizedItems.length} embeddings for unfinalized items`
+        `✓ Created ${unfinalizedItems.length} embeddings for general items only`
       );
     }
   } catch (error) {

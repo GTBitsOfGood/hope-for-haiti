@@ -3,7 +3,6 @@ import { $Enums, Wishlist } from "@prisma/client";
 export interface CreateWishlistData {
   partnerId: number;
   name: string;
-  unitSize: string;
   quantity: number;
   priority: $Enums.RequestPriority;
   comments: string;
@@ -30,7 +29,6 @@ export type GetWishlistsResponse = WishlistAggregate[] | Wishlist[];
 // PATCH /api/wishlists/[partnerId] — request body (all optional)
 export interface UpdateWishlistItemBody {
   name?: string;
-  unitSize?: string;
   quantity?: number;
   priority?: $Enums.RequestPriority;
   comment?: string;

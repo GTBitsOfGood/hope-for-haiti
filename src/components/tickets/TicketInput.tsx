@@ -10,11 +10,26 @@ import {
   useChannelStateContext,
 } from "stream-chat-react";
 
-export default function TicketInput() {
+interface TicketInputProps {
+  canWrite: boolean;
+}
+
+export default function TicketInput({ canWrite }: TicketInputProps) {
   const { handleSubmit } = useMessageInputContext();
   const { channel } = useChannelStateContext();
 
   const isClosed = (channel.data as ExtraChannelData).closed;
+  const isDisabled = isClosed || !canWrite;
+
+  const getPlaceholder = () => {
+    if (isClosed) {
+      return "Ticket is closed. You cannot send messages.";
+    }
+    if (!canWrite) {
+      return "You don't have permission to send messages.";
+    }
+    return "Type your message here...";
+  };
 
   return (
     <WithDragAndDropUpload className="px-2 w-full flex items-center justify-between gap-2">
@@ -23,24 +38,20 @@ export default function TicketInput() {
       {/* cursor-pointer is being weird and only working over the padding */}
       <div
         className={`hover:bg-sunken hover:shadow-md cursor-pointer *:cursor-pointer rounded-full p-2 transition
-          ${isClosed ? "opacity-50 pointer-events-none *:pointer-events-none" : ""}`}
+          ${isDisabled ? "opacity-50 pointer-events-none *:pointer-events-none" : ""}`}
       >
         <SimpleAttachmentSelector />
       </div>
       <TextareaComposer
         containerClassName={`grow *:w-full *:rounded-full *:resize-none flex items-center ${
-          isClosed && "*:bg-gray-primary/15 *:cursor-not-allowed"
+          isDisabled && "*:bg-gray-primary/15 *:cursor-not-allowed"
         }`}
-        placeholder={
-          isClosed
-            ? "Ticket is closed. You cannot send messages."
-            : "Type your message here..."
-        }
+        placeholder={getPlaceholder()}
       />
       <SendButton
         sendMessage={handleSubmit}
-        disabled={isClosed}
-        className="cursor-pointer hover:bg-sunken hover:shadow-md p-2 rounded-full transition 
+        disabled={isDisabled}
+        className="cursor-pointer hover:bg-sunken hover:shadow-md p-2 rounded-full transition
           disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none"
       />
     </WithDragAndDropUpload>

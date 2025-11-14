@@ -49,7 +49,7 @@ function NavLink({
 function NavLinks() {
   const { user } = useUser();
   const isPartnerUser = isPartner(user?.type);
-  const canViewSupport = hasPermission(user, "supportRead");
+  const canViewSupport = isPartnerUser || hasPermission(user, "supportRead");
   const canViewAccounts = hasPermission(user, "userRead");
   const canViewUnallocated = hasPermission(user, "allocationRead");
   const canViewDonorOffers = hasAnyPermission(user, [

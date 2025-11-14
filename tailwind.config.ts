@@ -8,6 +8,9 @@ export default {
   ],
   theme: {
     extend: {
+      transitionProperty: {
+        height: "height",
+      },
       colors: {
         blue: {
           light: "#f6f7ff",

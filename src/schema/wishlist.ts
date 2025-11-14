@@ -4,7 +4,6 @@ import { z, ZodObject } from "zod";
 
 const createObj = {
   name: z.string().min(1).max(100),
-  unitSize: z.string().min(1).max(100),
   quantity: z.number().min(1),
   priority: z.enum(
     Object.values($Enums.RequestPriority) as [string, ...string[]]

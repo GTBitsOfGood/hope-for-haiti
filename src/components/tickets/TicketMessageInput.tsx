@@ -8,7 +8,7 @@ import {
 } from "stream-chat-react";
 import TicketInput from "./TicketInput";
 import { useSession } from "next-auth/react";
-import { hasPermission } from "@/lib/userUtils";
+import { hasPermission, isPartner } from "@/lib/userUtils";
 
 export default function TicketMessageInput() {
   const { channel } = useChannelStateContext();
@@ -16,7 +16,10 @@ export default function TicketMessageInput() {
   const { data: session } = useSession();
 
   const data = channel.data as ExtraChannelData;
-  const canWrite = session?.user ? hasPermission(session.user, "supportWrite") : false;
+  // Partners can always write messages, staff needs supportWrite permission
+  const canWrite = session?.user
+    ? (isPartner(session.user.type) || hasPermission(session.user, "supportWrite"))
+    : false;
 
   useEffect(() => {
     // Disable message input if the ticket is closed or user lacks permission
@@ -42,7 +45,7 @@ export default function TicketMessageInput() {
             }
           : undefined
       }
-      Input={TicketInput}
+      Input={(props) => <TicketInput {...props} canWrite={canWrite} />}
     />
   );
 }

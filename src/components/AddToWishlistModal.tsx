@@ -11,7 +11,9 @@ import AdvancedBaseTable, {
   TableQuery,
 } from "./baseTable/AdvancedBaseTable";
 import Link from "next/link";
-import { Wishlist } from "@prisma/client";
+import { $Enums, Wishlist } from "@prisma/client";
+import ModalDropDown from "./ModalDropDown";
+import { titleCase } from "@/util/util";
 
 type Suggestion = {
   id: number;
@@ -20,11 +22,11 @@ type Suggestion = {
   similarity: number; // 0..1
   strength: "soft" | "hard";
   quantity: number;
-  unitSize: string;
 };
 
 export type AddToWishlistForm = {
   name: string; // Title
+  priority?: $Enums.RequestPriority; // Step 2
   quantity?: number; // Step 2
   comments?: string; // Step 2
 };
@@ -57,12 +59,6 @@ export default function AddToWishlistModal({
       id: "title",
       header: "Title",
       cell: (s) => s.title,
-      filterType: "string",
-    },
-    {
-      id: "unitSize",
-      header: "Unit Size",
-      cell: (s) => s.unitSize ?? "-",
       filterType: "string",
     },
     {
@@ -120,15 +116,14 @@ export default function AddToWishlistModal({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const payload = {
+    const payload: Omit<Wishlist, "id" | "generalItemId" | "partnerId"> = {
       name: form.name.trim(),
-      quantity: form.quantity,
-      comments: form.comments?.trim() || undefined,
-      unitSize: "N/A",
-      priority: "LOW",
+      quantity: form.quantity ?? null,
+      comments: form.comments?.trim() ?? "",
+      priority: form.priority ?? $Enums.RequestPriority.LOW,
+      lastUpdated: new Date(),
     };
 
-    console.log("Submitting wish:", payload);
     await apiClient.post("/api/wishlists", {
       body: JSON.stringify(payload),
     });
@@ -158,7 +153,7 @@ export default function AddToWishlistModal({
           {/* Header */}
           <div className="flex items-start justify-between mb-6 md:mb-8">
             <h2 className="text-2xl font-semibold text-gray-900">
-              {step === 1 ? "Add to Wishlist" : "Add to Wishlist – Details"}
+              Add to Wishlist
             </h2>
             <button
               type="button"
@@ -263,16 +258,16 @@ export default function AddToWishlistModal({
 
             {step === 2 && (
               <>
-                {/* Title (read-only) + Quantity (same row) */}
+                <ModalTextField
+                  label="Title"
+                  name="name"
+                  required
+                  defaultValue={form.name}
+                  className="bg-gray-100 cursor-not-allowed"
+                  inputProps={{ readOnly: true }}
+                />
                 <ModalFormRow>
-                  <ModalTextField
-                    label="Title"
-                    name="name"
-                    required
-                    defaultValue={form.name}
-                    className="bg-gray-100 cursor-not-allowed"
-                    inputProps={{ readOnly: true }}
-                  />
+                  {/* Quantity + Priority (same row) */}
                   <ModalTextField
                     label="Quantity Requested"
                     name="quantity"
@@ -288,6 +283,33 @@ export default function AddToWishlistModal({
                             ? undefined
                             : Number(e.target.value),
                       }))
+                    }
+                  />
+                  <ModalDropDown
+                    label="Priority"
+                    name="priority"
+                    placeholder="Select priority"
+                    required
+                    className="w-1/4"
+                    options={Object.values($Enums.RequestPriority).map((p) => ({
+                      label: titleCase(p),
+                      value: p,
+                    }))}
+                    onSelect={(priority) =>
+                      setForm((f) => ({
+                        ...f,
+                        priority: priority as $Enums.RequestPriority,
+                      }))
+                    }
+                    defaultSelected={
+                      form.priority
+                        ? {
+                            label:
+                              form.priority?.charAt(0) +
+                              form.priority?.slice(1).toLowerCase(),
+                            value: form.priority,
+                          }
+                        : undefined
                     }
                   />
                 </ModalFormRow>

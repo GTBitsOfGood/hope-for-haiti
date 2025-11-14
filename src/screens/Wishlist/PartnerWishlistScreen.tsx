@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
-import { Wishlist } from "@prisma/client";
+import { $Enums, Wishlist } from "@prisma/client";
 import { PencilSimple, ChatTeardropText, Trash } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
 import AdvancedBaseTable, {
@@ -14,6 +14,7 @@ import AdvancedBaseTable, {
 import AddToWishlistModal from "@/components/AddToWishlistModal";
 import EditWishlistModal from "@/components/EditWishlistModal";
 import DeleteWishlistModal from "@/components/DeleteWishlistModal";
+import PriorityTag from "@/components/tags/PriorityTag";
 
 type WishlistItem = Wishlist;
 
@@ -21,6 +22,7 @@ type WishlistEditable = {
   id: number;
   name: string;
   quantity?: number | null;
+  priority?: $Enums.RequestPriority;
   comments?: string | null;
 };
 
@@ -79,6 +81,7 @@ export default function PartnerWishlistScreen({
       id: item.id,
       name: item.name,
       quantity: item.quantity,
+      priority: item.priority,
       comments: item.comments,
     });
   };
@@ -119,13 +122,19 @@ export default function PartnerWishlistScreen({
       filterType: "number",
     },
     {
+      id: "priority",
+      header: "Priority",
+      cell: (it) => <PriorityTag priority={it.priority} />,
+      filterType: "string",
+    },
+    {
       id: "comments",
       header: "Comment",
       cell: (it) => {
         const text = it.comments || "";
         const hasComment = text.trim().length > 0;
         return (
-          <div className="flex items-center justify-center">
+          <div className="w-1/3 flex items-center justify-center">
             <ChatTeardropText
               size={22}
               className={hasComment ? "text-black" : "text-gray-300"}

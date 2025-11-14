@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { tableParamsSchema } from "@/schema/tableParams";
 import { createWishlistSchema, idSchema } from "@/schema/wishlist";
 import UserService from "@/services/userService";
 import { WishlistService } from "@/services/wishlistService";
@@ -80,12 +81,26 @@ export async function GET(req: NextRequest) {
 
     UserService.checkPermission(session.user, "wishlistRead");
 
-    const stats = await WishlistService.getWishlistsStatsByPartner();
-    return NextResponse.json(stats, {
-      status: 200,
+    const parsedParams = tableParamsSchema.safeParse({
+      filters: req.nextUrl.searchParams.get("filters"),
+      page: req.nextUrl.searchParams.get("page"),
+      pageSize: req.nextUrl.searchParams.get("pageSize"),
     });
+
+    if (!parsedParams.success) {
+      throw new ArgumentError(parsedParams.error.message);
+    }
+
+    const { filters, page, pageSize } = parsedParams.data;
+
+    const wishlists = await WishlistService.getAllWishlists(
+      filters ?? undefined,
+      page ?? undefined,
+      pageSize ?? undefined
+    );
+
+    return NextResponse.json(wishlists);
   } catch (error) {
-    console.error(error);
     return errorResponse(error);
   }
 }

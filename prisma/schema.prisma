@@ -333,8 +333,7 @@ model Wishlist {
   id Int @id @default(autoincrement())
 
   name     String
-  unitSize String
-  quantity Int
+  quantity Int?
   priority RequestPriority
 
   lastUpdated DateTime @updatedAt

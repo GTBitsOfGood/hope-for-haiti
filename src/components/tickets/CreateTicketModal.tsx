@@ -1,6 +1,6 @@
 import { useSession } from "next-auth/react";
 import GeneralModal from "@/components/AccountManagement/GeneralModal";
-import { hasPermission, isStaff } from "@/lib/userUtils";
+import { hasPermission, isPartner, isStaff } from "@/lib/userUtils";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useEffect, useState } from "react";
@@ -18,7 +18,8 @@ export default function CreateTicketModal({
 
   const session = useSession();
   const user = session.data?.user;
-  const canWrite = user ? hasPermission(user, "supportWrite") : false;
+  // Partners can always create tickets, staff needs supportWrite permission
+  const canWrite = user ? (isPartner(user.type) || hasPermission(user, "supportWrite")) : false;
   const isStaffUser = user ? isStaff(user.type) : false;
 
   const { apiClient } = useApiClient();
