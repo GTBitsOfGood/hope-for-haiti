@@ -1,8 +1,7 @@
+@import "stream-chat-react/dist/css/v2/index.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "stream-chat-react/dist/css/v2/index.css";
 
 html,
 body,
@@ -258,4 +257,26 @@ body {
   .str-chat__unread-messages-separator {
     background-color: transparent;
     border-bottom: 1px solid rgb(229 231 235);
+  }
+
+  /* Move attachment preview above input - minimal styling */
+.str-chat__main-panel > div[role="presentation"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* Force attachment preview to full width, causing it to wrap to its own line */
+  .str-chat__attachment-list-scroll-container {
+    flex-basis: 100% !important;
+    width: 100% !important;
+  }
+
+  .str-chat__attachment-preview-list {
+    flex-basis: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Ensure other input elements don't wrap unnecessarily - keep them on second line */
+  .str-chat__message-input > div[role="presentation"] > *:not(.str-chat__attachment-preview-list) {
+    flex-basis: auto !important;
+    flex-shrink: 0 !important;
   }
