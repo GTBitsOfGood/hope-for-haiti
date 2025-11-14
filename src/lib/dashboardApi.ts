@@ -153,11 +153,11 @@ export async function fetchAnalytics(
       data: Object.entries(data.topDonationCategories).map(
         ([category, value]) => ({
           label: formatCategoryName(category),
-          value: Number(value),
+          value: formatMillions(Number(value)),
         })
       ),
       orientation: "horizontal",
-      axisTitleX: "Count",
+      axisTitleX: "Value (in millions)",
       type: "bar",
     },
     {
