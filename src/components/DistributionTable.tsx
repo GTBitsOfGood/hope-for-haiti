@@ -104,6 +104,7 @@ export default function DistributionTable() {
           )}
           allocations={distribution.allocations}
           fetchTableData={tableRef.current!.reload}
+          pending={distribution.pending}
         />
       )}
     />

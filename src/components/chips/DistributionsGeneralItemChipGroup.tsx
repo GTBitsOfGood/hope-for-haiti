@@ -13,11 +13,13 @@ export default function DistributionsGeneralItemChipGroup({
   otherDistributions,
   allocations,
   fetchTableData,
+  pending,
 }: {
   generalItems: TableDistribution["generalItems"];
   otherDistributions: TableDistribution[];
   allocations: TableAllocation[];
   fetchTableData: () => void;
+  pending: boolean;
 }) {
   return (
     <div className="w-full bg-sunken flex flex-wrap p-2">
@@ -33,6 +35,7 @@ export default function DistributionsGeneralItemChipGroup({
           otherDistributions={otherDistributions}
           allocations={allocations}
           fetchTableData={fetchTableData}
+          pending={pending}
         />
       ))}
     </div>
@@ -44,11 +47,13 @@ function GeneralItemChip({
   otherDistributions,
   allocations,
   fetchTableData,
+  pending,
 }: {
   generalItem: TableDistribution["generalItems"][number];
   otherDistributions: TableDistribution[];
   allocations: TableAllocation[];
   fetchTableData: () => void;
+  pending: boolean;
 }) {
   const [selectedDistribution, setSelectedDistribution] = useState<number>();
   const [selectedLineItems, setSelectedLineItems] = useState<number[]>([]);
@@ -114,6 +119,7 @@ function GeneralItemChip({
     <Chip
       title={generalItem.title}
       popover={
+        pending && 
         <div className="flex flex-col gap-2">
           <p className="text-gray-primary font-bold mb-1">Transfer Item</p>
           <p className="text-sm text-gray-primary font-normal">
