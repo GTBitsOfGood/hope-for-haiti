@@ -179,16 +179,18 @@ export default function AdminDonorOffersScreen() {
                       <DotsThree weight="bold" />
                     </MenuButton>
                     <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                      <MenuItem
-                        as="button"
-                        className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() =>
-                          router.push(`/donorOffers/${offer.donorOfferId}/edit`)
-                        }
-                      >
-                        <PencilSimple className="inline-block mr-2" size={22} />
-                        Edit Offer Details
-                      </MenuItem>
+                      {offer.state !== DonorOfferState.ARCHIVED && (
+                        <MenuItem
+                          as="button"
+                          className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() =>
+                            router.push(`/donorOffers/${offer.donorOfferId}/edit`)
+                          }
+                        >
+                          <PencilSimple className="inline-block mr-2" size={22} />
+                          Edit Offer Details
+                        </MenuItem>
+                      )}
                       {offer.state === DonorOfferState.UNFINALIZED && (
                         <MenuItem
                           as="button"
@@ -213,24 +215,23 @@ export default function AdminDonorOffersScreen() {
                           Archive Offer
                         </MenuItem>
                       )}
+                      {offer.state === DonorOfferState.ARCHIVED && (
+                        <MenuItem
+                          as="div"
+                          className="flex w-full px-3 py-2 text-sm text-gray-500 italic cursor-default"
+                        >
+                          Archived (Read-Only)
+                        </MenuItem>
+                      )}
                     </MenuItems>
                   </Menu>
-                </div>
+                </div>,
               ]);
             }
 
             return {
               cells,
-              onClick: () => {
-                if (
-                  offer.state === DonorOfferState.FINALIZED ||
-                  offer.state === DonorOfferState.ARCHIVED
-                ) {
-                  router.push(`/donorOffers/${offer.donorOfferId}/allocate`);
-                  return;
-                }
-                router.push(`/donorOffers/${offer.donorOfferId}`);
-              },
+              onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
             };
           })}
         />

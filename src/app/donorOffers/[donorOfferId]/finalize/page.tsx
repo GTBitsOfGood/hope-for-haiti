@@ -19,14 +19,20 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFetch } from "@/hooks/useFetch";
 import { useApiClient } from "@/hooks/useApiClient";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
+import { hasPermission } from "@/lib/userUtils";
 
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
   const params = useParams();
   const donorOfferId = params.donorOfferId as string;
+  const canManageOffers = hasPermission(session?.user, "offerWrite");
 
   if (session?.user?.type === "PARTNER") {
     redirect("/donorOffers");
+  }
+
+  if (!canManageOffers) {
+    redirect(`/donorOffers/${donorOfferId}`);
   }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +60,10 @@ export default function FinalizeDonorOfferPage() {
       }
     },
   });
+
+  if (data?.donorOffer && data.donorOffer.state !== "UNFINALIZED") {
+    redirect(`/donorOffers/${donorOfferId}`);
+  }
 
   const {
     fileName,

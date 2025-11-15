@@ -125,6 +125,7 @@ export async function GET(
         donorName: donorOffer.donorName,
         partnerResponseDeadline: donorOffer.partnerResponseDeadline,
         donorResponseDeadline: donorOffer.donorResponseDeadline,
+        state: donorOffer.state,
       });
     }
 
@@ -153,6 +154,17 @@ export async function DELETE(
 
     UserService.checkPermission(session.user, "offerWrite");
 
+    // Check if the donor offer is archived
+    const { donorOffer } = await DonorOfferService.getAdminDonorOfferDetails(
+      parsed.data.donorOfferId,
+      false
+    );
+    if (donorOffer.state === $Enums.DonorOfferState.ARCHIVED) {
+      throw new ArgumentError(
+        "Cannot delete an archived donor offer. Archived offers are read-only."
+      );
+    }
+
     await DonorOfferService.deleteDonorOffer(parsed.data.donorOfferId);
     return ok();
   } catch (error) {
@@ -176,6 +188,17 @@ export async function PATCH(
     const parsed = paramSchema.safeParse({ donorOfferId });
     if (!parsed.success) {
       throw new ArgumentError(parsed.error.message);
+    }
+
+    // Check if the donor offer is archived
+    const { donorOffer } = await DonorOfferService.getAdminDonorOfferDetails(
+      parsed.data.donorOfferId,
+      false
+    );
+    if (donorOffer.state === $Enums.DonorOfferState.ARCHIVED) {
+      throw new ArgumentError(
+        "Cannot edit an archived donor offer. Archived offers are read-only."
+      );
     }
 
     const formData = await req.formData();

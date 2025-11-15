@@ -3,7 +3,7 @@ import {
   CreateGeneralItemParams,
   UpdateGeneralItemParams,
 } from "@/types/api/generalItem.types";
-import { NotFoundError } from "@/util/errors";
+import { NotFoundError, ArgumentError } from "@/util/errors";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Filters } from "@/types/api/filter.types";
 import { $Enums, Prisma } from "@prisma/client";
@@ -42,6 +42,20 @@ export class GeneralItemService {
 
   static async updateGeneralItem(id: number, updates: UpdateGeneralItemParams) {
     try {
+      // Check if the general item belongs to an archived donor offer
+      const generalItem = await db.generalItem.findUnique({
+        where: { id },
+        include: {
+          donorOffer: {
+            select: { state: true }
+          }
+        }
+      });
+
+      if (generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new ArgumentError("Cannot update general items for archived donor offers. Archived offers are read-only.");
+      }
+
       return await db.generalItem.update({
         where: { id },
         data: updates,
@@ -58,6 +72,20 @@ export class GeneralItemService {
 
   static async deleteGeneralItem(id: number) {
     try {
+      // Check if the general item belongs to an archived donor offer
+      const generalItem = await db.generalItem.findUnique({
+        where: { id },
+        include: {
+          donorOffer: {
+            select: { state: true }
+          }
+        }
+      });
+
+      if (generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new ArgumentError("Cannot delete general items for archived donor offers. Archived offers are read-only.");
+      }
+
       return await db.generalItem.delete({
         where: { id },
       });

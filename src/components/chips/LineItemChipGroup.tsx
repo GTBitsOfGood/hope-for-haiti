@@ -20,6 +20,7 @@ export default function LineItemChipGroup({
   ensureDistributionForPartner,
   onDistributionRemoved,
   isInteractionMode = false,
+  readOnly = false,
 }: {
   items: AllocationTableItem["items"];
   requests: AllocationTableItem["requests"];
@@ -32,6 +33,7 @@ export default function LineItemChipGroup({
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
   isInteractionMode?: boolean;
+  readOnly?: boolean;
 }) {
   const sortedItems = [...items].sort((a, b) =>
     (a.allocation === null) === (b.allocation === null)
@@ -59,6 +61,7 @@ export default function LineItemChipGroup({
           ensureDistributionForPartner={ensureDistributionForPartner}
           onDistributionRemoved={onDistributionRemoved}
           isInteractionMode={isInteractionMode}
+          readOnly={readOnly}
         />
       ))}
     </div>
@@ -74,6 +77,7 @@ function LineItemChip({
   ensureDistributionForPartner,
   onDistributionRemoved,
   isInteractionMode = false,
+  readOnly = false,
 }: {
   item: AllocationTableItem["items"][number];
   requests: AllocationTableItem["requests"];
@@ -86,6 +90,7 @@ function LineItemChip({
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
   isInteractionMode?: boolean;
+  readOnly?: boolean;
 }) {
   const { apiClient } = useApiClient();
 
@@ -245,7 +250,7 @@ function LineItemChip({
         revisedAmount={item.quantity}
         showLabel={true}
         label={item.allocation?.partner?.name}
-        popover={
+        popover={readOnly ? undefined : (
           <div className="text-sm font-bold">
             <p className="text-gray-500 mb-1">Allocate to Partner</p>
             <div className="flex flex-col overflow-y-scroll max-h-60 space-y-1">
@@ -271,7 +276,7 @@ function LineItemChip({
               ))}
             </div>
           </div>
-        }
+        )}
       />
     </div>
   );
