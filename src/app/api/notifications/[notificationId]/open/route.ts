@@ -40,7 +40,7 @@ export async function GET(
       view: true,
     });
 
-    return NextResponse.redirect(notification.action ?? "/");
+    return NextResponse.redirect(notification.action ?? `${process.env.BASE_URL}/`);
   } catch (error) {
     return errorResponse(error);
   }
