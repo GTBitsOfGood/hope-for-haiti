@@ -15,7 +15,10 @@
     "db:seed-chroma": "env-cmd -f .env tsx scripts/seed-chroma.ts",
     "ci:db:migrate": "npx prisma migrate dev",
     "prepare": "husky",
-    "email:dev": "email dev --dir ./src/email --port 4000"
+    "email:dev": "email dev --dir ./src/email --port 4000",
+    "netlify": "netlify dev",
+    "functions:expiringItems": "netlify functions:invoke expiringItems --port 8888",
+    "functions:notifications": "netlify functions:invoke notifications --port 8888"
   },
   "dependencies": {
     "@ably/chat": "^1.1.0",
