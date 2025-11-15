@@ -77,6 +77,20 @@ export async function GET(request: Request) {
       parsedQuery.data.excludePartnerTags
     );
 
+    const breakdownByDonationType =
+      await LineItemService.getBreakdownByDonationType(
+        parsedQuery.data.startDate,
+        parsedQuery.data.endDate,
+        parsedQuery.data.excludePartnerTags
+      );
+
+    const topDonationCategories =
+      await LineItemService.getTopDonationCategories(
+        parsedQuery.data.startDate,
+        parsedQuery.data.endDate,
+        parsedQuery.data.excludePartnerTags
+      );
+
     const result = {
       totalImports: imports.total,
       monthlyImportTotals: imports.monthlyTotals,
@@ -86,6 +100,8 @@ export async function GET(request: Request) {
       partnerCount: partnerCount,
       importWeight: importWeight,
       topDonors: topDonors,
+      breakdownByDonationType: breakdownByDonationType,
+      topDonationCategories: topDonationCategories,
     };
 
     return NextResponse.json(result);

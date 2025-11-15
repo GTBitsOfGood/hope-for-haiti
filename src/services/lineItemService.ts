@@ -361,7 +361,7 @@ export class LineItemService {
   }
 
   /**
-   * @returns The top 5 imports by value (category removed)
+   * @returns The top 5 medication categories by value (only MEDICATION ItemType)
    */
   static async getTopMedicationImports(
     startDate: Date = new Date(0),
@@ -369,18 +369,19 @@ export class LineItemService {
     excludePartnerTags: string[] = []
   ): Promise<
     {
-      title: string;
+      category: string;
       totalValue: number;
     }[]
   > {
     let baseQuery = Prisma.sql`
-      SELECT g.title, SUM(li.quantity * li."unitPrice") as "totalValue"
+      SELECT g.category, SUM(li.quantity * li."unitPrice") as "totalValue"
       FROM "LineItem" li
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
       JOIN "GeneralItem" g ON li."generalItemId" = g.id
       JOIN "SignOff" s ON a."signOffId" = s.id
       WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
+        AND g.type = 'MEDICATION'
     `;
 
     if (excludePartnerTags.length > 0) {
@@ -388,17 +389,19 @@ export class LineItemService {
     }
 
     baseQuery = Prisma.sql`${baseQuery}
-      GROUP BY g.title
+      GROUP BY g.category
       ORDER BY "totalValue" DESC
       LIMIT 5
     `;
 
     const result =
-      await db.$queryRaw<{ title: string; totalValue: number }[]>(baseQuery);
-    return result.map((row) => ({
-      title: row.title,
-      totalValue: Number(row.totalValue),
-    }));
+      await db.$queryRaw<{ category: string | null; totalValue: number }[]>(baseQuery);
+    return result
+      .filter((row) => row.category != null)
+      .map((row) => ({
+        category: row.category!,
+        totalValue: Number(row.totalValue),
+      }));
   }
 
   static async getTotalImportWeight(
@@ -463,5 +466,89 @@ export class LineItemService {
       donorName: row.donorName,
       value: Number(row.value),
     }));
+  }
+
+  /**
+   * Fetches breakdown by donation type (MEDICATION, NON_MEDICATION, MEDICATION_SUPPLEMENT)
+   * Only includes line items that have both an Allocation and a linked SignOff
+   */
+  static async getBreakdownByDonationType(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<Record<string, number>> {
+    let baseQuery = Prisma.sql`
+      SELECT g.type, COUNT(li.id) as "count"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
+      JOIN "GeneralItem" g ON li."generalItemId" = g.id
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY g.type
+    `;
+
+    const result = await db.$queryRaw<{ type: string | null; count: bigint }[]>(
+      baseQuery
+    );
+
+    const breakdown: Record<string, number> = {};
+    result.forEach((row) => {
+      if (row.type) {
+        breakdown[row.type] = Number(row.count);
+      }
+    });
+
+    return breakdown;
+  }
+
+  /**
+   * Fetches the top 5 donation categories by total monetary value
+   * Only includes line items that have both an Allocation and a linked SignOff
+   */
+  static async getTopDonationCategories(
+    startDate: Date = new Date(0),
+    endDate: Date = new Date(),
+    excludePartnerTags: string[] = []
+  ): Promise<Record<string, number>> {
+    let baseQuery = Prisma.sql`
+      SELECT g.category, SUM(li.quantity * li."unitPrice") as "totalValue"
+      FROM "LineItem" li
+      JOIN "Allocation" a ON li.id = a."lineItemId"
+      JOIN "User" p ON a."partnerId" = p.id
+      JOIN "SignOff" s ON a."signOffId" = s.id
+      JOIN "GeneralItem" g ON li."generalItemId" = g.id
+      WHERE s."date" >= ${startDate} AND s."date" < ${endDate}
+    `;
+
+    if (excludePartnerTags.length > 0) {
+      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+    }
+
+    baseQuery = Prisma.sql`${baseQuery}
+      GROUP BY g.category
+      ORDER BY "totalValue" DESC
+      LIMIT 5
+    `;
+
+    const result = await db.$queryRaw<
+      { category: string | null; totalValue: number }[]
+    >(baseQuery);
+
+    const categories: Record<string, number> = {};
+    result.forEach((row) => {
+      if (row.category) {
+        categories[row.category] = Number(row.totalValue);
+      }
+    });
+
+    return categories;
   }
 }

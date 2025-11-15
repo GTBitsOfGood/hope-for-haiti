@@ -1,5 +1,4 @@
 import type { DashboardWidget } from "@/components/dashboard/analyticsData";
-import { mockAnalyticsData } from "@/components/dashboard/analyticsData";
 import type { Notification } from "@/components/dashboard/types";
 
 // Backend notification type
@@ -19,10 +18,12 @@ interface BackendAnalyticsResponse {
   monthlyImportTotals: { month: number; year: number; total: number }[];
   totalShipments: number;
   totalPallets: number;
-  topMedications: { title: string; totalValue: number }[];
+  topMedications: { category: string; totalValue: number }[];
   partnerCount: number;
   importWeight: number;
   topDonors: { donorName: string; value: number }[];
+  breakdownByDonationType: Record<string, number>;
+  topDonationCategories: Record<string, number>;
 }
 
 // Backend partner location type
@@ -58,8 +59,16 @@ export async function fetchNotifications(): Promise<Notification[]> {
 /**
  * Fetch analytics data and transform to widget format
  */
-export async function fetchAnalytics(): Promise<DashboardWidget[]> {
-  const response = await fetch("/api/dashboard/analytics");
+export async function fetchAnalytics(
+  excludeTags: string[] = []
+): Promise<DashboardWidget[]> {
+  const queryParams = new URLSearchParams();
+  if (excludeTags.length > 0) {
+    queryParams.set("excludePartnerTags", excludeTags.join(","));
+  }
+
+  const url = `/api/dashboard/analytics${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch analytics");
   }
@@ -85,6 +94,22 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
     return value / 1_000_000;
   };
 
+  // Helper to format category name
+  const formatCategoryName = (category: string): string => {
+    return category
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  // Helper to format item type name
+  const formatItemTypeName = (type: string): string => {
+    return type
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
   // Month abbreviations
   const monthAbbr = [
     "Jan",
@@ -100,13 +125,6 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
     "Nov",
     "Dec",
   ];
-
-  const topDonationCategoriesMock = mockAnalyticsData.find(
-    (w) => w.title === "Top Donation Categories"
-  );
-  const breakdownByDonationTypeMock = mockAnalyticsData.find(
-    (w) => w.title === "Breakdown by Donation Type"
-  );
 
   const widgets: DashboardWidget[] = [
     // Metric Group: Overview Metrics
@@ -127,7 +145,20 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
       ],
       type: "metricGroup",
     },
-    ...(topDonationCategoriesMock ? [topDonationCategoriesMock] : []),
+    // Top Donation Categories (Real Data)
+    {
+      id: "2",
+      title: "Top Donation Categories",
+      data: Object.entries(data.topDonationCategories).map(
+        ([category, value]) => ({
+          label: formatCategoryName(category),
+          value: formatMillions(Number(value)),
+        })
+      ),
+      orientation: "horizontal",
+      axisTitleX: "Value (in millions)",
+      type: "bar",
+    },
     {
       id: "3",
       title: "Top Three GIK Donors",
@@ -144,7 +175,7 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
       id: "5",
       title: "Top Five Medications Imported",
       data: data.topMedications.map((med) => ({
-        label: med.title,
+        label: formatCategoryName(med.category),
         value: formatMillions(med.totalValue),
       })),
       orientation: "horizontal",
@@ -171,8 +202,18 @@ export async function fetchAnalytics(): Promise<DashboardWidget[]> {
       textColor: "#8F6C1A",
       type: "gauge",
     },
-
-    ...(breakdownByDonationTypeMock ? [breakdownByDonationTypeMock] : []),
+    // Breakdown by Donation Type (Real Data)
+    {
+      id: "8",
+      title: "Breakdown by Donation Type",
+      data: Object.entries(data.breakdownByDonationType).map(
+        ([type, count]) => ({
+          name: formatItemTypeName(type),
+          value: Number(count),
+        })
+      ),
+      type: "pie",
+    },
     // Total GIK $ Amount Imported (Monthly Bar Chart)
     {
       id: "9",
