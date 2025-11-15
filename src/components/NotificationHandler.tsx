@@ -32,14 +32,6 @@ function getRealtimeClient() {
   return realtimeInstance;
 }
 
-// const NotificationContext = createContext<{
-//   client: Ably.Realtime | null;
-//   isConnected: boolean;
-// }>({
-//   client: null,
-//   isConnected: false,
-// });
-
 const NotificationContext = createContext<{
   notifications: Notification[];
 }>({
@@ -57,7 +49,6 @@ export default function NotificationHandler({
   const { apiClient } = useApiClient();
   const pathname = usePathname();
   const [client, setClient] = useState<Ably.Realtime | null>(null);
-  // const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
@@ -68,22 +59,9 @@ export default function NotificationHandler({
 
     setClient(realtime);
 
-    // const handleConnected = () => setIsConnected(true);
-    // const handleDisconnected = () => setIsConnected(false);
-
-    // realtime.connection.on("connected", handleConnected);
-    // realtime.connection.on("disconnected", handleDisconnected);
-
     if (realtime.connection.state === "initialized") {
       realtime.connect();
-    } else if (realtime.connection.state === "connected") {
-      // setIsConnected(true);
     }
-
-    return () => {
-      // realtime.connection.off("connected", handleConnected);
-      // realtime.connection.off("disconnected", handleDisconnected);
-    };
   }, []);
 
   useEffect(() => {
