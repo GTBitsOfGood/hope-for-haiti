@@ -1,3 +1,4 @@
+import React from "react";
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';

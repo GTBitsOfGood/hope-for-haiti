@@ -6,16 +6,9 @@ import { exec } from "child_process";
 import CreateAccountInvite, {
   CreateAccountInviteProps,
 } from "./templates/CreateAccountInvite";
-import NewDistribution, {
-  NewDistributionProps,
-} from "./templates/NewDistribution";
-import DonorOfferCreated, {
-  DonorOfferCreatedProps,
-} from "./templates/DonorOfferCreated";
 import CreateAccountReminder, {
   CreateAccountReminderProps,
 } from "./templates/CreateAccountReminder";
-import ExpiringItems, { ExpiringItemsProps } from "./templates/ExpiringItems";
 import ResetPassword, { ResetPasswordProps } from "./templates/ResetPassword";
 
 const apiKey = process.env.SENDGRID_API_KEY as string;
@@ -98,6 +91,24 @@ export async function sendEmail(
   );
 }
 
+type EmailMessage = {
+  to: string | string[];
+  subject: string;
+  html: string;
+};
+
+export async function sendEmailMultiple(
+  messages: EmailMessage[]
+): Promise<(void | [SendGrid.ClientResponse, object])[] | void> {
+  if (messages.length === 0) {
+    return;
+  }
+
+  return Promise.all(
+    messages.map(({ to, subject, html }) => sendEmail(to, subject, html))
+  );
+}
+
 export class EmailClient {
   static async sendUserInvite(to: string, props: CreateAccountInviteProps) {
     const html = await render(CreateAccountInvite(props));
@@ -110,30 +121,6 @@ export class EmailClient {
   ) {
     const html = await render(CreateAccountReminder(props));
     return sendEmail(to, "Reminder: Complete Your Account", html);
-  }
-
-  static async sendItemsExpiring(
-    to: string | string[], 
-    props: ExpiringItemsProps) 
-  {
-    const html = await render(ExpiringItems(props));
-    return sendEmail(to, "Items Expiring", html);
-  }
-
-  static async sendNewDistribution(
-    to: string,
-    props: NewDistributionProps
-  ) {
-    const html = await render(NewDistribution(props));
-    return sendEmail(to, "New Distribution", html);
-  }
-
-  static async sendDonorOfferCreated(
-    to: string | string[],
-    props: DonorOfferCreatedProps
-  ) {
-    const html = await render(DonorOfferCreated(props));
-    return sendEmail(to, "Donor Offer Created", html);
   }
 
   static async sendPasswordReset(to: string, props: ResetPasswordProps) {

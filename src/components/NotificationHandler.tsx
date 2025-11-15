@@ -131,10 +131,9 @@ export default function NotificationHandler({
           hideAction={pathname === payload.action}
         />
       ), {duration: 60 * 1000}); // 60 seconds
-
     };
 
-    const channelName = `user:${user.id}`;
+    const channelName = `${process.env.NODE_ENV}:user:${user.id}`;
     const channel = client.channels.get(channelName);
 
     channel.subscribe("notification:new", handleRealtimeNotification);

@@ -1,5 +1,5 @@
 import React from "react";
-import { Body, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
+import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
 
@@ -16,7 +16,8 @@ export interface ExpiringItemsProps {
   cutoffDays: number;
 }
 
-export const ExpiringItems = ({ items, cutoffDays }: ExpiringItemsProps) => {
+export const ExpiringItems = (notificationId: number, { items, cutoffDays }: ExpiringItemsProps) => {
+  const url = `${process.env.BASE_URL}/api/notifications/${notificationId}/open`;
   return (
     <Html>
       <Head />
@@ -50,6 +51,7 @@ export const ExpiringItems = ({ items, cutoffDays }: ExpiringItemsProps) => {
                   ))}
                 </tbody>
               </table>
+              <Button href={url} className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3">View Items</Button>
               <Text className="text-base font-light text-gray-primary leading-[26px]">If you have questions about any item, please contact yvette@hopeforhaiti.com.</Text>
               </div>
             </Section>

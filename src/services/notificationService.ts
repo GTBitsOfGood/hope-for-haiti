@@ -1,7 +1,6 @@
 import { db } from "@/db";
-import { Prisma } from "@prisma/client";
+import { Notification, Prisma } from "@prisma/client";
 import Ably from "ably";
-import type { Notification } from "@prisma/client";
 import { InternalError } from "@/util/errors";
 
 export class NotificationService {
@@ -20,13 +19,27 @@ export class NotificationService {
     return this.restClient;
   }
 
-  private static async publishNotificationToUser(
-    userId: number,
-    notification: Notification
-  ) {
-    const client = this.getRestClient();
-    const channelName = `user:${userId}`;
+  static async createNotification(data: Prisma.NotificationCreateInput) {
+    const notification = await db.notification.create({ data });
+    await this.publishNotification(notification);
+    return notification;
+  }
 
+  static async createNotifications(userIds: number[], data: Omit<Prisma.NotificationCreateInput, "user">) {
+    const notifications = await db.$transaction(
+      userIds.map((userId) =>
+        db.notification.create({
+          data: { ...data, user: { connect: { id: userId } } },
+        }),
+      ),
+    );
+
+    await Promise.all(notifications.map((notification) => this.publishNotification(notification)));
+  }
+
+  private static async publishNotification(notification: Notification) {
+    const client = this.getRestClient();
+    const channelName = `${process.env.NODE_ENV}:user:${notification.userId}`;
     const payload = {
       id: notification.id,
       title: notification.title,
@@ -40,16 +53,6 @@ export class NotificationService {
     };
 
     await client.channels.get(channelName).publish("notification:new", payload);
-  }
-
-  static async createNotification(data: Prisma.NotificationCreateInput) {
-    const notification = await db.notification.create({
-      data,
-    });
-
-    this.publishNotificationToUser(notification.userId, notification);
-
-    return notification;
   }
 
   static async getNotificationById(notificationId: number) {

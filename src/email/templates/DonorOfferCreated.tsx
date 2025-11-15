@@ -1,3 +1,4 @@
+import React from "react";
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
@@ -8,7 +9,6 @@ export interface DonorOfferCreatedProps {
   donorName: string;
   partnerResponseDeadline: string | Date;
   donorResponseDeadline: string | Date;
-  offerUrl: string; // link for the partner to view the donor offer details
 }
 
 const formatDate = (d: string | Date | null | undefined) => {
@@ -18,14 +18,14 @@ const formatDate = (d: string | Date | null | undefined) => {
   return date.toISOString().slice(0, 10);
 };
 
-export const DonorOfferCreated = ({
+export const DonorOfferCreated = (notificationId: number, {
   partnerName,
   offerName,
   donorName,
   partnerResponseDeadline,
   donorResponseDeadline,
-  offerUrl,
 }: DonorOfferCreatedProps) => {
+  const url = `${process.env.BASE_URL}/api/notifications/${notificationId}/open`;
   const previewText = `New donor offer: ${offerName} (respond by ${formatDate(partnerResponseDeadline)})`;
   return (
     <Html>
@@ -61,7 +61,7 @@ export const DonorOfferCreated = ({
               </tbody>
               </table>
 
-            <Button href={offerUrl} className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3">View Donor Offer</Button>
+            <Button href={url} className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3">View Donor Offer</Button>
             <Text className="text-[13px] text-[#555] mt-3">
               Please submit your requests before the deadline. If you have questions, contact yvette@hopeforhaiti.com.
             </Text>

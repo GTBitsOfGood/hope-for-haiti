@@ -1,16 +1,16 @@
+import React from "react";
 import { Body, Button, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
 import { Tailwind } from '@react-email/tailwind';
 import tailwindConfig from '../../../tailwind.config';
 
 export interface NewDistributionProps {
   partnerName?: string;
-  distributionUrl: string;
 }
 
-export const NewDistribution = ({
+export const NewDistribution = (notificationId: number, {
   partnerName,
-  distributionUrl,
 }: NewDistributionProps) => {
+  const url = `${process.env.BASE_URL}/api/notifications/${notificationId}/open`
   const previewText = "A new distribution of items have been assigned to you";
   return (
     <Html>
@@ -26,7 +26,7 @@ export const NewDistribution = ({
                 A new distribution of items have been assigned to you.
               </Text>
 
-              <Button href={distributionUrl} className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3">View Distribution</Button>
+              <Button href={url} className="bg-blue-primary border-2 border-mainRed text-white no-underline text-center inline-block rounded px-5 py-3">View Distribution</Button>
 
               <Text className="text-[13px] text-[#555] mt-3">
                 If you have questions about any item, please contact yvette@hopeforhaiti.com.
