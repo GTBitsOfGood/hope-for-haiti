@@ -74,11 +74,17 @@ export class NotificationService {
   }
 
   static async updateNotification(notificationId: number, data: {view?: boolean, delivery?: boolean}) {
+    // If a notification is viewed, then it MUST be delivered as well
+    // The only time a notification is viewed when delivery=false is if
+    // 1. notification is sent & user is offline
+    // 2. user logs on to site within the "DELIVERY_DELAY_MS" in netlify/functions/notifications.ts
+    // 3. user views notification
+    const isDelivered = data.delivery ? true : data.view ? true : undefined;
     return await db.notification.update({
       where: { id: notificationId },
       data: { 
         dateViewed: data.view ? new Date() : undefined,
-        isDelivered: data.delivery 
+        isDelivered,
       },
     });
   }
