@@ -124,6 +124,7 @@ function PartnerRequestChip({
   return (
     <Chip
       title={request.partner.name}
+      amount={request.quantity}
       revisedAmount={request.finalQuantity}
       setIsDropdownOpenRef={setIsDropdownOpenRef}
       popover={
