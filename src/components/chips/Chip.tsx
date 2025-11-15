@@ -42,14 +42,17 @@ export default function Chip({
         className={`relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow ${className}`}
       >
         <span className="text-blue-primary">{title}</span>
-        {amount && (
-          <span className={revisedAmount ? "line-through" : ""}>{amount}</span>
-        )}
-        {revisedAmount && (
-          <span className="rounded bg-blue-primary/20 text-blue-primary font-bold px-[2px]">
-            {revisedAmount}
+        {revisedAmount !== amount && (
+          <span className="line-through text-gray-primary/50 font-bold px-[2px]">
+            {amount}
           </span>
         )}
+
+        <span
+          className={`${revisedAmount !== amount && "rounded bg-blue-primary/20 text-blue-primary/100"} font-bold px-[2px]`}
+        >
+          {revisedAmount}
+        </span>
         {(showLabel || label) && (
           <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
             <span
