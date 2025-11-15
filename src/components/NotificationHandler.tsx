@@ -3,6 +3,7 @@
 import Ably, { Message } from "ably";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -34,8 +35,10 @@ function getRealtimeClient() {
 
 const NotificationContext = createContext<{
   notifications: Notification[];
+  refreshNotifications: () => Promise<void>;
 }>({
   notifications: [],
+  refreshNotifications: async () => {},
 });
 
 export function useNotifications() {
@@ -64,21 +67,26 @@ export default function NotificationHandler({
     }
   }, []);
 
+  const refreshNotifications = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      const data = await apiClient.get<{ notifications: Notification[] }>(
+        "/api/notifications"
+      );
+      setNotifications(data.notifications);
+    } catch (error) {
+      console.error(`Failed to fetch notifications: ${error}`);
+    }
+  }, [apiClient, user?.id]);
+
   useEffect(() => {
     if (!user?.id || !client) {
       return;
     }
-
-    const fetchNotifications = async () => {
-      try {
-        const data = await apiClient.get<{notifications: Notification[]}>("/api/notifications");
-        setNotifications(data.notifications);
-      } catch (error) {
-        console.error(`Failed to fetch notifications: ${error}`)
-      }
-    }
-
-    fetchNotifications();
+    refreshNotifications();
 
     const handleRealtimeNotification = async (message: Message) => {
       const payload = message.data as Notification;
@@ -118,9 +126,12 @@ export default function NotificationHandler({
     return () => {
       channel.unsubscribe("notification:new", handleRealtimeNotification);
     };
-  }, [client, user?.id, pathname, apiClient]);
+  }, [client, user?.id, pathname, apiClient, refreshNotifications]);
 
-  const value = useMemo(() => ({ notifications }), [notifications]);
+  const value = useMemo(
+    () => ({ notifications, refreshNotifications }),
+    [notifications, refreshNotifications]
+  );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

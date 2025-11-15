@@ -5,6 +5,7 @@ import { Warning, X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { Toast } from "react-hot-toast";
 import toast from "react-hot-toast";
+import { useNotifications } from "../NotificationHandler";
 
 interface NotificationCardProps {
   id: number;
@@ -25,8 +26,9 @@ export default function NotificationCard({
 }: NotificationCardProps) {
   const { apiClient } = useApiClient();
   const router = useRouter();
+  const { refreshNotifications } = useNotifications();
 
-  const handleClick = async () => {
+  const handleClick = async (redirect: boolean) => {
     if (!actionUrl) return;
 
     try {
@@ -34,8 +36,15 @@ export default function NotificationCard({
     } catch (error) {
       console.error(`Failed to PATCH notification ${id}: ${error}`)
     }
+
+    try {
+      await refreshNotifications();
+    } catch (error) {
+      console.error("Failed to refresh notifications", error);
+    }
+
     if (t) toast.dismiss(t.id);
-    router.push(actionUrl);
+    if (redirect) router.push(actionUrl);
   };
 
   return (
@@ -49,22 +58,20 @@ export default function NotificationCard({
         <p className="text-sm text-red-primary/[0.50]">{message}</p>
         {!hideAction && actionText && actionUrl && (
           <button
-            onClick={handleClick}
+            onClick={() => handleClick(true)}
             className="text-sm font-medium ml-2 text-red-primary/[0.50] hover:text-red-primary/[0.70]"
           >
             {actionText} <span className="ml-1">›</span>
           </button>
         )}
       </div>
-      {t && (
-        <button
-          onClick={() => toast.dismiss(t.id)}
-          className="ml-3 flex h-6 w-6 items-center justify-center rounded-full border border-red-primary/[0.30] text-red-primary/[0.60] transition-colors hover:bg-red-primary/[0.08] hover:text-red-primary"
-          aria-label="Dismiss notification"
-        >
-          <X size={12} weight="bold" />
-        </button>
-      )}
+      <button
+      onClick={() => handleClick(false)}
+        className="ml-3 flex h-6 w-6 items-center justify-center rounded-full border border-red-primary/[0.30] text-red-primary/[0.60] transition-colors hover:bg-red-primary/[0.08] hover:text-red-primary"
+        aria-label="Dismiss notification"
+      >
+        <X size={12} weight="bold" />
+      </button>
     </div>
   );
 }
