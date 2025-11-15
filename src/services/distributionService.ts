@@ -25,6 +25,18 @@ export default class DistributionService {
       filters
     );
 
+    // Handle boolean conversion for pending field if it comes as enum filter
+    if (filters?.pending && filters.pending.type === "enum") {
+      const pendingValues = filters.pending.values;
+      if (pendingValues.length === 1) {
+        // Convert string "true"/"false" to boolean
+        const pendingBool = pendingValues[0] === "true";
+        (whereClause as Record<string, unknown>).pending = {
+          equals: pendingBool,
+        };
+      }
+    }
+
     const [distributions, totalCount] = await Promise.all([
       db.distribution.findMany({
         where: whereClause,
@@ -512,13 +524,15 @@ export default class DistributionService {
     }
 
     if (!partner.enabled) {
-      throw new ArgumentError("Cannot create distribution for deactivated partner");
+      throw new ArgumentError(
+        "Cannot create distribution for deactivated partner"
+      );
     }
 
     if (partner.pending) {
       throw new ArgumentError("Cannot create distribution for pending partner");
     }
-    
+
     return db.distribution.create({
       data: {
         ...data,
@@ -546,11 +560,15 @@ export default class DistributionService {
       }
 
       if (!partner.enabled) {
-        throw new ArgumentError("Cannot update distribution to deactivated partner");
+        throw new ArgumentError(
+          "Cannot update distribution to deactivated partner"
+        );
       }
 
       if (partner.pending) {
-        throw new ArgumentError("Cannot update distribution to pending partner");
+        throw new ArgumentError(
+          "Cannot update distribution to pending partner"
+        );
       }
     }
 

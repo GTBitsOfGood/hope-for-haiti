@@ -40,3 +40,21 @@ export const allocationSchema = z.object({
   lineItemId: z.number().int().positive(),
   signOffId: z.number().int().positive().optional(),
 });
+
+export interface PartnerAllocation {
+  id: number;
+  generalItemTitle: string;
+  lotNumber: string;
+  palletNumber: string;
+  boxNumber: string;
+  quantity: number;
+  donorName: string;
+  shipmentStatus: string;
+  signOffDate?: Date;
+  signOffStaffMemberName?: string;
+}
+
+export interface PartnerAllocationsResponse {
+  data: PartnerAllocation[];
+  total: number;
+}

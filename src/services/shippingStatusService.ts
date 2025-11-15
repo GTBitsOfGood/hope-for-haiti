@@ -40,6 +40,20 @@ export class ShippingStatusService {
         allocation: {
           include: {
             partner: true,
+            signOff: {
+              include: {
+                allocations: {
+                  include: {
+                    lineItem: {
+                      include: {
+                        generalItem: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            distribution: true,
           },
         },
       },
@@ -47,9 +61,11 @@ export class ShippingStatusService {
 
     const shipments: Shipment[] = statuses.map((status) => ({
       ...status,
-      generalItems: [],
+      signOffs: [],
+      lineItems: [],
     }));
 
+    // Group line items by shipment
     for (const lineItem of lineItems) {
       if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
         continue;
@@ -65,23 +81,69 @@ export class ShippingStatusService {
         continue;
       }
 
-      const generalItem = shipment.generalItems.find(
-        (gi) =>
-          gi.id == lineItem.generalItemId &&
-          gi.partner.id === lineItem.allocation!.partner!.id
-      );
+      // If line item has a signOff, add it to signOffs
+      if (lineItem.allocation.signOff) {
+        const signOff = lineItem.allocation.signOff;
 
-      if (!generalItem) {
-        shipment.generalItems.push({
-          ...lineItem.generalItem!,
-          partner: {
-            id: lineItem.allocation.partner.id,
-            name: lineItem.allocation.partner.name,
+        // Check if this signOff is already in the shipment's signOffs
+        let existingSignOff = shipment.signOffs.find(
+          (so) => so.id === signOff.id
+        );
+
+        if (!existingSignOff) {
+          existingSignOff = {
+            id: signOff.id,
+            staffMemberName: signOff.staffMemberName,
+            partnerName: signOff.partnerName,
+            date: signOff.date,
+            signatureUrl: signOff.signatureUrl,
+            lineItems: [],
+          };
+          shipment.signOffs.push(existingSignOff);
+        }
+
+        // Add this line item to the signOff's lineItems
+        existingSignOff.lineItems.push({
+          id: lineItem.id,
+          quantity: lineItem.quantity,
+          palletNumber: lineItem.palletNumber,
+          boxNumber: lineItem.boxNumber,
+          lotNumber: lineItem.lotNumber,
+          generalItem: {
+            id: lineItem.generalItem!.id,
+            title: lineItem.generalItem!.title,
           },
-          lineItems: [lineItem],
+          allocation: {
+            partner: {
+              id: lineItem.allocation.partner.id,
+              name: lineItem.allocation.partner.name,
+            },
+          },
         });
       } else {
-        generalItem.lineItems.push(lineItem);
+        // Line item without signOff - add to lineItems array
+        shipment.lineItems.push({
+          id: lineItem.id,
+          quantity: lineItem.quantity,
+          palletNumber: lineItem.palletNumber,
+          boxNumber: lineItem.boxNumber,
+          lotNumber: lineItem.lotNumber,
+          generalItem: {
+            id: lineItem.generalItem!.id,
+            title: lineItem.generalItem!.title,
+          },
+          allocation: {
+            id: lineItem.allocation.id,
+            partner: {
+              id: lineItem.allocation.partner.id,
+              name: lineItem.allocation.partner.name,
+            },
+            distribution: {
+              id: lineItem.allocation.distribution.id,
+              pending: lineItem.allocation.distribution.pending,
+            },
+          },
+        });
       }
     }
 
@@ -140,7 +202,8 @@ export class ShippingStatusService {
       return { shippingStatuses: [], items: [], total: 0 };
     }
 
-    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
+    const { lineItemFilters, statusFilters } =
+      this.splitShippingFilters(filters);
 
     const lineItemWhereFilters =
       buildWhereFromFilters<Prisma.LineItemWhereInput>(

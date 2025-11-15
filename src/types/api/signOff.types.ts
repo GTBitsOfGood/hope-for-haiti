@@ -7,6 +7,7 @@ export interface CreateSignOffData {
   date: Date;
   signatureUrl: string;
   allocations: number[];
+  staffUserId?: number; // Optional for backward compatibility, but should be provided
 }
 
 export interface SignOffSummary {

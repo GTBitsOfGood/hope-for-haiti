@@ -25,16 +25,50 @@ export type Shipment = {
    * Status
    */
   value: $Enums.ShipmentStatus;
-  generalItems: {
+  signOffs: {
     id: number;
-    title: string;
-    partner: {
-      id: number;
-      name: string;
-    };
+    staffMemberName: string;
+    partnerName: string;
+    date: Date;
+    signatureUrl: string | null;
     lineItems: {
+      id: number;
       quantity: number;
       palletNumber: string;
+      boxNumber: string;
+      lotNumber: string;
+      generalItem: {
+        id: number;
+        title: string;
+      };
+      allocation: {
+        partner: {
+          id: number;
+          name: string;
+        };
+      };
     }[];
+  }[];
+  lineItems: {
+    id: number;
+    quantity: number;
+    palletNumber: string;
+    boxNumber: string;
+    lotNumber: string;
+    generalItem: {
+      id: number;
+      title: string;
+    };
+    allocation: {
+      id: number;
+      partner: {
+        id: number;
+        name: string;
+      };
+      distribution: {
+        id: number;
+        pending: boolean;
+      };
+    };
   }[];
 };

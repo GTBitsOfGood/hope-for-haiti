@@ -1,8 +1,9 @@
 "use client";
 
 import { useUser } from "@/components/context/UserContext";
-import { isAdmin } from "@/lib/userUtils";
+import { isAdmin, isPartner } from "@/lib/userUtils";
 import AdminDashboardScreen from "@/screens/dashboard/AdminDashboardScreen";
+import PartnerDashboardScreen from "@/screens/dashboard/PartnerDashboardScreen";
 
 export default function HomePage() {
   const { user, loading } = useUser();
@@ -20,7 +21,12 @@ export default function HomePage() {
     return <AdminDashboardScreen />;
   }
 
-  // Default home page for non-admin users
+  // Show partner dashboard for partner users
+  if (user && isPartner(user.type)) {
+    return <PartnerDashboardScreen />;
+  }
+
+  // Default home page for other users
   return (
     <>
       <h1 className="text-2xl font-semibold">Home</h1>

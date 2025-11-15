@@ -12,6 +12,7 @@ import {
 import { db } from "@/db";
 import type { Prisma } from "@prisma/client";
 import { MatchingService } from "@/services/matchingService";
+import FileService from "@/services/fileService";
 
 const addDays = (daysFromToday: number) => {
   const base = new Date();
@@ -69,6 +70,26 @@ const buildPartnerDetails = (
   }) as Prisma.JsonObject;
 
 async function buildSeedData() {
+  // Get all signoffs with signature URLs before deleting
+  const signOffs = await db.signOff.findMany({
+    select: {
+      signatureUrl: true,
+    },
+  });
+
+  // Delete signatures from Azure Storage
+  for (const signOff of signOffs) {
+    if (signOff.signatureUrl) {
+      try {
+        await FileService.deleteSignature(signOff.signatureUrl);
+      } catch (error) {
+        console.warn(
+          `Failed to delete signature: ${signOff.signatureUrl}`,
+          error
+        );
+      }
+    }
+  }
 
   await db.allocation.deleteMany();
   await db.generalItemRequest.deleteMany();
@@ -955,7 +976,9 @@ async function buildSeedData() {
           donorOfferId: item.donorOfferId,
         }))
       );
-      console.log(`✓ Created ${unfinalizedItems.length} embeddings for unfinalized items`);
+      console.log(
+        `✓ Created ${unfinalizedItems.length} embeddings for unfinalized items`
+      );
     }
   } catch (error) {
     console.warn(

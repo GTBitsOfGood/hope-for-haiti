@@ -41,12 +41,15 @@ const finalizedRequiredKeys = new Map<string, string>([
 const unfinalizedRequiredKeysList = Array.from(unfinalizedRequiredKeys.keys());
 const finalizedRequiredKeysList = Array.from(finalizedRequiredKeys.keys());
 
-const containsRequiredKeys = (type: "unfinalized" | "finalized", fields?: string[]) => {
+const containsRequiredKeys = (
+  type: "unfinalized" | "finalized",
+  fields?: string[]
+) => {
   if (!fields) return false;
-  return type === "finalized" ? 
-    finalizedRequiredKeysList.every((key) => fields.includes(key)) : 
-    unfinalizedRequiredKeysList.every((key) => fields.includes(key));
-}
+  return type === "finalized"
+    ? finalizedRequiredKeysList.every((key) => fields.includes(key))
+    : unfinalizedRequiredKeysList.every((key) => fields.includes(key));
+};
 
 const hasValue = (value: unknown) => {
   if (value === undefined || value === null) return false;
@@ -56,17 +59,21 @@ const hasValue = (value: unknown) => {
   return true;
 };
 
-const filterEmptyRows = (type: "unfinalized" | "finalized",rows: Record<string, unknown>[]) =>
-  type === "unfinalized" ? 
-    rows.filter((row) => hasValue(row["Generic Description"])) : 
-    rows.filter((row) => hasValue(row["Donor"]));
+const filterEmptyRows = (
+  type: "unfinalized" | "finalized",
+  rows: Record<string, unknown>[]
+) =>
+  type === "unfinalized"
+    ? rows.filter((row) => hasValue(row["Generic Description"]))
+    : rows.filter((row) => hasValue(row["Donor"]));
 
 const remapRequiredColumns = (
   type: "unfinalized" | "finalized",
   row: Record<string, unknown>
 ): Record<string, unknown> => {
   const updated: Record<string, unknown> = { ...row };
-  const keys = type === "unfinalized" ? unfinalizedRequiredKeys : finalizedRequiredKeys;
+  const keys =
+    type === "unfinalized" ? unfinalizedRequiredKeys : finalizedRequiredKeys;
   for (const [originalKey, newKey] of keys) {
     if (Object.prototype.hasOwnProperty.call(updated, originalKey)) {
       updated[newKey] = updated[originalKey];
@@ -91,7 +98,12 @@ const transformDonorOfferRow = (
   }
 
   // Ensure weight is present and not zero
-  if (weight !== undefined && weight !== null && weight !== 0 && weight !== "0") {
+  if (
+    weight !== undefined &&
+    weight !== null &&
+    weight !== 0 &&
+    weight !== "0"
+  ) {
     transformed["weight"] = weight;
   } else {
     // If weight is missing or zero, throw an error as weight is required
@@ -111,11 +123,14 @@ const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 let sharedKeyCredential: StorageSharedKeyCredential | null = null;
 let blobServiceClient: BlobServiceClient | null = null;
 let containerClient: ContainerClient | null = null;
+let signaturesContainerClient: ContainerClient | null = null;
 
 if (accountName && accountKey && connectionString && containerName) {
   sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
   blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
   containerClient = blobServiceClient.getContainerClient(containerName);
+  signaturesContainerClient =
+    blobServiceClient.getContainerClient("signatures");
 }
 
 export default class FileService {
@@ -217,6 +232,72 @@ export default class FileService {
     };
   }
 
+  /**
+   * Upload base64 signature data to Azure Blob Storage in the signatures container
+   * @param base64Data Base64 encoded PNG data (with or without data URL prefix)
+   * @param userId User ID for the filename
+   * @returns The URL of the uploaded blob
+   */
+  static async uploadSignature(
+    base64Data: string,
+    userId: number
+  ): Promise<string> {
+    if (!signaturesContainerClient || !sharedKeyCredential) {
+      throw new InternalError("Azure Storage not configured");
+    }
+
+    // Remove data URL prefix if present (e.g., "data:image/png;base64,")
+    const base64Content = base64Data.includes(",")
+      ? base64Data.split(",")[1]
+      : base64Data;
+
+    // Convert base64 to buffer
+    const buffer = Buffer.from(base64Content, "base64");
+
+    // Generate filename: signoff-[userId]-[timestamp].png
+    const timestamp = Date.now();
+    const blobName = `signoff-${userId}-${timestamp}.png`;
+
+    // Upload to Azure
+    const blobClient = signaturesContainerClient.getBlockBlobClient(blobName);
+    await blobClient.upload(buffer, buffer.length, {
+      blobHTTPHeaders: {
+        blobContentType: "image/png",
+      },
+    });
+
+    // Return the blob URL
+    return blobClient.url;
+  }
+
+  /**
+   * Delete a signature blob from Azure Storage
+   * @param blobUrl The full URL of the blob to delete
+   */
+  static async deleteSignature(blobUrl: string): Promise<void> {
+    if (!signaturesContainerClient) {
+      // If Azure Storage is not configured, just return (don't throw)
+      // This allows the clear script to work even if Azure is not set up
+      return;
+    }
+
+    try {
+      // Extract blob name from URL
+      // URL format: https://account.blob.core.windows.net/container/blobname
+      const url = new URL(blobUrl);
+      const pathParts = url.pathname.split("/").filter((p) => p);
+      // pathParts[0] is container name, pathParts[1] is blob name
+      const blobName =
+        pathParts.length > 1 ? pathParts[pathParts.length - 1] : pathParts[0];
+
+      const blobClient = signaturesContainerClient.getBlockBlobClient(blobName);
+      await blobClient.delete();
+    } catch (error) {
+      // If blob doesn't exist, that's okay - just log and continue
+      console.warn(`Failed to delete signature blob: ${blobUrl}`, error);
+    }
+  }
+
   static async parseDonorOfferFile(file: File): Promise<ParsedFileData> {
     const fileExt = file.name.split(".").pop()?.toLowerCase();
     if (!["csv", "xlsx"].includes(fileExt || "")) {
@@ -297,7 +378,9 @@ export default class FileService {
         fields = meta.fields || [];
       }
 
-      jsonData = filterEmptyRows("finalized", jsonData).map(row => remapRequiredColumns("finalized", row));
+      jsonData = filterEmptyRows("finalized", jsonData).map((row) =>
+        remapRequiredColumns("finalized", row)
+      );
 
       if (!fields || !containsRequiredKeys("finalized", fields)) {
         throw new ArgumentError("File does not contain required keys");
