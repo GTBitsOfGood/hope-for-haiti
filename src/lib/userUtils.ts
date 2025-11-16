@@ -1,8 +1,6 @@
 import { UserType } from "@prisma/client";
-import {
-  PermissionFlags,
-  PermissionName,
-} from "@/types/api/user.types";
+import { PermissionFlags, PermissionName } from "@/types/api/user.types";
+import { FilterOptionOption } from "react-select";
 
 type PermissionedUser =
   | (Partial<PermissionFlags> & { type?: UserType })
@@ -38,4 +36,72 @@ export function formatUserType(type: UserType): string {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+export function getTagOrder(
+  a: string | undefined,
+  b: string | undefined
+): number {
+  const aTag = a || "";
+  const bTag = b || "";
+  return aTag.localeCompare(bTag);
+}
+
+type SelectUser = {
+  id: number;
+  name: string;
+  tag?: string;
+};
+
+/**
+ * React-select doesn't export this for some reason
+ */
+type Option<T> = {
+  label: string;
+  value: T;
+};
+
+export function groupUsersByTagForSelect(users: SelectUser[]): {
+  label: string;
+  options: Option<SelectUser>[];
+}[] {
+  const grouped: Record<
+    string,
+    {
+      label: string;
+      options: Option<SelectUser>[];
+    }
+  > = {};
+
+  users.forEach((user) => {
+    const tag = user.tag || "Untagged";
+    if (!grouped[tag]) {
+      grouped[tag] = { label: tag, options: [] };
+    }
+    grouped[tag].options.push({
+      label: user.name,
+      value: user,
+    });
+  });
+
+  return Object.values(grouped).sort((a, b) => {
+    const aTag = a.label || "";
+    const bTag = b.label || "";
+    return aTag.localeCompare(bTag);
+  });
+}
+
+export function searchByNameOrTag(
+  candidate: FilterOptionOption<{
+    value: SelectUser;
+    label: string;
+  }>,
+  input: string
+): boolean {
+  const inputLower = input.toLowerCase();
+  return (
+    candidate.data?.value.name.toLowerCase().includes(inputLower) ||
+    candidate.data?.value.tag?.toLowerCase().includes(inputLower) ||
+    false
+  );
 }
