@@ -123,7 +123,7 @@ export default function PartnerItemsScreen() {
         throw error;
       }
     },
-    [apiClient]
+    [apiClient, searchParams]
   );
 
   const handleRequestSave = async (
