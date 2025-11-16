@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       if (createdNewDistribution) {
         // If we created a new distribution and allocation fails, clean up the distribution
-        DistributionService.deleteDistribution(distribution!.id);
+        await DistributionService.deleteDistribution(distribution!.id);
       }
 
       throw error;
