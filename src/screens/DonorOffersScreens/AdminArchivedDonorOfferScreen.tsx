@@ -11,6 +11,8 @@ import PartnerRequestChipGroup, {
   PartnerRequestChipData,
 } from "@/components/chips/PartnerRequestChipGroup";
 import LineItemChipGroup from "@/components/chips/LineItemChipGroup";
+import PartnerAllocationChipGroup from "@/components/chips/PartnerAllocationChipGroup";
+import ToggleViewSwitch from "@/components/ToggleViewSwitch";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 import { AllocationTableItem } from "@/components/allocationTable/types";
@@ -68,12 +70,13 @@ type TabType = "requests" | "allocations";
 export default function AdminArchivedDonorOfferScreen() {
   const { donorOfferId } = useParams();
   const [activeTab, setActiveTab] = useState<TabType>("requests");
-  
+  const [activeView, setActiveView] = useState<"partner" | "allocation">("partner");
+
   const requestsTableRef =
     useRef<AdvancedBaseTableHandle<GeneralItemWithRequests>>(null);
   const allocationsTableRef =
     useRef<AdvancedBaseTableHandle<GeneralItemWithAllocations>>(null);
-  
+
   const { apiClient } = useApiClient();
 
   const fetchRequestsData = useCallback(
@@ -241,24 +244,42 @@ export default function AdminArchivedDonorOfferScreen() {
         quantity: r.quantity,
         priority: null,
         comments: "",
-        itemsAllocated: 0,
+        itemsAllocated: r.finalQuantity || 0,
       }));
 
       const noOpUpdateItem = () => {};
       const noOpUpdateItemsAllocated = () => {};
 
-      return (
-        <LineItemChipGroup
-          items={lineItems}
-          requests={requests}
-          generalItemId={item.id}
-          updateItem={noOpUpdateItem}
-          updateItemsAllocated={noOpUpdateItemsAllocated}
-          readOnly={true}
-        />
-      );
+      if (activeView === "allocation") {
+        return (
+          <LineItemChipGroup
+            items={lineItems}
+            requests={requests}
+            generalItemId={item.id}
+            updateItem={noOpUpdateItem}
+            updateItemsAllocated={noOpUpdateItemsAllocated}
+            readOnly={true}
+          />
+        );
+      } else {
+        return (
+          <PartnerAllocationChipGroup
+            allocations={requests.map((r) => ({
+              id: r.id,
+              partner: r.partner,
+              requestedQuantity: r.quantity,
+              allocatedQuantity: r.itemsAllocated,
+            }))}
+            items={lineItems}
+            generalItemId={item.id}
+            updateItem={noOpUpdateItem}
+            updateItemsAllocated={noOpUpdateItemsAllocated}
+            readOnly={true}
+          />
+        );
+      }
     },
-    []
+    [activeView]
   );
 
   return (
@@ -267,27 +288,29 @@ export default function AdminArchivedDonorOfferScreen() {
 
       {/* Tabs */}
       <div className="border-b border-gray-300 mb-4">
-        <div className="flex gap-4">
-          <button
-            className={`px-4 py-2 font-medium transition-colors ${
-              activeTab === "requests"
-                ? "text-red-500 border-b-2 border-red-500"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-            onClick={() => setActiveTab("requests")}
-          >
-            Requests
-          </button>
-          <button
-            className={`px-4 py-2 font-medium transition-colors ${
-              activeTab === "allocations"
-                ? "text-red-500 border-b-2 border-red-500"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-            onClick={() => setActiveTab("allocations")}
-          >
-            Allocations
-          </button>
+        <div className="flex gap-4 items-center justify-between">
+          <div className="flex gap-4">
+            <button
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === "requests"
+                  ? "text-red-500 border-b-2 border-red-500"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+              onClick={() => setActiveTab("requests")}
+            >
+              Requests
+            </button>
+            <button
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === "allocations"
+                  ? "text-red-500 border-b-2 border-red-500"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+              onClick={() => setActiveTab("allocations")}
+            >
+              Allocations
+            </button>
+          </div>
         </div>
       </div>
 
@@ -313,6 +336,14 @@ export default function AdminArchivedDonorOfferScreen() {
 
       {activeTab === "allocations" && (
         <AdvancedBaseTable
+          toolBar={
+            <div className="mr-auto flex items-center">
+              <ToggleViewSwitch
+                view={activeView}
+                onChange={(v) => setActiveView(v)}
+              />
+            </div>
+          }
           ref={allocationsTableRef}
           columns={allocationsColumns}
           fetchFn={fetchAllocationsData}
