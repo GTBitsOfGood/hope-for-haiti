@@ -136,14 +136,16 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
           <p className="text-[16px] text-[#22070B]">{userData.email}</p>
 
           <p className="text-[18px] font-semibold text-[#22070B]">Password</p>
-          <Link
-            href="/reset-password"
-            className="bg-blue-primary hover:bg-blue-primary/80 transition-all duration-200 text-white px-2 py-1 rounded-lg w-fit"
-          >
-            Edit Password
-          </Link>
+          <p className="text-[16px] text-[#22070B]">{userData.password}</p>
         </div>
       </div>
+      <p className="mt-4">
+        <Link href="/reset-password">
+          <button className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10">
+            Reset Password
+          </button>
+        </Link>
+      </p>
       <div className="mt-6">
         <button
           className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
