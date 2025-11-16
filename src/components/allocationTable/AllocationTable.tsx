@@ -105,11 +105,24 @@ export default function AllocationTable({
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState(() => {
-    const stored = localStorage.getItem("ALLOCATION_VIEW_TYPE");
-    return stored ? JSON.parse(stored) : "partner";
-  });
+  const [activeView, setActiveView] = useState<"partner" | "allocation">("partner");
 
+  // Initialize from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("ALLOCATION_VIEW_TYPE");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed === "partner" || parsed === "allocation") {
+          setActiveView(parsed);
+        }
+      } catch {
+        // Invalid stored value, ignore
+      }
+    }
+  }, []);
+
+  // Save to localStorage when activeView changes
   useEffect(() => {
     localStorage.setItem("ALLOCATION_VIEW_TYPE", JSON.stringify(activeView));
   }, [activeView]);
@@ -372,7 +385,7 @@ export default function AllocationTable({
     <>
       <div className="mr-auto flex items-center">
         <ToggleViewSwitch
-          defaultView="partner"
+          view={activeView}
           onChange={(v) => setActiveView(v)}
         />
       </div>

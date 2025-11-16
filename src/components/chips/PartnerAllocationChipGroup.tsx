@@ -93,6 +93,9 @@ export default function PartnerAllocationChipGroup({
 function PartnerAllocationChip({
   allocation,
   items,
+  updateItem,
+  updateItemsAllocated,
+  generalItemId,
   readOnly = false,
 }: {
   allocation: PartnerAllocationChipData;
@@ -111,6 +114,32 @@ function PartnerAllocationChip({
   const { apiClient } = useApiClient();
 
   async function allocateItem(item: AllocationLineItem) {
+    const isAlreadyAllocated = item.allocation?.partner?.id === allocation.partner.id;
+
+    if (isAlreadyAllocated && item.allocation) {
+      await apiClient.delete(`/api/allocations/${item.allocation.id}`);
+
+      toast.success(
+        `Item unallocated from ${allocation.partner.name} successfully!`
+      );
+
+      updateItem(generalItemId, (prev) => ({
+        ...prev,
+        items: prev.items.map((lineItem) =>
+          lineItem.id === item.id
+            ? {
+                ...lineItem,
+                allocation: null,
+              }
+            : lineItem
+        ),
+      }));
+
+      updateItemsAllocated(allocation.partner.id);
+      return;
+    }
+
+    // Allocate: POST new allocation
     const distributionId: number | undefined = undefined;
     /*
     if (ensureDistributionForPartner) {
@@ -169,10 +198,24 @@ function PartnerAllocationChip({
     toast.success(
       `Item allocated to ${outputAllocation.partner?.name} successfully!`
     );
-    /*
-    updateLineItemInTable({ outputAllocation });
-    updateItemsAllocated(request.partnerId);
-    */
+
+    updateItem(generalItemId, (prev) => ({
+      ...prev,
+      items: prev.items.map((lineItem) =>
+        lineItem.id === item.id
+          ? {
+              ...lineItem,
+              allocation: {
+                id: outputAllocation.id,
+                distributionId: outputAllocation.distributionId,
+                partner: outputAllocation.partner,
+              },
+            }
+          : lineItem
+      ),
+    }));
+
+    updateItemsAllocated(allocation.partner.id);
   }
 
   return (
@@ -190,19 +233,21 @@ function PartnerAllocationChip({
                 <button
                   key={item.id}
                   onClick={() => allocateItem(item)}
-                  className={`relative flex justify-between text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === allocation.partner?.id ? "bg-blue-primary/20 hover:bg-red-primary/20" : "hover:bg-blue-primary/20"}`}
+                  className={`flex items-center justify-between gap-2 text-left px-2 py-1 rounded transition-all duration-200 ${item.allocation?.partner?.id === allocation.partner?.id ? "bg-blue-primary/20 hover:bg-red-primary/20" : "hover:bg-blue-primary/20"}`}
                 >
-                  {item.allocation?.partner?.id === allocation.partner?.id && (
-                    <span className="absolute -left-1 -top-1 rounded overflow-clip text-xs shadow-sm bg-white">
-                      <span
-                        className={`block max-w-[110px] h-full truncate px-1 py-[1px] bg-red-primary/20 text-red-primary`}
-                      >
-                        {allocation.partner.name}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <p className="flex-shrink-0">{item.palletNumber}</p>
+                    {item.allocation?.partner?.id === allocation.partner?.id && (
+                      <span className="rounded overflow-clip text-xs shadow-sm bg-white">
+                        <span
+                          className={`block max-w-[150px] truncate px-1 py-[1px] bg-red-primary/20 text-red-primary`}
+                        >
+                          {allocation.partner.name}
+                        </span>
                       </span>
-                    </span>
-                  )}
-                  <p>{item.palletNumber}</p>
-                  <p className="text-blue-primary pr-2">{item.quantity}</p>
+                    )}
+                  </div>
+                  <p className="text-blue-primary flex-shrink-0">{item.quantity}</p>
                 </button>
               ))}
             </div>
