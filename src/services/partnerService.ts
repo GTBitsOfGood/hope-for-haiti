@@ -51,6 +51,7 @@ export class PartnerService {
       select: {
         id: true,
         name: true,
+        tag: true,
       },
       orderBy: {
         name: "asc",
