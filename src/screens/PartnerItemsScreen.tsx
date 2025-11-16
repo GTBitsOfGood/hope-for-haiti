@@ -235,7 +235,7 @@ export default function PartnerItemsScreen() {
               onRequestSave={(data) => handleRequestSave(item, data)}
               selectedItem={selectedItem}
             />
-            <div className="text-xs">
+            <div className="text-xs mt-1 text-red-primary">
               Deadline:{" "}
               {item.donorOffer.partnerResponseDeadline
                 ? new Date(
@@ -283,8 +283,8 @@ export default function PartnerItemsScreen() {
       id: "donorName",
       header: "Donor",
       filterType: "string",
-      cell: (item) => <Chip title={item.donorOffer.donorName} />,
-    },
+        cell: (item) => <Chip title={item.donorOffer.donorName} className={item.wishlistMatch ? "border-red-primary" : undefined} textColor={item.wishlistMatch ? "text-red-primary" : undefined} />,
+      },
   ];
 
   const getRowClassName = (item: AvailableItemDTO) => {
