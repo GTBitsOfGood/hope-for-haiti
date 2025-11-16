@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Pencil } from "@phosphor-icons/react";
 
+const NAME_REGEX = /^[a-zA-Z0-9_ -]+$/;
+
 interface CreateTicketModalProps {
   onTicketCreated?: (channelId: string) => void;
 }
@@ -66,6 +68,11 @@ export default function CreateTicketModal({
 
     if (selectedPartner === undefined && isStaffUser) {
       toast.error("Please select a partner for the ticket");
+      return;
+    }
+
+    if (!NAME_REGEX.test(ticketName.trim())) {
+      toast.error("Only a-z, A-Z, 0-9 and _- are allowed for ticket names")
       return;
     }
 
