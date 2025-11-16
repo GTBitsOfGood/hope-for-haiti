@@ -48,11 +48,13 @@ export default function Chip({
           </span>
         )}
 
-        <span
-          className={`${revisedAmount !== amount && "rounded bg-blue-primary/20 text-blue-primary/100"} font-bold px-[2px]`}
-        >
-          {revisedAmount}
-        </span>
+        {(revisedAmount ?? amount) !== undefined && (
+          <span
+            className={`${revisedAmount !== amount && "rounded bg-blue-primary/20 text-blue-primary/100"} font-bold px-[2px]`}
+          >
+            {revisedAmount ?? amount}
+          </span>
+        )}
         {(showLabel || label) && (
           <span className="absolute -left-2 -top-2 rounded overflow-clip text-xs shadow-sm bg-white">
             <span
