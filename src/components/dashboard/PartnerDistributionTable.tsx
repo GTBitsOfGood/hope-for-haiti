@@ -8,6 +8,9 @@ import { useCallback, useRef } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import { PartnerAllocation } from "@/types/api/allocation.types";
 import { format } from "date-fns";
+import Chip from "../chips/Chip";
+import ShippingStatusTag from "../tags/ShippingStatusTag";
+import { $Enums } from "@prisma/client";
 
 interface PartnerDistributionTableProps {
   pending: boolean; // true = in progress, false = completed
@@ -67,24 +70,15 @@ export default function PartnerDistributionTable({
     {
       id: "donorName" as const,
       header: "Donor",
-      cell: (row: PartnerAllocation) => row.donorName,
+      cell: (row: PartnerAllocation) => <Chip title={row.donorName} />,
     },
     {
       id: "shipmentStatus" as const,
       header: "Shipment Status",
       cell: (row: PartnerAllocation) => {
-        const status = row.shipmentStatus || "WAITING_ARRIVAL_FROM_DONOR";
-        const formattedStatus = status
-          .replace(/_/g, " ")
-          .toLowerCase()
-          .split(" ")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ");
-        return (
-          <span className="px-2 py-1 rounded text-sm bg-gray-100">
-            {formattedStatus}
-          </span>
-        );
+        const status = (row.shipmentStatus ||
+          "WAITING_ARRIVAL_FROM_DONOR") as $Enums.ShipmentStatus;
+        return <ShippingStatusTag status={status} />;
       },
     },
   ];
@@ -112,7 +106,7 @@ export default function PartnerDistributionTable({
     {
       id: "donorName" as const,
       header: "Donor",
-      cell: (row: PartnerAllocation) => row.donorName,
+      cell: (row: PartnerAllocation) => <Chip title={row.donorName} />,
     },
     {
       id: "signOffDate" as const,
@@ -125,7 +119,14 @@ export default function PartnerDistributionTable({
     {
       id: "signOffStaffMemberName" as const,
       header: "Signed Off By",
-      cell: (row: PartnerAllocation) => row.signOffStaffMemberName || "-",
+      cell: (row: PartnerAllocation) =>
+        row.signOffStaffMemberName ? (
+          <span className="border-b-2 border-dotted border-gray-400 hover:border-gray-600 transition-colors cursor-pointer">
+            {row.signOffStaffMemberName}
+          </span>
+        ) : (
+          "-"
+        ),
     },
   ];
 

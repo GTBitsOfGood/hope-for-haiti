@@ -7,6 +7,7 @@ import PartnerDistributionsSection from "@/components/dashboard/PartnerDistribut
 import { fetchNotifications } from "@/lib/dashboardApi";
 import type { Notification } from "@/components/dashboard/types";
 import { useEffect, useState } from "react";
+import LoadingScreen from "@/screens/LoadingScreen";
 
 export default function PartnerDashboardScreen() {
   const { user, loading: userLoading } = useUser();
@@ -42,9 +43,7 @@ export default function PartnerDashboardScreen() {
 
   if (userLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
-      </div>
+      <LoadingScreen/>
     );
   }
 
