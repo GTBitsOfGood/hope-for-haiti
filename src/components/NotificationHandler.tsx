@@ -160,15 +160,12 @@ export default function NotificationHandler({
         return;
       }
 
-      console.log(searchParams.get("activeTab"));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (searchParams.get("activeTab") === "Unresolved") {
         return;
       }
 
       const text = event.message?.text?.trim();
-
-      console.log(event.channel);
 
       const payload: TicketMessageNotification = {
         channelId,
