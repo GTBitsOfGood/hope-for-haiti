@@ -14,14 +14,14 @@ export default function SelectGroupWithAddAll<T>({
   addOptions: (options: T[]) => void;
 }) {
   return (
-    <button
-      onClick={() => addOptions(data.options.map((option) => option.value))}
-      className="group w-full text-left flex gap-2"
-    >
+    <div className="w-full text-left flex gap-2 justify-between">
       <span>{titleCase(data.label)}</span>
-      <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-100">
-        (click to add all)
-      </span>
-    </button>
+      <button
+        onClick={() => addOptions(data.options.map((option) => option.value))}
+        className="hover:text-blue-primary"
+      >
+        (add all)
+      </button>
+    </div>
   );
 }
