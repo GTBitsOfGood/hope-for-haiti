@@ -69,6 +69,15 @@ export default function CreatePartnerStep({
     onDataChange(updatedData);
   };
 
+  const handleAddressChange = (address: string, coordinates: string) => {
+    let updatedData = { ...formData };
+    updatedData = setNestedValue(updatedData, "address", address);
+    updatedData = setNestedValue(updatedData, "gpsCoordinates", coordinates);
+
+    setFormData(updatedData);
+    onDataChange(updatedData);
+  };
+
   return (
     <div>
       <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-6">
@@ -86,6 +95,7 @@ export default function CreatePartnerStep({
             isEditing={true}
             errors={errors}
             allValues={formData as Record<string, FieldValue>}
+            onAddressChange={handleAddressChange}
           />
         ))}
       </div>

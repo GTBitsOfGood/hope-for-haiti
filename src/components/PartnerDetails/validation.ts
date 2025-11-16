@@ -39,6 +39,8 @@ const isEmpty = (value: unknown, fieldType: string): boolean => {
       value === null ||
       (typeof value === "number" && isNaN(value))
     );
+  } else if (fieldType === "location") {
+    return !value || (typeof value === "string" && value.trim() === "");
   } else {
     return !value || (typeof value === "string" && value.trim() === "");
   }

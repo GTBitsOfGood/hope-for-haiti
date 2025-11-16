@@ -196,6 +196,7 @@ export default function LocationSearch({
       setSelectedOption({
         value: value,
         label: value,
+        addressString: value,
       });
     }
   }, [value]);

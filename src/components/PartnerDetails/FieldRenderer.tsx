@@ -50,6 +50,7 @@ interface FieldRendererProps {
   errors?: Record<string, string>;
   allValues?: Record<string, FieldValue>;
   renderLayoutWrapper?: boolean;
+  onAddressChange?: (address: string, coordinates: string) => void;
 }
 
 export default function FieldRenderer({
@@ -61,6 +62,7 @@ export default function FieldRenderer({
   errors,
   allValues = {},
   renderLayoutWrapper = true,
+  onAddressChange,
 }: FieldRendererProps) {
   const {
     name,
@@ -317,8 +319,29 @@ export default function FieldRenderer({
             value={locationValue}
             onChange={(coordinates, addressString) => {
               if (name === "address") {
-                onChange("address", addressString || "");
-                onChange("gpsCoordinates", coordinates);
+                // When clearing (no coordinates), clear both fields
+                if (!coordinates || coordinates.trim() === "") {
+                  if (onAddressChange) {
+                    onAddressChange("", "");
+                  } else {
+                    onChange("address", "");
+                    onChange("gpsCoordinates", "");
+                  }
+                } else {
+                  // When an address is selected, update both fields atomically
+                  // addressString should always be set when an option is selected
+                  // Use addressString if available, otherwise fall back to coordinates
+                  const addressValue =
+                    addressString && addressString.trim() !== ""
+                      ? addressString
+                      : coordinates;
+                  if (onAddressChange) {
+                    onAddressChange(addressValue, coordinates);
+                  } else {
+                    onChange("address", addressValue);
+                    onChange("gpsCoordinates", coordinates);
+                  }
+                }
               } else {
                 onChange(name, coordinates);
               }
