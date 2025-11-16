@@ -116,12 +116,20 @@ function NavLinks() {
           icon={<Package size={22} />}
         />
       )}
-      <NavLink
-        href="/profile"
-        label="Profile"
-        icon={<UserCircle size={22} />}
-        placeLast
-      />
+      <div className="flex">
+        <NavLink
+          href="/profile"
+          label="Profile"
+          icon={<UserCircle size={22} />}
+          placeLast
+        />
+        <NavLink
+          href="/logout"
+          label="Logout"
+          icon={<X size={22} />}
+          placeLast
+        />
+      </div>
     </>
   );
 }
