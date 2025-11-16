@@ -268,6 +268,22 @@ export default function PartnerItemsScreen() {
       header: "Unit Type",
       filterType: "string",
     },
+    {
+      id: "donorName",
+      header: "Donor",
+      filterType: "string",
+      cell: (item) => item.donorOffer.donorName,
+    },
+    {
+      id: "Response Deadline",
+      header: "Response Deadline",
+      cell: (item) =>
+        item.donorOffer.partnerResponseDeadline
+          ? new Date(
+              item.donorOffer.partnerResponseDeadline
+            ).toLocaleDateString()
+          : "N/A",
+    },
   ];
 
   const getRowClassName = (item: AvailableItemDTO) => {

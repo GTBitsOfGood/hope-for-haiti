@@ -190,7 +190,6 @@ export async function GET(request: NextRequest) {
         offer.items.forEach((item) => {
           if (!priorityIds.includes(item.id)) {
             priorityIds.push(item.id);
-            console.log("Added donor offer item id:", item.id);
           }
         });
       }

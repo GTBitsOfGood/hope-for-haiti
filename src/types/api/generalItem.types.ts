@@ -47,6 +47,7 @@ export interface AvailableItemDTO {
     donorName: string;
     state: string;
     archivedAt: Date | null;
+    partnerResponseDeadline: Date | null;
   };
   // Request fields (populated if partner has requested this item)
   requestId?: number | null;

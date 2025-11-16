@@ -293,6 +293,7 @@ export class GeneralItemService {
             donorName: true,
             state: true,
             archivedAt: true,
+            partnerResponseDeadline: true,
           },
         },
         items: {
@@ -454,6 +455,7 @@ export class GeneralItemService {
               donorName: true;
               state: true;
               archivedAt: true;
+              partnerResponseDeadline: true;
             };
           };
           items: {
@@ -508,6 +510,7 @@ export class GeneralItemService {
             donorName: true;
             state: true;
             archivedAt: true;
+            partnerResponseDeadline: true;
           };
         };
         items: {
