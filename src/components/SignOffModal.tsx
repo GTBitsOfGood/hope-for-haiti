@@ -58,7 +58,6 @@ export default function SignOffModal({
     setIsSubmitting(true);
 
     try {
-      // Get base64 PNG data from canvas
       const base64Data = signatureCanvasRef.current
         .getCanvas()
         .toDataURL("image/png");
@@ -111,7 +110,6 @@ export default function SignOffModal({
         </h2>
 
         <div className="space-y-4">
-          {/* Staff Name - Readonly */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Staff Name
@@ -124,7 +122,6 @@ export default function SignOffModal({
             />
           </div>
 
-          {/* Date and Time - Readonly */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Date and Time
@@ -137,7 +134,6 @@ export default function SignOffModal({
             />
           </div>
 
-          {/* Signature Canvas */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Signature
