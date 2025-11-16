@@ -36,27 +36,7 @@ export default class AllocationService {
     }
 
     let itemId: number | undefined;
-    if (data.itemId) {
-      itemId = data.itemId;
-      
-      // Check if the line item belongs to an archived donor offer
-      const lineItem = await db.lineItem.findUnique({
-        where: { id: itemId },
-        include: {
-          generalItem: {
-            include: {
-              donorOffer: {
-                select: { state: true }
-              }
-            }
-          }
-        }
-      });
-
-      if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot create allocations for archived donor offers. Archived offers are read-only.");
-      }
-    } else {
+    if (!data.itemId) {
       if (
         !data.title ||
         !data.expirationDate ||
@@ -161,31 +141,6 @@ export default class AllocationService {
     if (invalidPartnerIds.length > 0) {
       throw new ArgumentError(
         `Cannot create allocations for deactivated or pending partners: ${invalidPartnerIds.join(", ")}`
-      );
-    }
-
-    // Check if any line items belong to archived donor offers
-    const lineItemIds = allocations.map(a => a.lineItemId);
-    const lineItems = await db.lineItem.findMany({
-      where: { id: { in: lineItemIds } },
-      include: {
-        generalItem: {
-          include: {
-            donorOffer: {
-              select: { state: true }
-            }
-          }
-        }
-      }
-    });
-
-    const archivedLineItems = lineItems.filter(
-      li => li.generalItem?.donorOffer?.state === "ARCHIVED"
-    );
-
-    if (archivedLineItems.length > 0) {
-      throw new ArgumentError(
-        "Cannot create allocations for archived donor offers. Archived offers are read-only."
       );
     }
 
@@ -338,12 +293,12 @@ export default class AllocationService {
               generalItem: {
                 include: {
                   donorOffer: {
-                    select: { state: true }
-                  }
-                }
-              }
-            }
-          }
+                    select: { state: true },
+                  },
+                },
+              },
+            },
+          },
         },
       });
 
@@ -354,7 +309,9 @@ export default class AllocationService {
       }
 
       if (allocation?.lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot delete allocations for archived donor offers. Archived offers are read-only.");
+        throw new ArgumentError(
+          "Cannot delete allocations for archived donor offers. Archived offers are read-only."
+        );
       }
 
       await db.allocation.delete({
