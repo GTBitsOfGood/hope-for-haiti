@@ -1,6 +1,12 @@
 import { useSession } from "next-auth/react";
 import GeneralModal from "@/components/AccountManagement/GeneralModal";
-import { hasPermission, isPartner, isStaff } from "@/lib/userUtils";
+import {
+  groupUsersByTagForSelect,
+  hasPermission,
+  isPartner,
+  isStaff,
+  searchByNameOrTag,
+} from "@/lib/userUtils";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useEffect, useState } from "react";
@@ -11,6 +17,12 @@ interface CreateTicketModalProps {
   onTicketCreated?: (channelId: string) => void;
 }
 
+type Partner = {
+  name: string;
+  id: number;
+  tag?: string;
+};
+
 export default function CreateTicketModal({
   onTicketCreated,
 }: CreateTicketModalProps) {
@@ -19,20 +31,17 @@ export default function CreateTicketModal({
   const session = useSession();
   const user = session.data?.user;
   // Partners can always create tickets, staff needs supportWrite permission
-  const canWrite = user ? (isPartner(user.type) || hasPermission(user, "supportWrite")) : false;
+  const canWrite = user
+    ? isPartner(user.type) || hasPermission(user, "supportWrite")
+    : false;
   const isStaffUser = user ? isStaff(user.type) : false;
 
   const { apiClient } = useApiClient();
 
-  const [partners, setPartners] = useState<
-    {
-      name: string;
-      id: number;
-    }[]
-  >([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
 
   const [ticketName, setTicketName] = useState("");
-  const [partnerId, setPartnerId] = useState<number>();
+  const [selectedPartner, setSelectedPartner] = useState<Partner>();
 
   useEffect(() => {
     if (!apiClient || !isStaffUser) return;
@@ -55,7 +64,7 @@ export default function CreateTicketModal({
       return;
     }
 
-    if (partnerId === undefined && isStaffUser) {
+    if (selectedPartner === undefined && isStaffUser) {
       toast.error("Please select a partner for the ticket");
       return;
     }
@@ -63,7 +72,7 @@ export default function CreateTicketModal({
     const promise = apiClient.post<{ channelId: string }>("/api/tickets", {
       body: JSON.stringify({
         ticketName: ticketName.trim(),
-        partnerId: partnerId,
+        partnerId: selectedPartner?.id,
       }),
     });
 
@@ -76,7 +85,7 @@ export default function CreateTicketModal({
     const response = await promise;
 
     setTicketName("");
-    setPartnerId(undefined);
+    setSelectedPartner(undefined);
     setIsOpen(false);
 
     if (response.channelId && onTicketCreated) {
@@ -113,21 +122,17 @@ export default function CreateTicketModal({
             <ConfiguredSelect
               name="partner"
               placeholder="Select Partner"
-              options={partners.map((partner) => ({
-                label: partner.name,
-                value: partner.id,
-              }))}
+              options={groupUsersByTagForSelect(partners)}
+              filterOption={searchByNameOrTag}
               value={
-                partnerId
+                selectedPartner
                   ? {
-                      value: partnerId,
-                      label:
-                        partners.find((partner) => partner.id === partnerId)
-                          ?.name || "",
+                      value: selectedPartner,
+                      label: selectedPartner.name,
                     }
                   : undefined
               }
-              onChange={(newVal) => setPartnerId(newVal?.value)}
+              onChange={(newVal) => setSelectedPartner(newVal?.value)}
             />
           )}
         </form>

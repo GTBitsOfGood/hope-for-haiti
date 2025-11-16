@@ -30,10 +30,20 @@ export class PartnerService {
     };
 
     if (params.term && params.term.trim().length > 0) {
-      where.name = {
-        contains: params.term.trim(),
-        mode: "insensitive",
-      };
+      where.OR = [
+        {
+          name: {
+            contains: params.term.trim(),
+            mode: "insensitive",
+          },
+        },
+        {
+          tag: {
+            contains: params.term.trim(),
+            mode: "insensitive",
+          },
+        },
+      ];
     }
 
     const partners = await db.user.findMany({
@@ -41,6 +51,7 @@ export class PartnerService {
       select: {
         id: true,
         name: true,
+        tag: true,
       },
       orderBy: {
         name: "asc",
@@ -50,6 +61,7 @@ export class PartnerService {
     return partners.map((partner) => ({
       id: partner.id,
       name: partner.name,
+      tag: partner.tag,
     }));
   }
 
