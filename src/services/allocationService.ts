@@ -39,10 +39,11 @@ export default class AllocationService {
     if (data.itemId) {
       itemId = data.itemId;
       
-      // Check if the line item belongs to an archived donor offer
+      // Check if the line item exists and is unallocated
       const lineItem = await db.lineItem.findUnique({
         where: { id: itemId },
         include: {
+          allocation: true,
           generalItem: {
             include: {
               donorOffer: {
@@ -53,8 +54,18 @@ export default class AllocationService {
         }
       });
 
-      if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot create allocations for archived donor offers. Archived offers are read-only.");
+      if (!lineItem) {
+        throw new NotFoundError("Line item not found");
+      }
+
+      if (lineItem.allocation) {
+        throw new ArgumentError("Line item is already allocated");
+      }
+
+      // For ARCHIVED offers: Allow allocation if the line item is unallocated (which we just verified)
+      // For UNFINALIZED offers: Block allocation (items should be finalized first)
+      if (lineItem.generalItem?.donorOffer?.state === "UNFINALIZED") {
+        throw new ArgumentError("Cannot create allocations for unfinalized donor offers. Please finalize the offer first.");
       }
     } else {
       if (
@@ -164,11 +175,12 @@ export default class AllocationService {
       );
     }
 
-    // Check if any line items belong to archived donor offers
+    // Check if any line items belong to unfinalized donor offers
     const lineItemIds = allocations.map(a => a.lineItemId);
     const lineItems = await db.lineItem.findMany({
       where: { id: { in: lineItemIds } },
       include: {
+        allocation: true,
         generalItem: {
           include: {
             donorOffer: {
@@ -179,15 +191,26 @@ export default class AllocationService {
       }
     });
 
-    const archivedLineItems = lineItems.filter(
-      li => li.generalItem?.donorOffer?.state === "ARCHIVED"
-    );
-
-    if (archivedLineItems.length > 0) {
+    // Check if any are already allocated
+    const alreadyAllocatedItems = lineItems.filter(li => li.allocation !== null);
+    if (alreadyAllocatedItems.length > 0) {
       throw new ArgumentError(
-        "Cannot create allocations for archived donor offers. Archived offers are read-only."
+        "One or more line items are already allocated."
       );
     }
+
+    // Block allocations for UNFINALIZED offers (must be finalized first)
+    const unfinalizedLineItems = lineItems.filter(
+      li => li.generalItem?.donorOffer?.state === "UNFINALIZED"
+    );
+
+    if (unfinalizedLineItems.length > 0) {
+      throw new ArgumentError(
+        "Cannot create allocations for unfinalized donor offers. Please finalize the offer first."
+      );
+    }
+
+    // ARCHIVED and FINALIZED offers with unallocated line items are OK to allocate
 
     try {
       return await db.$transaction(

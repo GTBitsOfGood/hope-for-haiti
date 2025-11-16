@@ -781,28 +781,42 @@ export default class DonorOfferService {
       throw new NotFoundError("Partner not found, deactivated, or pending");
     }
 
-    // Get the donor offer to check the deadline
+    // Get the donor offer to check the deadline and validate accordingly
     if (requests.length > 0) {
       const firstItem = await db.generalItem.findUnique({
         where: { id: requests[0].donorOfferItemId },
         include: {
           donorOffer: {
             select: { partnerResponseDeadline: true, state: true }
+          },
+          items: {
+            where: {
+              allocation: null
+            },
+            select: { id: true }
           }
         }
       });
 
-      // Check if the partner response deadline has passed
-      if (firstItem?.donorOffer?.partnerResponseDeadline) {
-        const now = new Date();
-        if (now > firstItem.donorOffer.partnerResponseDeadline) {
-          throw new ArgumentError("Cannot create or update requests after the partner response deadline has passed.");
-        }
+      if (!firstItem) {
+        throw new NotFoundError("General item not found");
       }
 
-      // Check if archived
-      if (firstItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot create requests for archived donor offers. Archived offers are read-only.");
+      // For ARCHIVED offers: allow requests only if there are unallocated line items
+      if (firstItem.donorOffer?.state === "ARCHIVED") {
+        if (firstItem.items.length === 0) {
+          throw new ArgumentError("Cannot create requests for fully allocated archived items.");
+        }
+        // If there are unallocated items, allow the requests
+      }
+      // For UNFINALIZED offers: check the partner response deadline
+      else if (firstItem.donorOffer?.state === "UNFINALIZED") {
+        if (firstItem.donorOffer.partnerResponseDeadline) {
+          const now = new Date();
+          if (now > firstItem.donorOffer.partnerResponseDeadline) {
+            throw new ArgumentError("Cannot create or update requests after the partner response deadline has passed.");
+          }
+        }
       }
     }
 

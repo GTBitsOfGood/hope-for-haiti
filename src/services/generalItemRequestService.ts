@@ -95,25 +95,40 @@ export class GeneralItemRequestService {
       throw new ArgumentError("Cannot create request for pending partner");
     }
     
-    // Check if the general item belongs to an archived donor offer
+    // Check if the general item belongs to a donor offer and validate accordingly
     const generalItem = await db.generalItem.findUnique({
       where: { id: data.generalItemId },
       include: {
         donorOffer: {
           select: { state: true, partnerResponseDeadline: true }
+        },
+        items: {
+          where: {
+            allocation: null
+          },
+          select: { id: true }
         }
       }
     });
 
-    if (generalItem?.donorOffer?.state === "ARCHIVED") {
-      throw new ArgumentError("Cannot create requests for archived donor offers. Archived offers are read-only.");
+    if (!generalItem) {
+      throw new NotFoundError("General item not found");
     }
 
-    // Check if the partner response deadline has passed
-    if (generalItem?.donorOffer?.partnerResponseDeadline) {
-      const now = new Date();
-      if (now > generalItem.donorOffer.partnerResponseDeadline) {
-        throw new ArgumentError("Cannot create requests after the partner response deadline has passed.");
+    // For ARCHIVED offers: allow requests only if there are unallocated line items
+    if (generalItem.donorOffer?.state === "ARCHIVED") {
+      if (generalItem.items.length === 0) {
+        throw new ArgumentError("Cannot create requests for fully allocated archived items.");
+      }
+      // If there are unallocated items, allow the request (no deadline check for archived)
+    }
+    // For UNFINALIZED offers: check the partner response deadline
+    else if (generalItem.donorOffer?.state === "UNFINALIZED") {
+      if (generalItem.donorOffer.partnerResponseDeadline) {
+        const now = new Date();
+        if (now > generalItem.donorOffer.partnerResponseDeadline) {
+          throw new ArgumentError("Cannot create requests after the partner response deadline has passed.");
+        }
       }
     }
     
@@ -135,7 +150,7 @@ export class GeneralItemRequestService {
 
   static async updateRequest(id: number, data: Partial<UpdateGeneralItemRequestData>) {
     try {
-      // Check if the request's general item belongs to an archived donor offer
+      // Check if the request's general item belongs to a donor offer and validate accordingly
       const request = await db.generalItemRequest.findUnique({
         where: { id },
         include: {
@@ -143,21 +158,36 @@ export class GeneralItemRequestService {
             include: {
               donorOffer: {
                 select: { state: true, partnerResponseDeadline: true }
+              },
+              items: {
+                where: {
+                  allocation: null
+                },
+                select: { id: true }
               }
             }
           }
         }
       });
 
-      if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+      if (!request) {
+        throw new NotFoundError("Request not found");
       }
 
-      // Check if the partner response deadline has passed
-      if (request?.generalItem?.donorOffer?.partnerResponseDeadline) {
-        const now = new Date();
-        if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
-          throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
+      // For ARCHIVED offers: allow updates only if there are unallocated line items
+      if (request.generalItem?.donorOffer?.state === "ARCHIVED") {
+        if (request.generalItem.items.length === 0) {
+          throw new ArgumentError("Cannot update requests for fully allocated archived items.");
+        }
+        // If there are unallocated items, allow the update
+      }
+      // For UNFINALIZED offers: check the partner response deadline
+      else if (request.generalItem?.donorOffer?.state === "UNFINALIZED") {
+        if (request.generalItem.donorOffer.partnerResponseDeadline) {
+          const now = new Date();
+          if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
+            throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
+          }
         }
       }
 
@@ -180,7 +210,7 @@ export class GeneralItemRequestService {
   static async bulkUpdateRequests(
     updates: Array<{ requestId: number; finalQuantity: number }>
   ) {
-    // Check if any of the requests belong to archived donor offers
+    // Check if any of the requests belong to donor offers and validate accordingly
     const requestIds = updates.map(u => u.requestId);
     const requests = await db.generalItemRequest.findMany({
       where: { id: { in: requestIds } },
@@ -189,28 +219,37 @@ export class GeneralItemRequestService {
           include: {
             donorOffer: {
               select: { state: true, partnerResponseDeadline: true }
+            },
+            items: {
+              where: {
+                allocation: null
+              },
+              select: { id: true }
             }
           }
         }
       }
     });
 
-    const archivedRequests = requests.filter(
-      r => r.generalItem?.donorOffer?.state === "ARCHIVED"
+    // For ARCHIVED offers: check if they have unallocated items
+    const fullyAllocatedArchivedRequests = requests.filter(
+      r => r.generalItem?.donorOffer?.state === "ARCHIVED" && 
+           r.generalItem.items.length === 0
     );
 
-    if (archivedRequests.length > 0) {
-      throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+    if (fullyAllocatedArchivedRequests.length > 0) {
+      throw new ArgumentError("Cannot update requests for fully allocated archived items.");
     }
 
-    // Check if any requests have passed the partner response deadline
+    // For UNFINALIZED offers: check if the partner response deadline has passed
     const now = new Date();
-    const expiredRequests = requests.filter(
-      r => r.generalItem?.donorOffer?.partnerResponseDeadline && 
+    const expiredUnfinalizedRequests = requests.filter(
+      r => r.generalItem?.donorOffer?.state === "UNFINALIZED" &&
+           r.generalItem.donorOffer.partnerResponseDeadline && 
            now > r.generalItem.donorOffer.partnerResponseDeadline
     );
 
-    if (expiredRequests.length > 0) {
+    if (expiredUnfinalizedRequests.length > 0) {
       throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
     }
 
@@ -228,7 +267,7 @@ export class GeneralItemRequestService {
 
   static async deleteRequest(id: number) {
     try {
-      // Check if the request's general item belongs to an archived donor offer
+      // Check if the request's general item belongs to a donor offer and validate accordingly
       const request = await db.generalItemRequest.findUnique({
         where: { id },
         include: {
@@ -236,21 +275,36 @@ export class GeneralItemRequestService {
             include: {
               donorOffer: {
                 select: { state: true, partnerResponseDeadline: true }
+              },
+              items: {
+                where: {
+                  allocation: null
+                },
+                select: { id: true }
               }
             }
           }
         }
       });
 
-      if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot delete requests for archived donor offers. Archived offers are read-only.");
+      if (!request) {
+        throw new NotFoundError("Request not found");
       }
 
-      // Check if the partner response deadline has passed
-      if (request?.generalItem?.donorOffer?.partnerResponseDeadline) {
-        const now = new Date();
-        if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
-          throw new ArgumentError("Cannot delete requests after the partner response deadline has passed.");
+      // For ARCHIVED offers: allow deletion only if there are unallocated line items
+      if (request.generalItem?.donorOffer?.state === "ARCHIVED") {
+        if (request.generalItem.items.length === 0) {
+          throw new ArgumentError("Cannot delete requests for fully allocated archived items.");
+        }
+        // If there are unallocated items, allow the deletion
+      }
+      // For UNFINALIZED offers: check the partner response deadline
+      else if (request.generalItem?.donorOffer?.state === "UNFINALIZED") {
+        if (request.generalItem.donorOffer.partnerResponseDeadline) {
+          const now = new Date();
+          if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
+            throw new ArgumentError("Cannot delete requests after the partner response deadline has passed.");
+          }
         }
       }
 
