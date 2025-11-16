@@ -11,37 +11,59 @@ import {
   UserList,
   ClipboardText,
   Chat,
+  SignOut,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "./context/UserContext";
 import { useEffect, useState } from "react";
 import { hasAnyPermission, hasPermission, isPartner } from "@/lib/userUtils";
+import { signOut } from "next-auth/react";
 
 function NavLink({
   href,
   icon,
   label,
+  onClick,
   placeLast = false,
+  className: customClassName,
 }: {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   icon: React.ReactNode;
-  label: string;
+  label?: string;
   placeLast?: boolean;
+  className?: string;
 }) {
   const path = usePathname();
   let className =
     "mb-2 w-full px-2 py-2 flex justify-start items-center space-x-2 rounded-xl";
   if (path === href) className += " bg-white";
 
-  return (
-    <li className={placeLast ? "mt-auto" : ""}>
-      <Link href={href} className={className}>
-        {icon}
+  if (customClassName) className += ` ${customClassName}`;
+
+  const children = (
+    <>
+      {icon}
+      {label && (
         <p className="font-light sm:hidden md:block whitespace-nowrap">
           {label}
         </p>
-      </Link>
+      )}
+    </>
+  );
+
+  return (
+    <li className={placeLast ? "mt-auto" : ""}>
+      {href ? (
+        <Link href={href} className={className} onClick={onClick}>
+          {children}
+        </Link>
+      ) : (
+        <button onClick={onClick} className={className}>
+          {children}
+        </button>
+      )}
     </li>
   );
 }
@@ -116,7 +138,9 @@ function NavLinks() {
           icon={<Package size={22} />}
         />
       )}
-      <div className="flex">
+      {/* Spacer to push the profile and sign out buttons to the bottom */}
+      <li className="flex-grow" />
+      <ul className="flex justify-between">
         <NavLink
           href="/profile"
           label="Profile"
@@ -124,12 +148,11 @@ function NavLinks() {
           placeLast
         />
         <NavLink
-          href="/logout"
-          label="Logout"
-          icon={<X size={22} />}
-          placeLast
+          onClick={signOut}
+          icon={<SignOut size={22} />}
+          className="border-red-primary border rounded text-red-primary hover:bg-red-primary/10 transition-all duration-100"
         />
-      </div>
+      </ul>
     </>
   );
 }
@@ -152,7 +175,7 @@ function DesktopNavbar() {
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
 
-      <ul className="p-1 w-full flex flex-col flex-1">
+      <ul className="p-1 w-full flex flex-col flex-1 flex-grow">
         <NavLinks />
       </ul>
     </nav>
