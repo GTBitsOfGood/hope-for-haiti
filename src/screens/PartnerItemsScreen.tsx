@@ -15,6 +15,7 @@ import AdvancedBaseTable, {
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
+import { useSearchParams } from "next/navigation";
 
 interface ActionButtonProps {
   item: AvailableItemDTO;
@@ -86,6 +87,8 @@ export default function PartnerItemsScreen() {
 
   const tableRef = useRef<AdvancedBaseTableHandle<AvailableItemDTO>>(null);
 
+  const searchParams = useSearchParams();
+
   const fetchAvailableItems = useCallback(
     async (
       pageSize: number,
@@ -93,10 +96,15 @@ export default function PartnerItemsScreen() {
       filters: FilterList<AvailableItemDTO>
     ) => {
       try {
+        const initialItems = JSON.parse(
+          searchParams.get("initialItems") || "[]"
+        ) as number[];
+
         const params = new URLSearchParams({
           pageSize: pageSize.toString(),
           page: page.toString(),
           filters: JSON.stringify(filters),
+          initialItems: JSON.stringify(initialItems),
         });
 
         const data = await apiClient.get<AvailableItemsResponse>(

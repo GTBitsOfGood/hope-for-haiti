@@ -30,6 +30,21 @@ const postSchema = z.object({
   lineItem: z.array(singleLineItemSchema).optional(),
 });
 
+const getSchema = tableParamsSchema.extend({
+  initialItems: z
+    .string()
+    .transform((s) => {
+      try {
+        const parsed = JSON.parse(s.trim());
+        if (Array.isArray(parsed)) return parsed.map((id) => Number(id));
+        return [];
+      } catch {
+        return [];
+      }
+    })
+    .optional(),
+});
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -89,15 +104,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const parsedParams = tableParamsSchema.safeParse({
+    const parsedParams = getSchema.safeParse({
       filters: request.nextUrl.searchParams.get("filters"),
       page: request.nextUrl.searchParams.get("page"),
       pageSize: request.nextUrl.searchParams.get("pageSize"),
+      initialItems: request.nextUrl.searchParams.get("initialItems"),
     });
     if (!parsedParams.success) {
       throw new ArgumentError(parsedParams.error.message);
     }
-    const { filters, page, pageSize } = parsedParams.data;
+    const { filters, page, pageSize, initialItems } = parsedParams.data;
 
     const wishlists = await WishlistService.getWishlistsByPartner(
       parseInt(session.user.id)
@@ -109,7 +125,15 @@ export async function GET(request: NextRequest) {
     });
 
     const matchedIds: number[] = [];
-    const matchMetadata = new Map<number, { wishlistId: number; wishlistTitle: string; strength: "hard" | "soft"; distance: number }>();
+    const matchMetadata = new Map<
+      number,
+      {
+        wishlistId: number;
+        wishlistTitle: string;
+        strength: "hard" | "soft";
+        distance: number;
+      }
+    >();
 
     for (let i = 0; i < matches.length; i++) {
       const matchList = matches[i];
@@ -125,9 +149,11 @@ export async function GET(request: NextRequest) {
         // Store match metadata - keep strongest match if multiple wishlists match
         // Priority: hard > soft, then lower distance wins
         const existing = matchMetadata.get(id);
-        const shouldUpdate = !existing ||
+        const shouldUpdate =
+          !existing ||
           (match.strength === "hard" && existing.strength === "soft") ||
-          (match.strength === existing.strength && match.distance < existing.distance);
+          (match.strength === existing.strength &&
+            match.distance < existing.distance);
 
         if (shouldUpdate) {
           matchMetadata.set(id, {
@@ -140,30 +166,41 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const priorityIds = initialItems ?? [];
+    if (priorityIds.length > 0) {
+      for (const id of matchedIds) {
+        if (!priorityIds.includes(id)) {
+          priorityIds.push(id);
+        }
+      }
+    }
+
     const result = await GeneralItemService.getAvailableItemsForPartner(
       parseInt(session.user.id),
       filters ?? undefined,
       page ?? undefined,
       pageSize ?? undefined,
-      matchedIds.length > 0 ? matchedIds : undefined
+      priorityIds.length > 0 ? priorityIds : undefined
     );
 
     const enrichedItems = result.items.map((item) => {
       const matchInfo = matchMetadata.get(item.id);
       return {
         ...item,
-        wishlistMatch: matchInfo ? {
-          wishlistId: matchInfo.wishlistId,
-          wishlistTitle: matchInfo.wishlistTitle,
-          strength: matchInfo.strength,
-        } : null,
+        wishlistMatch: matchInfo
+          ? {
+              wishlistId: matchInfo.wishlistId,
+              wishlistTitle: matchInfo.wishlistTitle,
+              strength: matchInfo.strength,
+            }
+          : null,
       };
     });
 
     return NextResponse.json(
       {
         items: enrichedItems,
-        total: result.total
+        total: result.total,
       },
       { status: 200 }
     );

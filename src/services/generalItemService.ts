@@ -396,6 +396,8 @@ export class GeneralItemService {
         priorityIds.map((id) => Prisma.sql`${id}`)
       );
 
+      console.log(priorityIds, priorityIdsArray);
+
       const orderedIdsSql = Prisma.sql`
         WITH filtered_items AS (
           SELECT gi.id
@@ -431,7 +433,15 @@ export class GeneralItemService {
       `;
 
       const orderedIds = await db.$queryRaw<{ id: number }[]>(orderedIdsSql);
-      const orderedIdList = orderedIds.map((row) => row.id);
+
+      // Maintain same order as in priority IDs
+      const orderedIdList = priorityIds
+        .filter((id) => orderedIds.some((row) => row.id === id))
+        .concat(
+          orderedIds
+            .map((row) => row.id)
+            .filter((id) => !priorityIds.includes(id))
+        );
 
       if (orderedIdList.length === 0) {
         return { items: [], total: 0 };
