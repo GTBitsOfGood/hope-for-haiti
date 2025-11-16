@@ -61,6 +61,7 @@ export class PartnerService {
     return partners.map((partner) => ({
       id: partner.id,
       name: partner.name,
+      tag: partner.tag,
     }));
   }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "@phosphor-icons/react";
+import { getTagOrder } from "@/lib/userUtils";
 
 export type Partner = {
   id: number;
@@ -117,18 +118,6 @@ export const PartnerSearch = ({
     }, 200);
   };
 
-  function getTagOrder(a: Partner, b: Partner) {
-    if (a.tag && b.tag) {
-      return a.tag ? (b.tag ? a.tag.localeCompare(b.tag) : 1) : b.tag ? -1 : 0;
-    } else if (a.tag) {
-      return -1;
-    } else if (b.tag) {
-      return 1;
-    }
-
-    return 0;
-  }
-
   return (
     <div className="relative">
       <div>
@@ -181,15 +170,17 @@ export const PartnerSearch = ({
       {/* Search Results Dropdown */}
       {showResults && searchResults.length > 0 && (
         <div className="absolute z-10 w-full lg:w-1/2 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-          {searchResults.sort(getTagOrder).map((partner) => (
-            <div
-              key={partner.id}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-              onClick={() => handleAddPartner(partner)}
-            >
-              {partner.name}
-            </div>
-          ))}
+          {searchResults
+            .sort((a, b) => getTagOrder(a.tag, b.tag))
+            .map((partner) => (
+              <div
+                key={partner.id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleAddPartner(partner)}
+              >
+                {partner.name}
+              </div>
+            ))}
         </div>
       )}
     </div>
