@@ -23,7 +23,7 @@ export default function RootLayout({
         <AuthenticationProvider>
           <NotificationHandler>
             <NavbarLayout>{children}</NavbarLayout>
-            <Toaster position="top-right" />
+            <Toaster position="bottom-right" />
           </NotificationHandler>
         </AuthenticationProvider>
       </body>
