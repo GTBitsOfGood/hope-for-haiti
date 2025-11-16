@@ -399,7 +399,7 @@ export class GeneralItemService {
 
       const orderedIdsSql = Prisma.sql`
         WITH filtered_items AS (
-          SELECT gi.id
+          SELECT gi.id, dof."partnerResponseDeadline"
           FROM "GeneralItem" gi
           INNER JOIN "DonorOffer" dof ON gi."donorOfferId" = dof.id
           INNER JOIN "_DonorOfferToUser" dotu ON dof.id = dotu."A"
@@ -422,10 +422,11 @@ export class GeneralItemService {
                 AND gir."partnerId" = ${partnerId}
             )
         )
-        SELECT id
+        SELECT id, "partnerResponseDeadline"
         FROM filtered_items
         ORDER BY
           CASE WHEN id = ANY(ARRAY[${priorityIdsArray}]) THEN 0 ELSE 1 END,
+          "partnerResponseDeadline" ASC,
           id ASC
         LIMIT ${pageSize}
         OFFSET ${offset}
