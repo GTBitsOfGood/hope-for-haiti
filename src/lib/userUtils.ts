@@ -1,5 +1,6 @@
 import { UserType } from "@prisma/client";
 import { PermissionFlags, PermissionName } from "@/types/api/user.types";
+import { FilterOptionOption } from "react-select";
 
 type PermissionedUser =
   | (Partial<PermissionFlags> & { type?: UserType })
@@ -88,4 +89,19 @@ export function groupUsersByTagForSelect(users: SelectUser[]): {
     const bTag = b.label || "";
     return aTag.localeCompare(bTag);
   });
+}
+
+export function searchByNameOrTag(
+  candidate: FilterOptionOption<{
+    value: SelectUser;
+    label: string;
+  }>,
+  input: string
+): boolean {
+  const inputLower = input.toLowerCase();
+  return (
+    candidate.data?.value.name.toLowerCase().includes(inputLower) ||
+    candidate.data?.value.tag?.toLowerCase().includes(inputLower) ||
+    false
+  );
 }

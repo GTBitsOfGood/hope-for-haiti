@@ -5,6 +5,7 @@ import {
   hasPermission,
   isPartner,
   isStaff,
+  searchByNameOrTag,
 } from "@/lib/userUtils";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
@@ -122,19 +123,7 @@ export default function CreateTicketModal({
               name="partner"
               placeholder="Select Partner"
               options={groupUsersByTagForSelect(partners)}
-              filterOption={(candidate, input) => {
-                const inputLower = input.toLowerCase();
-
-                return (
-                  candidate.data.value?.name
-                    .toLowerCase()
-                    .includes(inputLower) ||
-                  candidate.data.value?.tag
-                    ?.toLowerCase()
-                    .includes(inputLower) ||
-                  false // Have to specify false to avoid undefined return type
-                );
-              }}
+              filterOption={searchByNameOrTag}
               value={
                 selectedPartner
                   ? {
