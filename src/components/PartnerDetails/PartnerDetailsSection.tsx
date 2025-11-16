@@ -222,10 +222,19 @@ export default function PartnerDetailsSection({
               <div>
                 <p className="text-[18px] font-semibold text-[#22070B]">
                   {fieldConfig.label}
-                  {(fieldConfig.required ||
-                    (fieldConfig.name === "proofOfRegistrationWithMssp" &&
-                      getNestedValue(formData, "registeredWithMssp") ===
-                        true)) && <span className="text-red-500 ml-1">*</span>}
+                  {(() => {
+                    const isRequired = fieldConfig.required || false;
+                    const isDynamicallyRequired =
+                      fieldConfig.conditionalField &&
+                      fieldConfig.conditionalValue !== undefined &&
+                      getNestedValue(formData, fieldConfig.conditionalField) ===
+                        fieldConfig.conditionalValue;
+                    return (
+                      (isRequired || isDynamicallyRequired) && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )
+                    );
+                  })()}
                 </p>
                 {fieldConfig.description && (
                   <p className="text-[14px] text-[#22070B]/70 mt-1">
