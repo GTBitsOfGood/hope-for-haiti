@@ -18,6 +18,7 @@ import TicketSearchBar from "@/components/tickets/TicketSearchBar";
 
 import CreateTicketModal from "@/components/tickets/CreateTicketModal";
 import { ChatCircleSlash } from "@phosphor-icons/react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 // Wrapper component to pass active channel ID to ChannelPreview
 function ChannelPreviewWrapper(props: Parameters<typeof ChannelPreview>[0]) {
@@ -43,6 +44,33 @@ export default function SupportScreen({
   streamUserId,
 }: SupportScreenProps) {
   const { client, setActiveChannel, channel: activeChannel } = useChatContext();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const channelIdFromQuery = searchParams.get("channel-id");
+
+  useEffect(() => {
+    if (!client || !channelIdFromQuery) return;
+    if (activeChannel?.id === channelIdFromQuery) return;
+
+    const setChannelFromQuery = async () => {
+      try {
+        const channel = client.channel("ticket", channelIdFromQuery);
+        await channel.watch();
+
+        setActiveChannel(channel);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const isClosed = (channel.data as any)?.closed === true;
+        setActiveTab(isClosed ? "Resolved" : "Unresolved");
+        router.replace(pathname);
+      } catch (error) {
+        console.error("Failed to set channel from query parameter: ", error);
+      }
+    };
+
+    setChannelFromQuery();
+  }, [client, channelIdFromQuery, activeChannel, setActiveChannel, setActiveTab, router, pathname]);
 
   useEffect(() => {
     if (!activeChannel) return;
