@@ -13,14 +13,14 @@ const publicPaths = [
   "/reset-password",
 ];
 
-const publicApiPaths = ["/api/users"];
+const publicApiPaths = ["/api/users", "/api/register", "/api/invites"];
 
 function isPublicPath(pathname: string) {
   return publicPaths.some((p) => pathname.startsWith(p));
 }
 
 function isPublicApiPath(pathname: string) {
-  return publicApiPaths.some((p) => pathname === p);
+  return publicApiPaths.some((p) => pathname.startsWith(p));
 }
 
 function isApiRoute(pathname: string) {
