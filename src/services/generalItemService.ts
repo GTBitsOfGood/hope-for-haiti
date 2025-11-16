@@ -117,9 +117,7 @@ export class GeneralItemService {
       where: {
         ...filterWhere,
         donorOffer: {
-          state: {
-            not: "ARCHIVED",
-          },
+          state: "ARCHIVED",
         },
         items: {
           some: {
