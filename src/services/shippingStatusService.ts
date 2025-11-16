@@ -7,6 +7,7 @@ import {
 } from "@/types/api/shippingStatus.types";
 import { Filters, FilterValue } from "@/types/api/filter.types";
 import { buildWhereFromFilters } from "@/util/table";
+import FileService from "@/services/fileService";
 
 export class ShippingStatusService {
   static async getShipments(
@@ -65,7 +66,6 @@ export class ShippingStatusService {
       lineItems: [],
     }));
 
-    // Group line items by shipment
     for (const lineItem of lineItems) {
       if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
         continue;
@@ -81,28 +81,31 @@ export class ShippingStatusService {
         continue;
       }
 
-      // If line item has a signOff, add it to signOffs
       if (lineItem.allocation.signOff) {
         const signOff = lineItem.allocation.signOff;
 
-        // Check if this signOff is already in the shipment's signOffs
         let existingSignOff = shipment.signOffs.find(
           (so) => so.id === signOff.id
         );
 
         if (!existingSignOff) {
+          let signatureUrl = signOff.signatureUrl;
+          if (signatureUrl) {
+            signatureUrl =
+              await FileService.generateSignatureReadUrl(signatureUrl);
+          }
+
           existingSignOff = {
             id: signOff.id,
             staffMemberName: signOff.staffMemberName,
             partnerName: signOff.partnerName,
             date: signOff.date,
-            signatureUrl: signOff.signatureUrl,
+            signatureUrl: signatureUrl,
             lineItems: [],
           };
           shipment.signOffs.push(existingSignOff);
         }
 
-        // Add this line item to the signOff's lineItems
         existingSignOff.lineItems.push({
           id: lineItem.id,
           quantity: lineItem.quantity,
@@ -121,7 +124,6 @@ export class ShippingStatusService {
           },
         });
       } else {
-        // Line item without signOff - add to lineItems array
         shipment.lineItems.push({
           id: lineItem.id,
           quantity: lineItem.quantity,
@@ -192,7 +194,6 @@ export class ShippingStatusService {
     page?: number,
     pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },

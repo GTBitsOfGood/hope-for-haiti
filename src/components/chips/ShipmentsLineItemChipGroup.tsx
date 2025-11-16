@@ -27,7 +27,6 @@ export default function ShipmentsLineItemChipGroup({
   const hasSelectedItems = selectedItems.size > 0;
   const isReadyForDistribution = shipment.value === "READY_FOR_DISTRIBUTION";
 
-  // Get unique partner info from selected items
   const getSelectedPartnerInfo = () => {
     if (selectedItems.size === 0) return null;
     const firstSelected = unsignedLineItems.find((li) =>
@@ -55,7 +54,6 @@ export default function ShipmentsLineItemChipGroup({
       const partnerInfo = getSelectedPartnerInfo();
       if (!partnerInfo) return;
 
-      // Get allocation IDs from selected line items
       const selectedAllocationIds = unsignedLineItems
         .filter((li) => selectedItems.has(li.id))
         .map((li) => li.allocation.id);
@@ -70,7 +68,6 @@ export default function ShipmentsLineItemChipGroup({
 
   return (
     <div className="w-full bg-sunken p-2">
-      {/* Unsigned line items */}
       {unsignedLineItems.length === 0 && shipment.signOffs.length === 0 && (
         <p className="w-full text-center text-gray-primary">
           No line items available.
@@ -95,7 +92,9 @@ export default function ShipmentsLineItemChipGroup({
                   />
                 }
                 selected={selectedItems.has(lineItem.id)}
-                onClick={() => handleItemClick(lineItem.id)}
+                onClick={
+                  isPending ? undefined : () => handleItemClick(lineItem.id)
+                }
                 disabled={isPending}
                 labelColor={isPending ? "yellow" : "red"}
               />
@@ -104,13 +103,11 @@ export default function ShipmentsLineItemChipGroup({
         </div>
       )}
 
-      {/* SignOff button and SignOff Items button */}
-      <div className="flex justify-between items-center mt-2">
-        {/* SignOffs button - bottom left */}
+      <div className="relative flex items-center mt-2 w-full">
         {shipment.signOffs.length > 0 && (
           <button
             onClick={() => setShowSignOffs(!showSignOffs)}
-            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 transition-colors bg-transparent border-none cursor-pointer"
+            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 transition-colors bg-transparent border-none cursor-pointer p-0"
           >
             <CaretDown
               size={16}
@@ -120,12 +117,11 @@ export default function ShipmentsLineItemChipGroup({
           </button>
         )}
 
-        {/* SignOff Items button - bottom right */}
         {hasSelectedItems && (
           <button
             onClick={handleSignOffClick}
             disabled={!isReadyForDistribution}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+            className={`ml-auto px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               isReadyForDistribution
                 ? "bg-blue-primary text-white hover:bg-blue-primary/90"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -136,12 +132,11 @@ export default function ShipmentsLineItemChipGroup({
         )}
       </div>
 
-      {/* Signed-off items grouped by signOff */}
       {showSignOffs && shipment.signOffs.length > 0 && (
         <div className="mt-4 space-y-4 border-t border-gray-200 pt-4">
           {shipment.signOffs.map((signOff) => (
             <div key={signOff.id} className="space-y-2">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 font-light">
                 <span>{signOff.staffMemberName}</span>
                 <span className="mx-2">•</span>
                 <span>
@@ -152,7 +147,7 @@ export default function ShipmentsLineItemChipGroup({
                     <span className="mx-2">•</span>
                     <span
                       data-tooltip-id={`signature-tooltip-${signOff.id}`}
-                      className="underline decoration-dotted cursor-pointer"
+                      className="underline decoration-dotted cursor-pointer text-gray-500"
                     >
                       View signature
                     </span>
@@ -186,6 +181,7 @@ export default function ShipmentsLineItemChipGroup({
                     selected={false}
                     disabled={true}
                     labelColor="red"
+                    className="opacity-70"
                   />
                 ))}
               </div>

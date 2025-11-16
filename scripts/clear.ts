@@ -4,14 +4,12 @@ import FileService from "@/services/fileService";
 
 async function run() {
   await db.$transaction(async (tx) => {
-    // Get all signoffs with signature URLs before deleting
     const signOffs = await tx.signOff.findMany({
       select: {
         signatureUrl: true,
       },
     });
 
-    // Delete signatures from Azure Storage
     for (const signOff of signOffs) {
       if (signOff.signatureUrl) {
         try {
@@ -25,7 +23,6 @@ async function run() {
       }
     }
 
-    // Now delete from database
     await tx.shippingStatus.deleteMany();
     await tx.donorOffer.deleteMany();
     await tx.distribution.deleteMany();

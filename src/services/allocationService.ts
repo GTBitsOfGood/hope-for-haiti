@@ -14,7 +14,6 @@ import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
-    // Check if partner is enabled and not pending if partnerId is provided
     if (data.partnerId) {
       const partner = await db.user.findUnique({
         where: { id: data.partnerId },
@@ -368,7 +367,6 @@ export default class AllocationService {
     pageSize?: number,
     filters?: Filters
   ): Promise<PartnerAllocationsResponse> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },
@@ -378,23 +376,19 @@ export default class AllocationService {
       return { data: [], total: 0 };
     }
 
-    // Build base where clause for allocations
     const allocationWhere: Prisma.AllocationWhereInput = {
       partnerId,
       distribution: {
-        pending: false, // Only approved distributions
+        pending: false,
       },
     };
 
     if (completed) {
-      // Completed: has sign off
       allocationWhere.signOffId = { not: null };
     } else {
-      // In Progress: no sign off
       allocationWhere.signOffId = null;
     }
 
-    // Apply filters if provided
     const filterWhere = buildWhereFromFilters<Prisma.AllocationWhereInput>(
       Object.keys(Prisma.AllocationScalarFieldEnum),
       filters
@@ -405,8 +399,6 @@ export default class AllocationService {
       ...filterWhere,
     };
 
-    // Build query with pagination
-    // Always include signOff for proper ordering, even if we filter by null
     const query = Prisma.validator<Prisma.AllocationFindManyArgs>()({
       where: finalWhere,
       include: {
@@ -427,7 +419,6 @@ export default class AllocationService {
       db.allocation.count({ where: finalWhere }),
     ]);
 
-    // Get shipment statuses for all line items
     const shippingNumberPairs = allocations
       .map((a) => ({
         donorShippingNumber: a.lineItem.donorShippingNumber,
@@ -457,7 +448,6 @@ export default class AllocationService {
       });
     }
 
-    // Map allocations to response format
     const data: PartnerAllocation[] = allocations.map((allocation) => {
       let shipmentStatus: ShipmentStatus | undefined;
       if (

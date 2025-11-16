@@ -263,7 +263,7 @@ async function buildSeedData() {
     },
   });
 
-  // General Item 1 with line items
+  // General Item 1 with line items - grouped into shipments
   const finalizedItem1 = await db.generalItem.create({
     data: {
       donorOfferId: finalizedOffer.id,
@@ -287,8 +287,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2024-001",
-            hfhShippingNumber: "HFH-2024-001",
+            donorShippingNumber: "DN-2024-SHIP-001",
+            hfhShippingNumber: "HFH-2024-SHIP-001",
           },
           {
             donorName: "Aid for All Foundation",
@@ -300,15 +300,15 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2024-002",
-            hfhShippingNumber: "HFH-2024-002",
+            donorShippingNumber: "DN-2024-SHIP-001",
+            hfhShippingNumber: "HFH-2024-SHIP-001",
           },
         ],
       },
     },
   });
 
-  // General Item 2
+  // General Item 2 - grouped into same shipment as Item 1
   const finalizedItem2 = await db.generalItem.create({
     data: {
       donorOfferId: finalizedOffer.id,
@@ -332,8 +332,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: true,
-            donorShippingNumber: "DN-2024-003",
-            hfhShippingNumber: "HFH-2024-003",
+            donorShippingNumber: "DN-2024-SHIP-001",
+            hfhShippingNumber: "HFH-2024-SHIP-001",
           },
           {
             donorName: "Aid for All Foundation",
@@ -345,15 +345,15 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: true,
-            donorShippingNumber: "DN-2024-004",
-            hfhShippingNumber: "HFH-2024-004",
+            donorShippingNumber: "DN-2024-SHIP-001",
+            hfhShippingNumber: "HFH-2024-SHIP-001",
           },
         ],
       },
     },
   });
 
-  // General Item 3
+  // General Item 3 - create a second shipment with multiple items
   const finalizedItem3 = await db.generalItem.create({
     data: {
       donorOfferId: finalizedOffer.id,
@@ -377,8 +377,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2024-005",
-            hfhShippingNumber: "HFH-2024-005",
+            donorShippingNumber: "DN-2024-SHIP-002",
+            hfhShippingNumber: "HFH-2024-SHIP-002",
           },
           {
             donorName: "Aid for All Foundation",
@@ -390,15 +390,15 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2024-006",
-            hfhShippingNumber: "HFH-2024-006",
+            donorShippingNumber: "DN-2024-SHIP-002",
+            hfhShippingNumber: "HFH-2024-SHIP-002",
           },
         ],
       },
     },
   });
 
-  // General Item 4
+  // General Item 4 - grouped into same shipment as Item 3
   const finalizedItem4 = await db.generalItem.create({
     data: {
       donorOfferId: finalizedOffer.id,
@@ -422,8 +422,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: true,
-            donorShippingNumber: "DN-2024-007",
-            hfhShippingNumber: "HFH-2024-007",
+            donorShippingNumber: "DN-2024-SHIP-002",
+            hfhShippingNumber: "HFH-2024-SHIP-002",
           },
           {
             donorName: "Aid for All Foundation",
@@ -435,15 +435,15 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: true,
-            donorShippingNumber: "DN-2024-008",
-            hfhShippingNumber: "HFH-2024-008",
+            donorShippingNumber: "DN-2024-SHIP-002",
+            hfhShippingNumber: "HFH-2024-SHIP-002",
           },
         ],
       },
     },
   });
 
-  // General Item 5
+  // General Item 5 - create a third shipment
   const finalizedItem5 = await db.generalItem.create({
     data: {
       donorOfferId: finalizedOffer.id,
@@ -467,8 +467,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2024-009",
-            hfhShippingNumber: "HFH-2024-009",
+            donorShippingNumber: "DN-2024-SHIP-003",
+            hfhShippingNumber: "HFH-2024-SHIP-003",
           },
           {
             donorName: "Aid for All Foundation",
@@ -480,8 +480,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2024-010",
-            hfhShippingNumber: "HFH-2024-010",
+            donorShippingNumber: "DN-2024-SHIP-003",
+            hfhShippingNumber: "HFH-2024-SHIP-003",
           },
         ],
       },
@@ -560,7 +560,7 @@ async function buildSeedData() {
     },
   });
 
-  // Create 5 general items for archived offer
+  // Create 5 general items for archived offer - grouped into shipments
   const archivedItem1 = await db.generalItem.create({
     data: {
       donorOfferId: archivedOffer.id,
@@ -597,8 +597,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2023-102",
-            hfhShippingNumber: "HFH-2023-102",
+            donorShippingNumber: "DN-2023-101",
+            hfhShippingNumber: "HFH-2023-101",
           },
           {
             donorName: "Med Relief International",
@@ -610,8 +610,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2023-103",
-            hfhShippingNumber: "HFH-2023-103",
+            donorShippingNumber: "DN-2023-101",
+            hfhShippingNumber: "HFH-2023-101",
           },
         ],
       },
@@ -654,8 +654,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: true,
-            donorShippingNumber: "DN-2023-105",
-            hfhShippingNumber: "HFH-2023-105",
+            donorShippingNumber: "DN-2023-104",
+            hfhShippingNumber: "HFH-2023-104",
           },
         ],
       },
@@ -697,8 +697,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2023-107",
-            hfhShippingNumber: "HFH-2023-107",
+            donorShippingNumber: "DN-2023-106",
+            hfhShippingNumber: "HFH-2023-106",
           },
         ],
       },
@@ -740,8 +740,8 @@ async function buildSeedData() {
             allowAllocations: true,
             visible: true,
             gik: false,
-            donorShippingNumber: "DN-2023-109",
-            hfhShippingNumber: "HFH-2023-109",
+            donorShippingNumber: "DN-2023-108",
+            hfhShippingNumber: "HFH-2023-108",
           },
         ],
       },
@@ -871,21 +871,22 @@ async function buildSeedData() {
     },
   });
 
-  // Allocate 2 items to pending distribution (no sign-off)
-  await db.allocation.createMany({
-    data: [
-      {
-        lineItemId: allLineItems[0].id, // First line item
+  // Allocate multiple items from same shipment to pending distribution (no sign-off)
+  // Use items from DN-2023-101/HFH-2023-101 shipment
+  const pendingShipmentItems = allLineItems.filter(
+    (li) =>
+      li.donorShippingNumber === "DN-2023-101" &&
+      li.hfhShippingNumber === "HFH-2023-101"
+  );
+  if (pendingShipmentItems.length >= 2) {
+    await db.allocation.createMany({
+      data: pendingShipmentItems.slice(0, 2).map((li) => ({
+        lineItemId: li.id,
         partnerId: internalPartner.id,
         distributionId: pendingDistribution.id,
-      },
-      {
-        lineItemId: allLineItems[1].id, // Second line item
-        partnerId: internalPartner.id,
-        distributionId: pendingDistribution.id,
-      },
-    ],
-  });
+      })),
+    });
+  }
 
   console.log("✓ Created pending distribution");
 
@@ -907,41 +908,102 @@ async function buildSeedData() {
     },
   });
 
-  // Allocate 2 items to approved distribution with sign-off
-  await db.allocation.createMany({
-    data: [
-      {
-        lineItemId: allLineItems[4].id, // Fifth line item
+  // Allocate multiple items from same shipment to approved distribution with sign-off
+  // Use items from DN-2023-104/HFH-2023-104 shipment
+  const signedOffShipmentItems = allLineItems.filter(
+    (li) =>
+      li.donorShippingNumber === "DN-2023-104" &&
+      li.hfhShippingNumber === "HFH-2023-104"
+  );
+  if (signedOffShipmentItems.length >= 2) {
+    await db.allocation.createMany({
+      data: signedOffShipmentItems.slice(0, 2).map((li) => ({
+        lineItemId: li.id,
         partnerId: externalPartner.id,
         distributionId: approvedDistribution.id,
         signOffId: signOff.id,
-      },
-      {
-        lineItemId: allLineItems[5].id, // Sixth line item
-        partnerId: externalPartner.id,
-        distributionId: approvedDistribution.id,
-        signOffId: signOff.id,
-      },
-    ],
-  });
+      })),
+    });
+  }
 
   console.log("✓ Created approved distribution with sign-off");
 
-  // Create shipping statuses for the 2 items in approved distribution
-  await db.shippingStatus.createMany({
-    data: [
-      {
-        donorShippingNumber: allLineItems[4].donorShippingNumber!,
-        hfhShippingNumber: allLineItems[4].hfhShippingNumber!,
-        value: ShipmentStatus.ARRIVED_AT_DEPO,
-      },
-      {
-        donorShippingNumber: allLineItems[5].donorShippingNumber!,
-        hfhShippingNumber: allLineItems[5].hfhShippingNumber!,
-        value: ShipmentStatus.READY_FOR_DISTRIBUTION,
-      },
-    ],
+  // Create approved distribution WITHOUT sign-off for testing signoff functionality
+  const approvedDistributionNoSignOff = await db.distribution.create({
+    data: {
+      partnerId: externalPartner.id,
+      pending: false,
+    },
   });
+
+  // Allocate items to approved distribution without sign-off (these can be selected for signoff)
+  const readyShipmentItems = allLineItems.filter(
+    (li) =>
+      li.donorShippingNumber === "DN-2023-106" &&
+      li.hfhShippingNumber === "HFH-2023-106"
+  );
+  const notReadyShipmentItems = allLineItems.filter(
+    (li) =>
+      li.donorShippingNumber === "DN-2023-108" &&
+      li.hfhShippingNumber === "HFH-2023-108"
+  );
+
+  const testLineItems = [
+    ...readyShipmentItems.slice(0, 2),
+    ...notReadyShipmentItems.slice(0, 1),
+  ];
+
+  if (testLineItems.length >= 2) {
+    await db.allocation.createMany({
+      data: testLineItems.map((li) => ({
+        lineItemId: li.id,
+        partnerId: externalPartner.id,
+        distributionId: approvedDistributionNoSignOff.id,
+      })),
+    });
+
+    console.log(
+      "✓ Created approved distribution without sign-off (for testing)"
+    );
+  }
+
+  // Create shipping statuses for grouped shipments
+  const shippingStatuses = [];
+
+  // Create shipping statuses for shipments
+  // Shipment 1 (DN-2023-101/HFH-2023-101) - with signed-off items, NOT ready
+  shippingStatuses.push({
+    donorShippingNumber: "DN-2023-101",
+    hfhShippingNumber: "HFH-2023-101",
+    value: ShipmentStatus.ARRIVED_AT_DEPO, // NOT ready
+  });
+
+  // Shipment 2 (DN-2023-104/HFH-2023-104) - with signed-off items, READY
+  shippingStatuses.push({
+    donorShippingNumber: "DN-2023-104",
+    hfhShippingNumber: "HFH-2023-104",
+    value: ShipmentStatus.READY_FOR_DISTRIBUTION, // Ready
+  });
+
+  // Shipment 3 (DN-2023-106/HFH-2023-106) - unsigned items, READY (can be signed off)
+  shippingStatuses.push({
+    donorShippingNumber: "DN-2023-106",
+    hfhShippingNumber: "HFH-2023-106",
+    value: ShipmentStatus.READY_FOR_DISTRIBUTION, // Ready - can sign off
+  });
+
+  // Shipment 4 (DN-2023-108/HFH-2023-108) - unsigned items, NOT ready (button disabled)
+  shippingStatuses.push({
+    donorShippingNumber: "DN-2023-108",
+    hfhShippingNumber: "HFH-2023-108",
+    value: ShipmentStatus.CLEARED_CUSTOMS, // NOT ready - button disabled
+  });
+
+  if (shippingStatuses.length > 0) {
+    await db.shippingStatus.createMany({
+      data: shippingStatuses,
+    });
+  }
 
   console.log("✓ Created shipping statuses");
 

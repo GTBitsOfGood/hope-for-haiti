@@ -21,9 +21,6 @@ export type Shipment = {
   id: number;
   donorShippingNumber: string;
   hfhShippingNumber: string;
-  /**
-   * Status
-   */
   value: $Enums.ShipmentStatus;
   signOffs: {
     id: number;

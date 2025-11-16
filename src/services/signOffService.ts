@@ -31,15 +31,12 @@ export class SignOffService {
       throw new ArgumentError("Cannot create sign-off for pending partner");
     }
 
-    // Upload signature to Azure Blob Storage
-    // The signatureUrl field now contains base64 data
     let signatureUrl = data.signatureUrl;
     if (
       signatureUrl &&
       (signatureUrl.startsWith("data:image") ||
         !signatureUrl.startsWith("http"))
     ) {
-      // If it's base64 data or not already a URL, upload it
       if (!data.staffUserId) {
         throw new ArgumentError("staffUserId is required to upload signature");
       }
@@ -139,7 +136,6 @@ export class SignOffService {
   static async getSignOffsByPartner(
     partnerId: number
   ): Promise<SignOffSummary[]> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },

@@ -31,10 +31,9 @@ export default function SignOffModal({
   const signatureCanvasRef = useRef<SignatureCanvas>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch user details to get name
   const { data: userData } = useFetch<{
     user: { name: string; email: string };
-  }>(user?.id ? `/api/users/${user.id}` : null);
+  }>(user?.id ? `/api/users/${user.id}` : "");
 
   const staffName = userData?.user?.name || userData?.user?.email || "";
   const currentDate = new Date();
@@ -64,7 +63,6 @@ export default function SignOffModal({
         .getCanvas()
         .toDataURL("image/png");
 
-      // Create form data
       const formData = new FormData();
       formData.append("partnerId", partnerId.toString());
       formData.append("staffName", staffName);
@@ -75,7 +73,6 @@ export default function SignOffModal({
         formData.append("allocation", id.toString());
       });
 
-      // Submit to API
       await apiClient.post("/api/signOffs", {
         body: formData,
       });

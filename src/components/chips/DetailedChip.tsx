@@ -1,8 +1,5 @@
 import { ReactNode } from "react";
 
-/**
- * Set showLabel to true to display the label even when it is empty.
- */
 export default function DetailedChip({
   title,
   subtitle,
@@ -31,7 +28,7 @@ export default function DetailedChip({
   const isDisabled = disabled || !onClick;
   const labelBgColor =
     labelColor === "yellow"
-      ? "bg-yellow-primary/20 text-yellow-primary"
+      ? "bg-amber-100 text-amber-800"
       : label
         ? "bg-red-primary/20 text-red-primary"
         : "bg-gray-primary/10 text-gray-primary/30";
