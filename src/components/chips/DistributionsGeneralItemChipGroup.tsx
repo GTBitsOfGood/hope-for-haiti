@@ -138,17 +138,24 @@ function GeneralItemChip({
                     label:
                       otherDistributions.find(
                         (d) => d.id === selectedDistribution
-                        )
-                        ? `${otherDistributions.find((d) => d.id === selectedDistribution)?.partner.name} (Dist #${selectedDistribution})`
+                      )
+                        ? (() => {
+                            const dist = otherDistributions.find((d) => d.id === selectedDistribution)!;
+                            const donors = Array.from(new Set(dist.generalItems.map(gi => gi.donorOffer.donorName))).join(", ");
+                            return `${dist.partner.name} (${donors})`;
+                          })()
                         : "",
                   }
                 : undefined
             }
             onChange={(newVal) => setSelectedDistribution(newVal?.value)}
-            options={otherDistributions.map((distribution) => ({
-              value: distribution.id,
-              label: `${distribution.partner.name} (Dist #${distribution.id})`,
-            }))}
+            options={otherDistributions.map((distribution) => {
+              const donors = Array.from(new Set(distribution.generalItems.map(gi => gi.donorOffer.donorName))).join(", ");
+              return {
+                value: distribution.id,
+                label: `${distribution.partner.name} (${donors})`,
+              };
+            })}
             isClearable
             placeholder="Choose distribution..."
           />
