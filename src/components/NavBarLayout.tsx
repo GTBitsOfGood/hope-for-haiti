@@ -27,6 +27,8 @@ function NavLink({
   onClick,
   placeLast = false,
   className: customClassName,
+  liClassName,
+  noWrapper = false,
 }: {
   href?: string;
   onClick?: () => void;
@@ -34,6 +36,8 @@ function NavLink({
   label?: string;
   placeLast?: boolean;
   className?: string;
+  liClassName?: string;
+  noWrapper?: boolean;
 }) {
   const path = usePathname();
   let className =
@@ -53,17 +57,28 @@ function NavLink({
     </>
   );
 
+  const liClass = [
+    placeLast ? "mt-auto" : "",
+    liClassName || "",
+  ].filter(Boolean).join(" ");
+
+  const content = href ? (
+    <Link href={href} className={className} onClick={onClick}>
+      {children}
+    </Link>
+  ) : (
+    <button onClick={onClick} className={className}>
+      {children}
+    </button>
+  );
+
+  if (noWrapper) {
+    return content;
+  }
+
   return (
-    <li className={placeLast ? "mt-auto" : ""}>
-      {href ? (
-        <Link href={href} className={className} onClick={onClick}>
-          {children}
-        </Link>
-      ) : (
-        <button onClick={onClick} className={className}>
-          {children}
-        </button>
-      )}
+    <li className={liClass || undefined}>
+      {content}
     </li>
   );
 }
@@ -140,18 +155,23 @@ function NavLinks() {
       )}
       {/* Spacer to push the profile and sign out buttons to the bottom */}
       <li className="flex-grow" />
-      <ul className="flex justify-between">
-        <NavLink
-          href="/profile"
-          label="Profile"
-          icon={<UserCircle size={22} />}
-          placeLast
-        />
-        <NavLink
-          onClick={signOut}
-          icon={<SignOut size={22} />}
-          className="border-red-primary border rounded text-red-primary hover:bg-red-primary/10 transition-all duration-100"
-        />
+      <ul className="flex gap-2">
+        <li className="flex-1 mt-auto">
+          <NavLink
+            href="/profile"
+            label="Profile"
+            icon={<UserCircle size={22} />}
+            noWrapper
+          />
+        </li>
+        <li className="flex-shrink-0 mt-auto">
+          <NavLink
+            onClick={signOut}
+            icon={<SignOut size={22} />}
+            className="border-red-primary border rounded text-red-primary hover:bg-red-primary/10 transition-all duration-100 !w-auto"
+            noWrapper
+          />
+        </li>
       </ul>
     </>
   );

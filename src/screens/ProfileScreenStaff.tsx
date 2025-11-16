@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { User } from "@prisma/client";
-import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useApiClient } from "@/hooks/useApiClient";
 import toast from "react-hot-toast";
@@ -146,14 +145,6 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
           </button>
         </Link>
       </p>
-      <div className="mt-6">
-        <button
-          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-          onClick={() => signOut({ callbackUrl: "/signIn" })}
-        >
-          Logout
-        </button>
-      </div>
     </div>
   );
 }

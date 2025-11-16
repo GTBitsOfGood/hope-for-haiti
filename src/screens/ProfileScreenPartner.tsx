@@ -8,7 +8,6 @@ import { PartnerDetails } from "@/schema/partnerDetails";
 import PartnerDetailsSection from "@/components/PartnerDetails/PartnerDetailsSection";
 import { tabOrder } from "@/components/PartnerDetails/fieldConfigs";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 
 interface PartnerProfileScreenProps {
   user: User;
@@ -276,14 +275,6 @@ export default function ProfileScreenPartner({
           </button>
         </Link>
       </p>
-      <div className="mt-6">
-        <button
-          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-          onClick={() => signOut({ callbackUrl: "/signIn" })}
-        >
-          Logout
-        </button>
-      </div>
 
       <div>
         <h2 className="text-[20px] font-bold leading-[28px] text-[#22070B] mt-10">
