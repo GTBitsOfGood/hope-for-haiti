@@ -50,7 +50,7 @@ export default function Chip({
 
         {(revisedAmount ?? amount) !== undefined && (
           <span
-            className={`${revisedAmount !== amount && "rounded bg-blue-primary/20 text-blue-primary/100"} font-bold px-[2px]`}
+            className="rounded bg-blue-primary/20 font-bold px-[2px] text-blue-primary"
           >
             {revisedAmount ?? amount}
           </span>
