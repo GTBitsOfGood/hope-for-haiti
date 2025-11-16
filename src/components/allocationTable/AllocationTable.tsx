@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CgChevronDown, CgChevronRight } from "react-icons/cg";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
@@ -19,6 +19,8 @@ import {
 } from "./utils";
 import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import { solveAllocationPrograms } from "@/util/solveAllocationPrograms";
+import ToggleViewSwitch from "../ToggleViewSwitch";
+import PartnerAllocationChipGroup from "../chips/PartnerAllocationChipGroup";
 
 type SuggestionResponse = {
   programs: AllocationSuggestionProgram[];
@@ -103,6 +105,14 @@ export default function AllocationTable({
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState(() => {
+    const stored = localStorage.getItem("ALLOCATION_VIEW_TYPE");
+    return stored ? JSON.parse(stored) : "partner";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("ALLOCATION_VIEW_TYPE", JSON.stringify(activeView));
+  }, [activeView]);
 
   const resolvedColumns = useMemo(
     () => columns ?? buildDefaultColumns(),
@@ -358,56 +368,113 @@ export default function AllocationTable({
     }
   }, [collectPendingChanges, suggestionConfig]);
 
-  const toolbarContent = suggestionConfig ? (
-    !isInteractionMode ? (
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleSuggestAllocations}
-          className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled={isProcessingSuggestions}
-        >
-          {isProcessingSuggestions
-            ? "Preparing suggestions..."
-            : (suggestionConfig.suggestLabel ?? "Suggest Allocations")}
-        </button>
-        {toolBarExtras}
+  const toolbarContent = (
+    <>
+      <div className="mr-auto flex items-center">
+        <ToggleViewSwitch
+          defaultView="partner"
+          onChange={(v) => setActiveView(v)}
+        />
       </div>
-    ) : (
-      <div className="flex items-center gap-2">
-        {statusMessage && (
-          <span className="text-blue-primary text-sm">{statusMessage}</span>
-        )}
-        {!isProcessingSuggestions ? (
-          <>
+      {suggestionConfig ? (
+        !isInteractionMode ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleUndo}
-              className="px-3 py-1 bg-gray-primary text-white rounded hover:bg-gray-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleSuggestAllocations}
+              className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={isProcessingSuggestions}
             >
-              Undo
+              {isProcessingSuggestions
+                ? "Preparing suggestions..."
+                : (suggestionConfig.suggestLabel ?? "Suggest Allocations")}
             </button>
-            <button
-              onClick={handleKeep}
-              className="px-3 py-1 bg-green-primary text-white rounded hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={isProcessingSuggestions}
-            >
-              Keep
-            </button>
-          </>
+            {toolBarExtras}
+          </div>
         ) : (
-          <button
-            onClick={handleUndo}
-            className="px-3 py-1 bg-gray-primary text-white rounded hover:bg-gray-600 disabled:opacity-60 disabled:cursor-not-allowed"
-            disabled={isProcessingSuggestions}
-          >
-            Cancel
-          </button>
-        )}
-        {toolBarExtras}
-      </div>
-    )
-  ) : (
-    (toolBarExtras ?? undefined)
+          <div className="flex items-center gap-2">
+            {statusMessage && (
+              <span className="text-blue-primary text-sm">{statusMessage}</span>
+            )}
+            {!isProcessingSuggestions ? (
+              <>
+                <button
+                  onClick={handleUndo}
+                  className="px-3 py-1 bg-gray-primary text-white rounded hover:bg-gray-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isProcessingSuggestions}
+                >
+                  Undo
+                </button>
+                <button
+                  onClick={handleKeep}
+                  className="px-3 py-1 bg-green-primary text-white rounded hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isProcessingSuggestions}
+                >
+                  Keep
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleUndo}
+                className="px-3 py-1 bg-gray-primary text-white rounded hover:bg-gray-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isProcessingSuggestions}
+              >
+                Cancel
+              </button>
+            )}
+            {toolBarExtras}
+          </div>
+        )
+      ) : (
+        (toolBarExtras ?? undefined)
+      )}
+    </>
+  );
+
+  const renderRowBody = useCallback(
+    (item: AllocationTableItem) => {
+      if (activeView === "allocation") {
+        return (
+          <LineItemChipGroup
+            items={item.items}
+            requests={item.requests}
+            generalItemId={item.id}
+            updateItem={updateItemById}
+            updateItemsAllocated={updateItemsAllocated}
+            ensureDistributionForPartner={ensureDistributionForPartner}
+            onDistributionRemoved={onDistributionRemoved}
+            isInteractionMode={isInteractionMode}
+          />
+        );
+      } else if (activeView === "partner") {
+        return (
+          <PartnerAllocationChipGroup
+            allocations={item.requests.map((x) => {
+              return {
+                id: x.id,
+                partner: x.partner,
+                requestedQuantity: x.quantity,
+                allocatedQuantity: x.itemsAllocated,
+              };
+            })}
+            items={item.items}
+            generalItemId={item.id}
+            updateItem={updateItemById}
+            updateItemsAllocated={updateItemsAllocated}
+            ensureDistributionForPartner={ensureDistributionForPartner}
+            onDistributionRemoved={onDistributionRemoved}
+            isInteractionMode={isInteractionMode}
+          />
+        );
+      }
+    },
+    [
+      activeView,
+      ensureDistributionForPartner,
+      isInteractionMode,
+      onDistributionRemoved,
+      updateItemById,
+      updateItemsAllocated,
+    ]
   );
 
   return (
@@ -418,18 +485,7 @@ export default function AllocationTable({
       rowId="id"
       pageSize={pageSize}
       toolBar={toolbarContent}
-      rowBody={(item) => (
-        <LineItemChipGroup
-          items={item.items}
-          requests={item.requests}
-          generalItemId={item.id}
-          updateItem={updateItemById}
-          updateItemsAllocated={updateItemsAllocated}
-          ensureDistributionForPartner={ensureDistributionForPartner}
-          onDistributionRemoved={onDistributionRemoved}
-          isInteractionMode={isInteractionMode}
-        />
-      )}
+      rowBody={renderRowBody}
       emptyState={resolvedEmptyState}
     />
   );
