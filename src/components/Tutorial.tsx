@@ -1,11 +1,4 @@
-import Joyride, {
-  Step,
-  CallBackProps,
-  ACTIONS,
-  EVENTS,
-  ORIGIN,
-  STATUS,
-} from "react-joyride";
+import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
 import JoyrideStep from "@/components/JoyrideStep";
 import { SessionUser, useUser } from "./context/UserContext";
 

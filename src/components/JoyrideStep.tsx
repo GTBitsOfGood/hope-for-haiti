@@ -6,10 +6,7 @@ const cx = (...classes: Array<string | null | undefined | false>) =>
 
 export default function JoyrideStep({
   backProps,
-  closeProps,
-  continuous,
   index,
-  isLastStep,
   primaryProps,
   size,
   skipProps,

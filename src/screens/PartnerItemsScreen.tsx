@@ -15,8 +15,7 @@ import AdvancedBaseTable, {
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
-import Joyride, { Step } from "react-joyride";
-import JoyrideStep from "@/components/JoyrideStep";
+import { Step } from "react-joyride";
 import Tutorial from "@/components/Tutorial";
 
 interface ActionButtonProps {
