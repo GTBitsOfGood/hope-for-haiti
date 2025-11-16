@@ -1,48 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import CreatePartnerStep from "@/components/PartnerDetails/CreatePartnerStep";
 import { validatePartnerStep } from "@/components/PartnerDetails/validation";
-import {
-  partnerDetails1,
-  partnerDetails2,
-  partnerDetails3,
-  partnerDetails4,
-  partnerDetails5,
-  partnerDetails6,
-  partnerDetails7,
-  partnerDetails8,
-  partnerDetails9,
-  partnerDetails10,
-  PartnerDetails,
-} from "@/schema/partnerDetails";
+import { PartnerDetails } from "@/schema/partnerDetails";
 
 export default function CreatePartnerAccountPage() {
-  const schemas = [
-    partnerDetails1,
-    partnerDetails2,
-    partnerDetails3,
-    partnerDetails4,
-    partnerDetails5,
-    partnerDetails6,
-    partnerDetails7,
-    partnerDetails8,
-    partnerDetails9,
-    partnerDetails10,
-  ];
-
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [partnerDetails, setPartnerDetails] = useState<Partial<PartnerDetails>>(
     {}
   );
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
   // const [msspRegistration, setMsspRegistration] = useState<File | null>(null);
-
-  const router = useRouter();
 
   const handleFileChange = (name: string, file: File | null) => {
     if (name === "proofOfRegistrationWithMssp") {
@@ -65,47 +41,74 @@ export default function CreatePartnerAccountPage() {
   const handleDataChange = (data: Partial<PartnerDetails>) => {
     setPartnerDetails(data);
     setFieldErrors({});
-    setErrorMessage("");
+    setCreateError("");
   };
 
   const nextStep = async () => {
+    const validationErrors = validatePartnerStep(step, partnerDetails);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+
     if (step === 10) {
-      const currentSchema = schemas[step - 1];
-      const parsed = currentSchema.safeParse(partnerDetails);
-      if (parsed.error) {
-        setErrorMessage(parsed.error.message);
-        return;
-      }
-      if (parsed.success) {
-        setErrorMessage("");
-      }
-    } else {
-      const validationErrors = validatePartnerStep(step, partnerDetails);
+      await createAccount();
+      return;
+    }
 
-      if (Object.keys(validationErrors).length > 0) {
-        setFieldErrors(validationErrors);
-        setErrorMessage(
-          "Please fill out all required fields before proceeding."
+    setFieldErrors({});
+    setStep((prev) => Math.min(prev + 1, 10));
+  };
+
+  const createAccount = async () => {
+    const name = searchParams.get("name");
+    const email = searchParams.get("email");
+
+    if (!name || !email) {
+      setCreateError(
+        "Name and email are required. Please go back to account management and start again."
+      );
+      return;
+    }
+
+    setIsCreating(true);
+    setCreateError("");
+
+    try {
+      const response = await fetch("/api/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          name,
+          userType: "PARTNER",
+          partnerDetails: JSON.stringify(partnerDetails),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message ||
+            "Failed to create partner account. Please try again."
         );
-        return;
       }
 
-      const currentSchema = schemas[step - 1];
-      const parsed = currentSchema.safeParse(partnerDetails);
-      if (parsed.error) {
-        setErrorMessage(parsed.error.message);
-        return;
-      }
-
-      setFieldErrors({});
-      setErrorMessage("");
-      setStep((prev) => Math.min(prev + 1, 10));
+      router.push("/accountManagement");
+    } catch (error) {
+      setCreateError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create partner account. Please try again."
+      );
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const prevStep = () => {
     setFieldErrors({});
-    setErrorMessage("");
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
@@ -179,11 +182,18 @@ export default function CreatePartnerAccountPage() {
           onCancel={handleCancelClick}
           isFirstStep={step === 1}
           isLastStep={step === 10}
+          isCreating={isCreating}
         />
 
-        {errorMessage && (
+        {createError && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-600 text-sm">{errorMessage}</p>
+            <p className="text-red-600 text-sm">{createError}</p>
+          </div>
+        )}
+
+        {isCreating && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-blue-600 text-sm">Creating partner account...</p>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import React from "react";
+import LocationSearch from "./LocationSearch";
 
 export type FieldType =
   | "text"
@@ -9,7 +10,8 @@ export type FieldType =
   | "multiselect"
   | "boolean"
   | "radio"
-  | "file";
+  | "file"
+  | "location";
 
 export interface FieldOption {
   value: string;
@@ -116,6 +118,13 @@ export default function FieldRenderer({
           </p>
         );
 
+      case "location":
+        return (
+          <p className="text-[16px] text-[#22070B]">
+            {typeof value === "string" && value ? value : "Not specified"}
+          </p>
+        );
+
       default:
         return (
           <p className="text-[16px] text-[#22070B]">
@@ -143,7 +152,19 @@ export default function FieldRenderer({
           <input
             type="number"
             value={typeof value === "number" ? value.toString() : ""}
-            onChange={(e) => onChange(name, parseInt(e.target.value) || 0)}
+            onChange={(e) => {
+              const inputValue = e.target.value;
+              const numValue =
+                inputValue === "" ? undefined : parseInt(inputValue);
+              onChange(
+                name,
+                numValue === undefined
+                  ? undefined
+                  : isNaN(numValue)
+                    ? undefined
+                    : numValue
+              );
+            }}
             placeholder={placeholder}
             min={min}
             max={max}
@@ -271,6 +292,17 @@ export default function FieldRenderer({
           </div>
         );
 
+      case "location":
+        return (
+          <LocationSearch
+            value={typeof value === "string" ? value : undefined}
+            onChange={(newValue) => onChange(name, newValue)}
+            placeholder={placeholder || "Search for a location..."}
+            required={required}
+            error={!!errorMessage}
+          />
+        );
+
       default:
         return (
           <input
@@ -299,9 +331,11 @@ export default function FieldRenderer({
   }
 
   // Check if field is dynamically required based on conditional logic
+  // A conditional field is required when its condition is met (field is visible)
   const isDynamicallyRequired =
-    name === "proofOfRegistrationWithMssp" &&
-    allValues["registeredWithMssp"] === true;
+    conditionalField &&
+    conditionalValue !== undefined &&
+    allValues[conditionalField] === conditionalValue;
 
   return (
     <div className="mb-4">

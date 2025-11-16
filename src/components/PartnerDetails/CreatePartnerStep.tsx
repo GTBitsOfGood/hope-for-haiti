@@ -15,6 +15,7 @@ interface CreatePartnerStepProps {
   onCancel: () => void;
   isFirstStep: boolean;
   isLastStep: boolean;
+  isCreating?: boolean;
 }
 
 const stepTitles: Record<number, string> = {
@@ -41,6 +42,7 @@ export default function CreatePartnerStep({
   onCancel,
   isFirstStep,
   isLastStep,
+  isCreating = false,
 }: CreatePartnerStepProps) {
   const stepFields = stepFieldConfigs[step] || [];
   const [formData, setFormData] =
@@ -105,11 +107,16 @@ export default function CreatePartnerStep({
             </button>
           )}
           <button
-            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold hover:bg-mainRed/90"
+            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold hover:bg-mainRed/90 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={onNext}
             type="button"
+            disabled={isCreating}
           >
-            {isLastStep ? "Create Account" : "Next"}
+            {isCreating
+              ? "Creating..."
+              : isLastStep
+                ? "Create Account"
+                : "Next"}
           </button>
         </div>
       </div>

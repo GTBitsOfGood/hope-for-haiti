@@ -26,8 +26,8 @@ export const fieldConfigs: Record<string, FieldConfig[]> = {
     {
       name: "gpsCoordinates",
       label: "GPS coordinates",
-      type: "text",
-      placeholder: "Enter GPS coordinates",
+      type: "location",
+      placeholder: "Search for a location...",
     },
     {
       name: "website",
