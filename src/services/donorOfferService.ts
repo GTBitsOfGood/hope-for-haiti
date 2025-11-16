@@ -69,12 +69,8 @@ const DonorOfferSchema = z.object({
 
 const FinalizeDonorOfferItemSchema = z.object({
   // not in schema, but used to match to generalItem
-  title: z
-    .string()
-    .transform((v) => v.replace(/\s+/g, " ").trim()),
-  unitType: z
-    .string()
-    .transform((v) => v.replace(/\s+/g, " ").trim()),
+  title: z.string().transform((v) => v.replace(/\s+/g, " ").trim()),
+  unitType: z.string().transform((v) => v.replace(/\s+/g, " ").trim()),
   expirationDate: z
     .union([
       z.coerce.date(),
@@ -104,7 +100,11 @@ const FinalizeDonorOfferItemSchema = z.object({
   // have to consider $
   unitPrice: z
     .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val.trim().replace("$", "").replace(/,/g, ""))))
+    .transform((val) =>
+      val.trim() === ""
+        ? undefined
+        : Number(val.trim().replace("$", "").replace(/,/g, ""))
+    )
     .pipe(z.number().min(0)),
   maxRequestLimit: z.string().optional(),
   ndc: z.string().optional(),
@@ -137,7 +137,6 @@ const FinalizeDonorOfferItemSchema = z.object({
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
 
 export default class DonorOfferService {
-
   private static normalizeExpirationDate(value: unknown): Date | null {
     if (!value) {
       return null;
@@ -189,7 +188,8 @@ export default class DonorOfferService {
         donorOfferId,
         title: item.title,
         expirationDate:
-          DonorOfferService.normalizeExpirationDate(item.expirationDate) ?? null,
+          DonorOfferService.normalizeExpirationDate(item.expirationDate) ??
+          null,
         unitType: item.unitType,
         initialQuantity: item.initialQuantity,
         description:
@@ -217,7 +217,7 @@ export default class DonorOfferService {
         item.title,
         item.expirationDate instanceof Date
           ? item.expirationDate.toISOString().split("T")[0]
-          : item.expirationDate ?? "null",
+          : (item.expirationDate ?? "null"),
         item.unitType,
       ];
       const key = keyParts.join("|");
@@ -251,7 +251,8 @@ export default class DonorOfferService {
       unitType: item.unitType,
       initialQuantity: item.initialQuantity,
       description: item.description ?? undefined,
-      weight: typeof item.weight === 'number' ? item.weight : Number(item.weight),
+      weight:
+        typeof item.weight === "number" ? item.weight : Number(item.weight),
     }));
   }
 
@@ -270,7 +271,7 @@ export default class DonorOfferService {
     if (!partner?.enabled || partner?.pending) {
       return { donorOffers: [], total: 0 };
     }
-    
+
     const filterWhere = buildWhereFromFilters<Prisma.DonorOfferWhereInput>(
       Object.keys(Prisma.DonorOfferScalarFieldEnum),
       filters
@@ -506,23 +507,28 @@ export default class DonorOfferService {
       .map((id) => parseInt(id, 10))
       .filter((id) => !isNaN(id));
 
-    const partners = partnerIds.length > 0 ? await db.user.findMany({
-      where: {
-        id: {
-          in: partnerIds,
-        },
-        type: UserType.PARTNER,
-        enabled: true,
-        pending: false,
-      },
-      select: {
-        id: true,
-        email: true,
-      },
-    }) : [];
+    const partners =
+      partnerIds.length > 0
+        ? await db.user.findMany({
+            where: {
+              id: {
+                in: partnerIds,
+              },
+              type: UserType.PARTNER,
+              enabled: true,
+              pending: false,
+            },
+            select: {
+              id: true,
+              email: true,
+            },
+          })
+        : [];
 
     if (partners.length !== partnerIds.length) {
-      throw new ArgumentError("One or more partner IDs are invalid or deactivated");
+      throw new ArgumentError(
+        "One or more partner IDs are invalid or deactivated"
+      );
     }
 
     if (
@@ -596,11 +602,10 @@ export default class DonorOfferService {
     });
 
     await db.$transaction(async (tx) => {
-      const normalizedItems =
-        DonorOfferService.toGeneralItemCreateInputs(
-          validDonorOfferItems,
-          donorOffer.id
-        );
+      const normalizedItems = DonorOfferService.toGeneralItemCreateInputs(
+        validDonorOfferItems,
+        donorOffer.id
+      );
 
       const aggregatedItems =
         DonorOfferService.aggregateGeneralItems(normalizedItems);
@@ -610,18 +615,21 @@ export default class DonorOfferService {
       }
     });
 
-    NotificationService.createNotifications(partners.map(p => p.id), {
-      title: "Donor Offer Created",
-      action: `${process.env.BASE_URL}/donorOffers/${donorOffer.id}`,
-      actionText: "View the Donor Offer",
-      template: "DonorOfferCreated",
-      payload: {
-        offerName,
-        donorName,
-        partnerResponseDeadline: donorOfferData.partnerResponseDeadline,
-        donorResponseDeadline: donorOfferData.donorResponseDeadline,
+    NotificationService.createNotifications(
+      partners.map((p) => p.id),
+      {
+        title: "Donor Offer Created",
+        action: `${process.env.BASE_URL}/donorOffers/${donorOffer.id}`,
+        actionText: "View the Donor Offer",
+        template: "DonorOfferCreated",
+        payload: {
+          offerName,
+          donorName,
+          partnerResponseDeadline: donorOfferData.partnerResponseDeadline,
+          donorResponseDeadline: donorOfferData.donorResponseDeadline,
+        },
       }
-    });
+    );
 
     return { success: true };
   }
@@ -715,13 +723,15 @@ export default class DonorOfferService {
     donorOfferId: number,
     requests?: boolean
   ): Promise<{
-    donorOffer: DonorOffer
+    donorOffer: DonorOffer;
     partners: Partner[];
-    items: GeneralItem[] | (GeneralItem & {
-      requests?: (GeneralItemRequest & {
-        partner: { id: number; name: string };
-      })[];
-    })[];
+    items:
+      | GeneralItem[]
+      | (GeneralItem & {
+          requests?: (GeneralItemRequest & {
+            partner: { id: number; name: string };
+          })[];
+        })[];
   }> {
     const donorOfferRecord = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
@@ -909,7 +919,7 @@ export default class DonorOfferService {
     });
 
     if (!donorOffer) {
-      throw new NotFoundError("Donor offer not found")
+      throw new NotFoundError("Donor offer not found");
     }
 
     const { data: jsonData } = parsedFileData;
@@ -959,10 +969,15 @@ export default class DonorOfferService {
     });
 
     if (validItems.length > 0) {
-      const lineItemsByGeneralItem = new Map<string, FinalizeDonorOfferItem[]>();
+      const lineItemsByGeneralItem = new Map<
+        string,
+        FinalizeDonorOfferItem[]
+      >();
 
       for (const item of validItems) {
-        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(item.expirationDate);
+        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(
+          item.expirationDate
+        );
         const expirationKey = normalizedExpiration
           ? normalizedExpiration.toISOString().split("T")[0]
           : "null";
@@ -978,7 +993,9 @@ export default class DonorOfferService {
 
       for (const [, lineItems] of lineItemsByGeneralItem.entries()) {
         const firstLineItem = lineItems[0];
-        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(firstLineItem.expirationDate);
+        const normalizedExpiration = DonorOfferService.normalizeExpirationDate(
+          firstLineItem.expirationDate
+        );
 
         let generalItem = offerItems.find((di) => {
           const diExpiration = di.expirationDate
@@ -990,20 +1007,27 @@ export default class DonorOfferService {
             1
           );
           return (
-            DonorOfferService.normalizeWhitespace(firstLineItem.title) === DonorOfferService.normalizeWhitespace(di.title) &&
+            DonorOfferService.normalizeWhitespace(firstLineItem.title) ===
+              DonorOfferService.normalizeWhitespace(di.title) &&
             expirationMatches &&
-            DonorOfferService.normalizeWhitespace(firstLineItem.unitType) === DonorOfferService.normalizeWhitespace(di.unitType)
+            DonorOfferService.normalizeWhitespace(firstLineItem.unitType) ===
+              DonorOfferService.normalizeWhitespace(di.unitType)
           );
         });
 
         if (!generalItem) {
-          const totalQuantity = lineItems.reduce((sum, item) => sum + item.quantity, 0);
+          const totalQuantity = lineItems.reduce(
+            (sum, item) => sum + item.quantity,
+            0
+          );
 
           const createData: Prisma.GeneralItemCreateInput = {
             donorOffer: { connect: { id: donorOfferId } },
             title: DonorOfferService.normalizeWhitespace(firstLineItem.title),
             expirationDate: normalizedExpiration,
-            unitType: DonorOfferService.normalizeWhitespace(firstLineItem.unitType),
+            unitType: DonorOfferService.normalizeWhitespace(
+              firstLineItem.unitType
+            ),
             initialQuantity: totalQuantity,
             description: null,
             weight: firstLineItem.weight,
@@ -1064,9 +1088,9 @@ export default class DonorOfferService {
     // Prevent editing archived donor offers (except when archiving a finalized offer)
     if (existingOffer.state === DonorOfferState.ARCHIVED) {
       // Allow state changes FROM archived (e.g., unarchiving if needed)
-      const isOnlyChangingState = 
+      const isOnlyChangingState =
         Object.keys(updateData).length === 1 && updateData.state !== undefined;
-      
+
       if (!isOnlyChangingState) {
         throw new ArgumentError(
           "Cannot edit an archived donor offer. Archived offers are read-only."
@@ -1074,9 +1098,12 @@ export default class DonorOfferService {
       }
     }
 
-    const existingPartnerIds = new Set(existingOffer.partnerVisibilities.map((partner) => partner.id));
+    const existingPartnerIds = new Set(
+      existingOffer.partnerVisibilities.map((partner) => partner.id)
+    );
 
-    const addedPartnerIds = updateData.partners?.filter(id => !existingPartnerIds.has(id)) ?? [];
+    const addedPartnerIds =
+      updateData.partners?.filter((id) => !existingPartnerIds.has(id)) ?? [];
 
     let newPartners: { id: number; name: string; email: string }[] = [];
 
@@ -1096,7 +1123,9 @@ export default class DonorOfferService {
 
       if (newPartners.length !== addedPartnerIds.length) {
         const foundIds = newPartners.map((p) => p.id);
-        const missingIds = addedPartnerIds.filter((id) => !foundIds.includes(id));
+        const missingIds = addedPartnerIds.filter(
+          (id) => !foundIds.includes(id)
+        );
         throw new ArgumentError(
           `One or more partner IDs are invalid or deactivated: ${missingIds.join(", ")}`
         );
@@ -1124,18 +1153,21 @@ export default class DonorOfferService {
     });
 
     if (addedPartnerIds.length > 0) {
-      NotificationService.createNotifications(newPartners.map(p => p.id), {
-        title: "Donor Offer Created",
-        action: `${process.env.BASE_URL}/donorOffers/${donorOfferId}`,
-        actionText: "View the Donor Offer",
-        template: "DonorOfferCreated",
-        payload: {
-          offerName: updatedOffer.offerName,
-          donorName: updatedOffer.donorName,
-          partnerResponseDeadline: updatedOffer.partnerResponseDeadline,
-          donorResponseDeadline: updatedOffer.donorResponseDeadline,
+      NotificationService.createNotifications(
+        newPartners.map((p) => p.id),
+        {
+          title: "Donor Offer Created",
+          action: `${process.env.BASE_URL}/donorOffers/${donorOfferId}`,
+          actionText: "View the Donor Offer",
+          template: "DonorOfferCreated",
+          payload: {
+            offerName: updatedOffer.offerName,
+            donorName: updatedOffer.donorName,
+            partnerResponseDeadline: updatedOffer.partnerResponseDeadline,
+            donorResponseDeadline: updatedOffer.donorResponseDeadline,
+          },
         }
-      })
+      );
     }
 
     return updatedOffer;
@@ -1243,5 +1275,16 @@ export default class DonorOfferService {
       })),
       total,
     };
+  }
+
+  static async getDonorOfferGeneralItemIds(id: number) {
+    return db.donorOffer.findUnique({
+      where: { id },
+      select: {
+        items: {
+          select: { id: true },
+        },
+      },
+    });
   }
 }

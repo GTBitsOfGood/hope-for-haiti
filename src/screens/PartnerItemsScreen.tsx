@@ -96,15 +96,16 @@ export default function PartnerItemsScreen() {
       filters: FilterList<AvailableItemDTO>
     ) => {
       try {
-        const initialItems = JSON.parse(
-          searchParams.get("initialItems") || "[]"
-        ) as number[];
+        const initialItems = searchParams.get("initialItems");
+
+        const donorOfferId = searchParams.get("donorOfferId");
 
         const params = new URLSearchParams({
           pageSize: pageSize.toString(),
           page: page.toString(),
           filters: JSON.stringify(filters),
-          initialItems: JSON.stringify(initialItems),
+          ...(initialItems ? { initialItems } : {}),
+          ...(donorOfferId ? { donorOfferId } : {}),
         });
 
         const data = await apiClient.get<AvailableItemsResponse>(

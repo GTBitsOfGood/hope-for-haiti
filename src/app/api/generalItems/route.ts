@@ -13,6 +13,7 @@ import { z } from "zod";
 import { tableParamsSchema } from "@/schema/tableParams";
 import { MatchingService } from "@/services/matchingService";
 import { WishlistService } from "@/services/wishlistService";
+import DonorOfferService from "@/services/donorOfferService";
 
 const postSchema = z.object({
   donorOfferId: z.number().int().positive(),
@@ -41,6 +42,16 @@ const getSchema = tableParamsSchema.extend({
       } catch {
         return [];
       }
+    })
+    .optional(),
+  donorOfferId: z
+    .string()
+    .transform((s) => {
+      const id = Number(s);
+      if (isNaN(id)) {
+        return null;
+      }
+      return id;
     })
     .optional(),
 });
@@ -108,12 +119,16 @@ export async function GET(request: NextRequest) {
       filters: request.nextUrl.searchParams.get("filters"),
       page: request.nextUrl.searchParams.get("page"),
       pageSize: request.nextUrl.searchParams.get("pageSize"),
-      initialItems: request.nextUrl.searchParams.get("initialItems"),
+      initialItems:
+        request.nextUrl.searchParams.get("initialItems") || undefined,
+      donorOfferId:
+        request.nextUrl.searchParams.get("donorOfferId") || undefined,
     });
     if (!parsedParams.success) {
       throw new ArgumentError(parsedParams.error.message);
     }
-    const { filters, page, pageSize, initialItems } = parsedParams.data;
+    const { filters, page, pageSize, initialItems, donorOfferId } =
+      parsedParams.data;
 
     const wishlists = await WishlistService.getWishlistsByPartner(
       parseInt(session.user.id)
@@ -167,6 +182,20 @@ export async function GET(request: NextRequest) {
     }
 
     const priorityIds = initialItems ?? [];
+
+    if (donorOfferId) {
+      const offer =
+        await DonorOfferService.getDonorOfferGeneralItemIds(donorOfferId);
+      if (offer) {
+        offer.items.forEach((item) => {
+          if (!priorityIds.includes(item.id)) {
+            priorityIds.push(item.id);
+            console.log("Added donor offer item id:", item.id);
+          }
+        });
+      }
+    }
+
     if (priorityIds.length > 0) {
       for (const id of matchedIds) {
         if (!priorityIds.includes(id)) {
