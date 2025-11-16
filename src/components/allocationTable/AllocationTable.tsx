@@ -504,7 +504,8 @@ export default function AllocationTable({
     setStatusMessage(null);
     preInteractionItemsRef.current = [];
 
-    // Notify parent that there are no modified pages
+    tableRef.current?.setOpenRowIds(new Set());
+
     if (suggestionConfig?.onModifiedPagesChange) {
       suggestionConfig.onModifiedPagesChange(0);
     }
