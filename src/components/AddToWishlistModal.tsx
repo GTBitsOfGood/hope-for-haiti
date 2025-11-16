@@ -220,7 +220,7 @@ export default function AddToWishlistModal({
 
                     <div className="mt-6 flex gap-4">
                       <Link
-                        href="/items"
+                        href={`/items?initialItems=${encodeURIComponent(JSON.stringify(suggestions.map((s) => s.id)))}`}
                         className="inline-block w-1/2 rounded-lg border border-red-primary px-4 py-2 font-medium text-red-primary hover:bg-red-50 active:translate-y-px text-center"
                       >
                         Go to Items Page

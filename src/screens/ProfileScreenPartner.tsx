@@ -8,7 +8,6 @@ import { PartnerDetails } from "@/schema/partnerDetails";
 import PartnerDetailsSection from "@/components/PartnerDetails/PartnerDetailsSection";
 import { tabOrder } from "@/components/PartnerDetails/fieldConfigs";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 
 interface PartnerProfileScreenProps {
   user: User;
@@ -131,7 +130,6 @@ export default function ProfileScreenPartner({
   user,
 }: PartnerProfileScreenProps) {
   const [activeTab, setActiveTab] = useState("General information");
-  const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingOrg, setIsEditingOrg] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fileUploads, setFileUploads] = useState<Record<string, File>>({});
@@ -152,10 +150,10 @@ export default function ProfileScreenPartner({
 
   const currentPartnerDetails = partnerDetails || defaultPartnerDetails;
 
-  const [userData, setUserData] = useState({
+  const userData = {
     email: user.email,
     password: "********",
-  });
+  };
 
   const handleFileChange = (name: string, file: File | null) => {
     setFileUploads((prev) => {
@@ -257,44 +255,16 @@ export default function ProfileScreenPartner({
           <h2 className="text-[20px] font-bold leading-[28px] text-[#22070B]">
             User
           </h2>
-          <button
-            onClick={() => setIsEditingUser(!isEditingUser)}
-            className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-          >
-            {isEditingUser ? "Save" : "Edit"}
-          </button>
         </div>
         <hr className="mb-4 mt-1 border-gray-300" />
 
         <div className="grid grid-cols-2 gap-4 max-w-xl">
           <p className="text-[18px] font-semibold text-[#22070B]">Email</p>
-          {isEditingUser ? (
-            <input
-              type="text"
-              value={userData.email}
-              onChange={(e) =>
-                setUserData({ ...userData, email: e.target.value })
-              }
-              className="border p-1"
-            />
-          ) : (
-            <p className="text-[16px] text-[#22070B]">{userData.email}</p>
-          )}
+          <p className="text-[16px] text-[#22070B]">{userData.email}</p>
 
           <p className="text-[18px] font-semibold text-[#22070B]">Password</p>
           <div className="flex">
-            {isEditingUser ? (
-              <input
-                type="text"
-                value={userData.password}
-                onChange={(e) =>
-                  setUserData({ ...userData, password: e.target.value })
-                }
-                className="border p-1"
-              />
-            ) : (
-              <p className="text-[16px] text-[#22070B]">{userData.password}</p>
-            )}
+            <p className="text-[16px] text-[#22070B]">{userData.password}</p>
           </div>
         </div>
       </div>
@@ -305,14 +275,6 @@ export default function ProfileScreenPartner({
           </button>
         </Link>
       </p>
-      <div className="mt-6">
-        <button
-          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-          onClick={() => signOut({ callbackUrl: "/signIn" })}
-        >
-          Logout
-        </button>
-      </div>
 
       <div>
         <h2 className="text-[20px] font-bold leading-[28px] text-[#22070B] mt-10">

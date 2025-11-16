@@ -12,9 +12,11 @@ import {
 import { useUser } from "./context/UserContext";
 import { Notification } from "@prisma/client";
 import toast, { Toast } from "react-hot-toast";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { NotificationCard } from "./dashboard";
+import TicketMessageToast, { TicketMessageNotification } from "./tickets/TicketMessageToast";
+import { StreamChat, Event } from "stream-chat";
 
 let realtimeInstance: Ably.Realtime | null = null;
 
@@ -51,6 +53,8 @@ export default function NotificationHandler({
   const { user } = useUser();
   const { apiClient } = useApiClient();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -126,7 +130,89 @@ export default function NotificationHandler({
     return () => {
       channel.unsubscribe("notification:new", handleRealtimeNotification);
     };
-  }, [client, user?.id, pathname, apiClient, refreshNotifications]);
+  }, [client, user?.id, pathname, apiClient, refreshNotifications, router]);
+
+  useEffect(() => {
+    if (
+      !user?.streamUserId ||
+      !user.streamUserToken ||
+      !process.env.NEXT_PUBLIC_STREAMIO_API_KEY
+    ) {
+      return;
+    }
+
+    const streamClient = new StreamChat(process.env.NEXT_PUBLIC_STREAMIO_API_KEY);
+    let didInterrupt = false;
+
+    const handleTicketMessage = (event: Event) => {
+      if (event.channel_type !== "ticket") {
+        return;
+      }
+
+      const senderId = event.user?.id ?? event.message?.user?.id;
+      if (senderId === user.streamUserId) {
+        return;
+      }
+
+      const channelId = event.channel?.id ?? event.cid?.split(":")[1];
+
+      if (!channelId) {
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (searchParams.get("activeTab") === "Unresolved") {
+        return;
+      }
+
+      const text = event.message?.text?.trim();
+
+      const payload: TicketMessageNotification = {
+        channelId,
+        channelName:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (event.channel as any)?.name ??
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (event.message?.channel as any)?.name ??
+          "Support Ticket",
+        messagePreview: text ? text : "Attachment",
+        senderName:
+          event.user?.name ??
+          event.message?.user?.name ??
+          "Support",
+        url: `/support?channel-id=${channelId}`,
+      };
+
+      toast.custom(
+        (t: Toast) => <TicketMessageToast notification={payload} t={t} />, { duration: 60 * 1000 }
+      );
+    };
+
+    streamClient
+      .connectUser({
+          id: user.streamUserId,
+          name: user.name ?? undefined,
+        }, user.streamUserToken,
+      )
+      .then(() => {
+        if (!didInterrupt) {
+          streamClient.on("notification.message_new", handleTicketMessage);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to connect Stream client for notifications:", error);
+      });
+
+    return () => {
+      didInterrupt = true;
+      streamClient.off("notification.message_new", handleTicketMessage);
+      streamClient
+        .disconnectUser()
+        .catch((error) =>
+          console.error("Failed to disconnect Stream notification client:", error),
+        );
+    };
+  }, [pathname, router, searchParams, user?.name, user?.streamUserId, user?.streamUserToken]);
 
   const value = useMemo(
     () => ({ notifications, refreshNotifications }),

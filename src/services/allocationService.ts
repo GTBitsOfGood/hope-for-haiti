@@ -184,11 +184,11 @@ export default class AllocationService {
         generalItem: {
           include: {
             donorOffer: {
-              select: { state: true }
-            }
-          }
-        }
-      }
+              select: { state: true },
+            },
+          },
+        },
+      },
     });
 
     // Check if any are already allocated
@@ -361,12 +361,12 @@ export default class AllocationService {
               generalItem: {
                 include: {
                   donorOffer: {
-                    select: { state: true }
-                  }
-                }
-              }
-            }
-          }
+                    select: { state: true },
+                  },
+                },
+              },
+            },
+          },
         },
       });
 
@@ -374,10 +374,6 @@ export default class AllocationService {
         throw new ArgumentError(
           "Cannot remove items from an approved distribution. Approved distributions are locked."
         );
-      }
-
-      if (allocation?.lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot delete allocations for archived donor offers. Archived offers are read-only.");
       }
 
       await db.allocation.delete({

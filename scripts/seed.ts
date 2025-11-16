@@ -279,6 +279,23 @@ async function buildSeedData() {
     ),
   });
 
+  const pendingPartner = await createUser({
+    email: "pending@test.com",
+    name: "Pending Medical Center",
+    passwordHash,
+    type: UserType.PARTNER,
+    tag: "pending",
+    enabled: false,
+    pending: true,
+    partnerDetails: buildPartnerDetails(
+      "Pending Medical Center",
+      "Nord",
+      "pending",
+      19.6,
+      -72.3
+    ),
+  });
+
   console.log("✓ Created users");
 
   // ============================================================================

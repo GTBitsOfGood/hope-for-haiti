@@ -51,6 +51,11 @@ export default function SupportScreen({
   const channelIdFromQuery = searchParams.get("channel-id");
 
   useEffect(() => {
+    if (channelIdFromQuery) return;
+    router.replace(`${pathname}?activeTab=${activeTab}`)
+  }, [activeTab, channelIdFromQuery, pathname, router]);
+
+  useEffect(() => {
     if (!client || !channelIdFromQuery) return;
     if (activeChannel?.id === channelIdFromQuery) return;
 
@@ -62,8 +67,8 @@ export default function SupportScreen({
         setActiveChannel(channel);
 
         const isClosed = (channel.data as ExtraChannelData)?.closed === true;
-        setActiveTab(isClosed ? "Resolved" : "Unresolved");
         router.replace(pathname);
+        setActiveTab(isClosed ? "Resolved" : "Unresolved");
       } catch (error) {
         console.error("Failed to set channel from query parameter: ", error);
       }

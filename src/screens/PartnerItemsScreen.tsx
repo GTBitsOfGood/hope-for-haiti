@@ -5,24 +5,40 @@ import toast from "react-hot-toast";
 import { RequestPriority } from "@prisma/client";
 
 import RequestPopover from "@/components/DonorOffers/RequestPopover";
-import { AvailableItemDTO, AvailableItemsResponse } from "@/types/api/generalItem.types";
+import {
+  AvailableItemDTO,
+  AvailableItemsResponse,
+} from "@/types/api/generalItem.types";
 import { useApiClient } from "@/hooks/useApiClient";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
+import { useSearchParams } from "next/navigation";
+import Chip from "@/components/chips/Chip";
 
 interface ActionButtonProps {
   item: AvailableItemDTO;
   onOpenPopover: (item: AvailableItemDTO) => void;
   isPopoverOpen: boolean;
   onPopoverClose: () => void;
-  onRequestSave: (data: { quantity: number; priority: RequestPriority; comments: string }) => void;
+  onRequestSave: (data: {
+    quantity: number;
+    priority: RequestPriority;
+    comments: string;
+  }) => void;
   selectedItem: AvailableItemDTO | null;
 }
 
-function ActionButton({ item, onOpenPopover, isPopoverOpen, onPopoverClose, onRequestSave, selectedItem }: ActionButtonProps) {
+function ActionButton({
+  item,
+  onOpenPopover,
+  isPopoverOpen,
+  onPopoverClose,
+  onRequestSave,
+  selectedItem,
+}: ActionButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const hasRequest = item.requestId != null;
 
@@ -66,9 +82,13 @@ export default function PartnerItemsScreen() {
   const { apiClient } = useApiClient();
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<AvailableItemDTO | null>(null);
+  const [selectedItem, setSelectedItem] = useState<AvailableItemDTO | null>(
+    null
+  );
 
   const tableRef = useRef<AdvancedBaseTableHandle<AvailableItemDTO>>(null);
+
+  const searchParams = useSearchParams();
 
   const fetchAvailableItems = useCallback(
     async (
@@ -77,10 +97,16 @@ export default function PartnerItemsScreen() {
       filters: FilterList<AvailableItemDTO>
     ) => {
       try {
+        const initialItems = searchParams.get("initialItems");
+
+        const donorOfferId = searchParams.get("donorOfferId");
+
         const params = new URLSearchParams({
           pageSize: pageSize.toString(),
           page: page.toString(),
           filters: JSON.stringify(filters),
+          ...(initialItems ? { initialItems } : {}),
+          ...(donorOfferId ? { donorOfferId } : {}),
         });
 
         const data = await apiClient.get<AvailableItemsResponse>(
@@ -97,7 +123,7 @@ export default function PartnerItemsScreen() {
         throw error;
       }
     },
-    [apiClient]
+    [apiClient, searchParams]
   );
 
   const handleRequestSave = async (
@@ -134,9 +160,10 @@ export default function PartnerItemsScreen() {
 
         toast.success("Request updated successfully!");
       } else {
-        const fulfilledWishlistId = (requestData.removeFromWishlist && requestData.wishlistId)
-          ? requestData.wishlistId
-          : null;
+        const fulfilledWishlistId =
+          requestData.removeFromWishlist && requestData.wishlistId
+            ? requestData.wishlistId
+            : null;
 
         if (fulfilledWishlistId) {
           formData.append("removeFromWishlist", "true");
@@ -161,7 +188,10 @@ export default function PartnerItemsScreen() {
         if (fulfilledWishlistId && tableRef.current) {
           const allItems = tableRef.current.getAllItems();
           allItems.forEach((tableItem) => {
-            if (tableItem.wishlistMatch?.wishlistId === fulfilledWishlistId && tableItem.id !== item.id) {
+            if (
+              tableItem.wishlistMatch?.wishlistId === fulfilledWishlistId &&
+              tableItem.id !== item.id
+            ) {
               tableRef.current?.updateItemById(tableItem.id, {
                 wishlistMatch: null,
               });
@@ -196,14 +226,24 @@ export default function PartnerItemsScreen() {
       header: "Actions",
       cell: (item) => {
         return (
-          <ActionButton
-            item={item}
-            onOpenPopover={handlePopoverOpen}
-            isPopoverOpen={isPopoverOpen}
-            onPopoverClose={handlePopoverClose}
-            onRequestSave={(data) => handleRequestSave(item, data)}
-            selectedItem={selectedItem}
-          />
+          <div className="flex flex-col">
+            <ActionButton
+              item={item}
+              onOpenPopover={handlePopoverOpen}
+              isPopoverOpen={isPopoverOpen}
+              onPopoverClose={handlePopoverClose}
+              onRequestSave={(data) => handleRequestSave(item, data)}
+              selectedItem={selectedItem}
+            />
+            <div className="text-xs mt-1 text-red-primary">
+              Deadline:{" "}
+              {item.donorOffer.partnerResponseDeadline
+                ? new Date(
+                    item.donorOffer.partnerResponseDeadline
+                  ).toLocaleDateString()
+                : "N/A"}
+            </div>
+          </div>
         );
       },
     },
@@ -224,7 +264,10 @@ export default function PartnerItemsScreen() {
     {
       id: "expirationDate",
       header: "Expiration",
-      cell: (item) => item.expirationDate ? new Date(item.expirationDate).toLocaleDateString() : "N/A",
+      cell: (item) =>
+        item.expirationDate
+          ? new Date(item.expirationDate).toLocaleDateString()
+          : "N/A",
     },
     {
       id: "availableQuantity",
@@ -236,6 +279,12 @@ export default function PartnerItemsScreen() {
       header: "Unit Type",
       filterType: "string",
     },
+    {
+      id: "donorName",
+      header: "Donor",
+      filterType: "string",
+        cell: (item) => <Chip title={item.donorOffer.donorName} className={item.wishlistMatch ? "border-red-primary" : undefined} textColor={item.wishlistMatch ? "text-red-primary" : undefined} />,
+      },
   ];
 
   const getRowClassName = (item: AvailableItemDTO) => {
@@ -248,7 +297,9 @@ export default function PartnerItemsScreen() {
 
   return (
     <div className="w-full px-4 py-6 font-[Open_Sans]">
-      <h1 className="text-2xl font-semibold text-gray-primary mb-6">Available Items</h1>
+      <h1 className="text-2xl font-semibold text-gray-primary mb-6">
+        Available Items
+      </h1>
 
       <AdvancedBaseTable
         ref={tableRef}

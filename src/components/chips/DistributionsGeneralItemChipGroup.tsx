@@ -65,6 +65,25 @@ function GeneralItemChip({
 
   const { apiClient } = useApiClient();
 
+  // Filter to only show pending distributions for transfer
+  const pendingDistributions = otherDistributions.filter(d => d.pending);
+
+  function formatDistributionLabel(distribution: TableDistribution): string {
+    const date = new Date(distribution.createdAt);
+    if (isNaN(date.getTime())) {
+      return `${distribution.partner.name} (Unknown Date)`;
+    }
+    const formattedDate = date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    return `${distribution.partner.name} (${formattedDate})`;
+  }
+
   function lineItemLabel(
     lineItem: TableDistribution["generalItems"][number]["lineItems"][number]
   ) {
@@ -136,16 +155,20 @@ function GeneralItemChip({
                 ? {
                     value: selectedDistribution,
                     label:
-                      otherDistributions.find(
+                      pendingDistributions.find(
                         (d) => d.id === selectedDistribution
-                      )?.partner.name || "",
+                      )
+                        ? formatDistributionLabel(
+                            pendingDistributions.find((d) => d.id === selectedDistribution)!
+                          )
+                        : "",
                   }
                 : undefined
             }
             onChange={(newVal) => setSelectedDistribution(newVal?.value)}
-            options={otherDistributions.map((distribution) => ({
+            options={pendingDistributions.map((distribution) => ({
               value: distribution.id,
-              label: distribution.partner.name,
+              label: formatDistributionLabel(distribution),
             }))}
             isClearable
             placeholder="Choose distribution..."

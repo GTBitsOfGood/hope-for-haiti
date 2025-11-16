@@ -114,6 +114,7 @@ function PartnerAllocationChip({
   const { apiClient } = useApiClient();
 
   async function allocateItem(item: AllocationLineItem) {
+    try {
     const isAlreadyAllocated = item.allocation?.partner?.id === allocation.partner.id;
 
     if (isAlreadyAllocated && item.allocation) {
@@ -216,6 +217,9 @@ function PartnerAllocationChip({
     }));
 
     updateItemsAllocated(allocation.partner.id);
+    } catch (error) {
+      toast.error((error as Error).toString());
+    }
   }
 
   return (
