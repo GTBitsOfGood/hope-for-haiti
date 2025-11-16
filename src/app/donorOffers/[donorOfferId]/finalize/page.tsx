@@ -13,7 +13,7 @@ import {
 } from "@/components/DonorOffers";
 import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 import { useSession } from "next-auth/react";
-import { redirect, useParams } from "next/navigation";
+import { redirect, useParams, useRouter } from "next/navigation";
 import { PartnerSearch as NewPartnerSearch, Partner } from "@/components/DonorOffers/PartnerSearch";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFetch } from "@/hooks/useFetch";
@@ -24,6 +24,7 @@ import { hasPermission } from "@/lib/userUtils";
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
   const params = useParams();
+  const router = useRouter();
   const donorOfferId = params.donorOfferId as string;
   const canManageOffers = hasPermission(session?.user, "offerWrite");
 
@@ -216,10 +217,10 @@ export default function FinalizeDonorOfferPage() {
 
       <div className="flex justify-end mt-4">
         <button
-          onClick={resetUpload}
+          onClick={() => router.push("/donorOffers")}
           className="bg-white hover:bg-gray-100 w-48 text-red-500 border border-red-500 py-1 px-4 mt-1 mb-6 rounded text-sm"
         >
-          Cancel Upload
+          Cancel
         </button>
         {preview ? (
           <button
