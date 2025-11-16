@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { groupUsersByTagForSelect, searchByNameOrTag } from "@/lib/userUtils";
 import ConfiguredSelect from "../ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
+import SelectGroupWithAddAll from "../SelectGroupWithAddAll";
 
 export type Partner = {
   id: number;
@@ -52,6 +53,26 @@ export const PartnerSearch = ({
           );
           onPartnersChange?.(partners);
         }}
+        formatGroupLabel={(data) => (
+          <SelectGroupWithAddAll
+            data={data}
+            addOptions={(options) => {
+              const newSelectedPartners = selectedPartners
+                .concat(options)
+                .reduce(
+                  (acc, partner) => {
+                    acc[partner.id] = partner;
+                    return acc;
+                  },
+                  {} as {
+                    [key: number]: Partner;
+                  }
+                );
+
+              onPartnersChange?.(Object.values(newSelectedPartners));
+            }}
+          />
+        )}
         isDisabled={disabled}
         isMulti
       />
