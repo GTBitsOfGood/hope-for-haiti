@@ -60,8 +60,7 @@ export default function SupportScreen({
 
         setActiveChannel(channel);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isClosed = (channel.data as any)?.closed === true;
+        const isClosed = (channel.data as ExtraChannelData)?.closed === true;
         setActiveTab(isClosed ? "Resolved" : "Unresolved");
         router.replace(pathname);
       } catch (error) {
