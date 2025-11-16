@@ -16,6 +16,7 @@ import AdvancedBaseTable, {
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
 import { useSearchParams } from "next/navigation";
+import Chip from "@/components/chips/Chip";
 
 interface ActionButtonProps {
   item: AvailableItemDTO;
@@ -225,14 +226,24 @@ export default function PartnerItemsScreen() {
       header: "Actions",
       cell: (item) => {
         return (
-          <ActionButton
-            item={item}
-            onOpenPopover={handlePopoverOpen}
-            isPopoverOpen={isPopoverOpen}
-            onPopoverClose={handlePopoverClose}
-            onRequestSave={(data) => handleRequestSave(item, data)}
-            selectedItem={selectedItem}
-          />
+          <div className="flex flex-col">
+            <ActionButton
+              item={item}
+              onOpenPopover={handlePopoverOpen}
+              isPopoverOpen={isPopoverOpen}
+              onPopoverClose={handlePopoverClose}
+              onRequestSave={(data) => handleRequestSave(item, data)}
+              selectedItem={selectedItem}
+            />
+            <div className="text-xs">
+              Deadline:{" "}
+              {item.donorOffer.partnerResponseDeadline
+                ? new Date(
+                    item.donorOffer.partnerResponseDeadline
+                  ).toLocaleDateString()
+                : "N/A"}
+            </div>
+          </div>
         );
       },
     },
@@ -272,17 +283,7 @@ export default function PartnerItemsScreen() {
       id: "donorName",
       header: "Donor",
       filterType: "string",
-      cell: (item) => item.donorOffer.donorName,
-    },
-    {
-      id: "Response Deadline",
-      header: "Response Deadline",
-      cell: (item) =>
-        item.donorOffer.partnerResponseDeadline
-          ? new Date(
-              item.donorOffer.partnerResponseDeadline
-            ).toLocaleDateString()
-          : "N/A",
+      cell: (item) => <Chip title={item.donorOffer.donorName} />,
     },
   ];
 
