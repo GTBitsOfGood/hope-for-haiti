@@ -317,7 +317,10 @@ export default class UserService {
     const passwordHash = await argon2.hash(data.password);
 
     await db.$transaction(async (tx) => {
-      const streamUser = await StreamIoService.createUser(invite.user);
+      const streamUser = await StreamIoService.createUser(
+        invite.user,
+        this.isStaff(invite.user)
+      );
 
       await tx.user.update({
         where: { id: invite.userId },
@@ -387,22 +390,33 @@ export default class UserService {
       throw new ArgumentError("Name cannot be empty");
     }
 
-    if (data.enabled === false && (existingUser.userWrite || existingUser.isSuper)) {
-      throw new AuthorizationError("Cannot deactivate users with userWrite or isSuper permissions");
+    if (
+      data.enabled === false &&
+      (existingUser.userWrite || existingUser.isSuper)
+    ) {
+      throw new AuthorizationError(
+        "Cannot deactivate users with userWrite or isSuper permissions"
+      );
     }
 
     if (data.permissions) {
       const finalPermissions = {
-          ...existingUser,
-          ...data.permissions
-      }
+        ...existingUser,
+        ...data.permissions,
+      };
 
       for (const [field, value] of Object.entries(finalPermissions)) {
-        if (value && STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField]) {
-          const deps = STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField];
-          const missingDeps = deps.filter(dep => !finalPermissions[dep]);
+        if (
+          value &&
+          STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField]
+        ) {
+          const deps =
+            STAFF_PERMISSION_DEPENDENCIES[field as EditablePermissionField];
+          const missingDeps = deps.filter((dep) => !finalPermissions[dep]);
           if (missingDeps.length > 0) {
-            throw new ArgumentError(`Cannot enable ${field} without enabling dependencies: ${missingDeps.join(', ')}`);
+            throw new ArgumentError(
+              `Cannot enable ${field} without enabling dependencies: ${missingDeps.join(", ")}`
+            );
           }
         }
       }
@@ -515,10 +529,10 @@ export default class UserService {
     });
   }
 
-  static isStaff(user: User) {
+  static isStaff(user: { type: UserType }) {
     return user.type === UserType.STAFF;
   }
-  
+
   static checkStaff(user: User) {
     if (!UserService.isStaff(user)) {
       throw new AuthorizationError("Must be STAFF to access this route");
@@ -535,7 +549,9 @@ export default class UserService {
   }
 
   static checkAnyPermission(user: User, permissions: PermissionName[]) {
-    return permissions.some(permission => UserService.hasPermission(user, permission));
+    return permissions.some((permission) =>
+      UserService.hasPermission(user, permission)
+    );
   }
 
   static checkPermission(user: User, permission: PermissionName) {

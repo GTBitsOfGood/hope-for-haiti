@@ -14,6 +14,7 @@ import type { Prisma } from "@prisma/client";
 import { MatchingService } from "@/services/matchingService";
 import StreamIoService from "@/services/streamIoService";
 import FileService from "@/services/fileService";
+import UserService from "@/services/userService";
 
 const addDays = (daysFromToday: number) => {
   const base = new Date();
@@ -49,7 +50,7 @@ async function createUser(
         userId: StreamIoService.getUserIdFromUser({ email: user.email }),
         userToken: existingStreamTokens[user.email],
       }
-    : await StreamIoService.createUser(user);
+    : await StreamIoService.createUser(user, UserService.isStaff(user));
 
   return await db.user.create({
     data: {
@@ -1119,7 +1120,8 @@ async function buildSeedData() {
         name: "Amoxicillin 500mg antibiotic capsules for infections",
         quantity: 200,
         priority: RequestPriority.HIGH,
-        comments: "Needed for treating bacterial infections in our primary care clinic",
+        comments:
+          "Needed for treating bacterial infections in our primary care clinic",
         partnerId: internalPartner.id,
       },
       // 2. Medium correlation (0.6-0.75) - related to antibiotic items
@@ -1135,7 +1137,8 @@ async function buildSeedData() {
         name: "Oral rehydration and fluid replacement therapy",
         quantity: 300,
         priority: RequestPriority.HIGH,
-        comments: "Critical for dehydration cases especially during cholera outbreaks",
+        comments:
+          "Critical for dehydration cases especially during cholera outbreaks",
         partnerId: internalPartner.id,
       },
       // 4. No correlation - completely unrelated
