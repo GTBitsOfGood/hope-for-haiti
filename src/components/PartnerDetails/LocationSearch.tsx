@@ -5,35 +5,44 @@ import { GroupBase, StylesConfig } from "react-select";
 interface LocationOption {
   value: string; // "lat,lon" format
   label: string; // Display name
+  addressString?: string; // Readable address string
 }
 
 interface LocationSearchProps {
   value: string | undefined | null;
-  onChange: (value: string) => void;
+  onChange: (value: string, addressString?: string) => void;
   placeholder?: string;
   required?: boolean;
   error?: boolean;
 }
 
-interface NominatimAddress {
-  road?: string;
+// Haiti center coordinates for prioritizing results
+const HAITI_CENTER_LAT = 18.9712;
+const HAITI_CENTER_LON = -72.2852;
+
+interface PhotonFeatureProperties {
+  name?: string;
   city?: string;
-  town?: string;
-  village?: string;
   state?: string;
   country?: string;
+  postcode?: string;
+  street?: string;
+  housenumber?: string;
+  [key: string]: string | undefined;
 }
 
-interface NominatimSearchResult {
-  lat: string;
-  lon: string;
-  display_name: string;
-  address?: NominatimAddress;
+interface PhotonFeature {
+  type: "Feature";
+  geometry: {
+    type: "Point";
+    coordinates: [number, number]; // [lon, lat]
+  };
+  properties: PhotonFeatureProperties;
 }
 
-interface NominatimReverseResult {
-  display_name?: string;
-  address?: NominatimAddress;
+interface PhotonResponse {
+  type: "FeatureCollection";
+  features: PhotonFeature[];
 }
 
 const reverseGeocode = async (
@@ -42,36 +51,36 @@ const reverseGeocode = async (
 ): Promise<string | null> => {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`,
-      {
-        headers: {
-          "User-Agent": "Hope-for-Haiti-App",
-        },
-      }
+      `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}`
     );
 
     if (!response.ok) {
       return null;
     }
 
-    const data = (await response.json()) as NominatimReverseResult;
-    if (data.address) {
+    const data = (await response.json()) as PhotonResponse;
+    if (data.features && data.features.length > 0) {
+      const feature = data.features[0];
+      const props = feature.properties;
       const addressParts: string[] = [];
-      if (data.address.road) addressParts.push(data.address.road);
-      const cityOrTown =
-        data.address.city || data.address.town || data.address.village;
-      if (cityOrTown) {
-        addressParts.push(cityOrTown);
+
+      if (props.street) {
+        if (props.housenumber) {
+          addressParts.push(`${props.housenumber} ${props.street}`);
+        } else {
+          addressParts.push(props.street);
+        }
       }
-      if (data.address.state) addressParts.push(data.address.state);
-      if (data.address.country) addressParts.push(data.address.country);
+      if (props.city) addressParts.push(props.city);
+      if (props.state) addressParts.push(props.state);
+      if (props.country) addressParts.push(props.country);
 
       return addressParts.length > 0
         ? addressParts.join(", ")
-        : data.display_name || null;
+        : props.name || null;
     }
 
-    return data.display_name || null;
+    return null;
   } catch (error) {
     console.error("Error reverse geocoding:", error);
     return null;
@@ -84,48 +93,47 @@ const loadOptions = async (inputValue: string): Promise<LocationOption[]> => {
   }
 
   try {
+    // Use Haiti center coordinates to prioritize results from Haiti
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(
         inputValue
-      )}&limit=10&addressdetails=1`,
-      {
-        headers: {
-          "User-Agent": "Hope-for-Haiti-App",
-        },
-      }
+      )}&lat=${HAITI_CENTER_LAT}&lon=${HAITI_CENTER_LON}&limit=10`
     );
 
     if (!response.ok) {
       return [];
     }
 
-    const data = (await response.json()) as NominatimSearchResult[];
+    const data = (await response.json()) as PhotonResponse;
 
-    return data.map((item: NominatimSearchResult) => {
-      const lat = parseFloat(item.lat);
-      const lon = parseFloat(item.lon);
+    return data.features.map((feature: PhotonFeature) => {
+      // Photon returns coordinates as [lon, lat]
+      const [lon, lat] = feature.geometry.coordinates;
       const coordinates = `${lat},${lon}`;
 
+      const props = feature.properties;
       const addressParts: string[] = [];
-      if (item.address) {
-        if (item.address.road) addressParts.push(item.address.road);
-        const cityOrTown =
-          item.address.city || item.address.town || item.address.village;
-        if (cityOrTown) {
-          addressParts.push(cityOrTown);
+
+      if (props.street) {
+        if (props.housenumber) {
+          addressParts.push(`${props.housenumber} ${props.street}`);
+        } else {
+          addressParts.push(props.street);
         }
-        if (item.address.state) addressParts.push(item.address.state);
-        if (item.address.country) addressParts.push(item.address.country);
       }
+      if (props.city) addressParts.push(props.city);
+      if (props.state) addressParts.push(props.state);
+      if (props.country) addressParts.push(props.country);
 
       const label =
         addressParts.length > 0
           ? addressParts.join(", ")
-          : item.display_name || coordinates;
+          : props.name || coordinates;
 
       return {
         value: coordinates,
         label: label,
+        addressString: label, // Store the readable address string
       };
     });
   } catch (error) {
@@ -137,7 +145,7 @@ const loadOptions = async (inputValue: string): Promise<LocationOption[]> => {
 export default function LocationSearch({
   value,
   onChange,
-  placeholder = "Search for a location...",
+  placeholder = "Search for an address...",
   error = false,
 }: LocationSearchProps) {
   const [selectedOption, setSelectedOption] = useState<LocationOption | null>(
@@ -171,12 +179,14 @@ export default function LocationSearch({
           setSelectedOption({
             value: value,
             label: label || value,
+            addressString: label || undefined,
           });
         })
         .catch(() => {
           setSelectedOption({
             value: value,
             label: value,
+            addressString: undefined,
           });
         })
         .finally(() => {
@@ -192,7 +202,7 @@ export default function LocationSearch({
 
   const handleChange = (option: LocationOption | null) => {
     setSelectedOption(option);
-    onChange(option?.value || "");
+    onChange(option?.value || "", option?.addressString);
   };
 
   const loadOptionsDebounced = useMemo(() => {

@@ -74,7 +74,10 @@ export const validatePartnerStep = (
         }
       }
 
-      const value = getNestedValue(data, field.name);
+      const value =
+        field.name === "address"
+          ? getNestedValue(data, "address")
+          : getNestedValue(data, field.name);
 
       if (isEmpty(value, field.type)) {
         errors[field.name] = `${field.label} is required`;

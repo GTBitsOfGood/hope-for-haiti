@@ -119,6 +119,17 @@ export default function FieldRenderer({
         );
 
       case "location":
+        // For address field, show the address string instead of coordinates
+        if (name === "address") {
+          const addressValue = allValues?.address;
+          return (
+            <p className="text-[16px] text-[#22070B]">
+              {typeof addressValue === "string" && addressValue
+                ? addressValue
+                : "Not specified"}
+            </p>
+          );
+        }
         return (
           <p className="text-[16px] text-[#22070B]">
             {typeof value === "string" && value ? value : "Not specified"}
@@ -293,10 +304,25 @@ export default function FieldRenderer({
         );
 
       case "location":
+        const locationValue =
+          name === "address"
+            ? typeof allValues?.gpsCoordinates === "string"
+              ? allValues.gpsCoordinates
+              : undefined
+            : typeof value === "string"
+              ? value
+              : undefined;
         return (
           <LocationSearch
-            value={typeof value === "string" ? value : undefined}
-            onChange={(newValue) => onChange(name, newValue)}
+            value={locationValue}
+            onChange={(coordinates, addressString) => {
+              if (name === "address") {
+                onChange("address", addressString || "");
+                onChange("gpsCoordinates", coordinates);
+              } else {
+                onChange(name, coordinates);
+              }
+            }}
             placeholder={placeholder || "Search for a location..."}
             required={required}
             error={!!errorMessage}
@@ -330,8 +356,6 @@ export default function FieldRenderer({
     return fieldContent;
   }
 
-  // Check if field is dynamically required based on conditional logic
-  // A conditional field is required when its condition is met (field is visible)
   const isDynamicallyRequired =
     conditionalField &&
     conditionalValue !== undefined &&
