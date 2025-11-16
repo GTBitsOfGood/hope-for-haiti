@@ -9,7 +9,11 @@ import { UserType } from "@prisma/client";
 import { db } from "@/db";
 import { verify } from "argon2";
 import authConfig from "@/auth/auth.config";
-import { PERMISSION_FIELDS, PermissionFlags, PERMISSION_SELECT } from "@/types/api/user.types";
+import {
+  PERMISSION_FIELDS,
+  PermissionFlags,
+  PERMISSION_SELECT,
+} from "@/types/api/user.types";
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = INVALID_CREDENTIALS_ERR;
@@ -21,6 +25,7 @@ declare module "next-auth" {
     streamUserId: string | null;
     streamUserToken: string | null;
     enabled: boolean;
+    pending: boolean;
     tag?: string;
   }
 
@@ -33,6 +38,7 @@ declare module "next-auth" {
       streamUserToken: string | null;
       tag?: string;
       enabled: boolean;
+      pending: boolean;
     } & DefaultSession["user"] &
       PermissionFlags;
   }
@@ -43,6 +49,7 @@ declare module "next-auth/jwt" {
     id: string;
     type: UserType;
     enabled: boolean;
+    pending: boolean;
     name: string | null | undefined;
     streamUserId: string | null;
     streamUserToken: string | null;
@@ -69,6 +76,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             passwordHash: true,
             type: true,
             enabled: true,
+            pending: true,
             tag: true,
             streamUserId: true,
             streamUserToken: true,
@@ -88,6 +96,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id.toString(),
           type: user.type,
           enabled: user.enabled,
+          pending: user.pending,
           name: user.name,
           streamUserId: user.streamUserId,
           streamUserToken: user.streamUserToken,
@@ -102,6 +111,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id || "";
         token.type = user.type;
         token.enabled = user.enabled;
+        token.pending = user.pending;
         token.name = user.name ?? user.email ?? `User ${user.id}`;
         token.streamUserId = user.streamUserId;
         token.streamUserToken = user.streamUserToken;
@@ -117,6 +127,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.id;
       session.user.type = token.type;
       session.user.enabled = token.enabled;
+      session.user.pending = token.pending;
       session.user.name = token.name;
       session.user.streamUserId = token.streamUserId;
       session.user.streamUserToken = token.streamUserToken;

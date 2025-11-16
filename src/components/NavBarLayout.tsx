@@ -207,6 +207,7 @@ export default function NavbarLayout({
     "/reset-password",
     "/createPartnerAccount",
     "/deactivated",
+    "/pending",
     "/signIn",
   ];
   const hideNav = hideNavPaths.some((path) => pathname.startsWith(path));
