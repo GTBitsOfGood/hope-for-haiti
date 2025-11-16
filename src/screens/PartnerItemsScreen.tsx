@@ -5,24 +5,39 @@ import toast from "react-hot-toast";
 import { RequestPriority } from "@prisma/client";
 
 import RequestPopover from "@/components/DonorOffers/RequestPopover";
-import { AvailableItemDTO, AvailableItemsResponse } from "@/types/api/generalItem.types";
+import {
+  AvailableItemDTO,
+  AvailableItemsResponse,
+} from "@/types/api/generalItem.types";
 import { useApiClient } from "@/hooks/useApiClient";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
+import Joyride from "react-joyride";
 
 interface ActionButtonProps {
   item: AvailableItemDTO;
   onOpenPopover: (item: AvailableItemDTO) => void;
   isPopoverOpen: boolean;
   onPopoverClose: () => void;
-  onRequestSave: (data: { quantity: number; priority: RequestPriority; comments: string }) => void;
+  onRequestSave: (data: {
+    quantity: number;
+    priority: RequestPriority;
+    comments: string;
+  }) => void;
   selectedItem: AvailableItemDTO | null;
 }
 
-function ActionButton({ item, onOpenPopover, isPopoverOpen, onPopoverClose, onRequestSave, selectedItem }: ActionButtonProps) {
+function ActionButton({
+  item,
+  onOpenPopover,
+  isPopoverOpen,
+  onPopoverClose,
+  onRequestSave,
+  selectedItem,
+}: ActionButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const hasRequest = item.requestId != null;
 
@@ -66,7 +81,9 @@ export default function PartnerItemsScreen() {
   const { apiClient } = useApiClient();
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<AvailableItemDTO | null>(null);
+  const [selectedItem, setSelectedItem] = useState<AvailableItemDTO | null>(
+    null
+  );
 
   const tableRef = useRef<AdvancedBaseTableHandle<AvailableItemDTO>>(null);
 
@@ -134,9 +151,10 @@ export default function PartnerItemsScreen() {
 
         toast.success("Request updated successfully!");
       } else {
-        const fulfilledWishlistId = (requestData.removeFromWishlist && requestData.wishlistId)
-          ? requestData.wishlistId
-          : null;
+        const fulfilledWishlistId =
+          requestData.removeFromWishlist && requestData.wishlistId
+            ? requestData.wishlistId
+            : null;
 
         if (fulfilledWishlistId) {
           formData.append("removeFromWishlist", "true");
@@ -161,7 +179,10 @@ export default function PartnerItemsScreen() {
         if (fulfilledWishlistId && tableRef.current) {
           const allItems = tableRef.current.getAllItems();
           allItems.forEach((tableItem) => {
-            if (tableItem.wishlistMatch?.wishlistId === fulfilledWishlistId && tableItem.id !== item.id) {
+            if (
+              tableItem.wishlistMatch?.wishlistId === fulfilledWishlistId &&
+              tableItem.id !== item.id
+            ) {
               tableRef.current?.updateItemById(tableItem.id, {
                 wishlistMatch: null,
               });
@@ -224,7 +245,10 @@ export default function PartnerItemsScreen() {
     {
       id: "expirationDate",
       header: "Expiration",
-      cell: (item) => item.expirationDate ? new Date(item.expirationDate).toLocaleDateString() : "N/A",
+      cell: (item) =>
+        item.expirationDate
+          ? new Date(item.expirationDate).toLocaleDateString()
+          : "N/A",
     },
     {
       id: "availableQuantity",
@@ -248,7 +272,10 @@ export default function PartnerItemsScreen() {
 
   return (
     <div className="w-full px-4 py-6 font-[Open_Sans]">
-      <h1 className="text-2xl font-semibold text-gray-primary mb-6">Available Items</h1>
+      <Joyride />
+      <h1 className="text-2xl font-semibold text-gray-primary mb-6">
+        Available Items
+      </h1>
 
       <AdvancedBaseTable
         ref={tableRef}
