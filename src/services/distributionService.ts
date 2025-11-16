@@ -211,6 +211,55 @@ export default class DistributionService {
     return distribution;
   }
 
+  static async getPendingDistributions(params?: {
+    term?: string;
+    excludeIds?: number[];
+  }) {
+    const partnerWhere: Prisma.UserWhereInput = {
+      enabled: true,
+      pending: false,
+    };
+
+    // Add search filter if term is provided
+    if (params?.term && params.term.trim().length > 0) {
+      partnerWhere.name = {
+        contains: params.term.trim(),
+        mode: "insensitive",
+      };
+    }
+
+    const where: Prisma.DistributionWhereInput = {
+      pending: true,
+      partner: partnerWhere,
+    };
+
+    // Exclude specific distribution IDs if provided
+    if (params?.excludeIds && params.excludeIds.length > 0) {
+      where.id = {
+        notIn: params.excludeIds,
+      };
+    }
+
+    const distributions = await db.distribution.findMany({
+      where,
+      select: {
+        id: true,
+        createdAt: true,
+        partner: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return distributions;
+  }
+
   static async getSignedDistributions(
     partnerId?: number,
     page?: number,

@@ -1,27 +1,28 @@
 import { useApiClient } from "@/hooks/useApiClient";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import ConfiguredSelect from "../ConfiguredSelect";
 import Chip from "./Chip";
 import {
   TableAllocation,
   TableDistribution,
+  PendingDistributionSearchResult,
 } from "@/types/api/distribution.types";
 
 export default function DistributionsGeneralItemChipGroup({
   generalItems,
-  otherDistributions,
   allocations,
   fetchTableData,
   pending,
   canTransfer,
+  distributionId,
 }: {
   generalItems: TableDistribution["generalItems"];
-  otherDistributions: TableDistribution[];
   allocations: TableAllocation[];
   fetchTableData: () => void;
   pending: boolean;
   canTransfer: boolean;
+  distributionId: number;
 }) {
   return (
     <div className="w-full bg-sunken flex flex-wrap p-2">
@@ -34,11 +35,11 @@ export default function DistributionsGeneralItemChipGroup({
         <GeneralItemChip
           key={item.id}
           generalItem={item}
-          otherDistributions={otherDistributions}
           allocations={allocations}
           fetchTableData={fetchTableData}
           pending={pending}
           canTransfer={canTransfer}
+          distributionId={distributionId}
         />
       ))}
     </div>
@@ -47,39 +48,98 @@ export default function DistributionsGeneralItemChipGroup({
 
 function GeneralItemChip({
   generalItem,
-  otherDistributions,
   allocations,
   fetchTableData,
   pending,
   canTransfer,
+  distributionId,
 }: {
   generalItem: TableDistribution["generalItems"][number];
-  otherDistributions: TableDistribution[];
   allocations: TableAllocation[];
   fetchTableData: () => void;
   pending: boolean;
   canTransfer: boolean;
+  distributionId: number;
 }) {
-  const [selectedDistribution, setSelectedDistribution] = useState<number>();
+  const [selectedDistribution, setSelectedDistribution] =
+    useState<PendingDistributionSearchResult | null>(null);
   const [selectedLineItems, setSelectedLineItems] = useState<number[]>([]);
+  const [pendingDistributions, setPendingDistributions] = useState<
+    PendingDistributionSearchResult[]
+  >([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoadingDistributions, setIsLoadingDistributions] = useState(false);
 
   const { apiClient } = useApiClient();
 
-  // Filter to only show pending distributions for transfer
-  const pendingDistributions = otherDistributions.filter(d => d.pending);
+  const totalQuantity = generalItem.lineItems.reduce(
+    (sum, lineItem) => sum + lineItem.quantity,
+    0
+  );
 
-  function formatDistributionLabel(distribution: TableDistribution): string {
+  // Fetch pending distributions with debouncing
+  const fetchPendingDistributions = useCallback(
+    async (term: string) => {
+      if (!apiClient) return;
+
+      setIsLoadingDistributions(true);
+      try {
+        const params = new URLSearchParams();
+
+        if (term.trim()) {
+          params.append("term", term.trim());
+        }
+
+        // Exclude the current distribution
+        params.append("exclude", distributionId.toString());
+
+        const url = `/api/distributions/pending?${params.toString()}`;
+
+        const response = await apiClient.get<{
+          distributions: PendingDistributionSearchResult[];
+        }>(url);
+
+        setPendingDistributions(response.distributions);
+      } catch (error) {
+        console.error("Failed to fetch pending distributions:", error);
+        toast.error("Failed to load distributions");
+      } finally {
+        setIsLoadingDistributions(false);
+      }
+    },
+    [apiClient, distributionId]
+  );
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchPendingDistributions(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, fetchPendingDistributions]);
+
+  // Initial load
+  useEffect(() => {
+    if (apiClient && canTransfer && pending) {
+      fetchPendingDistributions("");
+    }
+  }, [apiClient, canTransfer, pending, fetchPendingDistributions]);
+
+  function formatDistributionLabel(
+    distribution: PendingDistributionSearchResult
+  ): string {
     const date = new Date(distribution.createdAt);
     if (isNaN(date.getTime())) {
       return `${distribution.partner.name} (Unknown Date)`;
     }
-    const formattedDate = date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
+    const formattedDate = date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
     });
     return `${distribution.partner.name} (${formattedDate})`;
   }
@@ -105,22 +165,13 @@ function GeneralItemChip({
       .filter((allocation) => selectedLineItems.includes(allocation.lineItemId))
       .map((allocation) => allocation.id);
 
-    const distribution = otherDistributions.find(
-      (d) => d.id === selectedDistribution
-    );
-
-    if (!distribution) {
-      toast.error("Selected distribution not found.");
-      return;
-    }
-
     const promise = apiClient.patch(
-      `/api/distributions/${distribution.id}/allocations/batch?transfer=true`,
+      `/api/distributions/${selectedDistribution.id}/allocations/batch?transfer=true`,
       {
         body: JSON.stringify({
           allocations: allocationIds.map((id) => ({ id })),
-          distributionId: selectedDistribution,
-          partnerId: distribution.partner.id,
+          distributionId: selectedDistribution.id,
+          partnerId: selectedDistribution.partner.id,
         }),
       }
     );
@@ -133,7 +184,7 @@ function GeneralItemChip({
 
     await promise;
 
-    setSelectedDistribution(undefined);
+    setSelectedDistribution(null);
     setSelectedLineItems([]);
 
     fetchTableData();
@@ -142,69 +193,74 @@ function GeneralItemChip({
   return (
     <Chip
       title={generalItem.title}
+      amount={totalQuantity}
+      revisedAmount={totalQuantity}
       popover={
-        pending && canTransfer &&
-        <div className="flex flex-col gap-2">
-          <p className="text-gray-primary font-bold mb-1">Transfer Item</p>
-          <p className="text-sm text-gray-primary font-normal">
-            Select Distribution
-          </p>
-          <ConfiguredSelect
-            value={
-              selectedDistribution
-                ? {
-                    value: selectedDistribution,
-                    label:
-                      pendingDistributions.find(
-                        (d) => d.id === selectedDistribution
-                      )
-                        ? formatDistributionLabel(
-                            pendingDistributions.find((d) => d.id === selectedDistribution)!
-                          )
-                        : "",
-                  }
-                : undefined
-            }
-            onChange={(newVal) => setSelectedDistribution(newVal?.value)}
-            options={pendingDistributions.map((distribution) => ({
-              value: distribution.id,
-              label: formatDistributionLabel(distribution),
-            }))}
-            isClearable
-            placeholder="Choose distribution..."
-          />
-          <p className="text-sm text-gray-primary font-normal">
-            Select Line Items
-          </p>
-          <ConfiguredSelect
-            value={selectedLineItems.map((id) => ({
-              value: id,
-              label: lineItemLabel(
-                generalItem.lineItems.find((li) => li.id === id)!
-              ),
-            }))}
-            onChange={(newVal) =>
-              setSelectedLineItems(newVal.map((item) => item.value))
-            }
-            options={generalItem.lineItems.map((lineItem) => ({
-              value: lineItem.id,
-              label: lineItemLabel(lineItem),
-            }))}
-            isClearable
-            isMulti
-            placeholder="Choose line items..."
-          />
-          <div className="w-full flex justify-end">
-            <button
-              onClick={transferLineItems}
-              className="rounded bg-blue-primary text-white px-3 py-1"
-            >
-              Transfer
-            </button>
+        pending &&
+        canTransfer && (
+          <div className="flex flex-col gap-2">
+            <p className="text-gray-primary font-bold mb-1">Transfer Item</p>
+            <p className="text-sm text-gray-primary font-normal">
+              Select Distribution
+            </p>
+            <ConfiguredSelect
+              value={
+                selectedDistribution
+                  ? {
+                      value: selectedDistribution,
+                      label: formatDistributionLabel(selectedDistribution),
+                    }
+                  : null
+              }
+              onChange={(newVal) =>
+                setSelectedDistribution(newVal?.value ?? null)
+              }
+              onInputChange={(value) => setSearchTerm(value)}
+              options={pendingDistributions.map((distribution) => ({
+                value: distribution,
+                label: formatDistributionLabel(distribution),
+              }))}
+              isClearable
+              isLoading={isLoadingDistributions}
+              placeholder="Search distributions by partner name..."
+              noOptionsMessage={() =>
+                searchTerm
+                  ? `No pending distributions found for "${searchTerm}"`
+                  : "No pending distributions available"
+              }
+            />
+            <p className="text-sm text-gray-primary font-normal">
+              Select Line Items
+            </p>
+            <ConfiguredSelect
+              value={selectedLineItems.map((id) => ({
+                value: id,
+                label: lineItemLabel(
+                  generalItem.lineItems.find((li) => li.id === id)!
+                ),
+              }))}
+              onChange={(newVal) =>
+                setSelectedLineItems(newVal.map((item) => item.value))
+              }
+              options={generalItem.lineItems.map((lineItem) => ({
+                value: lineItem.id,
+                label: lineItemLabel(lineItem),
+              }))}
+              isClearable
+              isMulti
+              placeholder="Choose line items..."
+            />
+            <div className="w-full flex justify-end">
+              <button
+                onClick={transferLineItems}
+                className="rounded bg-blue-primary text-white px-3 py-1"
+              >
+                Transfer
+              </button>
+            </div>
           </div>
-        </div>
+        )
       }
     />
   );
-
 }

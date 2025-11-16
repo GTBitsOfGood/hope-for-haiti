@@ -173,8 +173,14 @@ export class GeneralItemService {
         ? item.requests.filter((request) => request.createdAt >= archivedAt)
         : item.requests;
 
+      const quantity = item.items.reduce(
+        (sum, lineItem) => sum + lineItem.quantity,
+        0
+      );
+
       return {
         ...item,
+        quantity,
         requests: filteredRequests,
       };
     });

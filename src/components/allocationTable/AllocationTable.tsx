@@ -31,6 +31,7 @@ type SuggestionConfig = {
   onSuggest: (items: AllocationTableItem[]) => Promise<SuggestionResponse>;
   onApply: (changes: AllocationChange[]) => Promise<number>;
   onAfterApply?: () => void;
+  onModifiedPagesChange?: (pageCount: number) => void;
 };
 
 export type AllocationTableProps = {
@@ -101,11 +102,15 @@ export default function AllocationTable({
   const tableRef = useRef<AdvancedBaseTableHandle<AllocationTableItem>>(null);
   const currentItemsRef = useRef<AllocationTableItem[]>([]);
   const preInteractionItemsRef = useRef<AllocationTableItem[]>([]);
+  // Full cache of all items across all pages (for interaction mode)
+  const fullItemsCacheRef = useRef<Map<number, AllocationTableItem>>(new Map());
 
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"partner" | "allocation">("partner");
+  const [activeView, setActiveView] = useState<"partner" | "allocation">(
+    "partner"
+  );
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -145,59 +150,138 @@ export default function AllocationTable({
   const wrappedFetchFn = useCallback<AllocationTableProps["fetchFn"]>(
     async (pageSizeArg, pageArg, filters) => {
       const result = await fetchFn(pageSizeArg, pageArg, filters);
-      currentItemsRef.current = cloneAllocationItems(result.data);
-      return result;
+      let items = cloneAllocationItems(result.data);
+
+      if (isInteractionMode) {
+        const baselineLineMap = new Map<
+          number,
+          AllocationTableItem["items"][number]
+        >();
+        preInteractionItemsRef.current.forEach((item) => {
+          item.items.forEach((line) => {
+            baselineLineMap.set(line.id, line);
+          });
+        });
+
+        // Merge fresh data with cached items (preserving suggested changes)
+        items = items.map((freshItem) => {
+          const cachedItem = fullItemsCacheRef.current.get(freshItem.id);
+          if (cachedItem) {
+            return {
+              ...freshItem,
+              items: freshItem.items.map((freshLine) => {
+                const cachedLine = cachedItem.items.find(
+                  (l) => l.id === freshLine.id
+                );
+                if (cachedLine) {
+                  const baselineLine = baselineLineMap.get(freshLine.id);
+                  const baselineAllocation = baselineLine?.allocation ?? null;
+                  const cachedAllocation = cachedLine.allocation;
+
+                  const baselinePartnerId =
+                    baselineAllocation?.partner?.id ?? null;
+                  const cachedPartnerId = cachedAllocation?.partner?.id ?? null;
+
+                  if (baselinePartnerId !== cachedPartnerId) {
+                    return {
+                      ...freshLine,
+                      allocation: cachedAllocation
+                        ? {
+                            id: cachedAllocation.id,
+                            partner: cachedAllocation.partner
+                              ? {
+                                  id: cachedAllocation.partner.id,
+                                  name: cachedAllocation.partner.name,
+                                }
+                              : null,
+                          }
+                        : null,
+                    };
+                  }
+                }
+                return freshLine;
+              }),
+            };
+          }
+          return freshItem;
+        });
+
+        items = recomputeItemsAllocated(items);
+
+        // Update the full cache with merged items
+        items.forEach((item) => {
+          fullItemsCacheRef.current.set(
+            item.id,
+            cloneAllocationItems([item])[0]
+          );
+        });
+      } else {
+        // Not in interaction mode, clear the cache
+        fullItemsCacheRef.current.clear();
+      }
+
+      currentItemsRef.current = items;
+      return { data: items, total: result.total };
     },
-    [fetchFn]
+    [fetchFn, isInteractionMode]
   );
 
   const updateItemById = useCallback<
     AdvancedBaseTableHandle<AllocationTableItem>["updateItemById"]
-  >((id, updater) => {
-    if (!tableRef.current) {
-      return;
-    }
-
-    let nextItem: AllocationTableItem | undefined;
-
-    tableRef.current.updateItemById(id, (current) => {
-      const resolvedUpdate =
-        typeof updater === "function"
-          ? (
-              updater as (
-                current: AllocationTableItem
-              ) =>
-                | Partial<AllocationTableItem>
-                | AllocationTableItem
-                | undefined
-            )(current)
-          : updater;
-
-      if (resolvedUpdate === undefined) {
-        nextItem = current;
-        return current;
+  >(
+    (id, updater) => {
+      if (!tableRef.current) {
+        return;
       }
 
-      const mergedValue =
-        typeof resolvedUpdate === "object" && !Array.isArray(resolvedUpdate)
-          ? ({
-              ...current,
-              ...(resolvedUpdate as Partial<AllocationTableItem>),
-            } as AllocationTableItem)
-          : (resolvedUpdate as AllocationTableItem);
+      let nextItem: AllocationTableItem | undefined;
 
-      nextItem = mergedValue;
-      return mergedValue;
-    });
+      tableRef.current.updateItemById(id, (current) => {
+        const resolvedUpdate =
+          typeof updater === "function"
+            ? (
+                updater as (
+                  current: AllocationTableItem
+                ) =>
+                  | Partial<AllocationTableItem>
+                  | AllocationTableItem
+                  | undefined
+              )(current)
+            : updater;
 
-    if (!nextItem) {
-      return;
-    }
+        if (resolvedUpdate === undefined) {
+          nextItem = current;
+          return current;
+        }
 
-    currentItemsRef.current = currentItemsRef.current.map((item) =>
-      item.id === id ? cloneAllocationItems([nextItem!])[0] : item
-    );
-  }, []);
+        const mergedValue =
+          typeof resolvedUpdate === "object" && !Array.isArray(resolvedUpdate)
+            ? ({
+                ...current,
+                ...(resolvedUpdate as Partial<AllocationTableItem>),
+              } as AllocationTableItem)
+            : (resolvedUpdate as AllocationTableItem);
+
+        nextItem = mergedValue;
+        return mergedValue;
+      });
+
+      if (!nextItem) {
+        return;
+      }
+
+      const clonedItem = cloneAllocationItems([nextItem!])[0];
+      currentItemsRef.current = currentItemsRef.current.map((item) =>
+        item.id === id ? clonedItem : item
+      );
+
+      // Update cache if in interaction mode
+      if (isInteractionMode && typeof id === "number") {
+        fullItemsCacheRef.current.set(id, clonedItem);
+      }
+    },
+    [isInteractionMode]
+  );
 
   const updateItemsAllocated = useCallback(
     (itemId: number, partnerId: number) => {
@@ -218,13 +302,37 @@ export default function AllocationTable({
     [updateItemById]
   );
 
-  const handleSuggestAllocations = useCallback(async () => {
-    if (!suggestionConfig) {
-      return;
+  const fetchAllItems = useCallback(async (): Promise<
+    AllocationTableItem[]
+  > => {
+    const allItems: AllocationTableItem[] = [];
+    const emptyFilters: FilterList<AllocationTableItem> = {};
+
+    const firstPageResult = await fetchFn(pageSize, 1, emptyFilters);
+    const total = firstPageResult.total;
+    allItems.push(...cloneAllocationItems(firstPageResult.data));
+
+    const totalPages = Math.ceil(total / pageSize);
+    if (totalPages > 1) {
+      const remainingPages = Array.from(
+        { length: totalPages - 1 },
+        (_, i) => i + 2
+      );
+
+      const remainingResults = await Promise.all(
+        remainingPages.map((page) => fetchFn(pageSize, page, emptyFilters))
+      );
+
+      remainingResults.forEach((result) => {
+        allItems.push(...cloneAllocationItems(result.data));
+      });
     }
 
-    if (!currentItemsRef.current.length) {
-      toast("No items available for suggestions.");
+    return allItems;
+  }, [fetchFn, pageSize]);
+
+  const handleSuggestAllocations = useCallback(async () => {
+    if (!suggestionConfig) {
       return;
     }
 
@@ -234,68 +342,176 @@ export default function AllocationTable({
 
     setIsInteractionMode(true);
     setIsProcessingSuggestions(true);
-    setStatusMessage("Generating allocation suggestions...");
-    preInteractionItemsRef.current = cloneAllocationItems(
-      currentItemsRef.current
-    );
+    setStatusMessage("Fetching all items...");
 
     try {
-      const response = await suggestionConfig.onSuggest(
-        currentItemsRef.current
-      );
+      const allItems = await fetchAllItems();
+
+      if (!allItems.length) {
+        toast("No items available for suggestions.");
+        setIsInteractionMode(false);
+        setIsProcessingSuggestions(false);
+        setStatusMessage(null);
+        return;
+      }
+
+      preInteractionItemsRef.current = cloneAllocationItems(allItems);
+
+      setStatusMessage("Generating allocation suggestions...");
+
+      const response = await suggestionConfig.onSuggest(allItems);
       const programs = response.programs ?? [];
 
       if (!programs.length) {
         toast("No allocation changes suggested.");
-        const recomputed = recomputeItemsAllocated(currentItemsRef.current);
-        tableRef.current?.setItems(recomputed);
-        currentItemsRef.current = recomputed;
+        const recomputed = recomputeItemsAllocated(allItems);
+        const start = 0;
+        const paged = recomputed.slice(start, start + pageSize);
+        tableRef.current?.setItems(paged);
+        currentItemsRef.current = paged;
+        recomputed.forEach((item) => {
+          fullItemsCacheRef.current.set(
+            item.id,
+            cloneAllocationItems([item])[0]
+          );
+        });
         setIsInteractionMode(false);
         preInteractionItemsRef.current = [];
+        fullItemsCacheRef.current.clear();
+
+        // Notify parent that there are no modified pages
+        if (suggestionConfig?.onModifiedPagesChange) {
+          suggestionConfig.onModifiedPagesChange(0);
+        }
+
         return;
       }
 
       const allocationData = await solveAllocationPrograms(programs);
 
       const { previewItems, suggestions } = buildPreviewAllocations(
-        currentItemsRef.current,
+        allItems,
         allocationData
       );
 
       if (!suggestions.length) {
         toast("No allocation changes suggested.");
         setIsInteractionMode(false);
-        const recomputed = recomputeItemsAllocated(currentItemsRef.current);
-        tableRef.current?.setItems(recomputed);
-        currentItemsRef.current = recomputed;
+        const recomputed = recomputeItemsAllocated(allItems);
+        const start = 0;
+        const paged = recomputed.slice(start, start + pageSize);
+        tableRef.current?.setItems(paged);
+        currentItemsRef.current = paged;
+        recomputed.forEach((item) => {
+          fullItemsCacheRef.current.set(
+            item.id,
+            cloneAllocationItems([item])[0]
+          );
+        });
         preInteractionItemsRef.current = [];
+        fullItemsCacheRef.current.clear();
+
+        if (suggestionConfig?.onModifiedPagesChange) {
+          suggestionConfig.onModifiedPagesChange(0);
+        }
+
         return;
       }
 
-      tableRef.current?.setItems(previewItems);
-      currentItemsRef.current = previewItems;
+      // Populate cache with all preview items
+      previewItems.forEach((item) => {
+        fullItemsCacheRef.current.set(item.id, cloneAllocationItems([item])[0]);
+      });
+
+      const baselineLineMap = new Map<
+        number,
+        AllocationTableItem["items"][number]
+      >();
+      preInteractionItemsRef.current.forEach((item) => {
+        item.items.forEach((line) => {
+          baselineLineMap.set(line.id, line);
+        });
+      });
+
+      const modifiedItemIds = new Set<number>();
+      previewItems.forEach((item) => {
+        const hasChanges = item.items.some((line) => {
+          const baselineLine = baselineLineMap.get(line.id);
+          const baselinePartnerId =
+            baselineLine?.allocation?.partner?.id ?? null;
+          const currentPartnerId = line.allocation?.partner?.id ?? null;
+          return baselinePartnerId !== currentPartnerId;
+        });
+        if (hasChanges) {
+          modifiedItemIds.add(item.id);
+        }
+      });
+
+      // Calculate which pages have modifications
+      const modifiedPages = new Set<number>();
+      modifiedItemIds.forEach((itemId) => {
+        const itemIndex = previewItems.findIndex((item) => item.id === itemId);
+        if (itemIndex !== -1) {
+          const page = Math.floor(itemIndex / pageSize) + 1;
+          modifiedPages.add(page);
+        }
+      });
+
+      // Notify parent of modified page count
+      if (suggestionConfig?.onModifiedPagesChange) {
+        suggestionConfig.onModifiedPagesChange(modifiedPages.size);
+      }
+
+      if (modifiedItemIds.size > 0) {
+        tableRef.current?.setOpenRowIds((prev) => {
+          const next = new Set(prev);
+          modifiedItemIds.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+
+      const start = 0;
+      const paged = previewItems.slice(start, start + pageSize);
+      tableRef.current?.setItems(paged);
+      currentItemsRef.current = paged;
     } catch (error) {
       console.error("Failed to suggest allocations", error);
       toast.error("Failed to suggest allocations");
-      const restored = cloneAllocationItems(preInteractionItemsRef.current);
-      tableRef.current?.setItems(restored);
-      currentItemsRef.current = restored;
+      if (preInteractionItemsRef.current.length > 0) {
+        const restored = cloneAllocationItems(preInteractionItemsRef.current);
+        const start = 0;
+        const paged = restored.slice(start, start + pageSize);
+        tableRef.current?.setItems(paged);
+        currentItemsRef.current = paged;
+      }
       setIsInteractionMode(false);
       preInteractionItemsRef.current = [];
+      fullItemsCacheRef.current.clear();
     } finally {
       setIsProcessingSuggestions(false);
       setStatusMessage(null);
     }
-  }, [suggestionConfig, isProcessingSuggestions]);
+  }, [suggestionConfig, isProcessingSuggestions, fetchAllItems, pageSize]);
 
   const handleUndo = useCallback(() => {
     const restored = cloneAllocationItems(preInteractionItemsRef.current);
-    tableRef.current?.setItems(restored);
-    currentItemsRef.current = restored;
+    const start = 0;
+    const paged = restored.slice(start, start + pageSize);
+    tableRef.current?.setItems(paged);
+    currentItemsRef.current = paged;
+    fullItemsCacheRef.current.clear();
     setIsInteractionMode(false);
     setStatusMessage(null);
     preInteractionItemsRef.current = [];
-  }, []);
+
+    tableRef.current?.setOpenRowIds(new Set());
+
+    if (suggestionConfig?.onModifiedPagesChange) {
+      suggestionConfig.onModifiedPagesChange(0);
+    }
+
+    tableRef.current?.reload();
+  }, [pageSize, suggestionConfig]);
 
   const collectPendingChanges = useCallback((): AllocationChange[] => {
     const baselineLineMap = new Map<
@@ -310,7 +526,8 @@ export default function AllocationTable({
 
     const changes: AllocationChange[] = [];
 
-    currentItemsRef.current.forEach((item) => {
+    // Collect changes from all cached items (all pages), not just current page
+    fullItemsCacheRef.current.forEach((item) => {
       item.items.forEach((line) => {
         const baselineLine = baselineLineMap.get(line.id);
         const previousPartner = baselineLine?.allocation?.partner ?? null;
@@ -371,6 +588,13 @@ export default function AllocationTable({
       setIsInteractionMode(false);
       setStatusMessage(null);
       preInteractionItemsRef.current = [];
+      fullItemsCacheRef.current.clear();
+
+      // Notify parent that there are no modified pages
+      if (suggestionConfig.onModifiedPagesChange) {
+        suggestionConfig.onModifiedPagesChange(0);
+      }
+
       suggestionConfig.onAfterApply?.();
     } catch (error) {
       console.error("Failed to keep suggested allocations", error);

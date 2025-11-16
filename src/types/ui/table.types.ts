@@ -57,4 +57,11 @@ export interface AdvancedBaseTableHandle<T> {
     updater: Partial<T> | ((current: T) => Partial<T> | T | undefined)
   ) => void;
   getAllItems: () => T[];
+  setOpenRowIds: (
+    ids:
+      | Set<string | number>
+      | ((prev: Set<string | number>) => Set<string | number>)
+  ) => void;
+  getPage: () => number;
+  setPage: (page: number) => void;
 }

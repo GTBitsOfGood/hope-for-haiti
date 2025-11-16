@@ -15,7 +15,6 @@ import { hasPermission } from "@/lib/userUtils";
 
 export default function DistributionTable() {
   const { apiClient } = useApiClient();
-  const [distributions, setDistributions] = useState<TableDistribution[]>([]);
   const { user } = useUser();
   const canManageDistributions = hasPermission(user, "distributionWrite");
 
@@ -37,7 +36,6 @@ export default function DistributionTable() {
         total: number;
       }>(`/api/distributions?${searchParams.toString()}`);
 
-      setDistributions(res.data);
       return {
         data: res.data,
         total: res.total,
@@ -127,13 +125,11 @@ export default function DistributionTable() {
       rowBody={(distribution) => (
         <DistributionsGeneralItemChipGroup
           generalItems={distribution.generalItems}
-          otherDistributions={distributions.filter(
-            (d) => d.id !== distribution.id
-          )}
           allocations={distribution.allocations}
           fetchTableData={tableRef.current!.reload}
           pending={distribution.pending}
           canTransfer={canManageDistributions}
+          distributionId={distribution.id}
         />
       )}
     />

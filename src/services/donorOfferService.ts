@@ -1307,11 +1307,31 @@ export default class DonorOfferService {
       db.generalItem.count({ where }),
     ]);
 
+    type ItemWithItems = Prisma.GeneralItemGetPayload<{
+      include: {
+        items: true;
+        requests: {
+          include: {
+            partner: {
+              select: { id: true; name: true };
+            };
+          };
+        };
+      };
+    }>;
+
     return {
-      items: items.map((item) => ({
-        ...item,
-        quantity: item.initialQuantity,
-      })),
+      items: (items as ItemWithItems[]).map((item) => {
+        const quantity = item.items.reduce(
+          (sum: number, lineItem: { quantity: number }) =>
+            sum + lineItem.quantity,
+          0
+        );
+        return {
+          ...item,
+          quantity,
+        };
+      }),
       total,
     };
   }

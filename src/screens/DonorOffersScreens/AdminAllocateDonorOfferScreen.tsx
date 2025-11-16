@@ -38,6 +38,7 @@ export default function AdminAllocateDonorOfferScreen() {
   const params = useParams<{ donorOfferId: string }>();
   const donorOfferId = Number(params?.donorOfferId);
   const isValidDonorOfferId = Number.isFinite(donorOfferId);
+  const [modifiedPagesCount, setModifiedPagesCount] = useState(0);
 
   const [distributionsByPartner, setDistributionsByPartner] = useState<
     Record<number, PartnerDistributionSummary[]>
@@ -75,7 +76,6 @@ export default function AdminAllocateDonorOfferScreen() {
       page: number,
       filters: FilterList<AllocationTableItem>
     ) => {
-
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
@@ -262,6 +262,17 @@ export default function AdminAllocateDonorOfferScreen() {
     <>
       <DonorOfferHeader donorOfferId={params.donorOfferId} />
 
+      {modifiedPagesCount > 0 && (
+        <div className="mb-4 mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            Suggestions have been made across{" "}
+            <strong>{modifiedPagesCount}</strong> page
+            {modifiedPagesCount === 1 ? "" : "s"}. Please review all pages to
+            see all recommendations.
+          </p>
+        </div>
+      )}
+
       <AllocationTable
         fetchFn={fetchTableData}
         ensureDistributionForPartner={ensureDistributionForPartner}
@@ -272,6 +283,7 @@ export default function AdminAllocateDonorOfferScreen() {
           onAfterApply: () => {
             refetchDistributions();
           },
+          onModifiedPagesChange: setModifiedPagesCount,
         }}
       />
     </>
