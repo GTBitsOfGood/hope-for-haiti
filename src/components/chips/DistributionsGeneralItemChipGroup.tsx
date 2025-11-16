@@ -138,14 +138,16 @@ function GeneralItemChip({
                     label:
                       otherDistributions.find(
                         (d) => d.id === selectedDistribution
-                      )?.partner.name || "",
+                        )
+                        ? `${otherDistributions.find((d) => d.id === selectedDistribution)?.partner.name} (Dist #${selectedDistribution})`
+                        : "",
                   }
                 : undefined
             }
             onChange={(newVal) => setSelectedDistribution(newVal?.value)}
             options={otherDistributions.map((distribution) => ({
               value: distribution.id,
-              label: distribution.partner.name,
+              label: `${distribution.partner.name} (Dist #${distribution.id})`,
             }))}
             isClearable
             placeholder="Choose distribution..."
