@@ -253,6 +253,9 @@ export class GeneralItemService {
         {
           donorOffer: {
             state: $Enums.DonorOfferState.UNFINALIZED,
+            partnerResponseDeadline: {
+              gt: new Date(), // Only show if deadline hasn't passed
+            },
             partnerVisibilities: {
               some: {
                 id: partnerId,
@@ -404,7 +407,7 @@ export class GeneralItemService {
           INNER JOIN "_DonorOfferToUser" dotu ON dof.id = dotu."A"
           WHERE dotu."B" = ${partnerId}
             AND (
-              (dof.state = 'UNFINALIZED'::"DonorOfferState")
+              (dof.state = 'UNFINALIZED'::"DonorOfferState" AND dof."partnerResponseDeadline" > NOW())
               OR
               (dof.state = 'ARCHIVED'::"DonorOfferState" AND EXISTS (
                 SELECT 1 FROM "LineItem" li

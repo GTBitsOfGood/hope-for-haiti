@@ -100,13 +100,21 @@ export class GeneralItemRequestService {
       where: { id: data.generalItemId },
       include: {
         donorOffer: {
-          select: { state: true }
+          select: { state: true, partnerResponseDeadline: true }
         }
       }
     });
 
     if (generalItem?.donorOffer?.state === "ARCHIVED") {
       throw new ArgumentError("Cannot create requests for archived donor offers. Archived offers are read-only.");
+    }
+
+    // Check if the partner response deadline has passed
+    if (generalItem?.donorOffer?.partnerResponseDeadline) {
+      const now = new Date();
+      if (now > generalItem.donorOffer.partnerResponseDeadline) {
+        throw new ArgumentError("Cannot create requests after the partner response deadline has passed.");
+      }
     }
     
     const newRequest = await db.generalItemRequest.create({
@@ -134,7 +142,7 @@ export class GeneralItemRequestService {
           generalItem: {
             include: {
               donorOffer: {
-                select: { state: true }
+                select: { state: true, partnerResponseDeadline: true }
               }
             }
           }
@@ -143,6 +151,14 @@ export class GeneralItemRequestService {
 
       if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
         throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+      }
+
+      // Check if the partner response deadline has passed
+      if (request?.generalItem?.donorOffer?.partnerResponseDeadline) {
+        const now = new Date();
+        if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
+          throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
+        }
       }
 
       const updatedRequest = await db.generalItemRequest.update({
@@ -208,7 +224,7 @@ export class GeneralItemRequestService {
           generalItem: {
             include: {
               donorOffer: {
-                select: { state: true }
+                select: { state: true, partnerResponseDeadline: true }
               }
             }
           }
@@ -217,6 +233,14 @@ export class GeneralItemRequestService {
 
       if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
         throw new ArgumentError("Cannot delete requests for archived donor offers. Archived offers are read-only.");
+      }
+
+      // Check if the partner response deadline has passed
+      if (request?.generalItem?.donorOffer?.partnerResponseDeadline) {
+        const now = new Date();
+        if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
+          throw new ArgumentError("Cannot delete requests after the partner response deadline has passed.");
+        }
       }
 
       await db.generalItemRequest.delete({
