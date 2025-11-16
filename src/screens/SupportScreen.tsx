@@ -19,6 +19,7 @@ import TicketSearchBar from "@/components/tickets/TicketSearchBar";
 import CreateTicketModal from "@/components/tickets/CreateTicketModal";
 import { ChatCircleSlash } from "@phosphor-icons/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ExtraChannelData } from "@/types/api/streamio.types";
 
 // Wrapper component to pass active channel ID to ChannelPreview
 function ChannelPreviewWrapper(props: Parameters<typeof ChannelPreview>[0]) {
