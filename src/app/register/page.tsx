@@ -15,12 +15,11 @@ export default function RegisterPage() {
   const token = searchParams.get("token");
 
   const { data: inviteData, isLoading } = useFetch<{ email: string }>(
-    token ? `/api/invites/${token}` : "",
+    `/api/invites/${token}`,
     {
-      conditionalFetch: !!token,
-      onError: (error) => {
-        toast.error(error.toString());
-        console.error(error);
+      onError: () => {
+        toast.error("Error while validating invite");
+        router.replace("/");
       },
     }
   );
@@ -42,11 +41,17 @@ export default function RegisterPage() {
       await apiClient.post("/api/users", { body: formData });
 
       const password = formData.get("password");
-      await signIn("credentials", {
+      const result = await signIn("credentials", {
         email: inviteData?.email,
         password,
         redirect: true,
       });
+
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       toast.error((error as Error).toString());
     }
