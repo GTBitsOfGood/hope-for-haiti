@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { User } from "@prisma/client";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import { useApiClient } from "@/hooks/useApiClient";
+import toast from "react-hot-toast";
 
 interface ProfileScreenStaffProps {
   user: User;
@@ -18,6 +20,8 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
     password: "********",
     confirmPassword: "",
   });
+
+  const { apiClient } = useApiClient();
 
   useEffect(() => {
     const nameParts = user.name ? user.name.split(" ") : [""];
@@ -48,6 +52,19 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
 
   const handleSave = () => {
     console.log("Saving data:", userData);
+
+    const promise = apiClient.patch(`/api/users/${user.id}`, {
+      body: JSON.stringify({
+        name: `${userData.firstName} ${userData.lastName}`.trim(),
+      }),
+    });
+
+    toast.promise(promise, {
+      loading: "Updating profile...",
+      success: "Profile updated successfully!",
+      error: "Failed to update profile.",
+    });
+
     setIsEditing(false);
   };
 
