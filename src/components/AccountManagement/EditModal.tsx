@@ -8,11 +8,7 @@ interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCancel: () => void;
-  onConfirm: (data: {
-    name: string;
-    email: string;
-    tag: string;
-  }) => void;
+  onConfirm: (data: { name: string; email: string; tag: string }) => void;
   initialData?: {
     name: string;
     email: string;
@@ -24,6 +20,8 @@ interface EditModalProps {
   isStaffAccount?: boolean;
   existingTags?: string[];
   onManagePermissions?: () => void;
+  isPending?: boolean;
+  onEditPartnerDetails?: () => void;
 }
 
 export default function EditModal({
@@ -38,7 +36,13 @@ export default function EditModal({
   isStaffAccount = true,
   existingTags = [],
   onManagePermissions,
+  isPending = false,
+  onEditPartnerDetails,
 }: EditModalProps) {
+  const isPartnerAccount = initialData?.role === UserType.PARTNER;
+
+  const canEditEmail = false;
+  const canEditName = isPending || isStaffAccount;
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -77,7 +81,6 @@ export default function EditModal({
     onCancel();
   };
 
-
   return (
     <GeneralModal
       title={title}
@@ -99,8 +102,19 @@ export default function EditModal({
             value={formData.name}
             onChange={(e) => handleInputChange("name", e.target.value)}
             placeholder="Name"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            disabled={!canEditName}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+              canEditName
+                ? "bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                : "bg-gray-100 cursor-not-allowed opacity-60"
+            }`}
           />
+          {!canEditName && isPartnerAccount && (
+            <p className="mt-1 text-xs text-gray-500">
+              Name can only be edited while the account is pending. User can
+              change their name themselves.
+            </p>
+          )}
         </div>
 
         <div>
@@ -112,8 +126,18 @@ export default function EditModal({
             value={formData.email}
             onChange={(e) => handleInputChange("email", e.target.value)}
             placeholder="Email"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            disabled={!canEditEmail}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+              canEditEmail
+                ? "bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                : "bg-gray-100 cursor-not-allowed opacity-60"
+            }`}
           />
+          {!canEditEmail && (
+            <p className="mt-1 text-xs text-gray-500">
+              Email cannot be edited.
+            </p>
+          )}
         </div>
 
         <div>
@@ -139,8 +163,8 @@ export default function EditModal({
         {isStaffAccount && onManagePermissions && (
           <div className="rounded-lg border border-gray-200 bg-red-50/30 px-4 py-3">
             <p className="text-sm text-gray-700">
-              Permissions control what this staff member can view or edit across the
-              platform.
+              Permissions control what this staff member can view or edit across
+              the platform.
             </p>
             <button
               type="button"
@@ -148,6 +172,22 @@ export default function EditModal({
               className="mt-2 text-sm font-semibold text-red-500 hover:text-red-600"
             >
               Manage permissions
+            </button>
+          </div>
+        )}
+
+        {isPartnerAccount && onEditPartnerDetails && (
+          <div className="rounded-lg border border-gray-200 bg-red-50/30 px-4 py-3">
+            <p className="text-sm text-gray-700">
+              Edit comprehensive partner details including facility information,
+              programs, finances, and more.
+            </p>
+            <button
+              type="button"
+              onClick={onEditPartnerDetails}
+              className="mt-2 text-sm font-semibold text-red-500 hover:text-red-600"
+            >
+              Edit partner details
             </button>
           </div>
         )}

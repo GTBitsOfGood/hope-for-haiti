@@ -16,6 +16,7 @@ interface CreatePartnerStepProps {
   isFirstStep: boolean;
   isLastStep: boolean;
   isCreating?: boolean;
+  isEditMode?: boolean;
 }
 
 const stepTitles: Record<number, string> = {
@@ -43,6 +44,7 @@ export default function CreatePartnerStep({
   isFirstStep,
   isLastStep,
   isCreating = false,
+  isEditMode = false,
 }: CreatePartnerStepProps) {
   const stepFields = stepFieldConfigs[step] || [];
   const [formData, setFormData] =
@@ -94,7 +96,7 @@ export default function CreatePartnerStep({
           onClick={onCancel}
           type="button"
         >
-          Cancel account creation
+          {isEditMode ? "Cancel account editing" : "Cancel account creation"}
         </button>
         <div className="flex gap-4">
           {!isFirstStep && (
@@ -113,9 +115,13 @@ export default function CreatePartnerStep({
             disabled={isCreating}
           >
             {isCreating
-              ? "Creating..."
+              ? isEditMode
+                ? "Saving..."
+                : "Creating..."
               : isLastStep
-                ? "Create Account"
+                ? isEditMode
+                  ? "Save Changes"
+                  : "Create Account"
                 : "Next"}
           </button>
         </div>
