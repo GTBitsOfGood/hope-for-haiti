@@ -188,7 +188,7 @@ export class GeneralItemRequestService {
         generalItem: {
           include: {
             donorOffer: {
-              select: { state: true }
+              select: { state: true, partnerResponseDeadline: true }
             }
           }
         }
@@ -201,6 +201,17 @@ export class GeneralItemRequestService {
 
     if (archivedRequests.length > 0) {
       throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+    }
+
+    // Check if any requests have passed the partner response deadline
+    const now = new Date();
+    const expiredRequests = requests.filter(
+      r => r.generalItem?.donorOffer?.partnerResponseDeadline && 
+           now > r.generalItem.donorOffer.partnerResponseDeadline
+    );
+
+    if (expiredRequests.length > 0) {
+      throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
     }
 
     const results = await db.$transaction(

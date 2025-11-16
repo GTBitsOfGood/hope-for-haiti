@@ -781,6 +781,31 @@ export default class DonorOfferService {
       throw new NotFoundError("Partner not found, deactivated, or pending");
     }
 
+    // Get the donor offer to check the deadline
+    if (requests.length > 0) {
+      const firstItem = await db.generalItem.findUnique({
+        where: { id: requests[0].donorOfferItemId },
+        include: {
+          donorOffer: {
+            select: { partnerResponseDeadline: true, state: true }
+          }
+        }
+      });
+
+      // Check if the partner response deadline has passed
+      if (firstItem?.donorOffer?.partnerResponseDeadline) {
+        const now = new Date();
+        if (now > firstItem.donorOffer.partnerResponseDeadline) {
+          throw new ArgumentError("Cannot create or update requests after the partner response deadline has passed.");
+        }
+      }
+
+      // Check if archived
+      if (firstItem?.donorOffer?.state === "ARCHIVED") {
+        throw new ArgumentError("Cannot create requests for archived donor offers. Archived offers are read-only.");
+      }
+    }
+
     await db.$transaction(async (tx) => {
       await Promise.all(
         requests.map((item) => {
