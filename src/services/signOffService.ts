@@ -10,6 +10,7 @@ import { Prisma, ShipmentStatus } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { DistributionItem } from "@/types/api/distribution.types";
+import FileService from "@/services/fileService";
 
 export class SignOffService {
   static async createSignOff(data: CreateSignOffData) {
@@ -30,13 +31,28 @@ export class SignOffService {
       throw new ArgumentError("Cannot create sign-off for pending partner");
     }
 
+    let signatureUrl = data.signatureUrl;
+    if (
+      signatureUrl &&
+      (signatureUrl.startsWith("data:image") ||
+        !signatureUrl.startsWith("http"))
+    ) {
+      if (!data.staffUserId) {
+        throw new ArgumentError("staffUserId is required to upload signature");
+      }
+      signatureUrl = await FileService.uploadSignature(
+        signatureUrl,
+        data.staffUserId
+      );
+    }
+
     return db.signOff.create({
       data: {
         staffMemberName: data.staffName,
         partnerName: data.partnerName,
         date: data.date,
         partnerId: data.partnerId,
-        signatureUrl: data.signatureUrl,
+        signatureUrl: signatureUrl,
         allocations: {
           connect: data.allocations.map((id) => ({ id })),
         },
@@ -120,7 +136,6 @@ export class SignOffService {
   static async getSignOffsByPartner(
     partnerId: number
   ): Promise<SignOffSummary[]> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },

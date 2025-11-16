@@ -14,6 +14,7 @@ import { Filters, FilterValue } from "@/types/api/filter.types";
 import { buildWhereFromFilters } from "@/util/table";
 import { shippingStatusToText } from "@/util/util";
 import { NotificationService } from "./notificationService";
+import FileService from "@/services/fileService";
 
 export class ShippingStatusService {
   static async getShipments(
@@ -47,6 +48,20 @@ export class ShippingStatusService {
         allocation: {
           include: {
             partner: true,
+            signOff: {
+              include: {
+                allocations: {
+                  include: {
+                    lineItem: {
+                      include: {
+                        generalItem: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            distribution: true,
           },
         },
       },
@@ -54,7 +69,8 @@ export class ShippingStatusService {
 
     const shipments: Shipment[] = statuses.map((status) => ({
       ...status,
-      generalItems: [],
+      signOffs: [],
+      lineItems: [],
     }));
 
     for (const lineItem of lineItems) {
@@ -72,23 +88,71 @@ export class ShippingStatusService {
         continue;
       }
 
-      const generalItem = shipment.generalItems.find(
-        (gi) =>
-          gi.id == lineItem.generalItemId &&
-          gi.partner.id === lineItem.allocation!.partner!.id
-      );
+      if (lineItem.allocation.signOff) {
+        const signOff = lineItem.allocation.signOff;
 
-      if (!generalItem) {
-        shipment.generalItems.push({
-          ...lineItem.generalItem!,
-          partner: {
-            id: lineItem.allocation.partner.id,
-            name: lineItem.allocation.partner.name,
+        let existingSignOff = shipment.signOffs.find(
+          (so) => so.id === signOff.id
+        );
+
+        if (!existingSignOff) {
+          let signatureUrl = signOff.signatureUrl;
+          if (signatureUrl) {
+            signatureUrl =
+              await FileService.generateSignatureReadUrl(signatureUrl);
+          }
+
+          existingSignOff = {
+            id: signOff.id,
+            staffMemberName: signOff.staffMemberName,
+            partnerName: signOff.partnerName,
+            date: signOff.date,
+            signatureUrl: signatureUrl,
+            lineItems: [],
+          };
+          shipment.signOffs.push(existingSignOff);
+        }
+
+        existingSignOff.lineItems.push({
+          id: lineItem.id,
+          quantity: lineItem.quantity,
+          palletNumber: lineItem.palletNumber,
+          boxNumber: lineItem.boxNumber,
+          lotNumber: lineItem.lotNumber,
+          generalItem: {
+            id: lineItem.generalItem!.id,
+            title: lineItem.generalItem!.title,
           },
-          lineItems: [lineItem],
+          allocation: {
+            partner: {
+              id: lineItem.allocation.partner.id,
+              name: lineItem.allocation.partner.name,
+            },
+          },
         });
       } else {
-        generalItem.lineItems.push(lineItem);
+        shipment.lineItems.push({
+          id: lineItem.id,
+          quantity: lineItem.quantity,
+          palletNumber: lineItem.palletNumber,
+          boxNumber: lineItem.boxNumber,
+          lotNumber: lineItem.lotNumber,
+          generalItem: {
+            id: lineItem.generalItem!.id,
+            title: lineItem.generalItem!.title,
+          },
+          allocation: {
+            id: lineItem.allocation.id,
+            partner: {
+              id: lineItem.allocation.partner.id,
+              name: lineItem.allocation.partner.name,
+            },
+            distribution: {
+              id: lineItem.allocation.distribution.id,
+              pending: lineItem.allocation.distribution.pending,
+            },
+          },
+        });
       }
     }
 
@@ -137,7 +201,6 @@ export class ShippingStatusService {
     page?: number,
     pageSize?: number
   ): Promise<ShippingStatusWithItems> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },
@@ -147,7 +210,8 @@ export class ShippingStatusService {
       return { shippingStatuses: [], items: [], total: 0 };
     }
 
-    const { lineItemFilters, statusFilters } = this.splitShippingFilters(filters);
+    const { lineItemFilters, statusFilters } =
+      this.splitShippingFilters(filters);
 
     const lineItemWhereFilters =
       buildWhereFromFilters<Prisma.LineItemWhereInput>(

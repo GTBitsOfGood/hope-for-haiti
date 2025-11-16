@@ -1,6 +1,7 @@
 import { exit } from "process";
 import { db } from "@/db";
 import StreamIoService from "@/services/streamIoService";
+import FileService from "@/services/fileService";
 
 async function deleteAllStreamUsers() {
   const users = (await db.user.findMany({
@@ -30,6 +31,25 @@ async function run() {
   await deleteAllStreamUsers();
 
   await db.$transaction(async (tx) => {
+    const signOffs = await tx.signOff.findMany({
+      select: {
+        signatureUrl: true,
+      },
+    });
+
+    for (const signOff of signOffs) {
+      if (signOff.signatureUrl) {
+        try {
+          await FileService.deleteSignature(signOff.signatureUrl);
+        } catch (error) {
+          console.warn(
+            `Failed to delete signature: ${signOff.signatureUrl}`,
+            error
+          );
+        }
+      }
+    }
+
     await tx.shippingStatus.deleteMany();
     await tx.donorOffer.deleteMany();
     await tx.distribution.deleteMany();

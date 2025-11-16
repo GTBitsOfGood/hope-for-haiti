@@ -37,7 +37,7 @@ export default function ToggleViewSwitch({
 
   return (
     <div
-      className={`inline-flex items-center rounded-full bg-gray-primary/10 p-1 ${className}`}
+      className={`inline-flex items-center rounded-full bg-blue-light p-1 ${className}`}
       role="group"
       aria-label="Toggle view"
     >

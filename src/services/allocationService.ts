@@ -5,12 +5,15 @@ import {
   UpdateAllocationData,
   ItemSearchParams,
   ItemSearchResult,
+  PartnerAllocation,
+  PartnerAllocationsResponse,
 } from "@/types/api/allocation.types";
-import { Prisma } from "@prisma/client";
+import { Prisma, ShipmentStatus } from "@prisma/client";
+import { Filters } from "@/types/api/filter.types";
+import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
-    // Check if partner is enabled and not pending if partnerId is provided
     if (data.partnerId) {
       const partner = await db.user.findUnique({
         where: { id: data.partnerId },
@@ -22,14 +25,16 @@ export default class AllocationService {
       }
 
       if (!partner.enabled) {
-        throw new ArgumentError("Cannot create allocation for deactivated partner");
+        throw new ArgumentError(
+          "Cannot create allocation for deactivated partner"
+        );
       }
 
       if (partner.pending) {
         throw new ArgumentError("Cannot create allocation for pending partner");
       }
     }
-    
+
     let itemId: number | undefined;
     if (data.itemId) {
       itemId = data.itemId;
@@ -139,18 +144,18 @@ export default class AllocationService {
     }
 
     // Check if all partners are enabled and not pending
-    const partnerIds = [...new Set(allocations.map(a => a.partnerId))];
+    const partnerIds = [...new Set(allocations.map((a) => a.partnerId))];
     const partners = await db.user.findMany({
       where: { id: { in: partnerIds } },
       select: { id: true, enabled: true, pending: true },
     });
 
     const validPartnerIds = new Set(
-      partners.filter(p => p.enabled && !p.pending).map(p => p.id)
+      partners.filter((p) => p.enabled && !p.pending).map((p) => p.id)
     );
 
     const invalidPartnerIds = partnerIds.filter(
-      id => !validPartnerIds.has(id)
+      (id) => !validPartnerIds.has(id)
     );
 
     if (invalidPartnerIds.length > 0) {
@@ -231,14 +236,16 @@ export default class AllocationService {
       }
 
       if (!partner.enabled) {
-        throw new ArgumentError("Cannot update allocation to deactivated partner");
+        throw new ArgumentError(
+          "Cannot update allocation to deactivated partner"
+        );
       }
 
       if (partner.pending) {
         throw new ArgumentError("Cannot update allocation to pending partner");
       }
     }
-    
+
     try {
       return await db.allocation.update({
         where: { id },
@@ -472,5 +479,122 @@ export default class AllocationService {
       palletNumbers: Array.from(palletNumbers),
       boxNumbers: Array.from(boxNumbers),
     };
+  }
+
+  static async getPartnerAllocations(
+    partnerId: number,
+    completed: boolean,
+    page?: number,
+    pageSize?: number,
+    filters?: Filters
+  ): Promise<PartnerAllocationsResponse> {
+    const partner = await db.user.findUnique({
+      where: { id: partnerId },
+      select: { enabled: true, pending: true },
+    });
+
+    if (!partner?.enabled || partner?.pending) {
+      return { data: [], total: 0 };
+    }
+
+    const allocationWhere: Prisma.AllocationWhereInput = {
+      partnerId,
+      distribution: {
+        pending: false,
+      },
+    };
+
+    if (completed) {
+      allocationWhere.signOffId = { not: null };
+    } else {
+      allocationWhere.signOffId = null;
+    }
+
+    const filterWhere = buildWhereFromFilters<Prisma.AllocationWhereInput>(
+      Object.keys(Prisma.AllocationScalarFieldEnum),
+      filters
+    );
+
+    const finalWhere = {
+      ...allocationWhere,
+      ...filterWhere,
+    };
+
+    const query = Prisma.validator<Prisma.AllocationFindManyArgs>()({
+      where: finalWhere,
+      include: {
+        lineItem: {
+          include: {
+            generalItem: true,
+          },
+        },
+        signOff: true,
+      },
+      orderBy: completed ? { signOff: { date: "desc" } } : { id: "desc" },
+    });
+
+    buildQueryWithPagination(query, page, pageSize);
+
+    const [allocations, total] = await Promise.all([
+      db.allocation.findMany(query),
+      db.allocation.count({ where: finalWhere }),
+    ]);
+
+    const shippingNumberPairs = allocations
+      .map((a) => ({
+        donorShippingNumber: a.lineItem.donorShippingNumber,
+        hfhShippingNumber: a.lineItem.hfhShippingNumber,
+      }))
+      .filter(
+        (
+          pair
+        ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
+          Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
+      );
+
+    const statusMap = new Map<string, ShipmentStatus>();
+    if (shippingNumberPairs.length > 0) {
+      const statusRecords = await db.shippingStatus.findMany({
+        where: {
+          OR: shippingNumberPairs.map((pair) => ({
+            donorShippingNumber: pair.donorShippingNumber,
+            hfhShippingNumber: pair.hfhShippingNumber,
+          })),
+        },
+      });
+
+      statusRecords.forEach((status) => {
+        const key = `${status.donorShippingNumber}|${status.hfhShippingNumber}`;
+        statusMap.set(key, status.value);
+      });
+    }
+
+    const data: PartnerAllocation[] = allocations.map((allocation) => {
+      let shipmentStatus: ShipmentStatus | undefined;
+      if (
+        allocation.lineItem.donorShippingNumber &&
+        allocation.lineItem.hfhShippingNumber
+      ) {
+        const key = `${allocation.lineItem.donorShippingNumber}|${allocation.lineItem.hfhShippingNumber}`;
+        shipmentStatus = statusMap.get(key);
+      }
+
+      return {
+        id: allocation.id,
+        generalItemTitle: allocation.lineItem.generalItem?.title || "",
+        lotNumber: allocation.lineItem.lotNumber,
+        palletNumber: allocation.lineItem.palletNumber,
+        boxNumber: allocation.lineItem.boxNumber,
+        quantity: allocation.lineItem.quantity,
+        donorName: allocation.lineItem.donorName,
+        shipmentStatus: shipmentStatus || "WAITING_ARRIVAL_FROM_DONOR",
+        signOffDate: allocation.signOff?.date,
+        signOffStaffMemberName: allocation.signOff?.staffMemberName,
+        signOffId: allocation.signOff?.id,
+        signOffSignatureUrl: allocation.signOff?.signatureUrl || undefined,
+      };
+    });
+
+    return { data, total };
   }
 }

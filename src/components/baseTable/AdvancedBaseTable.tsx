@@ -319,7 +319,14 @@ function AdvancedBaseTableInner<T extends object>(
       updateItemById,
       getAllItems,
     }),
-    [reload, removeItemById, setItemsExternally, upsertItem, updateItemById, getAllItems]
+    [
+      reload,
+      removeItemById,
+      setItemsExternally,
+      upsertItem,
+      updateItemById,
+      getAllItems,
+    ]
   );
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -411,11 +418,14 @@ function AdvancedBaseTableInner<T extends object>(
                     onClick={(e) => {
                       onRowClick?.(item);
 
+                      const target = e.target as HTMLElement;
                       if (
-                        !(
-                          e.target instanceof HTMLTableCellElement ||
-                          e.target instanceof HTMLSpanElement
-                        )
+                        target.closest("button") ||
+                        target.closest("a") ||
+                        target.closest("input") ||
+                        target.closest("select") ||
+                        target.closest("textarea") ||
+                        target.closest("[role='button']")
                       ) {
                         return;
                       }

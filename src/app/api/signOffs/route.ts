@@ -17,6 +17,7 @@ const createSignOffSchema = z.object({
   date: z.string().transform((str) => new Date(str)),
   signatureUrl: z.string(),
   allocations: z.array(z.number()),
+  staffUserId: z.number().int().positive().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
     UserService.checkPermission(session.user, "signoffWrite");
 
     const form = await req.formData();
+    const userId = parseInt(session.user.id!);
+
     const formObj = {
       partnerId:
         form.get("partnerId") != null
@@ -94,6 +97,7 @@ export async function POST(req: NextRequest) {
                 typeof val === "string" ? parseInt(val) : NaN
               ) as number[])
           : [],
+      staffUserId: userId,
     };
 
     const parsed = createSignOffSchema.safeParse(formObj);

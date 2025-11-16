@@ -306,9 +306,9 @@ export default function ProfileScreenPartner({
         </Link>
       </p>
       <div className="mt-6">
-        <button 
-        className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-        onClick={() => signOut({ callbackUrl: "/signIn" })}
+        <button
+          className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
+          onClick={() => signOut({ callbackUrl: "/signIn" })}
         >
           Logout
         </button>
@@ -330,7 +330,7 @@ export default function ProfileScreenPartner({
                   if (isEditingOrg) {
                     setIsEditingOrg(false);
                     setFileUploads({});
-                    setResetKey((prev) => prev + 1); // Force component reset
+                    setResetKey((prev) => prev + 1);
                   }
                   setActiveTab(tab);
                 }}

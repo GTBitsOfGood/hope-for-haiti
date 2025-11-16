@@ -14,11 +14,20 @@ import ShippingStatusTag from "./tags/ShippingStatusTag";
 import ShipmentsLineItemChipGroup from "./chips/ShipmentsLineItemChipGroup";
 import { useUser } from "@/components/context/UserContext";
 import { hasPermission } from "@/lib/userUtils";
+import SignOffModal from "./SignOffModal";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
   const { user } = useUser();
   const canManageShipments = hasPermission(user, "shipmentWrite");
+  const canCreateSignOffs = hasPermission(user, "signoffWrite");
+
+  const [signOffModalOpen, setSignOffModalOpen] = useState(false);
+  const [selectedAllocationIds, setSelectedAllocationIds] = useState<number[]>(
+    []
+  );
+  const [signOffPartnerId, setSignOffPartnerId] = useState<number>(0);
+  const [signOffPartnerName, setSignOffPartnerName] = useState<string>("");
 
   const tableRef = useRef<AdvancedBaseTableHandle<Shipment>>(null);
 
@@ -42,33 +51,49 @@ export default function ShipmentsTable() {
   );
 
   const columns: ColumnDefinition<Shipment>[] = [
-        {
-          id: "donorShippingNumber",
-          header: "Donor Shipping #",
-          cell: (shipment) => shipment.donorShippingNumber,
-        },
-        {
-          id: "hfhShippingNumber",
-          header: "HFH Shipping #",
-          cell: (shipment) => shipment.hfhShippingNumber,
-        },
-        {
-          id: "status",
-          header: "Status",
-          cell: (shipment) => <ShippingStatusTag status={shipment.value} />,
-        },
-        {
-          id: "partners",
-          header: "Partners",
-          cell: (shipment) =>
-            shipment.generalItems.map((item) => (
-              <Chip
-                key={`${item.id}-${item.partner.id}`}
-                title={item.partner.name}
-              />
-            )),
-        },
-      ];
+    {
+      id: "donorShippingNumber",
+      header: "Donor Shipping #",
+      cell: (shipment) => shipment.donorShippingNumber,
+    },
+    {
+      id: "hfhShippingNumber",
+      header: "HFH Shipping #",
+      cell: (shipment) => shipment.hfhShippingNumber,
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (shipment) => <ShippingStatusTag status={shipment.value} />,
+    },
+    {
+      id: "partners",
+      header: "Partners",
+      cell: (shipment) => {
+        const partnerMap = new Map<number, string>();
+
+        shipment.lineItems.forEach((item) => {
+          partnerMap.set(
+            item.allocation.partner.id,
+            item.allocation.partner.name
+          );
+        });
+
+        shipment.signOffs.forEach((signOff) => {
+          signOff.lineItems.forEach((item) => {
+            partnerMap.set(
+              item.allocation.partner.id,
+              item.allocation.partner.name
+            );
+          });
+        });
+
+        return Array.from(partnerMap.entries()).map(([id, name]) => (
+          <Chip key={id} title={name} />
+        ));
+      },
+    },
+  ];
 
   if (canManageShipments) {
     columns.push({
@@ -84,26 +109,39 @@ export default function ShipmentsTable() {
   }
 
   return (
-    <AdvancedBaseTable
-      ref={tableRef}
-      columns={columns}
-      fetchFn={fetchTableData}
-      rowId={"id"}
-      rowBody={(shipment) => (
-        <ShipmentsLineItemChipGroup
-          lineItems={shipment.generalItems.flatMap((item) =>
-            item.lineItems.map((li) => ({
-              id: item.id,
-              title: item.title,
-              quantity: li.quantity,
-              partnerName: item.partner.name,
-              partnerId: item.partner.id,
-              palletNumber: li.palletNumber,
-            }))
-          )}
-        />
-      )}
-    />
+    <>
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={columns}
+        fetchFn={fetchTableData}
+        rowId={"id"}
+        rowBody={(shipment) => (
+          <ShipmentsLineItemChipGroup
+            shipment={shipment}
+            canCreateSignOffs={canCreateSignOffs}
+            onSignOffClick={(allocationIds, partnerId, partnerName) => {
+              setSelectedAllocationIds(allocationIds);
+              setSignOffPartnerId(partnerId);
+              setSignOffPartnerName(partnerName);
+              setSignOffModalOpen(true);
+            }}
+          />
+        )}
+      />
+      <SignOffModal
+        isOpen={signOffModalOpen}
+        onClose={() => {
+          setSignOffModalOpen(false);
+          setSelectedAllocationIds([]);
+        }}
+        onSuccess={() => {
+          tableRef.current?.reload();
+        }}
+        selectedAllocationIds={selectedAllocationIds}
+        partnerId={signOffPartnerId}
+        partnerName={signOffPartnerName}
+      />
+    </>
   );
 }
 
