@@ -9,7 +9,11 @@ import { UserType } from "@prisma/client";
 import { db } from "@/db";
 import { verify } from "argon2";
 import authConfig from "@/auth/auth.config";
-import { PERMISSION_FIELDS, PermissionFlags, PERMISSION_SELECT } from "@/types/api/user.types";
+import {
+  PERMISSION_FIELDS,
+  PermissionFlags,
+  PERMISSION_SELECT,
+} from "@/types/api/user.types";
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = INVALID_CREDENTIALS_ERR;
@@ -22,6 +26,10 @@ declare module "next-auth" {
     streamUserToken: string | null;
     enabled: boolean;
     tag?: string;
+    dashboardTutorial: boolean;
+    itemsTutorial: boolean;
+    requestsTutorial: boolean;
+    wishlistsTutorial: boolean;
   }
 
   interface Session {
@@ -33,6 +41,10 @@ declare module "next-auth" {
       streamUserToken: string | null;
       tag?: string;
       enabled: boolean;
+      dashboardTutorial: boolean;
+      itemsTutorial: boolean;
+      requestsTutorial: boolean;
+      wishlistsTutorial: boolean;
     } & DefaultSession["user"] &
       PermissionFlags;
   }
@@ -47,6 +59,10 @@ declare module "next-auth/jwt" {
     streamUserId: string | null;
     streamUserToken: string | null;
     tag?: string;
+    dashboardTutorial: boolean;
+    itemsTutorial: boolean;
+    requestsTutorial: boolean;
+    wishlistsTutorial: boolean;
   }
 }
 
@@ -73,6 +89,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             streamUserId: true,
             streamUserToken: true,
             ...PERMISSION_SELECT,
+            dashboardTutorial: true,
+            itemsTutorial: true,
+            requestsTutorial: true,
+            wishlistsTutorial: true,
           },
         });
         if (!user) throw new InvalidCredentialsError();
@@ -92,6 +112,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           streamUserId: user.streamUserId,
           streamUserToken: user.streamUserToken,
           tag: user.tag ?? undefined,
+          dashboardTutorial: user.dashboardTutorial,
+          itemsTutorial: user.itemsTutorial,
+          requestsTutorial: user.requestsTutorial,
+          wishlistsTutorial: user.wishlistsTutorial,
         };
       },
     }),
@@ -109,6 +133,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         PERMISSION_FIELDS.forEach((field) => {
           token[field] = user[field];
         });
+        token.dashboardTutorial = user.dashboardTutorial;
+        token.itemsTutorial = user.itemsTutorial;
+        token.requestsTutorial = user.requestsTutorial;
+        token.wishlistsTutorial = user.wishlistsTutorial;
       }
 
       return token;
@@ -124,6 +152,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       PERMISSION_FIELDS.forEach((field) => {
         session.user[field] = Boolean(token[field]);
       });
+      session.user.dashboardTutorial = Boolean(token.dashboardTutorial);
+      session.user.itemsTutorial = Boolean(token.itemsTutorial);
+      session.user.requestsTutorial = Boolean(token.requestsTutorial);
+      session.user.wishlistsTutorial = Boolean(token.wishlistsTutorial);
 
       return session;
     },

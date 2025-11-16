@@ -22,6 +22,10 @@ export interface UpdateUserData {
   tag?: string;
   enabled?: boolean;
   permissions?: Partial<PermissionFlags>;
+  dashboardTutorial?: boolean;
+  itemsTutorial?: boolean;
+  requestsTutorial?: boolean;
+  wishlistsTutorial?: boolean;
 }
 
 export const PERMISSION_FIELDS = [
@@ -46,14 +50,17 @@ export const PERMISSION_FIELDS = [
   "supportNotify",
 ] as const;
 
-export type PermissionName = typeof PERMISSION_FIELDS[number];
+export type PermissionName = (typeof PERMISSION_FIELDS)[number];
 export type PermissionFlags = Record<PermissionName, boolean>;
 export type EditablePermissionField = Exclude<PermissionName, "isSuper">;
 export const EDITABLE_PERMISSION_FIELDS: EditablePermissionField[] =
   PERMISSION_FIELDS.filter(
     (field): field is EditablePermissionField => field !== "isSuper"
   );
-export type StaffPermissionFlags = Pick<PermissionFlags, EditablePermissionField>;
+export type StaffPermissionFlags = Pick<
+  PermissionFlags,
+  EditablePermissionField
+>;
 export const PERMISSION_SELECT: Record<PermissionName, true> =
   PERMISSION_FIELDS.reduce(
     (acc, field) => {
