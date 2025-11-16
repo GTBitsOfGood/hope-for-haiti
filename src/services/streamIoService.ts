@@ -14,7 +14,10 @@ export default class StreamIoService {
    * If the user was previously deleted or deactivated, this method will reactivate or restore them.
    * @returns A Stream Chat user token
    */
-  static async createUser(user: { email: string; name: string }): Promise<{
+  static async createUser(
+    user: { email: string; name: string },
+    isAdmin: boolean
+  ): Promise<{
     userId: string;
     userToken: string;
   }> {
@@ -26,6 +29,7 @@ export default class StreamIoService {
       await StreamIoService.client.upsertUser({
         id: userId,
         name: user.name,
+        role: isAdmin ? "admin" : "user",
       });
 
       return {
@@ -107,7 +111,6 @@ export default class StreamIoService {
     memberIds: string[],
     extraData: ChannelData
   ) {
-
     const channelId = this.channelNameToId(channelName);
     const channel = StreamIoService.client.channel("ticket", channelId, {
       created_by_id: createdById,
@@ -139,7 +142,7 @@ export default class StreamIoService {
           {},
           { limit, offset }
         );
-        
+
         if (channels.length === 0) {
           hasMore = false;
           break;
