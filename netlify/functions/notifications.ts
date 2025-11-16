@@ -11,6 +11,7 @@ const BATCH_SIZE = 10;
 const DELIVERY_DELAY_MS = 30 * 1000;
 
 type EmailTemplateName = keyof typeof emailTemplates;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EmailTemplateComponent = (props: any) => ReactElement;
 
 type NotificationToSend = Notification & {
