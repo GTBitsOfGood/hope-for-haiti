@@ -42,7 +42,7 @@ export default function Chip({
         className={`relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow ${className}`}
       >
         <span className="text-blue-primary">{title}</span>
-        {revisedAmount !== amount && (
+        {amount !== undefined && revisedAmount !== amount && (
           <span className="line-through text-gray-primary/50 font-bold px-[2px]">
             {amount}
           </span>
