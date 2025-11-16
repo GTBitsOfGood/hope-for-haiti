@@ -47,13 +47,15 @@ export class GeneralItemService {
         where: { id },
         include: {
           donorOffer: {
-            select: { state: true }
-          }
-        }
+            select: { state: true },
+          },
+        },
       });
 
       if (generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot update general items for archived donor offers. Archived offers are read-only.");
+        throw new ArgumentError(
+          "Cannot update general items for archived donor offers. Archived offers are read-only."
+        );
       }
 
       return await db.generalItem.update({
@@ -77,13 +79,15 @@ export class GeneralItemService {
         where: { id },
         include: {
           donorOffer: {
-            select: { state: true }
-          }
-        }
+            select: { state: true },
+          },
+        },
       });
 
       if (generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot delete general items for archived donor offers. Archived offers are read-only.");
+        throw new ArgumentError(
+          "Cannot delete general items for archived donor offers. Archived offers are read-only."
+        );
       }
 
       return await db.generalItem.delete({
@@ -104,7 +108,6 @@ export class GeneralItemService {
     page?: number,
     pageSize?: number
   ) {
-
     const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
       Object.keys(Prisma.GeneralItemScalarFieldEnum),
       filters
@@ -114,19 +117,21 @@ export class GeneralItemService {
       where: {
         ...filterWhere,
         donorOffer: {
-          state: "ARCHIVED",
+          state: {
+            not: "ARCHIVED",
+          },
         },
         items: {
           some: {
             allocation: null,
-          }
-        }
+          },
+        },
       },
       include: {
         items: {
           where: {
             allocation: null,
-          }
+          },
         },
         requests: {
           include: {
@@ -141,24 +146,26 @@ export class GeneralItemService {
         id: "asc",
       },
       take: pageSize,
-      skip: (page && pageSize) ? (page - 1) * pageSize : undefined,
+      skip: page && pageSize ? (page - 1) * pageSize : undefined,
     };
 
     buildQueryWithPagination(query, page, pageSize);
 
     const [generalItems, total] = await Promise.all([
       db.generalItem.findMany(query) as Promise<GeneralItemWithRelations[]>,
-      db.generalItem.count({ where: {
-        ...filterWhere,
-        donorOffer: {
-          state: $Enums.DonorOfferState.ARCHIVED,
+      db.generalItem.count({
+        where: {
+          ...filterWhere,
+          donorOffer: {
+            state: $Enums.DonorOfferState.ARCHIVED,
+          },
+          items: {
+            some: {
+              allocation: null,
+            },
+          },
         },
-        items: {
-          some: {
-            allocation: null,
-          }
-        }
-      }, }),
+      }),
     ]);
 
     const itemsWithFilteredRequests = generalItems.map((item) => {
@@ -226,7 +233,7 @@ export class GeneralItemService {
         item,
         unallocatedQuantity,
         allocatedQuantity,
-      } 
+      };
     });
   }
 
@@ -235,8 +242,8 @@ export class GeneralItemService {
     filters?: Filters,
     page?: number,
     pageSize?: number,
-    priorityIds?: number[])
-  {
+    priorityIds?: number[]
+  ) {
     const filterWhere = buildWhereFromFilters<Prisma.GeneralItemWhereInput>(
       Object.keys(Prisma.GeneralItemScalarFieldEnum),
       filters
@@ -313,7 +320,7 @@ export class GeneralItemService {
         const allMatchingItems = await db.generalItem.findMany({
           where,
           select: { id: true },
-          orderBy: { id: 'asc' },
+          orderBy: { id: "asc" },
         });
 
         const priorityIdSet = new Set(priorityIds);
@@ -357,20 +364,26 @@ export class GeneralItemService {
             };
           };
         }>;
-        const items = await db.generalItem.findMany({
+        const items = (await db.generalItem.findMany({
           where: { id: { in: paginatedIds } },
           include: query.include,
-        }) as ItemWithRelations[];
+        })) as ItemWithRelations[];
 
-        const itemMap = new Map(items.map(item => [item.id, item]));
+        const itemMap = new Map(items.map((item) => [item.id, item]));
         const orderedItems = paginatedIds
-          .map(id => itemMap.get(id))
-          .filter((item): item is NonNullable<typeof item> => item !== undefined);
+          .map((id) => itemMap.get(id))
+          .filter(
+            (item): item is NonNullable<typeof item> => item !== undefined
+          );
 
         const itemsWithQuantity = orderedItems.map((item) => {
           let availableQuantity = item.initialQuantity;
           if (item.donorOffer.state === $Enums.DonorOfferState.ARCHIVED) {
-            availableQuantity = item.items.reduce((sum: number, lineItem: { id: number; quantity: number }) => sum + lineItem.quantity, 0);
+            availableQuantity = item.items.reduce(
+              (sum: number, lineItem: { id: number; quantity: number }) =>
+                sum + lineItem.quantity,
+              0
+            );
           }
           return { ...item, availableQuantity };
         });
@@ -381,7 +394,9 @@ export class GeneralItemService {
         };
       }
 
-      const priorityIdsArray = Prisma.join(priorityIds.map(id => Prisma.sql`${id}`));
+      const priorityIdsArray = Prisma.join(
+        priorityIds.map((id) => Prisma.sql`${id}`)
+      );
 
       const orderedIdsSql = Prisma.sql`
         WITH filtered_items AS (
@@ -418,7 +433,7 @@ export class GeneralItemService {
       `;
 
       const orderedIds = await db.$queryRaw<{ id: number }[]>(orderedIdsSql);
-      const orderedIdList = orderedIds.map(row => row.id);
+      const orderedIdList = orderedIds.map((row) => row.id);
 
       if (orderedIdList.length === 0) {
         return { items: [], total: 0 };
@@ -446,14 +461,14 @@ export class GeneralItemService {
           };
         };
       }>;
-      const items = await db.generalItem.findMany({
+      const items = (await db.generalItem.findMany({
         where: { id: { in: orderedIdList } },
         include: query.include,
-      }) as ItemWithRelations[];
+      })) as ItemWithRelations[];
 
-      const itemMap = new Map(items.map(item => [item.id, item]));
+      const itemMap = new Map(items.map((item) => [item.id, item]));
       const orderedItems = orderedIdList
-        .map(id => itemMap.get(id))
+        .map((id) => itemMap.get(id))
         .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
       const total = await db.generalItem.count({ where });
@@ -461,7 +476,11 @@ export class GeneralItemService {
       const itemsWithQuantity = orderedItems.map((item) => {
         let availableQuantity = item.initialQuantity;
         if (item.donorOffer.state === $Enums.DonorOfferState.ARCHIVED) {
-          availableQuantity = item.items.reduce((sum: number, lineItem: { id: number; quantity: number }) => sum + lineItem.quantity, 0);
+          availableQuantity = item.items.reduce(
+            (sum: number, lineItem: { id: number; quantity: number }) =>
+              sum + lineItem.quantity,
+            0
+          );
         }
         return { ...item, availableQuantity };
       });
@@ -506,7 +525,10 @@ export class GeneralItemService {
       let availableQuantity = item.initialQuantity;
 
       if (item.donorOffer.state === $Enums.DonorOfferState.ARCHIVED) {
-        availableQuantity = item.items.reduce((sum: number, lineItem) => sum + lineItem.quantity, 0);
+        availableQuantity = item.items.reduce(
+          (sum: number, lineItem) => sum + lineItem.quantity,
+          0
+        );
       }
 
       return {
