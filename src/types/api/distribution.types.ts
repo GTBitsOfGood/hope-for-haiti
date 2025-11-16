@@ -78,6 +78,8 @@ export type TableAllocation = {
 export type TableDistribution = {
   id: number;
   pending: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   partner: {
     id: number;
     name: string;

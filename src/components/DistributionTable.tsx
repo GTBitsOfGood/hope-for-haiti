@@ -85,6 +85,24 @@ export default function DistributionTable() {
             </div>
           ),
         },
+        {
+          id: "createdAt",
+          header: "Created",
+          cell: (row) => {
+            const date = new Date(row.createdAt);
+            if (isNaN(date.getTime())) {
+              return "N/A";
+            }
+            return date.toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          },
+        },
       ] as ColumnDefinition<TableDistribution>[];
 
   if (canManageDistributions) {
@@ -110,7 +128,7 @@ export default function DistributionTable() {
         <DistributionsGeneralItemChipGroup
           generalItems={distribution.generalItems}
           otherDistributions={distributions.filter(
-            (d) => d.id !== distribution.id && !d.pending
+            (d) => d.id !== distribution.id
           )}
           allocations={distribution.allocations}
           fetchTableData={tableRef.current!.reload}
