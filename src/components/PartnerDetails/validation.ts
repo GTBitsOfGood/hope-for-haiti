@@ -28,6 +28,36 @@ export const setNestedValue = <T extends NestedObject>(
   return { ...obj };
 };
 
+const isEmpty = (value: unknown, fieldType: string): boolean => {
+  if (fieldType === "multiselect") {
+    return !Array.isArray(value) || value.length === 0;
+  } else if (fieldType === "boolean") {
+    return value === undefined || value === null;
+  } else if (fieldType === "number") {
+    return (
+      value === undefined ||
+      value === null ||
+      (typeof value === "number" && isNaN(value))
+    );
+  } else if (fieldType === "location") {
+    return !value || (typeof value === "string" && value.trim() === "");
+  } else {
+    return !value || (typeof value === "string" && value.trim() === "");
+  }
+};
+
+const isConditionallyRequired = (
+  field: { conditionalField?: string; conditionalValue?: unknown },
+  data: NestedObject
+): boolean => {
+  if (!field.conditionalField || field.conditionalValue === undefined) {
+    return false;
+  }
+
+  const conditionalFieldValue = getNestedValue(data, field.conditionalField);
+  return conditionalFieldValue === field.conditionalValue;
+};
+
 export const validatePartnerStep = (
   step: number,
   data: NestedObject
@@ -36,43 +66,26 @@ export const validatePartnerStep = (
   const stepFields = stepFieldConfigs[step] || [];
 
   stepFields.forEach((field) => {
-    if (field.required) {
-      const value = getNestedValue(data, field.name);
+    const shouldValidate =
+      field.required || isConditionallyRequired(field, data);
 
-      let isEmpty = false;
-
-      if (field.type === "multiselect") {
-        isEmpty = !Array.isArray(value) || value.length === 0;
-      } else if (field.type === "boolean") {
-        isEmpty = value === undefined || value === null;
-      } else {
-        isEmpty = !value || (typeof value === "string" && value.trim() === "");
+    if (shouldValidate) {
+      if (field.conditionalField) {
+        if (!isConditionallyRequired(field, data)) {
+          return;
+        }
       }
 
-      if (isEmpty) {
+      const value =
+        field.name === "address"
+          ? getNestedValue(data, "address")
+          : getNestedValue(data, field.name);
+
+      if (isEmpty(value, field.type)) {
         errors[field.name] = `${field.label} is required`;
       }
     }
   });
-
-  if (step === 3) {
-    const registeredWithMssp = getNestedValue(data, "registeredWithMssp");
-    const proofOfRegistration = getNestedValue(
-      data,
-      "proofOfRegistrationWithMssp"
-    );
-
-    if (registeredWithMssp === true) {
-      if (
-        !proofOfRegistration ||
-        (typeof proofOfRegistration === "string" &&
-          proofOfRegistration.trim() === "")
-      ) {
-        errors["proofOfRegistrationWithMssp"] =
-          "Proof of registration with MSSP is required when registered with MSSP";
-      }
-    }
-  }
 
   return errors;
 };

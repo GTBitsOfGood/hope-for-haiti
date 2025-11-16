@@ -15,6 +15,8 @@ interface CreatePartnerStepProps {
   onCancel: () => void;
   isFirstStep: boolean;
   isLastStep: boolean;
+  isCreating?: boolean;
+  isEditMode?: boolean;
 }
 
 const stepTitles: Record<number, string> = {
@@ -41,6 +43,8 @@ export default function CreatePartnerStep({
   onCancel,
   isFirstStep,
   isLastStep,
+  isCreating = false,
+  isEditMode = false,
 }: CreatePartnerStepProps) {
   const stepFields = stepFieldConfigs[step] || [];
   const [formData, setFormData] =
@@ -65,6 +69,15 @@ export default function CreatePartnerStep({
     onDataChange(updatedData);
   };
 
+  const handleAddressChange = (address: string, coordinates: string) => {
+    let updatedData = { ...formData };
+    updatedData = setNestedValue(updatedData, "address", address);
+    updatedData = setNestedValue(updatedData, "gpsCoordinates", coordinates);
+
+    setFormData(updatedData);
+    onDataChange(updatedData);
+  };
+
   return (
     <div>
       <h3 className="text-[18px] font-bold text-[#22070B]/70 mb-6">
@@ -82,6 +95,7 @@ export default function CreatePartnerStep({
             isEditing={true}
             errors={errors}
             allValues={formData as Record<string, FieldValue>}
+            onAddressChange={handleAddressChange}
           />
         ))}
       </div>
@@ -92,7 +106,7 @@ export default function CreatePartnerStep({
           onClick={onCancel}
           type="button"
         >
-          Cancel account creation
+          {isEditMode ? "Cancel account editing" : "Cancel account creation"}
         </button>
         <div className="flex gap-4">
           {!isFirstStep && (
@@ -105,11 +119,20 @@ export default function CreatePartnerStep({
             </button>
           )}
           <button
-            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold hover:bg-mainRed/90"
+            className="bg-mainRed text-white px-6 py-3 rounded-[4px] font-semibold hover:bg-mainRed/90 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={onNext}
             type="button"
+            disabled={isCreating}
           >
-            {isLastStep ? "Create Account" : "Next"}
+            {isCreating
+              ? isEditMode
+                ? "Saving..."
+                : "Creating..."
+              : isLastStep
+                ? isEditMode
+                  ? "Save Changes"
+                  : "Create Account"
+                : "Next"}
           </button>
         </div>
       </div>

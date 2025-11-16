@@ -12,9 +12,9 @@ export const fieldConfigs: Record<string, FieldConfig[]> = {
     {
       name: "address",
       label: "Address",
-      type: "text",
+      type: "location",
       required: true,
-      placeholder: "Enter address",
+      placeholder: "Search for an address...",
     },
     {
       name: "department",
@@ -22,12 +22,6 @@ export const fieldConfigs: Record<string, FieldConfig[]> = {
       type: "text",
       required: true,
       placeholder: "Enter department",
-    },
-    {
-      name: "gpsCoordinates",
-      label: "GPS coordinates",
-      type: "text",
-      placeholder: "Enter GPS coordinates",
     },
     {
       name: "website",

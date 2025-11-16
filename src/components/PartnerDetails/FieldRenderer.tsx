@@ -1,4 +1,5 @@
 import React from "react";
+import LocationSearch from "./LocationSearch";
 
 export type FieldType =
   | "text"
@@ -9,7 +10,8 @@ export type FieldType =
   | "multiselect"
   | "boolean"
   | "radio"
-  | "file";
+  | "file"
+  | "location";
 
 export interface FieldOption {
   value: string;
@@ -48,6 +50,7 @@ interface FieldRendererProps {
   errors?: Record<string, string>;
   allValues?: Record<string, FieldValue>;
   renderLayoutWrapper?: boolean;
+  onAddressChange?: (address: string, coordinates: string) => void;
 }
 
 export default function FieldRenderer({
@@ -59,6 +62,7 @@ export default function FieldRenderer({
   errors,
   allValues = {},
   renderLayoutWrapper = true,
+  onAddressChange,
 }: FieldRendererProps) {
   const {
     name,
@@ -116,6 +120,24 @@ export default function FieldRenderer({
           </p>
         );
 
+      case "location":
+        // For address field, show the address string instead of coordinates
+        if (name === "address") {
+          const addressValue = allValues?.address;
+          return (
+            <p className="text-[16px] text-[#22070B]">
+              {typeof addressValue === "string" && addressValue
+                ? addressValue
+                : "Not specified"}
+            </p>
+          );
+        }
+        return (
+          <p className="text-[16px] text-[#22070B]">
+            {typeof value === "string" && value ? value : "Not specified"}
+          </p>
+        );
+
       default:
         return (
           <p className="text-[16px] text-[#22070B]">
@@ -143,7 +165,19 @@ export default function FieldRenderer({
           <input
             type="number"
             value={typeof value === "number" ? value.toString() : ""}
-            onChange={(e) => onChange(name, parseInt(e.target.value) || 0)}
+            onChange={(e) => {
+              const inputValue = e.target.value;
+              const numValue =
+                inputValue === "" ? undefined : parseInt(inputValue);
+              onChange(
+                name,
+                numValue === undefined
+                  ? undefined
+                  : isNaN(numValue)
+                    ? undefined
+                    : numValue
+              );
+            }}
             placeholder={placeholder}
             min={min}
             max={max}
@@ -271,6 +305,53 @@ export default function FieldRenderer({
           </div>
         );
 
+      case "location":
+        const locationValue =
+          name === "address"
+            ? typeof allValues?.gpsCoordinates === "string"
+              ? allValues.gpsCoordinates
+              : undefined
+            : typeof value === "string"
+              ? value
+              : undefined;
+        return (
+          <LocationSearch
+            value={locationValue}
+            onChange={(coordinates, addressString) => {
+              if (name === "address") {
+                // When clearing (no coordinates), clear both fields
+                if (!coordinates || coordinates.trim() === "") {
+                  if (onAddressChange) {
+                    onAddressChange("", "");
+                  } else {
+                    onChange("address", "");
+                    onChange("gpsCoordinates", "");
+                  }
+                } else {
+                  // When an address is selected, update both fields atomically
+                  // addressString should always be set when an option is selected
+                  // Use addressString if available, otherwise fall back to coordinates
+                  const addressValue =
+                    addressString && addressString.trim() !== ""
+                      ? addressString
+                      : coordinates;
+                  if (onAddressChange) {
+                    onAddressChange(addressValue, coordinates);
+                  } else {
+                    onChange("address", addressValue);
+                    onChange("gpsCoordinates", coordinates);
+                  }
+                }
+              } else {
+                onChange(name, coordinates);
+              }
+            }}
+            placeholder={placeholder || "Search for a location..."}
+            required={required}
+            error={!!errorMessage}
+          />
+        );
+
       default:
         return (
           <input
@@ -298,10 +379,10 @@ export default function FieldRenderer({
     return fieldContent;
   }
 
-  // Check if field is dynamically required based on conditional logic
   const isDynamicallyRequired =
-    name === "proofOfRegistrationWithMssp" &&
-    allValues["registeredWithMssp"] === true;
+    conditionalField &&
+    conditionalValue !== undefined &&
+    allValues[conditionalField] === conditionalValue;
 
   return (
     <div className="mb-4">

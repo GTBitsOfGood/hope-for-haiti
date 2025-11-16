@@ -66,9 +66,8 @@ export default function AccountManagementPage() {
 
   const tableRef = useRef<AdvancedBaseTableHandle<AccountRow>>(null);
   const { apiClient } = useApiClient();
-  const { data: tags, refetch: refetchTags } = useFetch<string[]>(
-    "/api/users/tags"
-  );
+  const { data: tags, refetch: refetchTags } =
+    useFetch<string[]>("/api/users/tags");
 
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
 
@@ -126,11 +125,12 @@ export default function AccountManagementPage() {
       console.error(`Error sending reminder: ${error}`);
       toast.error(`Error occured while sending reminder to ${user.name}`);
     }
-  }
+  };
 
   const handleEditAccount = (user: AccountRow) => {
     if (!canManageAccounts) return;
-    if (user.pending) return;
+
+    // Show the modal for all account types
     setSelectedUser(user);
     setPermissionState(null);
     setPermissionsModalOpen(false);
@@ -170,14 +170,16 @@ export default function AccountManagementPage() {
     tag: string;
   }) => {
     if (!canManageAccounts) return;
-    if (!selectedUser || selectedUser.pending) return;
+    if (!selectedUser) return;
 
     try {
       const payload: Record<string, unknown> = {
-        name: data.name,
-        email: data.email,
         tag: data.tag,
       };
+      const canEditName = selectedUser.pending || isStaff(selectedUser.type);
+      if (canEditName) {
+        payload.name = data.name;
+      }
 
       if (
         isStaff(selectedUser.type) &&
@@ -193,8 +195,7 @@ export default function AccountManagementPage() {
 
       const nextUser: AccountRow = {
         ...selectedUser,
-        name: data.name,
-        email: data.email,
+        ...(canEditName && { name: data.name }),
         tag: data.tag || null,
       };
 
@@ -288,17 +289,16 @@ export default function AccountManagementPage() {
   };
 
   const fetchFn = useCallback(
-    async (
-      pageSize: number,
-      page: number,
-      filters: FilterList<AccountRow>
-    ) => {
+    async (pageSize: number, page: number, filters: FilterList<AccountRow>) => {
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
         filters: JSON.stringify(filters),
       });
-      const data = await apiClient.get<{ users: AccountUserResponse[], total: number }>(`/api/users?` + params);
+      const data = await apiClient.get<{
+        users: AccountUserResponse[];
+        total: number;
+      }>(`/api/users?` + params);
       return {
         data: data.users,
         total: data.total,
@@ -394,86 +394,92 @@ export default function AccountManagementPage() {
 
       {canManageAccounts && (
         <ConfirmationModal
-        title="Delete account"
-        text={`Are you sure you would like to delete this account?
+          title="Delete account"
+          text={`Are you sure you would like to delete this account?
 Deleting an account will permanently remove all associated information from the database. This action is irreversible.`}
-        icon={<Trash size={78} />}
-        isOpen={isDeleteModalOpen}
-        onClose={closeAllModals}
-        onCancel={closeAllModals}
-        onConfirm={confirmDeleteAccount}
-        confirmText="Delete account"
+          icon={<Trash size={78} />}
+          isOpen={isDeleteModalOpen}
+          onClose={closeAllModals}
+          onCancel={closeAllModals}
+          onConfirm={confirmDeleteAccount}
+          confirmText="Delete account"
         />
       )}
 
       {canManageAccounts && (
         <ConfirmationModal
-        title={
-          selectedUser && !selectedUser.pending && selectedUser.enabled
-            ? "Deactivate account"
-            : "Activate account"
-        }
-        text={
-          selectedUser && !selectedUser.pending && selectedUser.enabled
-            ? `Are you sure you would like to deactivate this account?
+          title={
+            selectedUser && !selectedUser.pending && selectedUser.enabled
+              ? "Deactivate account"
+              : "Activate account"
+          }
+          text={
+            selectedUser && !selectedUser.pending && selectedUser.enabled
+              ? `Are you sure you would like to deactivate this account?
 For partner accounts, deactivation means the partner will no longer have access to request distributions. However, admins will still retain access to view all historical data associated with the account.`
-            : `Are you sure you would like to activate this account?
+              : `Are you sure you would like to activate this account?
 This will restore the user's access to the system.`
-        }
-        icon={
-          selectedUser && !selectedUser.pending && selectedUser.enabled ? (
-            <EyeSlash size={78} />
-          ) : (
-            <Eye size={78} />
-          )
-        }
-        isOpen={isDeactivateModalOpen}
-        onClose={closeAllModals}
-        onCancel={closeAllModals}
-        onConfirm={confirmDeactivateAccount}
-        confirmText={
-          selectedUser && !selectedUser.pending && selectedUser.enabled
-            ? "Deactivate"
-            : "Activate"
-        }
-      />
+          }
+          icon={
+            selectedUser && !selectedUser.pending && selectedUser.enabled ? (
+              <EyeSlash size={78} />
+            ) : (
+              <Eye size={78} />
+            )
+          }
+          isOpen={isDeactivateModalOpen}
+          onClose={closeAllModals}
+          onCancel={closeAllModals}
+          onConfirm={confirmDeactivateAccount}
+          confirmText={
+            selectedUser && !selectedUser.pending && selectedUser.enabled
+              ? "Deactivate"
+              : "Activate"
+          }
+        />
       )}
 
       {canManageAccounts && (
         <EditModal
-        title={
-          selectedUser && !selectedUser.pending && isStaff(selectedUser.type)
-            ? "Edit staff account"
-            : "Edit account"
-        }
-        isOpen={isEditModalOpen}
-        onClose={closeAllModals}
-        onCancel={closeAllModals}
-        onConfirm={confirmEditAccount}
-        initialData={
-          selectedUser && !selectedUser.pending
-            ? {
-                name: selectedUser.name,
-                email: selectedUser.email,
-              role: selectedUser.type,
-              tag: selectedUser.tag || "",
-            }
-            : undefined
-        }
-        isStaffAccount={
-          selectedUser && !selectedUser.pending
-            ? isStaff(selectedUser.type)
-            : true
-        }
-        existingTags={tags ?? []}
-        onManagePermissions={
-          selectedUser &&
-          !selectedUser.pending &&
-          isStaff(selectedUser.type)
-            ? () => handleManagePermissions(selectedUser)
-            : undefined
-        }
-      />
+          title={
+            selectedUser && !selectedUser.pending && isStaff(selectedUser.type)
+              ? "Edit staff account"
+              : "Edit account"
+          }
+          isOpen={isEditModalOpen}
+          onClose={closeAllModals}
+          onCancel={closeAllModals}
+          onConfirm={confirmEditAccount}
+          initialData={
+            selectedUser
+              ? {
+                  name: selectedUser.name,
+                  email: selectedUser.email,
+                  role: selectedUser.type,
+                  tag: selectedUser.tag || "",
+                }
+              : undefined
+          }
+          isStaffAccount={selectedUser ? isStaff(selectedUser.type) : true}
+          existingTags={tags ?? []}
+          onManagePermissions={
+            selectedUser && !selectedUser.pending && isStaff(selectedUser.type)
+              ? () => handleManagePermissions(selectedUser)
+              : undefined
+          }
+          isPending={selectedUser?.pending ?? false}
+          onEditPartnerDetails={
+            selectedUser && selectedUser.type === UserType.PARTNER
+              ? () => {
+                  setEditModalOpen(false);
+                  setSelectedUser(null);
+                  router.push(
+                    `/createPartnerAccount?userId=${selectedUser.id}`
+                  );
+                }
+              : undefined
+          }
+        />
       )}
 
       {canManageAccounts && (

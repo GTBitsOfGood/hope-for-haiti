@@ -18,265 +18,281 @@ body {
 }
 
 .marker-cluster-custom {
-    background-color: theme('colors.red.primary');
-    color: theme('colors.white');
-    border-radius: 100%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-    border: 2px solid theme('colors.white');
+  background-color: theme("colors.red.primary");
+  color: theme("colors.white");
+  border-radius: 100%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  border: 2px solid theme("colors.white");
 }
 
 .str-chat__channel-list-wrapper {
-    width: 40%;
-    border-right: 1px solid rgb(229 231 235); /* gray-200 */
-    background-color: theme("colors.white");
-  }
-  
-  .str-chat__channel-list {
-    margin-top: 0.5rem;
-    width: 100%;
-    height: 100%;
-    padding-right: 0.75rem;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-  
-  .str-chat__channel-list .str-chat__channel-preview {
-    margin-bottom: 0.5rem;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .str-chat__channel {
-    width: 100%;
-    background-color: theme("colors.white");
-  }
-  .str-chat__thread {
-    width: 45%;
-  }
-  
-  .str-chat__message-actions-box {
-    min-width: 9rem !important;
-    border-radius: 0.375rem !important;
-    background-color: white !important;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
-    border: 1px solid rgba(0, 0, 0, 0.05) !important;
-    overflow: hidden !important;
-  }
-  
-  .str-chat__message-actions-list {
-    padding: 0 !important;
-    margin: 0 !important;
-    list-style: none !important;
-  }
-  
-  .str-chat__message-actions-list-item {
-    margin: 0 !important;
-  }
-  
-  .str-chat__message-actions-list-item button,
-  .str-chat__message-actions-list-item-button {
-    width: 100% !important;
-    font-size: 0.875rem !important;
-    text-align: left !important;
-    padding: 0.40rem 1rem !important;
-    background-color: white !important;
-    border: none !important;
-    cursor: pointer !important;
-    transition: background-color 150ms ease-in-out !important;
-    color: #22070B !important;
-    display: block !important;
-  }
-  
-  .str-chat__message-actions-list-item button:hover,
-  .str-chat__message-actions-list-item-button:hover {
-    background-color: rgb(229 231 235) !important; /* gray-200 */
-  }
-  
-  .str-chat__message-actions-list-item:first-child button {
-    border-top-left-radius: 0.375rem !important;
-    border-top-right-radius: 0.375rem !important;
-  }
-  
-  .str-chat__message-actions-list-item:last-child button {
-    border-bottom-left-radius: 0.375rem !important;
-    border-bottom-right-radius: 0.375rem !important;
-  }
-  
-  .str-chat__message--other.str-chat__message--deleted {
-    margin-left: 2.5rem !important;
-  }
-  
-  /* Edit Message Modal - Match GeneralModal styling */
-  .str-chat__edit-message-modal {
-    position: fixed !important;
-    inset: 0 !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    z-index: 50 !important;
-  }
-  
-  .str-chat__edit-message-modal .str-chat__modal__close-button {
-    display: none !important;
-  }
-  
-  .str-chat__edit-message-modal .str-chat__modal__inner,
-  .str-chat__edit-message-modal .str-chat-react__modal__inner {
-    background-color: white !important;
-    border-radius: 0.75rem !important;
-    border-top-left-radius: 0.75rem !important;
-    border-top-right-radius: 0.75rem !important;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
-    width: 100% !important;
-    max-width: 24rem !important;
-    margin: 1rem !important;
-    padding: 0 !important;
-    position: relative !important;
-    overflow: hidden !important;
-  }
-  
-  .str-chat__edit-message-form {
-    display: flex !important;
-    flex-direction: column !important;
-    padding: 0 !important;
-  }
-  
-  .str-chat__edit-message-form .str-chat__message-input {
-    padding: 1rem 0.75rem !important;
-  }
-  
-  /* Input styling - Match TicketSearchBar exactly */
-  .str-chat__edit-message-form .str-chat__message-input-inner {
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.25rem !important;
-  }
-  
-  .str-chat__edit-message-form .str-chat__file-input-container {
-    flex-shrink: 0 !important;
-    order: -1 !important;
-  }
-  
-  .str-chat__edit-message-form .str-chat__file-input-label {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-  }
-  
-  .str-chat__edit-message-form .str-chat__message-textarea-container {
-    flex: 1 !important;
-    position: relative !important;
-  }
-  
-  .str-chat__edit-message-form .str-chat__message-textarea,
-  .str-chat__edit-message-form .str-chat__textarea__textarea {
-    padding: 0.5rem 1rem !important;
-    width: 100% !important;
-    border: 1px solid rgba(34, 7, 11, 0.2) !important;
-    border-radius: 0.5rem !important;
-    background-color: #F9F9F9 !important;
-    font-size: 0.875rem !important;
-    line-height: 1.25rem !important;
-    resize: none !important;
-    outline: none !important;
-  }
-  
-  .str-chat__edit-message-form .str-chat__message-textarea:focus,
-  .str-chat__edit-message-form .str-chat__textarea__textarea:focus {
-    outline: none !important;
-    border-color: rgba(39, 116, 174, 0.5) !important;
-  }
-  
-  .str-chat__edit-message-form-options {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: stretch !important;
-    gap: 0.75rem !important;
-    padding: 1.5rem !important;
-    width: 100% !important;
-  }
-  
-  /* Cancel button - Match GeneralModal exactly */
-  .str-chat__edit-message-cancel {
-    flex: 1 !important;
-    padding: 0.5rem 2rem !important;
-    color: #ef3340 !important;
-    background-color: white !important;
-    border: 1px solid #ef3340 !important;
-    border-radius: 0.375rem !important;
-    transition: background-color 150ms ease-in-out !important;
-    cursor: pointer !important;
-    font-size: 0.875rem !important;
-    line-height: 1.25rem !important;
-  }
-  
-  .str-chat__edit-message-cancel:hover {
-    background-color: rgb(249 250 251) !important;
-  }
-  
-  /* Send button - Match GeneralModal exactly */
-  .str-chat__edit-message-send {
-    flex: 1.2 !important;
-    padding: 0.5rem 1rem !important;
-    color: white !important;
-    background-color: #ef3340 !important;
-    border: 1px solid #ef3340 !important;
-    border-radius: 0.375rem !important;
-    transition: background-color 150ms ease-in-out !important;
-    cursor: pointer !important;
-    font-size: 0.875rem !important;
-    line-height: 1.25rem !important;
-  }
-  
-  .str-chat__edit-message-send:hover {
-    background-color: rgba(239, 51, 64, 0.8) !important;
-  }
-  
-  .str-chat__edit-message-form-options {
-    padding-top: 0 !important;
-  }
-  
-  .str-chat__message-input {
-    padding-bottom: 0 !important;
-  }
-  
-  .str-chat__message-simple-name {
-    font-weight: 600 !important;
-  }
-  
-  .str-chat__unread-messages-separator {
-    background-color: transparent;
-    border-bottom: 1px solid rgb(229 231 235);
-  }
+  width: 40%;
+  border-right: 1px solid rgb(229 231 235); /* gray-200 */
+  background-color: theme("colors.white");
+}
 
-  /* Move attachment preview above input - minimal styling */
+.str-chat__channel-list {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 100%;
+  padding-right: 0.75rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.str-chat__channel-list .str-chat__channel-preview {
+  margin-bottom: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.str-chat__channel {
+  width: 100%;
+  background-color: theme("colors.white");
+}
+.str-chat__thread {
+  width: 45%;
+}
+
+.str-chat__message-actions-box {
+  min-width: 9rem !important;
+  border-radius: 0.375rem !important;
+  background-color: white !important;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  overflow: hidden !important;
+}
+
+.str-chat__message-actions-list {
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+
+.str-chat__message-actions-list-item {
+  margin: 0 !important;
+}
+
+.str-chat__message-actions-list-item button,
+.str-chat__message-actions-list-item-button {
+  width: 100% !important;
+  font-size: 0.875rem !important;
+  text-align: left !important;
+  padding: 0.4rem 1rem !important;
+  background-color: white !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 150ms ease-in-out !important;
+  color: #22070b !important;
+  display: block !important;
+}
+
+.str-chat__message-actions-list-item button:hover,
+.str-chat__message-actions-list-item-button:hover {
+  background-color: rgb(229 231 235) !important; /* gray-200 */
+}
+
+.str-chat__message-actions-list-item:first-child button {
+  border-top-left-radius: 0.375rem !important;
+  border-top-right-radius: 0.375rem !important;
+}
+
+.str-chat__message-actions-list-item:last-child button {
+  border-bottom-left-radius: 0.375rem !important;
+  border-bottom-right-radius: 0.375rem !important;
+}
+
+.str-chat__message--other.str-chat__message--deleted {
+  margin-left: 2.5rem !important;
+}
+
+/* Edit Message Modal - Match GeneralModal styling */
+.str-chat__edit-message-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 50 !important;
+}
+
+.str-chat__edit-message-modal .str-chat__modal__close-button {
+  display: none !important;
+}
+
+.str-chat__edit-message-modal .str-chat__modal__inner,
+.str-chat__edit-message-modal .str-chat-react__modal__inner {
+  background-color: white !important;
+  border-radius: 0.75rem !important;
+  border-top-left-radius: 0.75rem !important;
+  border-top-right-radius: 0.75rem !important;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  width: 100% !important;
+  max-width: 24rem !important;
+  margin: 1rem !important;
+  padding: 0 !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.str-chat__edit-message-form {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+}
+
+.str-chat__edit-message-form .str-chat__message-input {
+  padding: 1rem 0.75rem !important;
+}
+
+/* Input styling - Match TicketSearchBar exactly */
+.str-chat__edit-message-form .str-chat__message-input-inner {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+}
+
+.str-chat__edit-message-form .str-chat__file-input-container {
+  flex-shrink: 0 !important;
+  order: -1 !important;
+}
+
+.str-chat__edit-message-form .str-chat__file-input-label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+}
+
+.str-chat__edit-message-form .str-chat__message-textarea-container {
+  flex: 1 !important;
+  position: relative !important;
+}
+
+.str-chat__edit-message-form .str-chat__message-textarea,
+.str-chat__edit-message-form .str-chat__textarea__textarea {
+  padding: 0.5rem 1rem !important;
+  width: 100% !important;
+  border: 1px solid rgba(34, 7, 11, 0.2) !important;
+  border-radius: 0.5rem !important;
+  background-color: #f9f9f9 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  resize: none !important;
+  outline: none !important;
+}
+
+.str-chat__edit-message-form .str-chat__message-textarea:focus,
+.str-chat__edit-message-form .str-chat__textarea__textarea:focus {
+  outline: none !important;
+  border-color: rgba(39, 116, 174, 0.5) !important;
+}
+
+.str-chat__edit-message-form-options {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 0.75rem !important;
+  padding: 1.5rem !important;
+  width: 100% !important;
+}
+
+/* Cancel button - Match GeneralModal exactly */
+.str-chat__edit-message-cancel {
+  flex: 1 !important;
+  padding: 0.5rem 2rem !important;
+  color: #ef3340 !important;
+  background-color: white !important;
+  border: 1px solid #ef3340 !important;
+  border-radius: 0.375rem !important;
+  transition: background-color 150ms ease-in-out !important;
+  cursor: pointer !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+.str-chat__edit-message-cancel:hover {
+  background-color: rgb(249 250 251) !important;
+}
+
+/* Send button - Match GeneralModal exactly */
+.str-chat__edit-message-send {
+  flex: 1.2 !important;
+  padding: 0.5rem 1rem !important;
+  color: white !important;
+  background-color: #ef3340 !important;
+  border: 1px solid #ef3340 !important;
+  border-radius: 0.375rem !important;
+  transition: background-color 150ms ease-in-out !important;
+  cursor: pointer !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+.str-chat__edit-message-send:hover {
+  background-color: rgba(239, 51, 64, 0.8) !important;
+}
+
+.str-chat__edit-message-form-options {
+  padding-top: 0 !important;
+}
+
+.str-chat__message-input {
+  padding-bottom: 0 !important;
+}
+
+.str-chat__message-simple-name {
+  font-weight: 600 !important;
+}
+
+.str-chat__unread-messages-separator {
+  background-color: transparent;
+  border-bottom: 1px solid rgb(229 231 235);
+}
+
+/* Move attachment preview above input - minimal styling */
 .str-chat__main-panel > div[role="presentation"] {
-    flex-wrap: wrap !important;
-  }
+  flex-wrap: wrap !important;
+}
 
-  /* Force attachment preview to full width, causing it to wrap to its own line */
-  .str-chat__attachment-list-scroll-container {
-    flex-basis: 100% !important;
-    width: 100% !important;
-  }
+/* Force attachment preview to full width, causing it to wrap to its own line */
+.str-chat__attachment-list-scroll-container {
+  flex-basis: 100% !important;
+  width: 100% !important;
+}
 
-  .str-chat__attachment-preview-list {
-    flex-basis: 100% !important;
-    width: 100% !important;
-  }
+.str-chat__attachment-preview-list {
+  flex-basis: 100% !important;
+  width: 100% !important;
+}
 
-  /* Ensure other input elements don't wrap unnecessarily - keep them on second line */
-  .str-chat__message-input > div[role="presentation"] > *:not(.str-chat__attachment-preview-list) {
-    flex-basis: auto !important;
-    flex-shrink: 0 !important;
-  }
+/* Ensure other input elements don't wrap unnecessarily - keep them on second line */
+.str-chat__message-input
+  > div[role="presentation"]
+  > *:not(.str-chat__attachment-preview-list) {
+  flex-basis: auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* Remove blue border from react-select input */
+.react-select__input-container input,
+.react-select__input input,
+.react-select__input-container input:focus,
+.react-select__input input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
