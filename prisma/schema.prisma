@@ -360,14 +360,17 @@ model PasswordResetToken {
 }
 
 model Notification {
-  id          Int      @id @default(autoincrement())
-  title       String
-  action      String?
-  actionText  String?
-  dateCreated DateTime @default(now())
-  dateViewed  DateTime?
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           Int       @id @default(autoincrement())
+  title        String
+  action       String?
+  actionText   String?
+  dateCreated  DateTime  @default(now())
+  dateViewed   DateTime?
+  isDelivered  Boolean   @default(false)
+  template     String?
+  payload      Json?
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dateViewed])
 }

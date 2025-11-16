@@ -1,5 +1,10 @@
 import { db } from "@/db";
-import { LineItem, Prisma, ShippingStatus } from "@prisma/client";
+import {
+  LineItem,
+  Prisma,
+  ShipmentStatus,
+  ShippingStatus,
+} from "@prisma/client";
 import {
   Shipment,
   ShippingStatusWithItems,
@@ -7,6 +12,8 @@ import {
 } from "@/types/api/shippingStatus.types";
 import { Filters, FilterValue } from "@/types/api/filter.types";
 import { buildWhereFromFilters } from "@/util/table";
+import { shippingStatusToText } from "@/util/util";
+import { NotificationService } from "./notificationService";
 
 export class ShippingStatusService {
   static async getShipments(
@@ -364,6 +371,17 @@ export class ShippingStatusService {
   }
 
   static async updateShippingStatus(data: UpdateShippingStatusData) {
+    const existingStatus = await db.shippingStatus.findUnique({
+      where: {
+        donorShippingNumber_hfhShippingNumber: {
+          donorShippingNumber: data.donorShippingNumber,
+          hfhShippingNumber: data.hfhShippingNumber,
+        },
+      },
+    });
+
+    const previousStatus = existingStatus?.value;
+
     await db.shippingStatus.upsert({
       where: {
         donorShippingNumber_hfhShippingNumber: {
@@ -380,5 +398,88 @@ export class ShippingStatusService {
         value: data.value,
       },
     });
+
+    if (previousStatus === data.value) {
+      return;
+    }
+
+    await this.notifyPartnersOfStatusChange({
+      donorShippingNumber: data.donorShippingNumber,
+      hfhShippingNumber: data.hfhShippingNumber,
+      previousStatus,
+      newStatus: data.value,
+    });
+  }
+
+  private static async notifyPartnersOfStatusChange({
+    donorShippingNumber,
+    hfhShippingNumber,
+    previousStatus,
+    newStatus,
+  }: {
+    donorShippingNumber: string;
+    hfhShippingNumber: string;
+    previousStatus?: ShipmentStatus;
+    newStatus: ShipmentStatus;
+  }) {
+    const lineItems = await db.lineItem.findMany({
+      where: {
+        donorShippingNumber,
+        hfhShippingNumber,
+      },
+      select: {
+        allocation: {
+          select: {
+            partnerId: true,
+          },
+        },
+      },
+    });
+
+    const partnerIds = Array.from(
+      new Set(
+        lineItems
+          .map((item) => item.allocation?.partnerId)
+          .filter((id): id is number => typeof id === "number")
+      )
+    );
+
+    if (partnerIds.length === 0) {
+      return;
+    }
+
+    const eligiblePartners = await db.user.findMany({
+      where: {
+        id: { in: partnerIds },
+        enabled: true,
+        pending: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (eligiblePartners.length === 0) {
+      return;
+    }
+
+    const previousLabel = previousStatus ? shippingStatusToText[previousStatus] : "None";
+    const newLabel = shippingStatusToText[newStatus] ?? newStatus;
+
+    await NotificationService.createNotifications(
+      eligiblePartners.map((partner) => partner.id),
+      {
+        title: "Shipment Status Updated",
+        action: `${process.env.BASE_URL}/`,
+        actionText: "View Shipment",
+        template: "ShippingStatusUpdated",
+        payload: {
+          donorShippingNumber,
+          hfhShippingNumber,
+          previousStatus: previousLabel,
+          newStatus: newLabel,
+        },
+      }
+    );
   }
 }

@@ -1,16 +1,15 @@
 "use client";
 
+import { useNotifications } from "@/components/NotificationHandler";
 import { useUser } from "@/components/context/UserContext";
 import { isStaff } from "@/lib/userUtils";
 import NotificationsSection from "@/components/dashboard/NotificationsSection";
 import MapSection from "@/components/dashboard/MapSection";
 import DashboardWidget from "@/components/dashboard/widgets/DashboardWidget";
 import {
-  fetchNotifications,
   fetchAnalytics,
   fetchPartnerLocations,
 } from "@/lib/dashboardApi";
-import type { Notification } from "@/components/dashboard/types";
 import type { DashboardWidget as WidgetType } from "@/components/dashboard/analyticsData";
 import { useEffect, useState, useRef } from "react";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
@@ -28,7 +27,7 @@ interface TagOption {
 export default function AdminDashboardScreen() {
   const { user, loading: userLoading } = useUser();
   const { apiClient } = useApiClient();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { notifications } = useNotifications();
   const [analyticsWidgets, setAnalyticsWidgets] = useState<WidgetType[]>([]);
   const [partnerLocations, setPartnerLocations] = useState<
     { id: string; name: string; lat: number; lng: number }[]
@@ -85,13 +84,11 @@ export default function AdminDashboardScreen() {
 
         const excludeTagValues = excludedTags.map((t) => t.value);
 
-        const [notifs, analytics, partners] = await Promise.all([
-          fetchNotifications(),
+        const [analytics, partners] = await Promise.all([
           fetchAnalytics(excludeTagValues),
           fetchPartnerLocations(),
         ]);
 
-        setNotifications(notifs);
         setAnalyticsWidgets(analytics);
         setPartnerLocations(partners);
       } catch (err) {

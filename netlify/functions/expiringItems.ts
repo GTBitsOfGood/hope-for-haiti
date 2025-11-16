@@ -2,8 +2,8 @@ import { schedule } from "@netlify/functions";
 import { UserType } from "@prisma/client";
 
 import { GeneralItemService } from "../../src/services/generalItemService";
-import { EmailClient } from "../../src/email";
 import { db } from "../../src/db";
+import { NotificationService } from "@/services/notificationService";
 
 const LOOKAHEAD_DAYS = 30;
 
@@ -25,7 +25,7 @@ export const handler = schedule("@daily", async () => {
         OR: [{ itemNotify: true }],
       },
       select: {
-        email: true,
+        id: true,
       },
     });
 
@@ -43,10 +43,16 @@ export const handler = schedule("@daily", async () => {
       distributedQuantity: item.allocatedQuantity,
     }));
 
-    await EmailClient.sendItemsExpiring(staffUsers.map(s => s.email), {
-      items: templateItems,
-      cutoffDays: LOOKAHEAD_DAYS,
-    });
+    await NotificationService.createNotifications(staffUsers.map(s => s.id), {
+      title: "Items Expiring",
+      action: `${process.env.BASE_URL}/`,
+      actionText: "View the expiring items",
+      template: "ExpiringItems",
+      payload: {
+        items: templateItems,
+        cutoffDays: LOOKAHEAD_DAYS,
+      }
+    })
 
     return {
       statusCode: 200,

@@ -1,5 +1,4 @@
 import { db } from "@/db";
-import { EmailClient } from "@/email";
 import {
   DonorOfferState,
   UserType,
@@ -33,6 +32,7 @@ import {
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { Partner } from "@/components/DonorOffers";
+import { NotificationService } from "./notificationService";
 
 const DonorOfferItemSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -610,12 +610,17 @@ export default class DonorOfferService {
       }
     });
 
-    EmailClient.sendDonorOfferCreated(partners.map(p => p.email), {
-      offerName,
-      donorName,
-      partnerResponseDeadline: donorOfferData.partnerResponseDeadline,
-      donorResponseDeadline: donorOfferData.donorResponseDeadline,
-      offerUrl: `${process.env.BASE_URL}/donorOffers/${donorOffer.id}`
+    NotificationService.createNotifications(partners.map(p => p.id), {
+      title: "Donor Offer Created",
+      action: `${process.env.BASE_URL}/donorOffers/${donorOffer.id}`,
+      actionText: "View the Donor Offer",
+      template: "DonorOfferCreated",
+      payload: {
+        offerName,
+        donorName,
+        partnerResponseDeadline: donorOfferData.partnerResponseDeadline,
+        donorResponseDeadline: donorOfferData.donorResponseDeadline,
+      }
     });
 
     return { success: true };
@@ -1119,14 +1124,18 @@ export default class DonorOfferService {
     });
 
     if (addedPartnerIds.length > 0) {
-      const emails = newPartners.map(partner => partner.email);
-      EmailClient.sendDonorOfferCreated(emails, {
-        offerName: updatedOffer.offerName,
-        donorName: updatedOffer.donorName,
-        partnerResponseDeadline: updatedOffer.partnerResponseDeadline,
-        donorResponseDeadline: updatedOffer.donorResponseDeadline,
-        offerUrl: `${process.env.BASE_URL}/donorOffers/${donorOfferId}`,
-      });
+      NotificationService.createNotifications(newPartners.map(p => p.id), {
+        title: "Donor Offer Created",
+        action: `${process.env.BASE_URL}/donorOffers/${donorOfferId}`,
+        actionText: "View the Donor Offer",
+        template: "DonorOfferCreated",
+        payload: {
+          offerName: updatedOffer.offerName,
+          donorName: updatedOffer.donorName,
+          partnerResponseDeadline: updatedOffer.partnerResponseDeadline,
+          donorResponseDeadline: updatedOffer.donorResponseDeadline,
+        }
+      })
     }
 
     return updatedOffer;

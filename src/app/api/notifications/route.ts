@@ -1,6 +1,9 @@
 import { auth } from "@/auth";
 import { NotificationService } from "@/services/notificationService";
-import { AuthenticationError, errorResponse } from "@/util/errors";
+import {
+  AuthenticationError,
+  errorResponse,
+} from "@/util/errors";
 import { NextResponse } from "next/server";
 
 export async function GET() {

@@ -3,6 +3,7 @@ import "./globals.css";
 import "react-tooltip/dist/react-tooltip.css";
 
 import AuthenticationProvider from "@/components/AuthenticationProvider";
+import NotificationHandler from "@/components/NotificationHandler";
 import { Toaster } from "react-hot-toast";
 import NavbarLayout from "@/components/NavBarLayout";
 
@@ -20,8 +21,10 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthenticationProvider>
-          <NavbarLayout>{children}</NavbarLayout>
-          <Toaster position="top-right" />
+          <NotificationHandler>
+            <NavbarLayout>{children}</NavbarLayout>
+            <Toaster position="top-right" />
+          </NotificationHandler>
         </AuthenticationProvider>
       </body>
     </html>

@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "@phosphor-icons/react";
 import NotificationCard from "./NotificationCard";
-import type { Notification } from "./types";
+import { Notification } from "@prisma/client";
 
 interface NotificationsPanelProps {
   isOpen: boolean;
@@ -21,13 +21,13 @@ export default function NotificationsPanel({
   today.setHours(0, 0, 0, 0);
 
   const todayNotifications = notifications.filter((notif) => {
-    const notifDate = new Date(notif.timestamp);
+    const notifDate = new Date(notif.dateCreated);
     notifDate.setHours(0, 0, 0, 0);
     return notifDate.getTime() === today.getTime();
   });
 
   const previousNotifications = notifications.filter((notif) => {
-    const notifDate = new Date(notif.timestamp);
+    const notifDate = new Date(notif.dateCreated);
     notifDate.setHours(0, 0, 0, 0);
     return notifDate.getTime() < today.getTime();
   });
@@ -65,9 +65,10 @@ export default function NotificationsPanel({
                   {todayNotifications.map((notification) => (
                     <NotificationCard
                       key={notification.id}
-                      message={notification.message}
-                      actionText={notification.actionText}
-                      actionUrl={notification.actionUrl}
+                      id={notification.id}
+                      message={notification.title}
+                      actionText={notification.actionText ?? undefined}
+                      actionUrl={notification.action ?? undefined}
                     />
                   ))}
                 </div>
@@ -83,9 +84,10 @@ export default function NotificationsPanel({
                   {previousNotifications.map((notification) => (
                     <NotificationCard
                       key={notification.id}
-                      message={notification.message}
-                      actionText={notification.actionText}
-                      actionUrl={notification.actionUrl}
+                      id={notification.id}
+                      message={notification.title}
+                      actionText={notification.actionText ?? undefined}
+                      actionUrl={notification.action ?? undefined}
                     />
                   ))}
                 </div>
