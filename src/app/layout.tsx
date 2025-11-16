@@ -23,7 +23,17 @@ export default function RootLayout({
         <AuthenticationProvider>
           <NotificationHandler>
             <NavbarLayout>{children}</NavbarLayout>
-            <Toaster position="bottom-right" />
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                className:
+                  "!bg-red-light border-red-dark border !text-red-primary",
+                iconTheme: {
+                  primary: "#F7949A",
+                  secondary: "#FEF5F5",
+                },
+              }}
+            />
           </NotificationHandler>
         </AuthenticationProvider>
       </body>
