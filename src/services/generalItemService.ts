@@ -396,8 +396,6 @@ export class GeneralItemService {
         priorityIds.map((id) => Prisma.sql`${id}`)
       );
 
-      console.log(priorityIds, priorityIdsArray);
-
       const orderedIdsSql = Prisma.sql`
         WITH filtered_items AS (
           SELECT gi.id
