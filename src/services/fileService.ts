@@ -27,13 +27,16 @@ const finalizedRequiredKeys = new Map<string, string>([
   ["Description", "title"],
   ["Exp.", "expirationDate"],
   ["Container Type", "unitType"],
-  ["Weight Lb", "weight"],
   ["Donor", "donorName"],
   ["# of Containers", "quantity"],
   ["Lot #", "lotNumber"],
   ["Pallet #", "palletNumber"],
   ["Box #", "boxNumber"],
   ["Cost per Piece", "unitPrice"],
+]);
+
+const finalizedOptionalKeys = new Map<string, string>([
+  ["Weight Lb", "weight"],
 ]);
 
 const unfinalizedRequiredKeysList = Array.from(unfinalizedRequiredKeys.keys());
@@ -70,14 +73,25 @@ const remapRequiredColumns = (
   row: Record<string, unknown>
 ): Record<string, unknown> => {
   const updated: Record<string, unknown> = { ...row };
-  const keys =
+  const requiredKeys =
     type === "unfinalized" ? unfinalizedRequiredKeys : finalizedRequiredKeys;
-  for (const [originalKey, newKey] of keys) {
+  const optionalKeys =
+    type === "unfinalized" ? new Map() : finalizedOptionalKeys;
+
+  for (const [originalKey, newKey] of requiredKeys) {
     if (Object.prototype.hasOwnProperty.call(updated, originalKey)) {
       updated[newKey] = updated[originalKey];
       delete updated[originalKey];
     }
   }
+
+  for (const [originalKey, newKey] of optionalKeys) {
+    if (Object.prototype.hasOwnProperty.call(updated, originalKey)) {
+      updated[newKey] = updated[originalKey];
+      delete updated[originalKey];
+    }
+  }
+
   return updated;
 };
 
@@ -95,15 +109,10 @@ const transformDonorOfferRow = (
     transformed["initialQuantity"] = quantity;
   }
 
-  if (
-    weight !== undefined &&
-    weight !== null &&
-    weight !== 0 &&
-    weight !== "0"
-  ) {
+  if (weight !== undefined && weight !== null) {
     transformed["weight"] = weight;
   } else {
-    throw new Error("Weight is required and cannot be zero");
+    throw new Error("Weight is required");
   }
 
   delete transformed["quantity"];

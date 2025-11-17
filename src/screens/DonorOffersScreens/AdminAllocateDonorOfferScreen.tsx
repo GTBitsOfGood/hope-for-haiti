@@ -7,6 +7,7 @@ import AllocationTable from "@/components/allocationTable/AllocationTable";
 import {
   AllocationChange,
   AllocationTableItem,
+  AllocationTableMeta,
 } from "@/components/allocationTable/types";
 import type { FilterList } from "@/components/baseTable/AdvancedBaseTable";
 import type { PartnerDistributionSummary } from "@/components/chips/LineItemChipGroup";
@@ -18,6 +19,8 @@ import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 type AllocationResponse = {
   items: AllocationTableItem[];
   total: number;
+  orphanedRequests: AllocationTableMeta["orphanedRequests"];
+  generalItemOptions: AllocationTableMeta["generalItemOptions"];
 };
 
 type SuggestionResponse = {
@@ -102,6 +105,10 @@ export default function AdminAllocateDonorOfferScreen() {
       return {
         data: items,
         total: response.total,
+        meta: {
+          orphanedRequests: response.orphanedRequests ?? [],
+          generalItemOptions: response.generalItemOptions ?? [],
+        },
       };
     },
     [apiClient, donorOfferId, isValidDonorOfferId]

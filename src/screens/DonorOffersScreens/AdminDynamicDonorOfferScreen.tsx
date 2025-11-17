@@ -23,7 +23,6 @@ import PartnerRequestChipGroup, {
 import toast from "react-hot-toast";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
 
-// Types for stream chunks
 type StreamingChunk = {
   itemIndex: number;
   requests: { partnerId: number; finalQuantity: number }[];
@@ -83,7 +82,6 @@ export default function AdminDynamicDonorOfferScreen() {
   );
   const currentItemsRef = useRef<GeneralItemWithRequests[]>([]);
 
-  // Keep ref in sync with state
   useEffect(() => {
     currentItemsRef.current = currentItems;
   }, [currentItems]);
@@ -157,11 +155,6 @@ export default function AdminDynamicDonorOfferScreen() {
         cell: (i) => i.initialQuantity,
       },
       {
-        id: "description",
-        header: "Description",
-        cell: (i) => i.description || "N/A",
-      },
-      {
         id: "requestSummary",
         header: "Request Summary",
         cell: (i, _, isOpen) => {
@@ -196,7 +189,6 @@ export default function AdminDynamicDonorOfferScreen() {
         quantity?: number;
       }[]
     ) => {
-      // Update table
       tableRef.current?.updateItemById(itemId, (currentItem) => {
         const updatedItem = {
           ...currentItem,
@@ -220,7 +212,6 @@ export default function AdminDynamicDonorOfferScreen() {
         return updatedItem;
       });
 
-      // Update currentItems state
       setCurrentItems((prevItems) =>
         prevItems.map((item) => {
           if (item.id === itemId) {
@@ -260,13 +251,10 @@ export default function AdminDynamicDonorOfferScreen() {
 
     const pageSize = 20;
 
-    // Queue for processing chunks sequentially
     const chunkQueue: StreamChunk[] = [];
     let isProcessing = false;
 
-    // Helper function to scroll to a row element
     const scrollToRow = (itemId: number) => {
-      // Use setTimeout to ensure DOM has updated
       setTimeout(() => {
         const rowElement = document.querySelector(
           `tr[data-row-id="${itemId}"]`
@@ -280,7 +268,6 @@ export default function AdminDynamicDonorOfferScreen() {
       }, 100);
     };
 
-    // Helper function to scroll to top of table
     const scrollToTop = () => {
       setTimeout(() => {
         const tableContainer = document.querySelector(
@@ -292,13 +279,11 @@ export default function AdminDynamicDonorOfferScreen() {
             block: "start",
           });
         } else {
-          // Fallback: scroll window to top
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
       }, 50);
     };
 
-    // Helper function to process a chunk with animation
     const processChunk = async (chunk: StreamChunk) => {
       if ("test" in chunk) {
         return;
@@ -313,37 +298,29 @@ export default function AdminDynamicDonorOfferScreen() {
         return;
       }
 
-      // Handle streaming chunk
       if ("itemIndex" in chunk && "requests" in chunk) {
         const currentItem = currentItemsRef.current[chunk.itemIndex];
         if (currentItem) {
-          // Calculate which page this item is on
           const targetPage = Math.floor(chunk.itemIndex / pageSize) + 1;
           const currentPage = tableRef.current?.getPage() ?? 1;
 
-          // If item is on a different page, navigate to it
           if (targetPage !== currentPage) {
             tableRef.current?.setPage(targetPage);
             scrollToTop();
-            // Wait a bit for page change to complete
             await new Promise((resolve) => setTimeout(resolve, 300));
           }
 
-          // Update the item requests
           updateItemRequests(currentItem.id, chunk.requests);
 
-          // Open the row and scroll to it
           tableRef.current?.setOpenRowIds((prev) => {
             const next = new Set(prev);
             next.add(currentItem.id);
             return next;
           });
 
-          // Scroll to the row with a small delay for smooth animation
           await new Promise((resolve) => setTimeout(resolve, 150));
           scrollToRow(currentItem.id);
 
-          // Add a small delay between chunks for visual effect
           await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
@@ -401,7 +378,6 @@ export default function AdminDynamicDonorOfferScreen() {
         },
         onChunk: (chunk) => {
           if (!chunk) return;
-          // Add current chunk to queue (parseChunk handles pending messages internally)
           enqueueChunk(chunk);
         },
         onDone: () => {
@@ -488,7 +464,6 @@ export default function AdminDynamicDonorOfferScreen() {
   const handleRequestUpdated = useCallback(
     (itemId?: number, updatedRequests?: PartnerRequestChipData[]) => {
       if (isLLMMode && itemId && updatedRequests) {
-        // In LLM mode, update the specific item without reloading
         tableRef.current?.updateItemById(itemId, (currentItem) => {
           return {
             ...currentItem,
@@ -505,7 +480,6 @@ export default function AdminDynamicDonorOfferScreen() {
           };
         });
 
-        // Also update currentItems state
         setCurrentItems((prevItems) =>
           prevItems.map((item) => {
             if (item.id === itemId) {
@@ -529,7 +503,6 @@ export default function AdminDynamicDonorOfferScreen() {
           })
         );
       } else {
-        // Not in LLM mode, reload the table
         tableRef.current?.reload();
       }
     },

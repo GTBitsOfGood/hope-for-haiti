@@ -33,6 +33,7 @@ import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { Partner } from "@/components/DonorOffers";
 import { NotificationService } from "./notificationService";
+import { MatchingService } from "./matchingService";
 
 const DonorOfferItemSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -54,7 +55,7 @@ const DonorOfferItemSchema = z.object({
   weight: z
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().positive("Weight must be positive and non-zero")),
+    .pipe(z.number().min(0, "Weight must be non-negative")),
   type: z.nativeEnum(ItemType).optional(),
   category: z.nativeEnum(ItemCategory).optional(),
 });
@@ -67,9 +68,68 @@ const DonorOfferSchema = z.object({
   state: z.nativeEnum(DonorOfferState).default(DonorOfferState.UNFINALIZED),
 });
 
+const coerceNormalizedString = (value: unknown): string => {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
+};
+
+const coerceOptionalString = (options?: { allowEmpty?: boolean }) =>
+  z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((val) => {
+      if (val == null) {
+        return options?.allowEmpty ? "" : undefined;
+      }
+      const normalized = coerceNormalizedString(val);
+      if (!normalized && !options?.allowEmpty) {
+        return undefined;
+      }
+      return normalized;
+    });
+
+const coerceRequiredString = () =>
+  z
+    .union([z.string(), z.number()])
+    .transform((val) => coerceNormalizedString(val))
+    .pipe(z.string().min(1));
+
+const coerceNumber = () =>
+  z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((val) => {
+      if (val == null || (typeof val === "string" && val.trim() === "")) {
+        return undefined;
+      }
+      if (typeof val === "number") {
+        return val;
+      }
+      const cleaned = val.replace(/[$,]/g, "");
+      const parsed = Number(cleaned);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    });
+
+const coerceBoolean = (defaultValue: boolean) =>
+  z
+    .union([z.string(), z.boolean()])
+    .optional()
+    .transform((val) => {
+      if (typeof val === "boolean") {
+        return val;
+      }
+      const normalized = (val ?? String(defaultValue))
+        .toString()
+        .trim()
+        .toLowerCase();
+      if (normalized === "true" || normalized === "false") {
+        return normalized === "true";
+      }
+      throw new Error("Invalid boolean value");
+    });
+
 const FinalizeDonorOfferItemSchema = z.object({
-  // not in schema, but used to match to generalItem
   title: z.string().transform((v) => v.replace(/\s+/g, " ").trim()),
+  donorName: coerceRequiredString(),
   unitType: z.string().transform((v) => v.replace(/\s+/g, " ").trim()),
   expirationDate: z
     .union([
@@ -82,56 +142,30 @@ const FinalizeDonorOfferItemSchema = z.object({
       }
       return d;
     }),
-  weight: z
-    .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().positive("Weight must be positive and non-zero")),
-  // end
+  weight: coerceNumber()
+    .transform((val) => val ?? 0)
+    .pipe(z.number().min(0, "Weight must be non-negative")),
   category: z.nativeEnum(ItemCategory).optional(),
-  quantity: z
-    .string()
-    .transform((val) => (val.trim() === "" ? undefined : Number(val)))
-    .pipe(z.number().int().min(0, "Quantity must be non-negative")),
-  lotNumber: z.string(),
-  palletNumber: z.string(),
-  boxNumber: z.string(),
-  donorShippingNumber: z.string().optional(),
-  hfhShippingNumber: z.string().optional(),
-  // have to consider $
-  unitPrice: z
-    .string()
-    .transform((val) =>
-      val.trim() === ""
-        ? undefined
-        : Number(val.trim().replace("$", "").replace(/,/g, ""))
-    )
-    .pipe(z.number().min(0)),
-  maxRequestLimit: z.string().optional(),
-  ndc: z.string().optional(),
-  visible: z
-    .string()
-    .optional()
-    .transform((val) => (val || "false").toLowerCase())
-    .refine((val) => val === "true" || val === "false", {
-      message: "Invalid boolean value",
-    })
-    .transform((val) => val === "true"),
-  allowAllocations: z
-    .string()
-    .optional()
-    .transform((val) => (val || "true").toLowerCase())
-    .refine((val) => val === "true" || val === "false", {
-      message: "Invalid boolean value",
-    })
-    .transform((val) => val === "true"),
-  gik: z
-    .string()
-    .optional()
-    .transform((val) => (val || "true").toLowerCase())
-    .refine((val) => val === "true" || val === "false", {
-      message: "Invalid boolean value",
-    })
-    .transform((val) => val === "true"),
+  quantity: coerceNumber().pipe(
+    z.number().int().min(0, "Quantity must be non-negative")
+  ),
+  lotNumber: coerceOptionalString({ allowEmpty: true }).transform(
+    (val) => val ?? ""
+  ),
+  palletNumber: coerceOptionalString({ allowEmpty: true }).transform(
+    (val) => val ?? ""
+  ),
+  boxNumber: coerceOptionalString({ allowEmpty: true }).transform(
+    (val) => val ?? ""
+  ),
+  donorShippingNumber: coerceOptionalString({ allowEmpty: true }),
+  hfhShippingNumber: coerceOptionalString({ allowEmpty: true }),
+  unitPrice: coerceNumber().pipe(z.number().min(0)),
+  maxRequestLimit: coerceOptionalString({ allowEmpty: true }),
+  ndc: coerceOptionalString({ allowEmpty: true }),
+  visible: coerceBoolean(false),
+  allowAllocations: coerceBoolean(true),
+  gik: coerceBoolean(true),
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
@@ -177,6 +211,10 @@ export default class DonorOfferService {
 
   private static normalizeWhitespace(value: string): string {
     return value.replace(/\s+/g, " ").trim();
+  }
+
+  private static normalizeForComparison(value: string): string {
+    return value.replace(/\s+/g, " ").trim().toLowerCase();
   }
 
   private static toGeneralItemCreateInputs(
@@ -262,7 +300,6 @@ export default class DonorOfferService {
     page?: number,
     pageSize?: number
   ): Promise<PartnerDonorOffersResponse> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },
@@ -615,6 +652,28 @@ export default class DonorOfferService {
       }
     });
 
+    try {
+      const donorOfferItems = await db.generalItem.findMany({
+        where: { donorOfferId: donorOffer.id },
+        select: { id: true, title: true },
+      });
+
+      if (donorOfferItems.length > 0) {
+        await MatchingService.add(
+          donorOfferItems.map((item) => ({
+            generalItemId: item.id,
+            donorOfferId: donorOffer.id,
+            title: item.title,
+          }))
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "Failed to add embeddings for donor offer general items:",
+        error
+      );
+    }
+
     NotificationService.createNotifications(
       partners.map((p) => p.id),
       {
@@ -641,7 +700,6 @@ export default class DonorOfferService {
     page?: number,
     pageSize?: number
   ): Promise<DonorOfferItemsRequestsResponse> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: parseInt(partnerId) },
       select: { enabled: true, pending: true },
@@ -753,6 +811,24 @@ export default class DonorOfferService {
 
     const shouldIncludeRequests = requests ?? true;
 
+    const orderBy: Prisma.GeneralItemOrderByWithRelationInput[] = shouldIncludeRequests
+      ? [
+          {
+            requests: {
+              _count: "desc" as const,
+            },
+          },
+          { id: "asc" as const },
+        ]
+      : [
+          {
+            items: {
+              _count: "desc" as const,
+            },
+          },
+          { id: "asc" as const },
+        ];
+
     const items = await db.generalItem.findMany({
       where: { donorOfferId },
       include: shouldIncludeRequests
@@ -764,6 +840,7 @@ export default class DonorOfferService {
             },
           }
         : undefined,
+      orderBy,
     });
 
     return {
@@ -781,7 +858,6 @@ export default class DonorOfferService {
     requests: DonorOfferItemsRequestsDTO[],
     partnerId: number
   ): Promise<void> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },
@@ -791,7 +867,6 @@ export default class DonorOfferService {
       throw new NotFoundError("Partner not found, deactivated, or pending");
     }
 
-    // Get the donor offer to check the deadline and validate accordingly
     if (requests.length > 0) {
       const firstItem = await db.generalItem.findUnique({
         where: { id: requests[0].donorOfferItemId },
@@ -812,14 +887,11 @@ export default class DonorOfferService {
         throw new NotFoundError("General item not found");
       }
 
-      // For ARCHIVED offers: allow requests only if there are unallocated line items
       if (firstItem.donorOffer?.state === "ARCHIVED") {
         if (firstItem.items.length === 0) {
           throw new ArgumentError("Cannot create requests for fully allocated archived items.");
         }
-        // If there are unallocated items, allow the requests
       }
-      // For UNFINALIZED offers: check the partner response deadline
       else if (firstItem.donorOffer?.state === "UNFINALIZED") {
         if (firstItem.donorOffer.partnerResponseDeadline) {
           const now = new Date();
@@ -948,7 +1020,8 @@ export default class DonorOfferService {
       data: Record<string, unknown>[];
       fields: string[];
     },
-    preview: boolean
+    preview: boolean,
+    embeddingCache: import("./matchingService").EmbeddingCache
   ): Promise<FinalizeDonorOfferResult> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
@@ -1008,6 +1081,18 @@ export default class DonorOfferService {
     });
 
     if (validItems.length > 0) {
+      try {
+        await MatchingService.loadDonorOfferEmbeddings(
+          donorOfferId,
+          embeddingCache
+        );
+      } catch (error) {
+        console.warn(
+          "Failed to load embeddings for matching, falling back to exact matching:",
+          error
+        );
+      }
+
       const lineItemsByGeneralItem = new Map<
         string,
         FinalizeDonorOfferItem[]
@@ -1036,29 +1121,67 @@ export default class DonorOfferService {
           firstLineItem.expirationDate
         );
 
-        let generalItem = offerItems.find((di) => {
-          const diExpiration = di.expirationDate
-            ? DonorOfferService.normalizeExpirationDate(di.expirationDate)
-            : null;
-          const expirationMatches = DonorOfferService.datesWithinTolerance(
-            normalizedExpiration,
-            diExpiration,
-            1
+        let generalItem: typeof offerItems[0] | undefined;
+        try {
+          const query = firstLineItem.title;
+          const embeddingMatch = await MatchingService.findSimilarFromCache(
+            donorOfferId,
+            query,
+            embeddingCache,
+            {
+              unitType: firstLineItem.unitType,
+              expirationDate: normalizedExpiration,
+              expirationTolerance: 1,
+            },
+            0.20
           );
-          return (
-            DonorOfferService.normalizeWhitespace(firstLineItem.title) ===
-              DonorOfferService.normalizeWhitespace(di.title) &&
-            expirationMatches &&
-            DonorOfferService.normalizeWhitespace(firstLineItem.unitType) ===
-              DonorOfferService.normalizeWhitespace(di.unitType)
-          );
-        });
+          console.log(generalItem?.title, embeddingMatch?.title);
+
+          if (embeddingMatch?.generalItemId) {
+            generalItem = offerItems.find((di) => di.id === embeddingMatch.generalItemId);
+          }
+        } catch (error) {
+          console.warn("Embedding matching failed, falling back to exact matching:", error);
+        }
+
+        if (!generalItem) {
+          generalItem = offerItems.find((di) => {
+            const diExpiration = di.expirationDate
+              ? DonorOfferService.normalizeExpirationDate(di.expirationDate)
+              : null;
+            const expirationMatches = DonorOfferService.datesWithinTolerance(
+              normalizedExpiration,
+              diExpiration,
+              1
+            );
+            return (
+              DonorOfferService.normalizeForComparison(firstLineItem.title) ===
+                DonorOfferService.normalizeForComparison(di.title) &&
+              expirationMatches &&
+              DonorOfferService.normalizeForComparison(firstLineItem.unitType) ===
+                DonorOfferService.normalizeForComparison(di.unitType)
+            );
+          });
+        }
 
         if (!generalItem) {
           const totalQuantity = lineItems.reduce(
             (sum, item) => sum + item.quantity,
             0
           );
+
+          let weight = firstLineItem.weight;
+          if (!weight || weight === 0) {
+            const similarItem = offerItems.find(
+              (item) =>
+                DonorOfferService.normalizeWhitespace(item.title) ===
+                  DonorOfferService.normalizeWhitespace(firstLineItem.title) &&
+                DonorOfferService.normalizeWhitespace(item.unitType) ===
+                  DonorOfferService.normalizeWhitespace(firstLineItem.unitType) &&
+                Number(item.weight) > 0
+            );
+            weight = similarItem ? Number(similarItem.weight) : 0;
+          }
 
           const createData: Prisma.GeneralItemCreateInput = {
             donorOffer: { connect: { id: donorOfferId } },
@@ -1069,7 +1192,7 @@ export default class DonorOfferService {
             ),
             initialQuantity: totalQuantity,
             description: null,
-            weight: firstLineItem.weight,
+            weight,
           };
 
           generalItem = await db.generalItem.create({
@@ -1077,31 +1200,47 @@ export default class DonorOfferService {
           });
 
           offerItems.push(generalItem);
+
+          try {
+            await MatchingService.add({
+              generalItemId: generalItem.id,
+              donorOfferId,
+              title: generalItem.title,
+            });
+          } catch (error) {
+            console.warn(
+              "Failed to generate embedding for new general item:",
+              error
+            );
+          }
         }
 
         const generalItemId = generalItem.id;
         console.log(generalItemId, generalItem.title);
 
-        const lineItemsToCreate = lineItems.map((item) => ({
-          allowAllocations: item.allowAllocations ?? true,
-          visible: item.visible ?? true,
-          gik: item.gik ?? true,
-          donorName: updatedOffer.donorName,
-          quantity: item.quantity,
-          lotNumber: item.lotNumber,
-          palletNumber: item.palletNumber,
-          boxNumber: item.boxNumber,
-          unitPrice: item.unitPrice,
-          maxRequestLimit: item.maxRequestLimit ?? null,
-          donorShippingNumber: item.donorShippingNumber ?? null,
-          hfhShippingNumber: item.hfhShippingNumber ?? null,
-          ndc: item.ndc ?? null,
-          notes: null,
-          generalItemId: generalItemId,
-        }));
+        const lineItemsToCreate: Prisma.LineItemCreateManyInput[] = lineItems.map(
+          (item) => ({
+            allowAllocations: item.allowAllocations ?? true,
+            visible: item.visible ?? true,
+            gik: item.gik ?? true,
+            donorName: item.donorName || updatedOffer.donorName,
+            quantity: item.quantity,
+            lotNumber: item.lotNumber,
+            palletNumber: item.palletNumber,
+            boxNumber: item.boxNumber,
+            unitPrice: item.unitPrice,
+            maxRequestLimit: item.maxRequestLimit ?? null,
+            donorShippingNumber: item.donorShippingNumber ?? null,
+            hfhShippingNumber: item.hfhShippingNumber ?? null,
+            ndc: item.ndc ?? null,
+            notes: null,
+            generalItemId,
+          })
+        );
 
         await db.lineItem.createMany({ data: lineItemsToCreate });
       }
+
     }
 
     return { success: true, donorOfferId, createdCount: validItems.length };
@@ -1124,9 +1263,7 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    // Prevent editing archived donor offers (except when archiving a finalized offer)
     if (existingOffer.state === DonorOfferState.ARCHIVED) {
-      // Allow state changes FROM archived (e.g., unarchiving if needed)
       const isOnlyChangingState =
         Object.keys(updateData).length === 1 && updateData.state !== undefined;
 
@@ -1221,7 +1358,6 @@ export default class DonorOfferService {
 
   static async deleteDonorOffer(donorOfferId: number): Promise<void> {
     try {
-      // Check if the donor offer is archived
       const existingOffer = await db.donorOffer.findUnique({
         where: { id: donorOfferId },
       });
@@ -1295,16 +1431,52 @@ export default class DonorOfferService {
           },
         },
       },
-      orderBy: {
-        id: "asc",
-      },
+      orderBy: [
+        {
+          items: {
+            _count: "desc",
+          },
+        },
+        { id: "asc" },
+      ],
     };
 
     buildQueryWithPagination(query, page, pageSize);
 
-    const [items, total] = await Promise.all([
+    const [items, total, orphanedGeneralItems, targetOptions] = await Promise.all([
       db.generalItem.findMany(query),
       db.generalItem.count({ where }),
+      db.generalItem.findMany({
+        where: {
+          donorOfferId,
+          items: { none: {} },
+          requests: { some: {} },
+        },
+        include: {
+          requests: {
+            include: {
+              partner: {
+                select: { id: true, name: true },
+              },
+            },
+            orderBy: { id: "asc" },
+          },
+        },
+        orderBy: { id: "asc" },
+      }),
+      db.generalItem.findMany({
+        where: {
+          donorOfferId,
+          items: { some: {} },
+        },
+        select: {
+          id: true,
+          title: true,
+          unitType: true,
+          expirationDate: true,
+        },
+        orderBy: { title: "asc" },
+      }),
     ]);
 
     type ItemWithItems = Prisma.GeneralItemGetPayload<{
@@ -1333,6 +1505,17 @@ export default class DonorOfferService {
         };
       }),
       total,
+      orphanedRequests: orphanedGeneralItems.flatMap((generalItem) =>
+        generalItem.requests.map((request) => ({
+          requestId: request.id,
+          generalItemId: generalItem.id,
+          generalItemTitle: generalItem.title,
+          partner: request.partner,
+          quantity: request.quantity,
+          finalQuantity: request.finalQuantity,
+        }))
+      ),
+      generalItemOptions: targetOptions,
     };
   }
 

@@ -13,6 +13,7 @@
     "db:migrate": "env-cmd -f .env npx prisma migrate dev",
     "db:view": "env-cmd -f .env npx prisma studio",
     "db:seed-chroma": "env-cmd -f .env tsx scripts/seed-chroma.ts",
+    "db:createStaffUser": "env-cmd -f .env tsx scripts/createStaffUser.ts",
     "ci:db:migrate": "npx prisma migrate dev",
     "prepare": "husky",
     "email:dev": "email dev --dir ./src/email --port 4000",

@@ -1,9 +1,19 @@
-// src/services/MatchingService.ts
 import { Prisma } from "@prisma/client";
 import { db } from "@/db";
 import { getOpenAIClient } from "@/lib/azureOpenAI";
 
 const EMBEDDING_DIMENSION = 1536;
+
+export type CachedEmbedding = {
+  id: number;
+  generalItemId: number | null;
+  title: string;
+  unitType?: string;
+  embedding: number[];
+  expirationDate: Date | null;
+};
+
+export type EmbeddingCache = Map<number, CachedEmbedding[]>;
 
 type BaseMetadata = {
   generalItemId?: number | null;
@@ -77,7 +87,7 @@ async function embed(texts: string[]): Promise<number[][]> {
   }
 
   const resp = await client.embeddings.create({
-    model: deployment, // use Azure deployment name
+    model: deployment,
     input: texts,
   });
 
@@ -245,10 +255,7 @@ function buildDeleteConditions(params: {
 }
 
 export class MatchingService {
-  /**
-   * Add to the vector store (single or batch).
-   */
-  static async add(items: ItemInput | ItemInput[]): Promise<void> {
+    static async add(items: ItemInput | ItemInput[]): Promise<void> {
     const batch = asArray(items)
       .map((item) => ({
         raw: item,
@@ -308,10 +315,7 @@ export class MatchingService {
     );
   }
 
-  /**
-   * Remove from the vector store using any supported metadata.
-   */
-  static async remove(params: RemoveParams): Promise<void> {
+    static async remove(params: RemoveParams): Promise<void> {
     const embeddingTargets = dedupeNumbers(params.embeddingIds ?? []);
     const generalTargets = dedupeNumbers(params.generalItemIds ?? []);
     const wishlistTargets = dedupeNumbers(params.wishlistIds ?? []);
@@ -348,10 +352,7 @@ export class MatchingService {
     );
   }
 
-  /**
-   * Modify existing vectors (single or batch).
-   */
-  static async modify(
+    static async modify(
     items: ModifyInput | ModifyInput[]
   ): Promise<void> {
     const batch = asArray(items);
@@ -434,10 +435,7 @@ export class MatchingService {
     }
   }
 
-  /**
-   * Get top-K matches for one or many query strings.
-   */
-  static async getTopKMatches(params: SingleQueryParams): Promise<MatchResult[]>;
+    static async getTopKMatches(params: SingleQueryParams): Promise<MatchResult[]>;
   static async getTopKMatches(
     params: MultiQueryParams
   ): Promise<MatchResult[][]>;
@@ -566,4 +564,138 @@ export class MatchingService {
 
     return isMulti ? perOriginal : perOriginal[0] ?? [];
   }
+
+    static async loadDonorOfferEmbeddings(
+    donorOfferId: number,
+    cache: EmbeddingCache
+  ): Promise<void> {
+    const rows = await db.$queryRaw<Array<{
+      id: number;
+      generalItemId: number | null;
+      embedding: string;
+      title: string;
+      unitType: string | null;
+      expirationDate: Date | null;
+    }>>`
+      SELECT
+        emb."id",
+        emb."generalItemId",
+        emb."embedding"::text as embedding,
+        gi."title",
+        gi."unitType",
+        gi."expirationDate"
+      FROM "ItemEmbeddings" emb
+      INNER JOIN "GeneralItem" gi ON gi."id" = emb."generalItemId"
+      WHERE emb."donorOfferId" = ${donorOfferId}
+    `;
+
+    const cached: CachedEmbedding[] = rows.map((row) => ({
+      id: row.id,
+      generalItemId: row.generalItemId,
+      title: row.title,
+      unitType: row.unitType ?? undefined,
+      embedding: JSON.parse(row.embedding),
+      expirationDate: row.expirationDate,
+    }));
+
+    cache.set(donorOfferId, cached);
+  }
+
+    static async findSimilarFromCache(
+    donorOfferId: number,
+    query: string,
+    cache: EmbeddingCache,
+    filters: {
+      unitType?: string;
+      expirationDate?: Date | null;
+      expirationTolerance?: number;
+    },
+    distanceCutoff = 0.15
+  ): Promise<CachedEmbedding | null> {
+    const cached = cache.get(donorOfferId);
+
+    if (!cached || cached.length === 0) {
+      return null;
+    }
+
+    const candidates = cached.filter((item) => {
+      if (filters.unitType) {
+        const normalizedItemType = item.unitType?.replace(/\s+/g, " ").trim().toLowerCase();
+        const normalizedFilterType = filters.unitType.replace(/\s+/g, " ").trim().toLowerCase();
+        if (normalizedItemType !== normalizedFilterType) {
+          return false;
+        }
+      }
+
+      if (filters.expirationDate !== undefined) {
+        const tolerance = filters.expirationTolerance ?? 1;
+        if (!datesWithinTolerance(filters.expirationDate, item.expirationDate, tolerance)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const [queryEmbedding] = await embed([query]);
+
+    let bestMatch: CachedEmbedding | null = null;
+    let bestDistance = Infinity;
+
+    for (const item of candidates) {
+      const distance = calculateCosineDistance(queryEmbedding, item.embedding);
+      if (distance < bestDistance && distance <= distanceCutoff) {
+        bestDistance = distance;
+        bestMatch = item;
+      }
+    }
+
+    return bestMatch;
+  }
+
+}
+
+function calculateCosineDistance(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error("Vector dimensions must match");
+  }
+  
+  let dotProduct = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+  }
+  
+  let magnitudeA = 0;
+  let magnitudeB = 0;
+  for (let i = 0; i < a.length; i++) {
+    magnitudeA += a[i] * a[i];
+    magnitudeB += b[i] * b[i];
+  }
+  magnitudeA = Math.sqrt(magnitudeA);
+  magnitudeB = Math.sqrt(magnitudeB);
+  
+  if (magnitudeA === 0 || magnitudeB === 0) {
+    return 1;
+  }
+  
+  const cosineSimilarity = dotProduct / (magnitudeA * magnitudeB);
+  
+  return 1 - cosineSimilarity;
+}
+
+function datesWithinTolerance(
+  date1: Date | null,
+  date2: Date | null,
+  toleranceDays: number
+): boolean {
+  if (date1 === null && date2 === null) return true;
+  if (date1 === null || date2 === null) return false;
+
+  const diffMs = Math.abs(date1.getTime() - date2.getTime());
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  return diffDays <= toleranceDays;
 }

@@ -11,7 +11,13 @@ import LineItemChipGroup, {
   PartnerDistributionSummary,
 } from "@/components/chips/LineItemChipGroup";
 import { toast } from "react-hot-toast";
-import { AllocationChange, AllocationTableItem } from "./types";
+import {
+  AllocationChange,
+  AllocationTableItem,
+  AllocationTableMeta,
+  GeneralItemOption,
+  OrphanedRequest,
+} from "./types";
 import {
   buildPreviewAllocations,
   cloneAllocationItems,
@@ -21,9 +27,26 @@ import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import { solveAllocationPrograms } from "@/util/solveAllocationPrograms";
 import ToggleViewSwitch from "../ToggleViewSwitch";
 import PartnerAllocationChipGroup from "../chips/PartnerAllocationChipGroup";
+import Chip from "../chips/Chip";
+import { useApiClient } from "@/hooks/useApiClient";
 
 type SuggestionResponse = {
   programs: AllocationSuggestionProgram[];
+};
+
+type ReassignRequestResponse = {
+  request: {
+    id: number;
+    generalItemId: number;
+    partnerId: number;
+    partner: { id: number; name: string };
+    quantity: number;
+    finalQuantity?: number | null;
+    itemsAllocated: number;
+  };
+  targetGeneralItem: { id: number; title: string };
+  previousGeneralItemId: number;
+  deletedGeneralItemId: number | null;
 };
 
 type SuggestionConfig = {
@@ -39,7 +62,11 @@ export type AllocationTableProps = {
     pageSize: number,
     page: number,
     filters: FilterList<AllocationTableItem>
-  ) => Promise<{ data: AllocationTableItem[]; total: number }>;
+  ) => Promise<{
+    data: AllocationTableItem[];
+    total: number;
+    meta?: AllocationTableMeta;
+  }>;
   columns?: ColumnDefinition<AllocationTableItem>[];
   pageSize?: number;
   ensureDistributionForPartner?: (
@@ -99,12 +126,15 @@ export default function AllocationTable({
   toolBarExtras,
   emptyState,
 }: AllocationTableProps) {
+  const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<AllocationTableItem>>(null);
   const currentItemsRef = useRef<AllocationTableItem[]>([]);
   const preInteractionItemsRef = useRef<AllocationTableItem[]>([]);
-  // Full cache of all items across all pages (for interaction mode)
   const fullItemsCacheRef = useRef<Map<number, AllocationTableItem>>(new Map());
 
+  const [orphanedRequests, setOrphanedRequests] = useState<OrphanedRequest[]>([]);
+  const [generalItemOptions, setGeneralItemOptions] = useState<GeneralItemOption[]>([]);
+  const [processingRequestId, setProcessingRequestId] = useState<number | null>(null);
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -112,7 +142,6 @@ export default function AllocationTable({
     "partner"
   );
 
-  // Initialize from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("ALLOCATION_VIEW_TYPE");
     if (stored) {
@@ -122,12 +151,10 @@ export default function AllocationTable({
           setActiveView(parsed);
         }
       } catch {
-        // Invalid stored value, ignore
       }
     }
   }, []);
 
-  // Save to localStorage when activeView changes
   useEffect(() => {
     localStorage.setItem("ALLOCATION_VIEW_TYPE", JSON.stringify(activeView));
   }, [activeView]);
@@ -152,6 +179,9 @@ export default function AllocationTable({
       const result = await fetchFn(pageSizeArg, pageArg, filters);
       let items = cloneAllocationItems(result.data);
 
+      setOrphanedRequests(result.meta?.orphanedRequests ?? []);
+      setGeneralItemOptions(result.meta?.generalItemOptions ?? []);
+
       if (isInteractionMode) {
         const baselineLineMap = new Map<
           number,
@@ -163,7 +193,6 @@ export default function AllocationTable({
           });
         });
 
-        // Merge fresh data with cached items (preserving suggested changes)
         items = items.map((freshItem) => {
           const cachedItem = fullItemsCacheRef.current.get(freshItem.id);
           if (cachedItem) {
@@ -208,7 +237,6 @@ export default function AllocationTable({
 
         items = recomputeItemsAllocated(items);
 
-        // Update the full cache with merged items
         items.forEach((item) => {
           fullItemsCacheRef.current.set(
             item.id,
@@ -216,7 +244,6 @@ export default function AllocationTable({
           );
         });
       } else {
-        // Not in interaction mode, clear the cache
         fullItemsCacheRef.current.clear();
       }
 
@@ -275,7 +302,6 @@ export default function AllocationTable({
         item.id === id ? clonedItem : item
       );
 
-      // Update cache if in interaction mode
       if (isInteractionMode && typeof id === "number") {
         fullItemsCacheRef.current.set(id, clonedItem);
       }
@@ -331,6 +357,87 @@ export default function AllocationTable({
     return allItems;
   }, [fetchFn, pageSize]);
 
+  const handleReassignOrphanRequest = useCallback(
+    async (requestId: number, targetGeneralItemId: number) => {
+      if (!targetGeneralItemId) {
+        return;
+      }
+
+      setProcessingRequestId(requestId);
+      try {
+        const response = await apiClient.post<ReassignRequestResponse>(
+          "/api/requests/reassign",
+          {
+            body: JSON.stringify({ requestId, targetGeneralItemId }),
+          }
+        );
+
+        toast.success(
+          `Request reassigned to ${response.targetGeneralItem.title}`
+        );
+        setOrphanedRequests((prev) =>
+          prev.filter((request) => request.requestId !== requestId)
+        );
+        tableRef.current?.reload();
+      } catch (error) {
+        console.error("Failed to reassign request", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to reassign request"
+        );
+      } finally {
+        setProcessingRequestId(null);
+      }
+    },
+    [apiClient]
+  );
+
+  const renderOrphanedRequestPopover = useCallback(
+    (request: OrphanedRequest) => {
+      if (generalItemOptions.length === 0) {
+        return (
+          <p className="text-sm text-gray-500">
+            No general items with line items are available yet. Load the
+            donor offer inventory before reassigning.
+          </p>
+        );
+      }
+
+      return (
+        <div className="text-sm">
+          <p className="text-gray-500 mb-2">Select a general item</p>
+          <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+            {generalItemOptions.map((option) => (
+              <button
+                key={option.id}
+                onClick={() =>
+                  handleReassignOrphanRequest(request.requestId, option.id)
+                }
+                disabled={processingRequestId === request.requestId}
+                className="rounded px-2 py-1 text-left transition-colors duration-150 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <p className="font-medium text-gray-900">{option.title}</p>
+                <p className="text-xs text-gray-500">
+                  {(option.unitType ?? "Unknown unit").trim()} ·
+                  {" "}
+                  {option.expirationDate
+                    ? new Date(option.expirationDate).toLocaleDateString()
+                    : "No expiration"}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    },
+    [
+      generalItemOptions,
+      handleReassignOrphanRequest,
+      processingRequestId,
+    ]
+  );
+
   const handleSuggestAllocations = useCallback(async () => {
     if (!suggestionConfig) {
       return;
@@ -379,7 +486,6 @@ export default function AllocationTable({
         preInteractionItemsRef.current = [];
         fullItemsCacheRef.current.clear();
 
-        // Notify parent that there are no modified pages
         if (suggestionConfig?.onModifiedPagesChange) {
           suggestionConfig.onModifiedPagesChange(0);
         }
@@ -418,7 +524,6 @@ export default function AllocationTable({
         return;
       }
 
-      // Populate cache with all preview items
       previewItems.forEach((item) => {
         fullItemsCacheRef.current.set(item.id, cloneAllocationItems([item])[0]);
       });
@@ -447,7 +552,6 @@ export default function AllocationTable({
         }
       });
 
-      // Calculate which pages have modifications
       const modifiedPages = new Set<number>();
       modifiedItemIds.forEach((itemId) => {
         const itemIndex = previewItems.findIndex((item) => item.id === itemId);
@@ -457,7 +561,6 @@ export default function AllocationTable({
         }
       });
 
-      // Notify parent of modified page count
       if (suggestionConfig?.onModifiedPagesChange) {
         suggestionConfig.onModifiedPagesChange(modifiedPages.size);
       }
@@ -526,7 +629,6 @@ export default function AllocationTable({
 
     const changes: AllocationChange[] = [];
 
-    // Collect changes from all cached items (all pages), not just current page
     fullItemsCacheRef.current.forEach((item) => {
       item.items.forEach((line) => {
         const baselineLine = baselineLineMap.get(line.id);
@@ -590,7 +692,6 @@ export default function AllocationTable({
       preInteractionItemsRef.current = [];
       fullItemsCacheRef.current.clear();
 
-      // Notify parent that there are no modified pages
       if (suggestionConfig.onModifiedPagesChange) {
         suggestionConfig.onModifiedPagesChange(0);
       }
@@ -715,15 +816,46 @@ export default function AllocationTable({
   );
 
   return (
-    <AdvancedBaseTable
-      ref={tableRef}
-      columns={resolvedColumns}
-      fetchFn={wrappedFetchFn}
-      rowId="id"
-      pageSize={pageSize}
-      toolBar={toolbarContent}
-      rowBody={renderRowBody}
-      emptyState={resolvedEmptyState}
-    />
+    <div className="flex flex-col gap-4">
+      {orphanedRequests.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <div className="flex flex-col gap-1 text-amber-900">
+            <p className="font-semibold">Requests waiting for inventory</p>
+            <p className="text-sm text-amber-800">
+              These partner requests are linked to general items that never
+              received any line items. Move them to a valid general item so they
+              can be allocated.
+            </p>
+          </div>
+          <div className="-m-2 mt-3 flex flex-wrap">
+            {orphanedRequests.map((request) => (
+              <Chip
+                key={request.requestId}
+                title={request.generalItemTitle}
+                label={request.partner.name}
+                showLabel
+                amount={request.quantity}
+                revisedAmount={
+                  request.finalQuantity ?? request.quantity
+                }
+                textColor="text-amber-900"
+                className="border-amber-400 bg-white"
+                popover={renderOrphanedRequestPopover(request)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={resolvedColumns}
+        fetchFn={wrappedFetchFn}
+        rowId="id"
+        pageSize={pageSize}
+        toolBar={toolbarContent}
+        rowBody={renderRowBody}
+        emptyState={resolvedEmptyState}
+      />
+    </div>
   );
 }

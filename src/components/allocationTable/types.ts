@@ -9,6 +9,7 @@ export type AllocationTableRequest = {
   };
   createdAt: string;
   quantity: number;
+  finalQuantity?: number | null;
   priority: $Enums.RequestPriority | null;
   comments: string;
   itemsAllocated: number;
@@ -41,6 +42,30 @@ export type AllocationTableItem = {
   quantityPerUnit: number;
   requests: AllocationTableRequest[];
   items: AllocationLineItem[];
+};
+
+export type OrphanedRequest = {
+  requestId: number;
+  generalItemId: number;
+  generalItemTitle: string;
+  partner: {
+    id: number;
+    name: string;
+  };
+  quantity: number;
+  finalQuantity?: number | null;
+};
+
+export type GeneralItemOption = {
+  id: number;
+  title: string;
+  unitType: string | null;
+  expirationDate: string | null;
+};
+
+export type AllocationTableMeta = {
+  orphanedRequests: OrphanedRequest[];
+  generalItemOptions: GeneralItemOption[];
 };
 
 export type AllocationSuggestion = {

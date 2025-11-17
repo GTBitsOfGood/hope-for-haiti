@@ -96,6 +96,7 @@ function PartnerAllocationChip({
   updateItem,
   updateItemsAllocated,
   generalItemId,
+  ensureDistributionForPartner,
   readOnly = false,
 }: {
   allocation: PartnerAllocationChipData;
@@ -140,9 +141,7 @@ function PartnerAllocationChip({
       return;
     }
 
-    // Allocate: POST new allocation
-    const distributionId: number | undefined = undefined;
-    /*
+    let distributionId: number | undefined = undefined;
     if (ensureDistributionForPartner) {
       const distribution = await ensureDistributionForPartner(
         allocation.partner.id,
@@ -150,7 +149,6 @@ function PartnerAllocationChip({
       );
       distributionId = distribution.id;
     }
-      */
 
     const formData = new FormData();
     formData.set("partnerId", allocation.partner.id.toString());

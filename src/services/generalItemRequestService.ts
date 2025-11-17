@@ -77,7 +77,6 @@ export class GeneralItemRequestService {
       "generalItem" | "partner"
     > & { generalItemId: number; partnerId: number }
   ) {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
       select: { enabled: true, pending: true, type: true },
@@ -95,7 +94,6 @@ export class GeneralItemRequestService {
       throw new ArgumentError("Cannot create request for pending partner");
     }
     
-    // Check if the general item belongs to a donor offer and validate accordingly
     const generalItem = await db.generalItem.findUnique({
       where: { id: data.generalItemId },
       include: {
@@ -115,14 +113,11 @@ export class GeneralItemRequestService {
       throw new NotFoundError("General item not found");
     }
 
-    // For ARCHIVED offers: allow requests only if there are unallocated line items
     if (generalItem.donorOffer?.state === "ARCHIVED") {
       if (generalItem.items.length === 0) {
         throw new ArgumentError("Cannot create requests for fully allocated archived items.");
       }
-      // If there are unallocated items, allow the request (no deadline check for archived)
     }
-    // For UNFINALIZED offers: check the partner response deadline
     else if (generalItem.donorOffer?.state === "UNFINALIZED") {
       if (generalItem.donorOffer.partnerResponseDeadline) {
         const now = new Date();
@@ -150,7 +145,6 @@ export class GeneralItemRequestService {
 
   static async updateRequest(id: number, data: Partial<UpdateGeneralItemRequestData>) {
     try {
-      // Check if the request's general item belongs to a donor offer and validate accordingly
       const request = await db.generalItemRequest.findUnique({
         where: { id },
         include: {
@@ -174,14 +168,11 @@ export class GeneralItemRequestService {
         throw new NotFoundError("Request not found");
       }
 
-      // For ARCHIVED offers: allow updates only if there are unallocated line items
       if (request.generalItem?.donorOffer?.state === "ARCHIVED") {
         if (request.generalItem.items.length === 0) {
           throw new ArgumentError("Cannot update requests for fully allocated archived items.");
         }
-        // If there are unallocated items, allow the update
       }
-      // For UNFINALIZED offers: check the partner response deadline
       else if (request.generalItem?.donorOffer?.state === "UNFINALIZED") {
         if (request.generalItem.donorOffer.partnerResponseDeadline) {
           const now = new Date();
@@ -210,7 +201,6 @@ export class GeneralItemRequestService {
   static async bulkUpdateRequests(
     updates: Array<{ requestId: number; finalQuantity: number }>
   ) {
-    // Check if any of the requests belong to donor offers and validate accordingly
     const requestIds = updates.map(u => u.requestId);
     const requests = await db.generalItemRequest.findMany({
       where: { id: { in: requestIds } },
@@ -231,7 +221,6 @@ export class GeneralItemRequestService {
       }
     });
 
-    // For ARCHIVED offers: check if they have unallocated items
     const fullyAllocatedArchivedRequests = requests.filter(
       r => r.generalItem?.donorOffer?.state === "ARCHIVED" && 
            r.generalItem.items.length === 0
@@ -241,7 +230,6 @@ export class GeneralItemRequestService {
       throw new ArgumentError("Cannot update requests for fully allocated archived items.");
     }
 
-    // For UNFINALIZED offers: check if the partner response deadline has passed
     const now = new Date();
     const expiredUnfinalizedRequests = requests.filter(
       r => r.generalItem?.donorOffer?.state === "UNFINALIZED" &&
@@ -265,9 +253,132 @@ export class GeneralItemRequestService {
     return results;
   }
 
+  static async reassignRequest(
+    requestId: number,
+    targetGeneralItemId: number
+  ) {
+    return db.$transaction(async (tx) => {
+      const existingRequest = await tx.generalItemRequest.findUnique({
+        where: { id: requestId },
+        include: {
+          partner: {
+            select: { id: true, name: true },
+          },
+          generalItem: {
+            select: {
+              id: true,
+              donorOfferId: true,
+            },
+          },
+        },
+      });
+
+      if (!existingRequest || !existingRequest.generalItem) {
+        throw new NotFoundError("Request not found");
+      }
+
+      const previousGeneralItemId = existingRequest.generalItem.id;
+
+      const targetGeneralItem = await tx.generalItem.findUnique({
+        where: { id: targetGeneralItemId },
+        select: {
+          id: true,
+          donorOfferId: true,
+          title: true,
+        },
+      });
+
+      if (!targetGeneralItem) {
+        throw new NotFoundError("Target general item not found");
+      }
+
+      if (
+        targetGeneralItem.donorOfferId !==
+        existingRequest.generalItem.donorOfferId
+      ) {
+        throw new ArgumentError(
+          "Target general item must belong to the same donor offer."
+        );
+      }
+
+      const targetLineItemCount = await tx.lineItem.count({
+        where: { generalItemId: targetGeneralItemId },
+      });
+
+      if (targetLineItemCount === 0) {
+        throw new ArgumentError(
+          "Target general item does not have any available line items."
+        );
+      }
+
+      const duplicateRequest = await tx.generalItemRequest.findFirst({
+        where: {
+          generalItemId: targetGeneralItemId,
+          partnerId: existingRequest.partnerId,
+        },
+      });
+
+      if (duplicateRequest) {
+        throw new ArgumentError(
+          "This partner already has a request for the selected general item."
+        );
+      }
+
+      const updatedRequest = await tx.generalItemRequest.update({
+        where: { id: requestId },
+        data: { generalItemId: targetGeneralItemId },
+      });
+
+      let deletedGeneralItemId: number | null = null;
+      const remainingRequestCount = await tx.generalItemRequest.count({
+        where: { generalItemId: previousGeneralItemId },
+      });
+
+      if (remainingRequestCount === 0) {
+        const remainingLineItems = await tx.lineItem.count({
+          where: { generalItemId: previousGeneralItemId },
+        });
+
+        if (remainingLineItems === 0) {
+          await tx.generalItem.delete({ where: { id: previousGeneralItemId } });
+          deletedGeneralItemId = previousGeneralItemId;
+        }
+      }
+
+      const allocated = await tx.lineItem.aggregate({
+        where: {
+          generalItemId: targetGeneralItemId,
+          allocation: {
+            partnerId: existingRequest.partnerId,
+          },
+        },
+        _sum: {
+          quantity: true,
+        },
+      });
+
+      return {
+        request: {
+          id: updatedRequest.id,
+          generalItemId: updatedRequest.generalItemId,
+          partnerId: updatedRequest.partnerId,
+          quantity: updatedRequest.quantity,
+          finalQuantity: updatedRequest.finalQuantity,
+          partner: existingRequest.partner,
+          itemsAllocated: allocated._sum.quantity ?? 0,
+        },
+        targetGeneralItem: {
+          id: targetGeneralItem.id,
+          title: targetGeneralItem.title,
+        },
+        previousGeneralItemId,
+        deletedGeneralItemId,
+      };
+    });
+  }
+
   static async deleteRequest(id: number) {
     try {
-      // Check if the request's general item belongs to a donor offer and validate accordingly
       const request = await db.generalItemRequest.findUnique({
         where: { id },
         include: {
@@ -291,14 +402,11 @@ export class GeneralItemRequestService {
         throw new NotFoundError("Request not found");
       }
 
-      // For ARCHIVED offers: allow deletion only if there are unallocated line items
       if (request.generalItem?.donorOffer?.state === "ARCHIVED") {
         if (request.generalItem.items.length === 0) {
           throw new ArgumentError("Cannot delete requests for fully allocated archived items.");
         }
-        // If there are unallocated items, allow the deletion
       }
-      // For UNFINALIZED offers: check the partner response deadline
       else if (request.generalItem?.donorOffer?.state === "UNFINALIZED") {
         if (request.generalItem.donorOffer.partnerResponseDeadline) {
           const now = new Date();
@@ -327,7 +435,6 @@ export class GeneralItemRequestService {
     page?: number,
     pageSize?: number
   ): Promise<GeneralItemRequestsResponse> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },
