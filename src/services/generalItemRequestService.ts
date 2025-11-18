@@ -318,16 +318,34 @@ export class GeneralItemRequestService {
         },
       });
 
-      if (duplicateRequest) {
-        throw new ArgumentError(
-          "This partner already has a request for the selected general item."
-        );
-      }
+      let updatedRequest;
 
-      const updatedRequest = await tx.generalItemRequest.update({
-        where: { id: requestId },
-        data: { generalItemId: targetGeneralItemId },
-      });
+      if (duplicateRequest) {
+        const mergedQuantity =
+          duplicateRequest.quantity + existingRequest.quantity;
+        const mergedFinalQuantity =
+          duplicateRequest.finalQuantity !== null &&
+          existingRequest.finalQuantity !== null
+            ? duplicateRequest.finalQuantity + existingRequest.finalQuantity
+            : duplicateRequest.finalQuantity ?? existingRequest.finalQuantity;
+
+        updatedRequest = await tx.generalItemRequest.update({
+          where: { id: duplicateRequest.id },
+          data: {
+            quantity: mergedQuantity,
+            finalQuantity: mergedFinalQuantity,
+          },
+        });
+
+        await tx.generalItemRequest.delete({
+          where: { id: requestId },
+        });
+      } else {
+        updatedRequest = await tx.generalItemRequest.update({
+          where: { id: requestId },
+          data: { generalItemId: targetGeneralItemId },
+        });
+      }
 
       let deletedGeneralItemId: number | null = null;
       const remainingRequestCount = await tx.generalItemRequest.count({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
 import AllocationTable from "@/components/allocationTable/AllocationTable";
@@ -43,33 +43,36 @@ export default function AdminAllocateDonorOfferScreen() {
   const isValidDonorOfferId = Number.isFinite(donorOfferId);
   const [modifiedPagesCount, setModifiedPagesCount] = useState(0);
 
-  const [distributionsByPartner, setDistributionsByPartner] = useState<
-    Record<number, PartnerDistributionSummary[]>
+  const distributionsRef = useRef<
+    Record<number, PartnerDistributionSummary | undefined>
   >({});
 
   const { refetch: refetchDistributions } = useFetch<{
-    distributions: Record<number, PartnerDistributionSummary[]>;
+    distributions: Record<number, PartnerDistributionSummary>;
   }>(`/api/donorOffers/${donorOfferId}/distributions`, {
     conditionalFetch: isValidDonorOfferId,
     onSuccess: (data) => {
       if (!data?.distributions) {
-        setDistributionsByPartner({});
+        distributionsRef.current = {};
         return;
       }
 
       const normalized = Object.entries(data.distributions).reduce(
-        (acc, [partnerKey, distributions]) => {
+        (acc, [partnerKey, distribution]) => {
+          if (!distribution) {
+            return acc;
+          }
           const partnerId = Number(partnerKey);
-          acc[partnerId] = distributions.map((distribution) => ({
+          acc[partnerId] = {
             ...distribution,
             partnerId,
-          }));
+          };
           return acc;
         },
-        {} as Record<number, PartnerDistributionSummary[]>
+        {} as Record<number, PartnerDistributionSummary>
       );
 
-      setDistributionsByPartner(normalized);
+      distributionsRef.current = normalized;
     },
   });
 
@@ -116,12 +119,9 @@ export default function AdminAllocateDonorOfferScreen() {
 
   const ensureDistributionForPartner = useCallback(
     async (partnerId: number, partnerName: string) => {
-      const existingPending =
-        distributionsByPartner[partnerId]?.find(
-          (distribution) => distribution.pending
-        ) ?? null;
-      if (existingPending) {
-        return existingPending;
+      const existingDistribution = distributionsRef.current[partnerId] ?? null;
+      if (existingDistribution) {
+        return existingDistribution;
       }
 
       const body = new FormData();
@@ -143,26 +143,22 @@ export default function AdminAllocateDonorOfferScreen() {
         pending: distribution.pending,
       };
 
-      setDistributionsByPartner((prev) => ({
-        ...prev,
-        [partnerId]: [...(prev[partnerId] ?? []), summary],
-      }));
+      distributionsRef.current = {
+        ...distributionsRef.current,
+        [partnerId]: summary,
+      };
 
       return summary;
     },
-    [apiClient, distributionsByPartner]
+    [apiClient]
   );
 
   const handleDistributionRemoved = useCallback((partnerId: number) => {
-    setDistributionsByPartner((prev) => {
-      if (!(partnerId in prev)) {
-        return prev;
-      }
-
-      const updated = { ...prev };
+    if (partnerId in distributionsRef.current) {
+      const updated = { ...distributionsRef.current };
       delete updated[partnerId];
-      return updated;
-    });
+      distributionsRef.current = updated;
+    }
   }, []);
 
   const handleSuggestAllocations = useCallback(

@@ -408,34 +408,46 @@ export default function AllocationTable({
         <div className="text-sm">
           <p className="text-gray-500 mb-2">Select a general item</p>
           <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
-            {generalItemOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() =>
-                  handleReassignOrphanRequest(request.requestId, option.id)
-                }
-                disabled={processingRequestId === request.requestId}
-                className="rounded px-2 py-1 text-left transition-colors duration-150 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <p className="font-medium text-gray-900">{option.title}</p>
-                <p className="text-xs text-gray-500">
-                  {(option.unitType ?? "Unknown unit").trim()} ·
-                  {" "}
-                  {option.expirationDate
-                    ? new Date(option.expirationDate).toLocaleDateString()
-                    : "No expiration"}
-                </p>
-              </button>
-            ))}
+            {generalItemOptions.map((option) => {
+              const partnerAllocation = option.partnerAllocations.find(
+                (pa) => pa.partnerId === request.partner.id
+              );
+
+              return (
+                <button
+                  key={option.id}
+                  onClick={() =>
+                    handleReassignOrphanRequest(request.requestId, option.id)
+                  }
+                  disabled={processingRequestId === request.requestId}
+                  className="rounded px-2 py-1 text-left transition-colors duration-150 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-between gap-3"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{option.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {(option.unitType ?? "Unknown unit").trim()} ·{" "}
+                      {option.expirationDate
+                        ? new Date(option.expirationDate).toLocaleDateString()
+                        : "No expiration"}
+                    </p>
+                  </div>
+                  {partnerAllocation && (
+                    <div className="self-start bg-blue-primary/20 rounded font-bold px-[3px] flex-shrink-0">
+                      <p className="text-blue-primary">
+                        {partnerAllocation.allocatedQuantity}/
+                        {partnerAllocation.finalRequestedQuantity ??
+                          partnerAllocation.requestedQuantity}
+                      </p>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       );
     },
-    [
-      generalItemOptions,
-      handleReassignOrphanRequest,
-      processingRequestId,
-    ]
+    [generalItemOptions, handleReassignOrphanRequest, processingRequestId]
   );
 
   const handleSuggestAllocations = useCallback(async () => {

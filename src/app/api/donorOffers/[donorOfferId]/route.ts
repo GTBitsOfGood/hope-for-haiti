@@ -252,6 +252,7 @@ export async function PATCH(
     
     return NextResponse.json(result);
   } catch (error) {
+    console.error(error);
     return errorResponse(error);
   }
 }

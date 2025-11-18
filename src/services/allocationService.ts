@@ -11,6 +11,10 @@ import {
 import { Prisma, ShipmentStatus } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import {
+  hasShippingIdentifier,
+  shippingTupleKey,
+} from "@/util/shipping";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
@@ -564,18 +568,20 @@ export default class AllocationService {
         donorShippingNumber: a.lineItem.donorShippingNumber,
         hfhShippingNumber: a.lineItem.hfhShippingNumber,
       }))
-      .filter(
-        (
-          pair
-        ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
-          Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
-      );
+      .filter((pair) => hasShippingIdentifier(pair));
+
+    const lookupPairs = shippingNumberPairs.filter(
+      (
+        pair
+      ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
+        Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
+    );
 
     const statusMap = new Map<string, ShipmentStatus>();
-    if (shippingNumberPairs.length > 0) {
+    if (lookupPairs.length > 0) {
       const statusRecords = await db.shippingStatus.findMany({
         where: {
-          OR: shippingNumberPairs.map((pair) => ({
+          OR: lookupPairs.map((pair) => ({
             donorShippingNumber: pair.donorShippingNumber,
             hfhShippingNumber: pair.hfhShippingNumber,
           })),
@@ -583,18 +589,19 @@ export default class AllocationService {
       });
 
       statusRecords.forEach((status) => {
-        const key = `${status.donorShippingNumber}|${status.hfhShippingNumber}`;
+        const key = shippingTupleKey(status);
         statusMap.set(key, status.value);
       });
     }
 
     const data: PartnerAllocation[] = allocations.map((allocation) => {
       let shipmentStatus: ShipmentStatus | undefined;
-      if (
-        allocation.lineItem.donorShippingNumber &&
-        allocation.lineItem.hfhShippingNumber
-      ) {
-        const key = `${allocation.lineItem.donorShippingNumber}|${allocation.lineItem.hfhShippingNumber}`;
+      const tuple = {
+        donorShippingNumber: allocation.lineItem.donorShippingNumber,
+        hfhShippingNumber: allocation.lineItem.hfhShippingNumber,
+      };
+      if (hasShippingIdentifier(tuple)) {
+        const key = shippingTupleKey(tuple);
         shipmentStatus = statusMap.get(key);
       }
 
@@ -606,7 +613,8 @@ export default class AllocationService {
         boxNumber: allocation.lineItem.boxNumber,
         quantity: allocation.lineItem.quantity,
         donorName: allocation.lineItem.donorName,
-        shipmentStatus: shipmentStatus || "WAITING_ARRIVAL_FROM_DONOR",
+        shipmentStatus:
+          shipmentStatus ?? ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
         signOffDate: allocation.signOff?.date,
         signOffStaffMemberName: allocation.signOff?.staffMemberName,
         signOffId: allocation.signOff?.id,

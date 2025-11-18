@@ -21,8 +21,7 @@ export default function ChangeShippingStatusMenu({
     if (!newStatus || newStatus === shipment.value) return;
 
     const url = new URLSearchParams({
-      donorShippingNumber: shipment.donorShippingNumber,
-      hfhShippingNumber: shipment.hfhShippingNumber,
+      id: shipment.id.toString(),
     });
 
     const promise = apiClient.patch(`/api/shipments?${url}`, {
@@ -42,7 +41,13 @@ export default function ChangeShippingStatusMenu({
   return (
     <>
       <div className="flex items-center gap-1">
-        <button onClick={back} className="p-1 rounded hover:bg-gray-100">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            back();
+          }}
+          className="p-1 rounded hover:bg-gray-100"
+        >
           <ArrowLeft size={16} />
         </button>
         <p className="font-bold">Change Status</p>

@@ -260,6 +260,7 @@ export class GeneralItemService {
       ...filterWhere,
       OR: [
         {
+          // UNFINALIZED offers: restricted to partners with visibility
           donorOffer: {
             state: $Enums.DonorOfferState.UNFINALIZED,
             partnerResponseDeadline: {
@@ -273,13 +274,9 @@ export class GeneralItemService {
           },
         },
         {
+          // ARCHIVED offers with unallocated items: open to ALL partners
           donorOffer: {
             state: $Enums.DonorOfferState.ARCHIVED,
-            partnerVisibilities: {
-              some: {
-                id: partnerId,
-              },
-            },
           },
           items: {
             some: {
@@ -414,19 +411,24 @@ export class GeneralItemService {
           SELECT gi.id, dof."partnerResponseDeadline"
           FROM "GeneralItem" gi
           INNER JOIN "DonorOffer" dof ON gi."donorOfferId" = dof.id
-          INNER JOIN "_DonorOfferToUser" dotu ON dof.id = dotu."A"
-          WHERE dotu."B" = ${partnerId}
-            AND (
-              (dof.state = 'UNFINALIZED'::"DonorOfferState" AND dof."partnerResponseDeadline" > NOW())
+          WHERE (
+              (
+                dof.state = 'UNFINALIZED'::"DonorOfferState"
+                AND dof."partnerResponseDeadline" > NOW()
+                AND EXISTS (
+                  SELECT 1 FROM "_DonorOfferToUser" dotu
+                  WHERE dotu."A" = dof.id AND dotu."B" = ${partnerId}
+                )
+              )
               OR
-              (dof.state = 'ARCHIVED'::"DonorOfferState" AND EXISTS (
-                SELECT 1 FROM "LineItem" li
-                WHERE li."generalItemId" = gi.id
-                  AND NOT EXISTS (
-                    SELECT 1 FROM "Allocation" a
-                    WHERE a."lineItemId" = li.id
-                  )
-              ))
+              (
+                dof.state = 'ARCHIVED'::"DonorOfferState"
+                AND EXISTS (
+                  SELECT 1 FROM "LineItem" li
+                  LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+                  WHERE li."generalItemId" = gi.id AND a.id IS NULL
+                )
+              )
             )
             AND NOT EXISTS (
               SELECT 1 FROM "GeneralItemRequest" gir

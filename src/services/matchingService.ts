@@ -175,43 +175,6 @@ function resolveTarget(
   return { generalItemId, wishlistId };
 }
 
-function buildSearchWhereClause(filters: SearchFilters): Prisma.Sql | null {
-  const conditions: Prisma.Sql[] = [];
-
-  const generalIds = dedupeNumbers([
-    filters.generalItemId,
-    ...(filters.generalItemIds ?? []),
-  ]);
-  if (generalIds.length === 1) {
-    conditions.push(Prisma.sql`emb."generalItemId" = ${generalIds[0]}`);
-  } else if (generalIds.length > 1) {
-    conditions.push(Prisma.sql`emb."generalItemId" = ANY(${generalIds})`);
-  }
-
-  const wishlistIds = dedupeNumbers([
-    filters.wishlistId,
-    ...(filters.wishlistIds ?? []),
-  ]);
-  if (wishlistIds.length === 1) {
-    conditions.push(Prisma.sql`emb."wishlistId" = ${wishlistIds[0]}`);
-  } else if (wishlistIds.length > 1) {
-    conditions.push(Prisma.sql`emb."wishlistId" = ANY(${wishlistIds})`);
-  }
-
-  const donorOfferIds = dedupeNumbers([
-    filters.donorOfferId,
-    ...(filters.donorOfferIds ?? []),
-  ]);
-  if (donorOfferIds.length === 1) {
-    conditions.push(Prisma.sql`emb."donorOfferId" = ${donorOfferIds[0]}`);
-  } else if (donorOfferIds.length > 1) {
-    conditions.push(Prisma.sql`emb."donorOfferId" = ANY(${donorOfferIds})`);
-  }
-
-  if (!conditions.length) return null;
-  return Prisma.sql`WHERE ${joinSql(conditions, Prisma.sql` AND `)}`;
-}
-
 function buildDeleteConditions(params: {
   embeddingIds?: number[];
   generalItemIds?: number[];
@@ -317,26 +280,23 @@ export class MatchingService {
 
     static async remove(params: RemoveParams): Promise<void> {
     const embeddingTargets = dedupeNumbers(params.embeddingIds ?? []);
-    const generalTargets = dedupeNumbers(params.generalItemIds ?? []);
     const wishlistTargets = dedupeNumbers(params.wishlistIds ?? []);
-    const donorTargets = dedupeNumbers(params.donorOfferIds ?? []);
 
-    if (
-      !embeddingTargets.length &&
-      !generalTargets.length &&
-      !wishlistTargets.length &&
-      !donorTargets.length
-    ) {
+    if (!embeddingTargets.length && !wishlistTargets.length) {
       throw new Error(
-        "Provide at least one identifier: embeddingIds, generalItemIds, wishlistIds, or donorOfferIds."
+        "Provide at least one identifier: embeddingIds or wishlistIds. Note: Item embeddings cannot be deleted directly."
+      );
+    }
+
+    if (params.generalItemIds?.length || params.donorOfferIds?.length) {
+      throw new Error(
+        "Item embeddings (generalItemIds, donorOfferIds) cannot be deleted. Only wishlist embeddings can be removed."
       );
     }
 
     const conditions = buildDeleteConditions({
       embeddingIds: embeddingTargets,
-      generalItemIds: generalTargets,
       wishlistIds: wishlistTargets,
-      donorOfferIds: donorTargets,
     });
 
     const whereClause =
@@ -348,6 +308,7 @@ export class MatchingService {
       Prisma.sql`
         DELETE FROM "ItemEmbeddings"
         WHERE ${whereClause}
+          AND "wishlistId" IS NOT NULL
       `
     );
   }
@@ -442,7 +403,7 @@ export class MatchingService {
   static async getTopKMatches(
     params: SingleQueryParams | MultiQueryParams
   ): Promise<MatchResult[] | MatchResult[][]> {
-    const { k, distanceCutoff = 0.4, hardCutoff = 0.25 } = params;
+    const { k, distanceCutoff = 0.5, hardCutoff = 0.3 } = params;
 
     let original: (string | undefined)[];
     let isMulti = false;
@@ -477,7 +438,72 @@ export class MatchingService {
     const perEmbedded = await Promise.all(
       embeddings.map(async (embedding) => {
         const vectorExpr = vectorToSql(embedding);
-        const whereClause = buildSearchWhereClause(metadataFilters);
+
+        const baseFilterConditions: Prisma.Sql[] = [];
+
+        if (metadataFilters.generalItemId !== undefined || metadataFilters.generalItemIds) {
+          const generalIds = dedupeNumbers([
+            metadataFilters.generalItemId,
+            ...(metadataFilters.generalItemIds ?? []),
+          ]);
+          if (generalIds.length === 1) {
+            baseFilterConditions.push(Prisma.sql`emb."generalItemId" = ${generalIds[0]}`);
+          } else if (generalIds.length > 1) {
+            baseFilterConditions.push(Prisma.sql`emb."generalItemId" = ANY(${generalIds})`);
+          }
+        }
+        if (metadataFilters.wishlistId !== undefined || metadataFilters.wishlistIds) {
+          const wishlistIds = dedupeNumbers([
+            metadataFilters.wishlistId,
+            ...(metadataFilters.wishlistIds ?? []),
+          ]);
+          if (wishlistIds.length === 1) {
+            baseFilterConditions.push(Prisma.sql`emb."wishlistId" = ${wishlistIds[0]}`);
+          } else if (wishlistIds.length > 1) {
+            baseFilterConditions.push(Prisma.sql`emb."wishlistId" = ANY(${wishlistIds})`);
+          }
+        }
+        if (metadataFilters.donorOfferId !== undefined || metadataFilters.donorOfferIds) {
+          const donorOfferIds = dedupeNumbers([
+            metadataFilters.donorOfferId,
+            ...(metadataFilters.donorOfferIds ?? []),
+          ]);
+          if (donorOfferIds.length === 1) {
+            baseFilterConditions.push(Prisma.sql`emb."donorOfferId" = ${donorOfferIds[0]}`);
+          } else if (donorOfferIds.length > 1) {
+            baseFilterConditions.push(Prisma.sql`emb."donorOfferId" = ANY(${donorOfferIds})`);
+          }
+        }
+
+        // Only match general item embeddings (not wishlist embeddings)
+        baseFilterConditions.push(Prisma.sql`emb."generalItemId" IS NOT NULL`);
+
+        // Add matchability condition: item must be in matchable donor offer
+        baseFilterConditions.push(Prisma.sql`
+          EXISTS (
+            SELECT 1
+            FROM "ItemEmbeddings" item_emb
+            INNER JOIN "DonorOffer" donor ON donor."id" = item_emb."donorOfferId"
+            WHERE item_emb."generalItemId" = gi."id"
+              AND item_emb."donorOfferId" IS NOT NULL
+              AND (
+                (donor."state" = 'UNFINALIZED' AND (donor."partnerResponseDeadline" IS NULL OR donor."partnerResponseDeadline" > NOW()))
+                OR (
+                  donor."state" = 'ARCHIVED'
+                  AND EXISTS (
+                    SELECT 1
+                    FROM "LineItem" li
+                    LEFT JOIN "Allocation" a ON a."lineItemId" = li."id"
+                    WHERE li."generalItemId" = gi."id" AND a."id" IS NULL
+                  )
+                )
+              )
+          )
+        `);
+
+        const combinedWhereClause = baseFilterConditions.length > 0
+          ? Prisma.sql`WHERE ${joinSql(baseFilterConditions, Prisma.sql` AND `)}`
+          : Prisma.sql``;
 
         const clauses: Prisma.Sql[] = [
           Prisma.sql`
@@ -495,11 +521,8 @@ export class MatchingService {
             LEFT JOIN "GeneralItem" gi ON gi."id" = emb."generalItemId"
             LEFT JOIN "Wishlist" wl ON wl."id" = emb."wishlistId"
           `,
+          combinedWhereClause,
         ];
-
-        if (whereClause) {
-          clauses.push(whereClause);
-        }
 
         clauses.push(
           Prisma.sql`

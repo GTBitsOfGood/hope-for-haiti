@@ -56,11 +56,20 @@ export type OrphanedRequest = {
   finalQuantity?: number | null;
 };
 
+export type PartnerAllocationInfo = {
+  partnerId: number;
+  partnerName: string;
+  allocatedQuantity: number;
+  requestedQuantity: number;
+  finalRequestedQuantity: number | null;
+};
+
 export type GeneralItemOption = {
   id: number;
   title: string;
   unitType: string | null;
   expirationDate: string | null;
+  partnerAllocations: PartnerAllocationInfo[];
 };
 
 export type AllocationTableMeta = {

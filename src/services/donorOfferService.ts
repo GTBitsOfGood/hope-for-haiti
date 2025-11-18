@@ -1243,6 +1243,14 @@ export default class DonorOfferService {
 
     }
 
+    await db.generalItem.deleteMany({
+      where: {
+        donorOfferId,
+        items: { none: {} },
+        requests: { none: {} },
+      },
+    });
+
     return { success: true, donorOfferId, createdCount: validItems.length };
   }
 
@@ -1395,6 +1403,7 @@ export default class DonorOfferService {
     const where: Prisma.GeneralItemWhereInput = {
       ...filterWhere,
       donorOfferId,
+      items: { some: {} },
     };
 
     const query: Prisma.GeneralItemFindManyArgs = {
@@ -1474,6 +1483,24 @@ export default class DonorOfferService {
           title: true,
           unitType: true,
           expirationDate: true,
+          requests: {
+            include: {
+              partner: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+          items: {
+            include: {
+              allocation: {
+                include: {
+                  partner: {
+                    select: { id: true, name: true },
+                  },
+                },
+              },
+            },
+          },
         },
         orderBy: { title: "asc" },
       }),
@@ -1515,7 +1542,31 @@ export default class DonorOfferService {
           finalQuantity: request.finalQuantity,
         }))
       ),
-      generalItemOptions: targetOptions,
+      generalItemOptions: targetOptions.map((option) => {
+        const partnerAllocations = option.requests.map((request) => {
+          const allocatedQuantity = option.items
+            .filter(
+              (item) => item.allocation?.partner?.id === request.partnerId
+            )
+            .reduce((sum, item) => sum + item.quantity, 0);
+
+          return {
+            partnerId: request.partnerId,
+            partnerName: request.partner.name,
+            allocatedQuantity,
+            requestedQuantity: request.quantity,
+            finalRequestedQuantity: request.finalQuantity,
+          };
+        });
+
+        return {
+          id: option.id,
+          title: option.title,
+          unitType: option.unitType,
+          expirationDate: option.expirationDate,
+          partnerAllocations,
+        };
+      }),
     };
   }
 
