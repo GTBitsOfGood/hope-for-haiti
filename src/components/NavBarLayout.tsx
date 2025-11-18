@@ -12,6 +12,7 @@ import {
   ClipboardText,
   Chat,
   SignOut,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,6 +20,7 @@ import { useUser } from "./context/UserContext";
 import { useEffect, useState } from "react";
 import { hasAnyPermission, hasPermission, isPartner } from "@/lib/userUtils";
 import { signOut } from "next-auth/react";
+import { useApiClient } from "@/hooks/useApiClient";
 
 function NavLink({
   href,
@@ -164,6 +166,11 @@ function NavLinks() {
             noWrapper
           />
         </li>
+        {user?.isSuper && (
+          <li className="flex-shrink-0 mt-auto">
+            <ResetButton />
+          </li>
+        )}
         <li className="flex-shrink-0 mt-auto">
           <NavLink
             onClick={signOut}
@@ -174,6 +181,52 @@ function NavLinks() {
         </li>
       </ul>
     </>
+  );
+}
+
+function ResetButton() {
+  const { user } = useUser();
+  const { apiClient } = useApiClient();
+  const [isResetting, setIsResetting] = useState(false);
+
+  if (!user?.isSuper) {
+    return null;
+  }
+
+  const handleReset = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to reset the database? This will delete all data and cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsResetting(true);
+      await apiClient.post("/api/reset");
+      alert("Database reset successfully! Please refresh the page.");
+      window.location.reload();
+    } catch (error) {
+      alert(
+        `Failed to reset database: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleReset}
+      disabled={isResetting}
+      className="border-red-primary border rounded text-red-primary hover:bg-red-primary/10 transition-all duration-100 !w-auto disabled:opacity-50 disabled:cursor-not-allowed px-2 py-2 flex justify-center items-center"
+      title="Reset Database"
+    >
+      <ArrowClockwise size={22} className={isResetting ? "animate-spin" : ""} />
+    </button>
   );
 }
 
