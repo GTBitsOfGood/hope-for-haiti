@@ -222,7 +222,7 @@ function ResetButton() {
     <button
       onClick={handleReset}
       disabled={isResetting}
-      className="border-red-primary border rounded text-red-primary hover:bg-red-primary/10 transition-all duration-100 !w-auto disabled:opacity-50 disabled:cursor-not-allowed px-2 py-2 flex justify-center items-center"
+      className="border-red-primary border text-red-primary hover:bg-red-primary/10 transition-all duration-100 !w-auto mb-2 px-2 py-2 flex justify-start items-center space-x-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
       title="Reset Database"
     >
       <ArrowClockwise size={22} className={isResetting ? "animate-spin" : ""} />
