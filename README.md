@@ -32,7 +32,7 @@ docker run \
   pgvector/pgvector:pg17
 ```
 
-Then create the database and enable the extension:
+Then create the database and enable the extension (run in docker exec):
 
 ```bash
 createdb -h localhost -U postgres hope_for_haiti
@@ -73,6 +73,7 @@ AZURE_STORAGE_CONTAINER_NAME="signatures"
 AZURE_OPENAI_API_KEY="your-azure-openai-key"
 AZURE_OPENAI_DEPLOYMENT="omni-moderate"
 ```
+Ask the project Engineering Manager to access env variables.
 
 Notes:
 - If `SENDGRID_API_KEY` is not set, emails are saved under `email-previews/`.
