@@ -231,38 +231,6 @@ async function buildSeedData() {
     ),
   });
 
-  // --- START OF MOCK DATA FOR WISHLIST TICKET ---
-
-  // Partner 1 with 2 wishlist items (Testing "Not enough items" message)
-  for (let i = 1; i <= 2; i++) {
-    await db.wishlist.create({
-      data: {
-        name: `Emergency Kit ${i}`,
-        priority: "LOW",
-        comments: "Mock comment for small list",
-        partner: { connect: { id: partner1.id } }, // link to Partner 1
-      },
-    });
-  }
-
-  // Partner 2 with 12 wishlist items (Testing normal summary behavior)
-  for (let i = 1; i <= 12; i++) {
-    await db.wishlist.create({
-      data: {
-        name: `Bulk Supply ${i}`,
-        priority: "MEDIUM",
-        comments: "Mock comment for large list",
-        partner: { connect: { id: partner2.id } }, // linking to Partner 2
-      },
-    });
-  }
-
-  // SuperAdmin still has 0 items (double check "No items" message)
-
-  console.log("✓ Created Mock Wishlists");
-  console.log("  - Partner 1 (hopecenter): 2 items");
-  console.log("  - Partner 2 (lescayes): 12 items");
-  // --- END OF MOCK DATA ---
   console.log("✓ Created users");
   console.log(`  - Super Admin: ${superAdmin.email}`);
   console.log(`  - Distribution Lead: ${distributionLead.email}`);
