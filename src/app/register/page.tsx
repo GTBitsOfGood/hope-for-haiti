@@ -40,18 +40,21 @@ export default function RegisterPage() {
     try {
       await apiClient.post("/api/users", { body: formData });
 
-      const password = formData.get("password");
+      const password = String(formData.get("password") ?? "");
+
       const result = await signIn("credentials", {
-        email: inviteData?.email,
+        email: inviteData?.email ?? "",
         password,
-        redirect: true,
+        redirect: false,
+        callbackUrl: "/",
       });
 
       if (result?.error) {
         toast.error(result.error);
-      } else {
-        router.push("/");
+        return;
       }
+
+      router.push(result?.url ?? "/");
     } catch (error) {
       toast.error((error as Error).toString());
     }
