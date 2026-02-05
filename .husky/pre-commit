@@ -41,7 +41,7 @@ if [ ! -f node_modules/next/dist/bin/next ]; then
 fi
 
 echo "[husky] Running lint (next lint)" >&2
-node node_modules/next/dist/bin/next lint || {
+node node_modules/eslint/bin/eslint.js . || {
 	status=$?
 	echo "[husky] Lint failed (exit $status)" >&2
 	exit $status

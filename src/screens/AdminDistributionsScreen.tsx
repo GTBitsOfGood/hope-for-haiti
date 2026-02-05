@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import DistributionTable from "@/components/DistributionTable";
 import ShipmentsTable from "@/components/ShipmentsTable";
+import SignOffsTable from "@/components/SignOffsTable";
 import { useUser } from "@/components/context/UserContext";
 import { hasPermission } from "@/lib/userUtils";
 import { useRouter } from "next/navigation";
-
 // Define the tab options
 enum DistributionTab {
   DISTRIBUTIONS = "Distributions",
   SHIPMENTS = "Shipments",
+  SIGNOFFS = "Sign-offs"
 }
 
 export default function AdminDistributionsScreen() {
@@ -18,14 +19,16 @@ export default function AdminDistributionsScreen() {
   const router = useRouter();
   const canViewDistributions = hasPermission(user, "distributionRead");
   const canViewShipments = hasPermission(user, "shipmentRead");
+  const canViewSignOffs = hasPermission(user, "shipmentRead");
 
   const availableTabs = useMemo(
     () =>
       [
         canViewDistributions ? DistributionTab.DISTRIBUTIONS : null,
         canViewShipments ? DistributionTab.SHIPMENTS : null,
+        canViewSignOffs ? DistributionTab.SIGNOFFS : null,
       ].filter(Boolean) as DistributionTab[],
-    [canViewDistributions, canViewShipments]
+    [canViewDistributions, canViewShipments, canViewSignOffs]
   );
 
   const [activeTab, setActiveTab] = useState<string>(
@@ -70,6 +73,9 @@ export default function AdminDistributionsScreen() {
       )}
       {activeTab === DistributionTab.SHIPMENTS && canViewShipments && (
         <ShipmentsTable />
+      )}
+      {activeTab === DistributionTab.SIGNOFFS && canViewSignOffs && (
+        <SignOffsTable />
       )}
     </>
   );

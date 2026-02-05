@@ -18,7 +18,6 @@ import FileService from "@/services/fileService";
 import {
   hasShippingIdentifier,
   normalizeShippingTuple,
-  shippingTupleEquals,
   shippingTupleKey,
 } from "@/util/shipping";
 
@@ -42,21 +41,15 @@ export class ShippingStatusService {
   static async getShipments(
     page?: number,
     pageSize?: number,
-    filters?: Filters
+    filters?: Filters,
+    isCompleted?: boolean
   ): Promise<{ data: Shipment[]; total: number }> {
     const where = buildWhereFromFilters<Prisma.ShippingStatusWhereInput>(
       Object.keys(Prisma.ShippingStatusScalarFieldEnum),
       filters
     );
 
-    const [statuses, totalCount] = await Promise.all([
-      db.shippingStatus.findMany({
-        where,
-        skip: page && pageSize ? (page - 1) * pageSize : undefined,
-        take: pageSize,
-      }),
-      db.shippingStatus.count({ where }),
-    ]);
+    const statuses = await db.shippingStatus.findMany({ where });
 
     const validStatuses = statuses.filter((status) =>
       hasShippingIdentifier(status)
@@ -96,20 +89,27 @@ export class ShippingStatusService {
       },
     });
 
-    const shipments: Shipment[] = validStatuses.map((status) => ({
-      ...convertShippingStatusForResponse(status),
-      signOffs: [],
-      lineItems: [],
-    }));
+    const shipments: Shipment[] = [];
+    const shipmentMap = new Map<string, Shipment>();
+
+    for (const status of validStatuses) {
+      const shipment: Shipment = {
+        ...convertShippingStatusForResponse(status),
+        signOffs: [],
+        lineItems: [],
+      };
+
+      shipments.push(shipment);
+      shipmentMap.set(shippingTupleKey(status), shipment);
+    }
+
 
     for (const lineItem of lineItems) {
       if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
         continue;
       }
 
-      const shipment = shipments.find((s) =>
-        shippingTupleEquals(s, lineItem)
-      );
+      const shipment = shipmentMap.get(shippingTupleKey(lineItem));
 
       if (!shipment) {
         continue;
@@ -183,10 +183,30 @@ export class ShippingStatusService {
       }
     }
 
+    const shipmentIsCompleted = (s: Shipment) =>
+      s.signOffs.length > 0 && s.lineItems.length === 0;
+
+    let filteredShipments = shipments;
+
+    if (typeof isCompleted === "boolean") {
+      filteredShipments = shipments.filter(
+        (s) => shipmentIsCompleted(s) === isCompleted
+      );
+    }
+
+    const total = filteredShipments.length;
+
+    if (page && pageSize) {
+      const start = (page - 1) * pageSize;
+      filteredShipments = filteredShipments.slice(start, start + pageSize);
+    }
+
+
     return {
-      data: shipments,
-      total: totalCount,
+      data: filteredShipments,
+      total,
     };
+
   }
 
   static async getShippingStatuses(
@@ -270,7 +290,7 @@ export class ShippingStatusService {
       clauses,
       statusFilters,
       page,
-      pageSize
+      pageSize,
     );
   }
 
