@@ -49,7 +49,100 @@ export class ShippingStatusService {
       filters
     );
 
-    const statuses = await db.shippingStatus.findMany({ where });
+    const pageNum = page ?? 1;
+    const size = pageSize ?? 20;
+    const offset = (pageNum - 1) * size;
+
+    let statuses: ShippingStatus[] = [];
+    let totalCount = 0;
+
+    if (typeof isCompleted === "boolean") {
+      const completionPredicate = isCompleted
+        ? Prisma.sql`
+        EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NOT NULL
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NULL
+        )
+      `
+        : Prisma.sql`
+        EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NULL
+        )
+      `;
+
+
+      const idRows = await db.$queryRaw<{ id: number }[]>(
+        Prisma.sql`
+      SELECT ss.id
+      FROM "ShippingStatus" ss
+      WHERE
+        (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
+        AND ${completionPredicate}
+      ORDER BY ss.id DESC
+      LIMIT ${size} OFFSET ${offset}
+    `
+      );
+
+      const countRows = await db.$queryRaw<{ count: bigint }[]>(
+        Prisma.sql`
+      SELECT COUNT(*)::bigint AS count
+      FROM "ShippingStatus" ss
+      WHERE
+        (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
+        AND ${completionPredicate}
+    `
+      );
+
+      totalCount = Number(countRows[0]?.count ?? 0);
+
+      const ids = idRows.map((r) => r.id);
+      if (ids.length) {
+        const fetched = await db.shippingStatus.findMany({
+          where: { id: { in: ids } },
+        });
+
+        const byId = new Map(fetched.map((s) => [s.id, s]));
+        statuses = ids
+          .map((id) => byId.get(id))
+          .filter(Boolean) as ShippingStatus[];
+      } else {
+        statuses = [];
+      }
+    } else {
+      const [paged, count] = await Promise.all([
+        db.shippingStatus.findMany({
+          where,
+          skip: page && pageSize ? offset : undefined,
+          take: page && pageSize ? size : undefined,
+        }),
+        db.shippingStatus.count({ where }),
+      ]);
+
+      statuses = paged;
+      totalCount = count;
+    }
+
+
 
     const validStatuses = statuses.filter((status) =>
       hasShippingIdentifier(status)
@@ -182,27 +275,9 @@ export class ShippingStatusService {
       }
     }
 
-    const shipmentIsCompleted = (s: Shipment) =>
-      s.signOffs.length > 0 && s.lineItems.length === 0;
-
-    let filteredShipments = shipments;
-
-    if (typeof isCompleted === "boolean") {
-      filteredShipments = shipments.filter(
-        (s) => shipmentIsCompleted(s) === isCompleted
-      );
-    }
-
-    const total = filteredShipments.length;
-
-    if (page && pageSize) {
-      const start = (page - 1) * pageSize;
-      filteredShipments = filteredShipments.slice(start, start + pageSize);
-    }
-
     return {
-      data: filteredShipments,
-      total,
+      data: shipments,
+      total: totalCount,
     };
 
   }
