@@ -20,7 +20,6 @@ const patchBodySchema = z.object({
   status: z.nativeEnum($Enums.ShipmentStatus),
 });
 
-
 export async function GET(request: Request) {
   try {
     const session = await auth();

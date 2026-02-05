@@ -103,7 +103,6 @@ export class ShippingStatusService {
       shipmentMap.set(shippingTupleKey(status), shipment);
     }
 
-
     for (const lineItem of lineItems) {
       if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
         continue;
@@ -200,7 +199,6 @@ export class ShippingStatusService {
       const start = (page - 1) * pageSize;
       filteredShipments = filteredShipments.slice(start, start + pageSize);
     }
-
 
     return {
       data: filteredShipments,
