@@ -170,4 +170,16 @@ export default class StreamIoService {
       }
     }
   }
+
+  static async closeChannel(channelId: string): Promise<void> {
+    const channel = this.client.channel("ticket", channelId);
+    await channel.update({ closed: true } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
+
+  static async getChannelMembers(channelId: string): Promise<string[]> {
+    const channel = this.client.channel("ticket", channelId);
+    const response = await channel.queryMembers({}); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    return response.members.map(member => member.user_id).filter(Boolean) as string[];
+  }
 }
