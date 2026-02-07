@@ -28,7 +28,7 @@ const SupportTicketClosed = ({
       <Head />
       <Tailwind config={{ theme: tailwindConfig.theme }}>
         <Body className="bg-blue-light py-2 font-sans">
-          <Preview>Your support ticket "{ticketName}" has been closed</Preview>
+          <Preview>Your support ticket &quot;{ticketName}&quot; has been closed</Preview>
 
           <Container className="w-[600px] mx-auto text-left">
             <Section>
@@ -37,7 +37,7 @@ const SupportTicketClosed = ({
                   Hi {userName},
                 </Text>
                 <Text className="text-base text-gray-primary leading-[26px]">
-                  Your support ticket <strong>"{ticketName}"</strong> has been closed.
+                  Your support ticket <strong>&quot;{ticketName}&quot;</strong> has been closed.
                 </Text>
                 <Text className="text-base text-gray-primary leading-[26px]">
                   If you have any additional questions or need further assistance,
