@@ -31,10 +31,12 @@ export default function NotificationCard({
   const handleClick = async (redirect: boolean) => {
     if (!actionUrl) return;
 
-    try {
-      await apiClient.patch(`/api/notifications/${id}?view=true`);
-    } catch (error) {
-      console.error(`Failed to PATCH notification ${id}: ${error}`)
+    if (id > 0) {
+      try {
+        await apiClient.patch(`/api/notifications/${id}?view=true`);
+      } catch (error) {
+        console.error(`Failed to PATCH notification ${id}: ${error}`)
+      }
     }
 
     try {

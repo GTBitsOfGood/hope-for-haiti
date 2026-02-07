@@ -174,7 +174,10 @@ export default class StreamIoService {
 
   static async closeChannel(channelId: string): Promise<void> {
     const channel = this.client.channel("ticket", channelId);
-    await channel.update({ closed: true } as ChannelData & {closed: boolean}); 
+
+    await channel.watch(); 
+
+    await channel.update({...channel.data, closed: true } as ChannelData & {closed: boolean}); 
   }
 
   static async getChannelMembers(channelId: string): Promise<string[]> {
