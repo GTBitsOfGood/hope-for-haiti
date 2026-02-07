@@ -1,5 +1,5 @@
 import { ChannelData, StreamChat } from "stream-chat";
-import { string } from "zod";
+import { ExtraChannelData } from "@/types/api/streamio.types";
 
 export default class StreamIoService {
   private static client: StreamChat = StreamChat.getInstance(
@@ -174,12 +174,12 @@ export default class StreamIoService {
 
   static async closeChannel(channelId: string): Promise<void> {
     const channel = this.client.channel("ticket", channelId);
-    await channel.update({ closed: true } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    await channel.update({ closed: true } as ChannelData & {closed: boolean}); // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
   static async getChannelMembers(channelId: string): Promise<string[]> {
     const channel = this.client.channel("ticket", channelId);
-    const response = await channel.queryMembers({}); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const response = await channel.queryMembers({}); 
 
     return response.members.map(member => member.user_id).filter(Boolean) as string[];
   }
@@ -191,7 +191,7 @@ export default class StreamIoService {
   }> {
     const channel = this.client.channel("ticket", channelId); 
     await channel.watch(); 
-    const data = channel.data as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const data = channel.data as ExtraChannelData; 
     return {
       name: (data?.name as string) || "Support Ticket", 
       partnerName: (data?.partnerName as string) || "",
