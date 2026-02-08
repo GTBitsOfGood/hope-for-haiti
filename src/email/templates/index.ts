@@ -6,3 +6,4 @@ export { default as NewDistribution } from "./NewDistribution";
 export { default as ResetPassword } from "./ResetPassword";
 export { default as ShippingStatusUpdated } from "./ShippingStatusUpdated";
 export { default as SupportTicketUnread } from "./SupportTicketUnread";
+export { default as SupportTicketClosed } from "./SupportTicketClosed";
