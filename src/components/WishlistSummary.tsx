@@ -3,7 +3,6 @@
 import { useStreamClient } from "@/hooks/useStreamClient";
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import ReactMarkdown from "react-markdown";
 
 export default function WishlistSummary() {
   const [fullText, setFullText] = useState<string>("");
@@ -104,13 +103,11 @@ export default function WishlistSummary() {
           : "h-0"
       } transition-all duration-200 text-sm text-gray-700`}
     >
-      {/* Split the text by the newlines the AI sends */}
       {displayedText.split("\n").map((line, index, array) => (
         <div key={index} className={line.trim() === "" ? "h-4" : "mb-2 last:mb-0 inline-block w-full"}>
           <ReactMarkdown components={{ p: "span" }}>
             {line}
           </ReactMarkdown>
-          {/* Only show the cursor on the very last line of the very last section */}
           {showCursor && index === array.length - 1 && (
             <span className="animate-pulse">|</span>
           )}
