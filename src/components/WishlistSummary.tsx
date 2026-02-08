@@ -99,15 +99,22 @@ export default function WishlistSummary() {
     <div
       className={`mt-8 mb-5 ${
         showContainer 
-          ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light whitespace-pre-wrap" 
+          ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" 
           : "h-0"
       } transition-all duration-200 text-sm text-gray-700`}
     >
-      <ReactMarkdown components={{ p: "span" }}>
-        {displayedText}
-      </ReactMarkdown>
-      
-      {showCursor && <span className="animate-pulse">|</span>}
+      {/* Split the text by the newlines the AI sends */}
+      {displayedText.split("\n").map((line, index, array) => (
+        <div key={index} className={line.trim() === "" ? "h-4" : "mb-2 last:mb-0 inline-block w-full"}>
+          <ReactMarkdown components={{ p: "span" }}>
+            {line}
+          </ReactMarkdown>
+          {/* Only show the cursor on the very last line of the very last section */}
+          {showCursor && index === array.length - 1 && (
+            <span className="animate-pulse">|</span>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
