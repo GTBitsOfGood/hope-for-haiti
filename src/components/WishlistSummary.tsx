@@ -3,7 +3,6 @@
 import { useStreamClient } from "@/hooks/useStreamClient";
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import ReactMarkdown from "react-markdown";
 
 export default function WishlistSummary() {
   const [fullText, setFullText] = useState<string>("");
