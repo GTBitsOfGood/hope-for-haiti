@@ -4,7 +4,6 @@ import "react-tooltip/dist/react-tooltip.css";
 
 import AuthenticationProvider from "@/components/AuthenticationProvider";
 import NotificationHandler from "@/components/NotificationHandler";
-import FloatingNotification from "@/components/dashboard/FloatingNotification";
 import { Toaster } from "react-hot-toast";
 import NavbarLayout from "@/components/NavBarLayout";
 
@@ -24,7 +23,6 @@ export default function RootLayout({
         <AuthenticationProvider>
           <NotificationHandler>
             <NavbarLayout>{children}</NavbarLayout>
-            <FloatingNotification notifications={[]} />
             <Toaster
               position="bottom-right"
               toastOptions={{

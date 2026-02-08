@@ -1,4 +1,9 @@
-import { ChatsTeardrop, Warning } from "@phosphor-icons/react";
+import { useApiClient } from "@/hooks/useApiClient";
+import { Warning, ChatsTeardrop } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { Toast } from "react-hot-toast";
+import toast from "react-hot-toast";
+import { useNotifications } from "../NotificationHandler";
 
 interface NotificationCardProps {
   id: number;
@@ -8,14 +13,17 @@ interface NotificationCardProps {
   actionUrl?: string;
   type?: "CHAT" | "ALERT";
   hideAction?: boolean;
+  t?: Toast;
 }
 
 export default function NotificationCard({
+  id,
   message,
   dateCreated,
   actionText,
   actionUrl,
   type = "ALERT",
+  t,
   hideAction,
 }: NotificationCardProps) {
   const formatTimeAgo = (date: Date) => {
@@ -41,8 +49,27 @@ export default function NotificationCard({
     return "now";
   };
 
-  const handleClick = (isAction: boolean) => {
-    if (isAction && actionUrl) window.location.href = actionUrl;
+  const { apiClient } = useApiClient();
+  const router = useRouter();
+  const { refreshNotifications } = useNotifications();
+
+  const handleClick = async (redirect: boolean) => {
+    if (!actionUrl) return;
+
+    try {
+      await apiClient.patch(`/api/notifications/${id}?view=true`);
+    } catch (error) {
+      console.error(`Failed to PATCH notification ${id}: ${error}`);
+    }
+
+    try {
+      await refreshNotifications();
+    } catch (error) {
+      console.error("Failed to refresh notifications", error);
+    }
+
+    if (t) toast.dismiss(t.id);
+    if (redirect) router.push(actionUrl);
   };
 
   const isChat = type === "CHAT";

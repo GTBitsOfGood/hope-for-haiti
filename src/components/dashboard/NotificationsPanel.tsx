@@ -144,7 +144,7 @@ export default function NotificationsPanel({
                 <p className="text-sm font-medium">
                   {activeTab === "all"
                     ? "No notifications yet"
-                    : "No {activeTab} notifications yet"}
+                    : `No ${activeTab} notifications yet`}
                 </p>
               </div>
             </>

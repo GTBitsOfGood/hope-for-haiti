@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import FloatingNotification from "./dashboard/FloatingNotification";
 import { useUser } from "./context/UserContext";
 import { Notification } from "@prisma/client";
 import toast, { Toast } from "react-hot-toast";
@@ -95,10 +96,12 @@ export default function NotificationHandler({
       }
 
       try {
-        const viewed = pathname === payload.action ? "&view=true" : ""; 
-        await apiClient.patch(`/api/notifications/${payload.id}?delivery=true${viewed}`);
+        const viewed = pathname === payload.action ? "&view=true" : "";
+        await apiClient.patch(
+          `/api/notifications/${payload.id}?delivery=true${viewed}`
+        );
       } catch (error) {
-        console.error(`Failed to PATCH notification ${payload.id}: ${error}`)
+        console.error(`Failed to PATCH notification ${payload.id}: ${error}`);
       }
 
       setNotifications((prev) => {
@@ -107,16 +110,20 @@ export default function NotificationHandler({
 
       if (pathname === "/") return;
 
-      toast.custom((t: Toast) => (
-        <NotificationCard 
-          id={payload.id}
-          message={payload.title} 
-          actionText={payload.actionText ?? undefined} 
-          actionUrl={payload.action ?? undefined} 
-          t={t}
-          hideAction={pathname === payload.action}
-        />
-      ), {duration: 60 * 1000}); // 60 seconds
+      toast.custom(
+        (t: Toast) => (
+          <NotificationCard
+            id={payload.id}
+            message={payload.title}
+            dateCreated={payload.dateCreated}
+            actionText={payload.actionText ?? undefined}
+            actionUrl={payload.action ?? undefined}
+            t={t}
+            hideAction={pathname === payload.action}
+          />
+        ),
+        { duration: 60 * 1000 }
+      ); // 60 seconds
     };
 
     const channelName = `${process.env.NODE_ENV}:user:${user.id}`;
@@ -133,5 +140,10 @@ export default function NotificationHandler({
     [notifications, refreshNotifications]
   );
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={value}>
+      <FloatingNotification notifications={notifications} />
+      {children}
+    </NotificationContext.Provider>
+  );
 }
