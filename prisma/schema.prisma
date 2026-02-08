@@ -362,9 +362,15 @@ model PasswordResetToken {
   used      Boolean  @default(false)
 }
 
+enum NotificationType {
+  CHAT
+  ALERT
+}
+
 model Notification {
   id           Int       @id @default(autoincrement())
   title        String
+  type         NotificationType @default(ALERT)
   action       String?
   actionText   String?
   dateCreated  DateTime  @default(now())

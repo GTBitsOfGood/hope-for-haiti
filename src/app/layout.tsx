@@ -4,6 +4,7 @@ import "react-tooltip/dist/react-tooltip.css";
 
 import AuthenticationProvider from "@/components/AuthenticationProvider";
 import NotificationHandler from "@/components/NotificationHandler";
+import FloatingNotification from "@/components/dashboard/FloatingNotification";
 import { Toaster } from "react-hot-toast";
 import NavbarLayout from "@/components/NavBarLayout";
 
@@ -23,14 +24,26 @@ export default function RootLayout({
         <AuthenticationProvider>
           <NotificationHandler>
             <NavbarLayout>{children}</NavbarLayout>
+            <FloatingNotification notifications={[]} />
             <Toaster
-              position="bottom-right"
+              position="top-right"
+              containerClassName="mr-28 sm:mr-16 mt-2"
               toastOptions={{
-                className:
-                  "!bg-red-light border-red-dark border !text-red-primary",
-                iconTheme: {
-                  primary: "#F7949A",
-                  secondary: "#FEF5F5",
+                duration: 4000,
+                className: "border font-medium",
+                success: {
+                  className: "!bg-green-50 !border-green-500 !text-green-700",
+                  iconTheme: {
+                    primary: "#10b981",
+                    secondary: "#ecfdf5",
+                  },
+                },
+                error: {
+                  className: "!bg-red-light !border-red-dark !text-red-primary",
+                  iconTheme: {
+                    primary: "#F7949A",
+                    secondary: "#FEF5F5",
+                  },
                 },
               }}
             />

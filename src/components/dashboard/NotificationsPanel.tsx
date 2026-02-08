@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "@phosphor-icons/react";
+import { useState, useEffect } from "react";
 import NotificationCard from "./NotificationCard";
 import { Notification } from "@prisma/client";
 
@@ -10,23 +10,43 @@ interface NotificationsPanelProps {
   notifications: Notification[];
 }
 
+type TabType = "all" | "chats" | "alerts";
+
 export default function NotificationsPanel({
   isOpen,
   onClose,
   notifications,
 }: NotificationsPanelProps) {
+  const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+    } else {
+      setIsVisible(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const filteredNotifications = notifications.filter((notif) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "chats") return notif.type === "CHAT";
+    if (activeTab === "alerts") return notif.type === "ALERT";
+    return true;
+  });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const todayNotifications = notifications.filter((notif) => {
+  const todayNotifications = filteredNotifications.filter((notif) => {
     const notifDate = new Date(notif.dateCreated);
     notifDate.setHours(0, 0, 0, 0);
     return notifDate.getTime() === today.getTime();
   });
 
-  const previousNotifications = notifications.filter((notif) => {
+  const previousNotifications = filteredNotifications.filter((notif) => {
     const notifDate = new Date(notif.dateCreated);
     notifDate.setHours(0, 0, 0, 0);
     return notifDate.getTime() < today.getTime();
@@ -35,71 +55,100 @@ export default function NotificationsPanel({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
+        className={`fixed inset-0 z-40 cursor-default ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
         onClick={onClose}
       />
 
-      <div className="fixed top-0 right-0 h-full w-full sm:w-[750px] bg-white shadow-xl z-50 transform transition-transform">
-        <div className="h-full overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
-            <button
-              onClick={onClose}
-              className="mb-4 text-gray-600 hover:text-gray-800"
-            >
-              <ArrowLeft size={24} />
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              {notifications.length} Message
-              {notifications.length !== 1 ? "s" : ""}
-            </p>
+      <div
+        className={`absolute top-full right-0 mt-3 w-screen max-w-[480px] bg-white shadow-2xl z-50 p-6 rounded-2xl border border-gray-100 origin-top-right transition-all duration-200 ease-out ${
+          isVisible
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-95 -translate-y-2"
+        }`}
+      >
+        <div className="sticky space-y-4 top-0 bg-white z-10 border-b border-gray-100">
+          <h1 className="text-lg font-bold text-gray-900 tracking-tight">
+            Notifications
+          </h1>
+
+          <div className="flex gap-8 border-b border-gray-100 relative">
+            {(["all", "chats", "alerts"] as TabType[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative pb-3 text-sm font-bold capitalize transition-colors outline-none ${
+                  activeTab === tab
+                    ? "text-blue-primary"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <div className="absolute -bottom-0.5 left-0 right-0 h-[2px] bg-blue-primary rounded-full z-10" />
+                )}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="p-6 space-y-6">
-            {todayNotifications.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                  Today
-                </h2>
-                <div className="space-y-3">
-                  {todayNotifications.map((notification) => (
-                    <NotificationCard
-                      key={notification.id}
-                      id={notification.id}
-                      message={notification.title}
-                      actionText={notification.actionText ?? undefined}
-                      actionUrl={notification.action ?? undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+        <div className="py-4 space-y-5 max-h-[600px] overflow-y-auto">
+          {filteredNotifications.length > 0 ? (
+            <>
+              {todayNotifications.length > 0 && (
+                <section>
+                  <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">
+                    Today
+                  </h2>
+                  <div className="grid gap-2">
+                    {todayNotifications.map((notification) => (
+                      <NotificationCard
+                        key={notification.id}
+                        id={notification.id}
+                        message={notification.title}
+                        actionText={notification.actionText ?? undefined}
+                        actionUrl={notification.action ?? undefined}
+                        dateCreated={notification.dateCreated}
+                        type={notification.type}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-            {previousNotifications.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                  Previous
-                </h2>
-                <div className="space-y-3">
-                  {previousNotifications.map((notification) => (
-                    <NotificationCard
-                      key={notification.id}
-                      id={notification.id}
-                      message={notification.title}
-                      actionText={notification.actionText ?? undefined}
-                      actionUrl={notification.action ?? undefined}
-                    />
-                  ))}
-                </div>
+              {previousNotifications.length > 0 && (
+                <section>
+                  <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">
+                    Previous
+                  </h2>
+                  <div className="grid gap-2">
+                    {previousNotifications.map((notification) => (
+                      <NotificationCard
+                        key={notification.id}
+                        id={notification.id}
+                        message={notification.title}
+                        actionText={notification.actionText ?? undefined}
+                        actionUrl={notification.action ?? undefined}
+                        dateCreated={notification.dateCreated}
+                        type={notification.type}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col items-center justify-center pt-10 pb-6 text-gray-400">
+                <p className="text-sm font-medium">
+                  {activeTab === "all"
+                    ? "No notifications yet"
+                    : "No {activeTab} notifications yet"}
+                </p>
               </div>
-            )}
-
-            {notifications.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                No notifications
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </>
