@@ -2,6 +2,7 @@
 
 import { useStreamClient } from "@/hooks/useStreamClient";
 import { useEffect, useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 
 export default function WishlistSummary() {
   const [fullText, setFullText] = useState<string>("");
@@ -98,11 +99,14 @@ export default function WishlistSummary() {
     <div
       className={`mt-8 mb-5 ${
         showContainer 
-          ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light whitespace-pre-wrap" // Added this class!
+          ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light whitespace-pre-wrap" 
           : "h-0"
       } transition-all duration-200 text-sm text-gray-700`}
     >
-      {displayedText}
+      <ReactMarkdown components={{ p: "span" }}>
+        {displayedText}
+      </ReactMarkdown>
+      
       {showCursor && <span className="animate-pulse">|</span>}
     </div>
   );
