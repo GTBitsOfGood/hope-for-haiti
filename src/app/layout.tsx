@@ -26,8 +26,7 @@ export default function RootLayout({
             <NavbarLayout>{children}</NavbarLayout>
             <FloatingNotification notifications={[]} />
             <Toaster
-              position="top-right"
-              containerClassName="mr-28 sm:mr-16 mt-2"
+              position="bottom-right"
               toastOptions={{
                 duration: 4000,
                 className: "border font-medium",
