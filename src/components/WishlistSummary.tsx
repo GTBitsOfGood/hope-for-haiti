@@ -96,7 +96,11 @@ export default function WishlistSummary() {
 
   return (
     <div
-      className={`mt-8 mb-5 ${showContainer ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" : "h-0"} transition-all duration-200`}
+      className={`mt-8 mb-5 ${
+        showContainer 
+          ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light whitespace-pre-wrap" // Added this class!
+          : "h-0"
+      } transition-all duration-200 text-sm text-gray-700`}
     >
       {displayedText}
       {showCursor && <span className="animate-pulse">|</span>}

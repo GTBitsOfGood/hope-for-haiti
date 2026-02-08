@@ -217,25 +217,23 @@ export class WishlistService {
       throw new Error("OpenAI client not configured");
     }
 
-    // Analytical Persona: Focus on scannability and identifying bottlenecks
     const systemPrompt = `You are a Senior Inventory Analyst for Hope for Haiti. 
     Provide a high-value, analytical summary of unfulfilled wishlists.
-    - FORMATTING: Do NOT use Markdown bolding (no asterisks). Start each numbered section on a NEW LINE.
-    - ACTIONABILITY: Highlight if specific high-priority items are being requested in large quantities.
-    - ANALYSIS: Identify patterns, such as multiple partners needing the same category or aging requests.
+    - ACTIONABILITY: Use Markdown bolding (**text**) for **High Priority** items or large quantities (e.g., >100 units).
+    - ANALYSIS: Identify trends across partners and highlight critical bottlenecks.
     - STRUCTURE: 
-      1. Top Critical Trends: (Identify bottlenecks across partners).
-      2. Partner Highlights: (Mention specific partners by name and their focus).
-      3. Aging Requests: (Call out requests older than 30 days).
-    - CONSTRAINTS: Maximum 4-5 sentences. Be professional and extremely concise.`;
+      **TOP CRITICAL TRENDS**: (Analyze bottlenecks).
+      **PARTNER HIGHLIGHTS**: (Mention partners by name and their focus).
+      **AGING REQUESTS**: (Identify specific requests older than 30 days).
+    - FORMATTING: Start each section on a NEW LINE (use \n). Use **bolding** for headers and key terms.
+    - CONSTRAINTS: Maximum 5 sentences. Be professional and concise.`;
 
-    // Enhanced Context: Include Partner Name and Last Updated dates
     const userPrompt = `Here is the list of unfulfilled wishlists:\n${wishlists
       .map(
         (w) =>
           `- Partner: **${w.partner.name}** | Item: ${w.name} | Priority: **${w.priority.toLowerCase()}** | Quantity: ${w.quantity} | Last Updated: ${w.lastUpdated.toLocaleDateString()} | Comments: ${w.comments || "None"}`
       )
-      .join("\n")}\n\nPlease identify trends across these partners and highlight any critical bottlenecks.`;
+      .join("\n")}\n\nPlease identify trends and aging requests.`;
 
     const stream = await client.chat.completions.create({
       model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
