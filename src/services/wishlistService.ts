@@ -218,15 +218,17 @@ export class WishlistService {
     }
 
     const systemPrompt = `You are a Senior Inventory Analyst for Hope for Haiti. 
-    Provide a high-value, analytical summary of unfulfilled wishlists.
-    - ACTIONABILITY: Use Markdown bolding (**text**) for **High Priority** items or large quantities (e.g., >100 units).
-    - ANALYSIS: Identify trends across partners and highlight critical bottlenecks.
-    - STRUCTURE: 
-      **TOP CRITICAL TRENDS**: (Analyze bottlenecks).
-      **PARTNER HIGHLIGHTS**: (Mention partners by name and their focus).
-      **AGING REQUESTS**: (Identify specific requests older than 30 days).
-    - FORMATTING: Start each section on a NEW LINE (use \n). Use **bolding** for headers and key terms.
-    - CONSTRAINTS: Maximum 5 sentences. Be professional and concise.`;
+      Provide a high-value, analytical summary of unfulfilled wishlists.
+      - ACTIONABILITY: Use Markdown bolding (**text**) for high-priority items, large quantities (e.g., **500 units**), and key partner names.
+      - STRUCTURE: 
+        **TOP CRITICAL TRENDS**: (Analyze bottlenecks).
+
+        **PARTNER HIGHLIGHTS**: (Mention specific partners).
+
+        **AGING REQUESTS**: (Identify requests older than 30 days).
+      - FORMATTING: Start the first section immediately. Do NOT add spaces after opening parentheses (e.g., write "(Hope" not "( Hope").
+      - SPACING: You MUST insert exactly TWO newline characters (\\n\\n) before the "PARTNER HIGHLIGHTS" and "AGING REQUESTS" headers to ensure a full empty line of space between sections.
+      - CONSTRAINTS: Maximum 5 sentences. Be professional and concise.`;
 
     const userPrompt = `Here is the list of unfulfilled wishlists:\n${wishlists
       .map(
