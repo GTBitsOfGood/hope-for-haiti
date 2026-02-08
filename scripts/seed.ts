@@ -230,6 +230,89 @@ async function buildSeedData() {
       -73.75
     ),
   });
+  // --- START OF ANALYTICAL MOCK DATA ---
+
+  // Helper for setting dates (e.g., 45 days ago)
+  const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  // SCENARIO 1: The "PPE Bottleneck" (Multiple partners needing the same thing)
+  const ppeItems = ["Surgical Gloves", "N95 Masks", "Face Shields"];
+  for (const item of ppeItems) {
+    await db.wishlist.create({
+      data: {
+        name: item,
+        priority: "HIGH",
+        quantity: 500,
+        comments: "Critical shortage across rural clinics",
+        lastUpdated: daysAgo(2),
+        partner: { connect: { id: partner1.id } },
+      },
+    });
+    await db.wishlist.create({
+      data: {
+        name: item,
+        priority: "MEDIUM",
+        quantity: 250,
+        comments: "Stocking up for mobile outreach",
+        lastUpdated: daysAgo(5),
+        partner: { connect: { id: partner2.id } },
+      },
+    });
+  }
+
+  // SCENARIO 2: The "Aging Medication" (Old dates for the AI to spot)
+  await db.wishlist.create({
+    data: {
+      name: "Amoxicillin 250mg",
+      priority: "HIGH",
+      quantity: 1000,
+      comments: "Urgent need for pediatric patients",
+      lastUpdated: daysAgo(45), // 🚩 Over a month old
+      partner: { connect: { id: partner1.id } },
+    },
+  });
+
+  // SCENARIO 3: "High Volume Hardware" (Large quantities for actionability)
+  await db.wishlist.create({
+    data: {
+      name: "Solar Powered Refrigerators",
+      priority: "HIGH",
+      quantity: 50,
+      comments: "Needed for vaccine cold chain in Sud department",
+      lastUpdated: daysAgo(1),
+      partner: { connect: { id: partner2.id } },
+    },
+  });
+
+  // SCENARIO 4: "Specific Equipment Bottleneck" (Identifying specialized needs)
+  await db.wishlist.create({
+    data: {
+      name: "Infant Warming Cribs",
+      priority: "HIGH",
+      quantity: 5,
+      comments: "Necessary for neonatal unit expansion; power-grid compatible models preferred.",
+      lastUpdated: daysAgo(10),
+      partner: { connect: { id: partner1.id } },
+    },
+  });
+  
+  // SCENARIO 5: "Large-Scale Water Purification" (Testing high-quantity actionability)
+  await db.wishlist.create({
+    data: {
+      name: "Water Purification Tablets (Boxes of 100)",
+      priority: "MEDIUM",
+      quantity: 2000,
+      comments: "Preventative measure for upcoming rainy season; logistics team needs 2-week lead time.",
+      lastUpdated: daysAgo(3),
+      partner: { connect: { id: partner2.id } },
+    },
+  });
+
+  console.log("✓ Created Analytical Mock Data");
+  console.log("  - Scenario: PPE Bottleneck created (Pattern across partners)");
+  console.log("  - Scenario: Aging Medication created (45 days old)");
+  console.log("  - Scenario: Infrastructure needs created (High-value hardware)");
+  // --- END OF MOCK DATA ---
 
   console.log("✓ Created users");
   console.log(`  - Super Admin: ${superAdmin.email}`);

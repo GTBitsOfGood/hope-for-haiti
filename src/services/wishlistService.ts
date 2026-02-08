@@ -160,6 +160,9 @@ export class WishlistService {
       where: {
         generalItemId: null,
       },
+      include: {
+        partner: true,
+      }, // added for AI recognition
     });
   }
 
@@ -199,24 +202,40 @@ export class WishlistService {
   static async *streamWishlistSummary() {
     const wishlists = await this.getUnfulfilledWishlists();
 
-    if (wishlists.length < 10) {
-      yield "";
+    if (wishlists.length === 0) {
+      yield "No wishlist items";
       return;
     }
+
+    if (wishlists.length < 10) {
+      yield "Not enough wishlist items to generate a summary";
+      return;
+    } // implemented #26
 
     const { client } = getOpenAIClient();
     if (!client) {
       throw new Error("OpenAI client not configured");
     }
 
-    const systemPrompt = `Summarize wishlists in under 75 words using this structure: (1) Overall trend/theme across all items. (2) High priority items summary. (3) Medium priority items summary. (4) Low priority items summary. Adapt structure if priorities are disproportionate (e.g., skip sentences for missing priorities). Maximum 4 sentences. Be extremely concise and comprehensible.`;
+    // Analytical Persona: Focus on scannability and identifying bottlenecks
+    const systemPrompt = `You are a Senior Inventory Analyst for Hope for Haiti. 
+    Provide a high-value, analytical summary of unfulfilled wishlists.
+    - FORMATTING: Do NOT use Markdown bolding (no asterisks). Start each numbered section on a NEW LINE.
+    - ACTIONABILITY: Highlight if specific high-priority items are being requested in large quantities.
+    - ANALYSIS: Identify patterns, such as multiple partners needing the same category or aging requests.
+    - STRUCTURE: 
+      1. Top Critical Trends: (Identify bottlenecks across partners).
+      2. Partner Highlights: (Mention specific partners by name and their focus).
+      3. Aging Requests: (Call out requests older than 30 days).
+    - CONSTRAINTS: Maximum 4-5 sentences. Be professional and extremely concise.`;
 
+    // Enhanced Context: Include Partner Name and Last Updated dates
     const userPrompt = `Here is the list of unfulfilled wishlists:\n${wishlists
       .map(
         (w) =>
-          `- ${w.name} (Priority: ${w.priority.toLowerCase()}, Quantity: ${w.quantity}, Comments: ${w.comments || "None"})`
+          `- Partner: **${w.partner.name}** | Item: ${w.name} | Priority: **${w.priority.toLowerCase()}** | Quantity: ${w.quantity} | Last Updated: ${w.lastUpdated.toLocaleDateString()} | Comments: ${w.comments || "None"}`
       )
-      .join("\n")}\n\nPlease provide a concise summary.`;
+      .join("\n")}\n\nPlease identify trends across these partners and highlight any critical bottlenecks.`;
 
     const stream = await client.chat.completions.create({
       model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",
