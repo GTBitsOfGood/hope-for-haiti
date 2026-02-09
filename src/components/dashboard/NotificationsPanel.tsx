@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import NotificationCard from "./NotificationCard";
-import { Notification } from "@prisma/client";
+import { UnifiedNotification } from "../NotificationHandler";
 
 interface NotificationsPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  notifications: Notification[];
+  notifications: UnifiedNotification[];
 }
 
 type TabType = "all" | "chats" | "alerts";
@@ -32,8 +32,8 @@ export default function NotificationsPanel({
 
   const filteredNotifications = notifications.filter((notif) => {
     if (activeTab === "all") return true;
-    if (activeTab === "chats") return notif.type === "CHAT";
-    if (activeTab === "alerts") return notif.type === "ALERT";
+    if (activeTab === "chats") return notif.isChat;
+    if (activeTab === "alerts") return !notif.isChat;
     return true;
   });
 
@@ -110,7 +110,7 @@ export default function NotificationsPanel({
                         actionText={notification.actionText ?? undefined}
                         actionUrl={notification.action ?? undefined}
                         dateCreated={notification.dateCreated}
-                        type={notification.type}
+                        isChat={notification.isChat}
                       />
                     ))}
                   </div>
@@ -131,7 +131,7 @@ export default function NotificationsPanel({
                         actionText={notification.actionText ?? undefined}
                         actionUrl={notification.action ?? undefined}
                         dateCreated={notification.dateCreated}
-                        type={notification.type}
+                        isChat={notification.isChat}
                       />
                     ))}
                   </div>

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Bell } from "@phosphor-icons/react";
 import NotificationsPanel from "./NotificationsPanel";
-import { Notification } from "@prisma/client";
+import { UnifiedNotification } from "../NotificationHandler";
 
 interface FloatingNotificationProps {
-  notifications: Notification[];
+  notifications: UnifiedNotification[];
 }
 
 export default function FloatingNotification({

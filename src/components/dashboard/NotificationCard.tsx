@@ -6,12 +6,12 @@ import toast from "react-hot-toast";
 import { useNotifications } from "../NotificationHandler";
 
 interface NotificationCardProps {
-  id: number;
+  id: number | string;
   message: string;
   dateCreated: Date; // Added this prop
   actionText?: string;
   actionUrl?: string;
-  type?: "CHAT" | "ALERT";
+  isChat?: boolean;
   hideAction?: boolean;
   t?: Toast;
 }
@@ -22,7 +22,7 @@ export default function NotificationCard({
   dateCreated,
   actionText,
   actionUrl,
-  type = "ALERT",
+  isChat = false,
   t,
   hideAction,
 }: NotificationCardProps) {
@@ -71,8 +71,6 @@ export default function NotificationCard({
     if (t) toast.dismiss(t.id);
     if (redirect) router.push(actionUrl);
   };
-
-  const isChat = type === "CHAT";
 
   const styles = isChat
     ? {
