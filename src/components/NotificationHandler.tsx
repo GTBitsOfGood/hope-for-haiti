@@ -21,10 +21,10 @@ import { StreamChat, Event } from "stream-chat";
 let realtimeInstance: Ably.Realtime | null = null;
 
 export type UnifiedNotification = {
-  id: string | number; // Changed to string | number to support Stream IDs
+  id: string | number;
   title: string;
-  action?: string;
-  actionText?: string;
+  action?: string | null;
+  actionText?: string | null;
   dateCreated: Date;
   isChat?: boolean;
 };
