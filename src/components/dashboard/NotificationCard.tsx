@@ -56,7 +56,7 @@ export default function NotificationCard({
   const handleClick = async (redirect: boolean) => {
     if (!actionUrl) return;
 
-    if (id > 0) {
+    if (Number(id) > 0) {
       try {
         await apiClient.patch(`/api/notifications/${id}?view=true`);
       } catch (error) {
