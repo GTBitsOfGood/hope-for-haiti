@@ -1,6 +1,8 @@
 "use client";
+import { format } from "date-fns";
+import { useState, useRef, useCallback } from "react";
+import { CaretDown, Package } from "@phosphor-icons/react";
 import { useApiClient } from "@/hooks/useApiClient";
-import { useRef, useCallback } from "react";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
@@ -9,54 +11,56 @@ import AdvancedBaseTable, {
 import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./chips/Chip";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
+import DetailedChip from "./chips/DetailedChip";
 
 function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
+  const [showSignOffs, setShowSignOffs] = useState(true);
+
   if (!shipment.signOffs?.length) {
     return <div className="text-sm text-gray-500">No sign-offs found.</div>;
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {shipment.signOffs.map((signOff) => (
-        <div key={signOff.id} className="rounded border p-3">
-          <div className="mb-2 text-sm text-gray-700">
-            <div>
-              <span className="font-medium">Staff:</span>{" "}
-              {signOff.staffMemberName || "Unknown"}
-            </div>
-            <div>
-              <span className="font-medium">Partner:</span>{" "}
-              {signOff.partnerName || "Unknown"}
-            </div>
-            <div>
-              <span className="font-medium">Date:</span>{" "}
-              {signOff.date ? new Date(signOff.date).toLocaleString() : "N/A"}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {signOff.lineItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-wrap items-center gap-2 text-sm"
-              >
-                <Chip title={item.allocation.partner.name} />
-                <span className="font-medium">{item.generalItem.title}</span>
-                <span className="text-gray-600">Qty: {item.quantity}</span>
-                <span className="text-gray-600">
-                  {item.palletNumber ? `Pallet: ${item.palletNumber}` : ""}
-                </span>
-                <span className="text-gray-600">
-                  {item.boxNumber ? `Box: ${item.boxNumber}` : ""}
-                </span>
-                <span className="text-gray-600">
-                  {item.lotNumber ? `Lot: ${item.lotNumber}` : ""}
+    <div className="w-full bg-sunken p-2">
+      {showSignOffs && (
+        <div className=" border-gray-200 pt-4">
+          {shipment.signOffs.map((signOff) => (
+            <div key={signOff.id} className="space-y-2">
+              <div className="text-sm text-gray-500 font-light">
+                <span>{signOff.staffMemberName || "Unknown"}</span>
+                <span className="mx-2">•</span>
+                <span>
+                  {signOff.date
+                    ? format(new Date(signOff.date), "M/d/yyyy 'at' h:mm a")
+                    : "N/A"}
                 </span>
               </div>
-            ))}
-          </div>
+
+              <div className="flex flex-wrap">
+                {signOff.lineItems.map((lineItem) => (
+                  <DetailedChip
+                    key={lineItem.id}
+                    title={lineItem.generalItem.title}
+                    subtitle={`Pallet ${lineItem.palletNumber}`}
+                    label={lineItem.allocation.partner.name}
+                    amount={lineItem.quantity}
+                    icon={
+                      <Package
+                        size={16}
+                        className="text-gray-400 flex-shrink-0"
+                      />
+                    }
+                    selected={false}
+                    disabled={false}
+                    labelColor="red"
+                    className="opacity-70"
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -78,10 +82,7 @@ export default function SignOffsTable() {
         `/api/shipments?${searchParams.toString()}`
       );
 
-      return {
-        data: res.data,
-        total: res.total,
-      };
+      return { data: res.data, total: res.total };
     },
     [apiClient]
   );
@@ -90,24 +91,23 @@ export default function SignOffsTable() {
     {
       id: "donorShippingNumber",
       header: "Donor Shipping #",
-      cell: (shipment) => shipment.donorShippingNumber,
+      cell: (s) => s.donorShippingNumber,
     },
     {
       id: "hfhShippingNumber",
       header: "HFH Shipping #",
-      cell: (shipment) => shipment.hfhShippingNumber,
+      cell: (s) => s.hfhShippingNumber,
     },
     {
       id: "status",
       header: "Status",
-      cell: (shipment) => <ShippingStatusTag status={shipment.value} />,
+      cell: (s) => <ShippingStatusTag status={s.value} />,
     },
     {
       id: "partners",
       header: "Partners",
       cell: (shipment) => {
         const partnerMap = new Map<number, string>();
-
         shipment.signOffs.forEach((signOff) => {
           signOff.lineItems.forEach((item) => {
             partnerMap.set(
@@ -116,7 +116,6 @@ export default function SignOffsTable() {
             );
           });
         });
-
         return Array.from(partnerMap.entries()).map(([id, name]) => (
           <Chip key={id} title={name} />
         ));
@@ -130,7 +129,11 @@ export default function SignOffsTable() {
       columns={columns}
       fetchFn={fetchTableData}
       rowId="id"
-      rowBody={(shipment) => <SignedOffItemsBody shipment={shipment} />}
+      rowBody={(shipment) => (
+        <div className="border-t bg-gray-50 px-6">
+          <SignedOffItemsBody shipment={shipment} />
+        </div>
+      )}
     />
   );
 }

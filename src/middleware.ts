@@ -60,8 +60,8 @@ export default auth(async function middleware(req) {
     return NextResponse.redirect(url);
   }
 
-  const isEnabled = session.user.enabled !== false;
-  const isPending = session.user.pending === true;
+  const isEnabled = session.user?.enabled !== false;
+  const isPending = session.user?.pending === true;
 
   if (isPending) {
     if (isApiRoute(pathname)) {
