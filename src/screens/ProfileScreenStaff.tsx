@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { User } from "@prisma/client";
-import { signOut } from "next-auth/react";
+import Link from "next/link";
+import { useApiClient } from "@/hooks/useApiClient";
+import toast from "react-hot-toast";
 
 interface ProfileScreenStaffProps {
   user: User;
@@ -17,6 +19,8 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
     password: "********",
     confirmPassword: "",
   });
+
+  const { apiClient } = useApiClient();
 
   useEffect(() => {
     const nameParts = user.name ? user.name.split(" ") : [""];
@@ -47,6 +51,19 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
 
   const handleSave = () => {
     console.log("Saving data:", userData);
+
+    const promise = apiClient.patch(`/api/users/${user.id}`, {
+      body: JSON.stringify({
+        name: `${userData.firstName} ${userData.lastName}`.trim(),
+      }),
+    });
+
+    toast.promise(promise, {
+      loading: "Updating profile...",
+      success: "Profile updated successfully!",
+      error: "Failed to update profile.",
+    });
+
     setIsEditing(false);
   };
 
@@ -115,55 +132,19 @@ export default function ProfileScreenStaff({ user }: ProfileScreenStaffProps) {
           )}
 
           <p className="text-[18px] font-semibold text-[#22070B]">Email</p>
-          {isEditing ? (
-            <input
-              type="email"
-              name="email"
-              value={userData.email}
-              onChange={handleChange}
-              className="border border-[#22070B]/10 bg-[#F9F9F9] p-2 w-full rounded-[4px]"
-            />
-          ) : (
-            <p className="text-[16px] text-[#22070B]">{userData.email}</p>
-          )}
+          <p className="text-[16px] text-[#22070B]">{userData.email}</p>
 
           <p className="text-[18px] font-semibold text-[#22070B]">Password</p>
-          {isEditing ? (
-            <input
-              type="password"
-              name="password"
-              value={userData.password}
-              onChange={handleChange}
-              className="border border-[#22070B]/10 bg-[#F9F9F9] p-2 w-full rounded-[4px]"
-            />
-          ) : (
-            <p className="text-[16px] text-[#22070B]">{userData.password}</p>
-          )}
-
-          {isEditing && (
-            <>
-              <p className="text-[18px] font-semibold text-[#22070B]">
-                Confirm password
-              </p>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={userData.confirmPassword}
-                onChange={handleChange}
-                className="border border-[#22070B]/10 bg-[#F9F9F9] p-2 w-full rounded-[4px]"
-              />
-            </>
-          )}
+          <p className="text-[16px] text-[#22070B]">{userData.password}</p>
         </div>
       </div>
-      <div className="mt-6">
-        <button 
-        className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10"
-        onClick={() => signOut({ callbackUrl: "/signIn" })}
-        >
-          Logout
-        </button>
-      </div>
+      <p className="mt-4">
+        <Link href="/reset-password">
+          <button className="border border-mainRed text-mainRed px-4 py-2 rounded-[4px] font-semibold hover:bg-mainRed/10">
+            Reset Password
+          </button>
+        </Link>
+      </p>
     </div>
   );
 }

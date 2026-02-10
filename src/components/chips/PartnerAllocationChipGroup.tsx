@@ -96,6 +96,7 @@ function PartnerAllocationChip({
   updateItem,
   updateItemsAllocated,
   generalItemId,
+  ensureDistributionForPartner,
   readOnly = false,
 }: {
   allocation: PartnerAllocationChipData;
@@ -114,6 +115,7 @@ function PartnerAllocationChip({
   const { apiClient } = useApiClient();
 
   async function allocateItem(item: AllocationLineItem) {
+    try {
     const isAlreadyAllocated = item.allocation?.partner?.id === allocation.partner.id;
 
     if (isAlreadyAllocated && item.allocation) {
@@ -139,9 +141,7 @@ function PartnerAllocationChip({
       return;
     }
 
-    // Allocate: POST new allocation
-    const distributionId: number | undefined = undefined;
-    /*
+    let distributionId: number | undefined = undefined;
     if (ensureDistributionForPartner) {
       const distribution = await ensureDistributionForPartner(
         allocation.partner.id,
@@ -149,7 +149,6 @@ function PartnerAllocationChip({
       );
       distributionId = distribution.id;
     }
-      */
 
     const formData = new FormData();
     formData.set("partnerId", allocation.partner.id.toString());
@@ -216,6 +215,9 @@ function PartnerAllocationChip({
     }));
 
     updateItemsAllocated(allocation.partner.id);
+    } catch (error) {
+      toast.error((error as Error).toString());
+    }
   }
 
   return (

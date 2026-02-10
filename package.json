@@ -13,12 +13,14 @@
     "db:migrate": "env-cmd -f .env npx prisma migrate dev",
     "db:view": "env-cmd -f .env npx prisma studio",
     "db:seed-chroma": "env-cmd -f .env tsx scripts/seed-chroma.ts",
+    "db:createStaffUser": "env-cmd -f .env tsx scripts/createStaffUser.ts",
     "ci:db:migrate": "npx prisma migrate dev",
     "prepare": "husky",
     "email:dev": "email dev --dir ./src/email --port 4000",
     "netlify": "netlify dev",
     "functions:expiringItems": "netlify functions:invoke expiringItems --port 8888",
-    "functions:notifications": "netlify functions:invoke notifications --port 8888"
+    "functions:notifications": "netlify functions:invoke notifications --port 8888",
+    "functions:supportNotifications": "netlify functions:invoke supportNotifications --port 8888"
   },
   "dependencies": {
     "@ably/chat": "^1.1.0",

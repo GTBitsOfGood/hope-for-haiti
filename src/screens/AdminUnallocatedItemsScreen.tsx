@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import AllocationTable from "@/components/allocationTable/AllocationTable";
 import {
@@ -25,6 +25,7 @@ function calculateItemsAllocated(
 
 export default function AdminUnallocatedItemsScreen() {
   const { apiClient } = useApiClient();
+  const [modifiedPagesCount, setModifiedPagesCount] = useState(0);
 
   const fetchTableData = useCallback(
     async (
@@ -121,11 +122,24 @@ export default function AdminUnallocatedItemsScreen() {
   return (
     <>
       <h1 className="text-2xl font-semibold">Unallocated Items</h1>
+
+      {modifiedPagesCount > 0 && (
+        <div className="mb-4 mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Note:</strong> Suggestions have been made across{" "}
+            <strong>{modifiedPagesCount}</strong> page
+            {modifiedPagesCount === 1 ? "" : "s"}. Please review all pages to
+            see all recommendations.
+          </p>
+        </div>
+      )}
+
       <AllocationTable
         fetchFn={fetchTableData}
         suggestionConfig={{
           onSuggest: handleSuggest,
           onApply: handleApplySuggestions,
+          onModifiedPagesChange: setModifiedPagesCount,
         }}
       />
     </>

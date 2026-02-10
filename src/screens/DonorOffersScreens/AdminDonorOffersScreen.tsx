@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   DotsThree,
-  MagnifyingGlass,
   Plus,
   PencilSimple,
   Upload,
@@ -103,19 +102,20 @@ export default function AdminDonorOffersScreen() {
   return (
     <>
       <h1 className="text-2xl font-semibold">Donor Offers</h1>
-      <div className="flex justify-between items-center w-full py-4">
-        <div className="relative w-1/3">
-          <MagnifyingGlass
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Search"
-            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:border-gray-400"
-          />
+      <div className="flex space-x-4 mt-4 border-b-2">
+        <div className="flex-1">
+          {statusFilterTabs.map((tab) => (
+            <button
+              key={tab}
+              data-active={activeTab === tab}
+              className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
+              onClick={() => setActiveTab(tab)}
+            >
+              <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
+            </button>
+          ))}
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 mb-6">
           <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
             <Plus size={18} /> Filter
           </button>
@@ -132,18 +132,6 @@ export default function AdminDonorOffersScreen() {
             </div>
           )}
         </div>
-      </div>
-      <div className="flex space-x-4 mt-4 border-b-2">
-        {statusFilterTabs.map((tab) => (
-          <button
-            key={tab}
-            data-active={activeTab === tab}
-            className="px-2 py-1 text-md font-medium relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-black data-[active=true]:bottom-[-1px] data-[active=false]:text-gray-500"
-            onClick={() => setActiveTab(tab)}
-          >
-            <div className="hover:bg-gray-100 px-2 py-1 rounded">{tab}</div>
-          </button>
-        ))}
       </div>
 
       {isLoading ? (

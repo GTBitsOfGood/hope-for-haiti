@@ -27,7 +27,7 @@ const postSchema = z.object({
   quantityPerUnit: z.number().int().positive(),
   initialQuantity: z.number().int().min(0),
   requestQuantity: z.number().int().min(0).optional(),
-  weight: z.number().positive("Weight must be positive and non-zero"),
+  weight: z.number().min(0, "Weight must be non-negative"),
   lineItem: z.array(singleLineItemSchema).optional(),
 });
 
@@ -161,8 +161,6 @@ export async function GET(request: NextRequest) {
           matchedIds.push(id);
         }
 
-        // Store match metadata - keep strongest match if multiple wishlists match
-        // Priority: hard > soft, then lower distance wins
         const existing = matchMetadata.get(id);
         const shouldUpdate =
           !existing ||

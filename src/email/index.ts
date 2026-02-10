@@ -10,6 +10,8 @@ import CreateAccountReminder, {
   CreateAccountReminderProps,
 } from "./templates/CreateAccountReminder";
 import ResetPassword, { ResetPasswordProps } from "./templates/ResetPassword";
+import SupportTicketUnread, { SupportTicketUnreadProps } from "./templates/SupportTicketUnread";
+import SupportTicketClosed, { SupportTicketClosedProps } from "./templates/SupportTicketClosed";
 
 const apiKey = process.env.SENDGRID_API_KEY as string;
 const fromEmail = process.env.SENDGRID_SENDER as string;
@@ -126,5 +128,15 @@ export class EmailClient {
   static async sendPasswordReset(to: string, props: ResetPasswordProps) {
     const html = await render(ResetPassword(props));
     return sendEmail(to, "Reset Your Password", html);
+  }
+
+  static async sendSupportTicketUnread(to: string, props: SupportTicketUnreadProps) {
+    const html = await render(SupportTicketUnread(props));
+    return sendEmail(to, "Unread Support Ticket Messages", html);
+  }
+
+  static async sendSupportTicketClosed(to: string, props: SupportTicketClosedProps) {
+    const html = await render(SupportTicketClosed(props)); 
+    return sendEmail(to, `Support Ticket Closed: ${props.ticketName}`, html);
   }
 }

@@ -153,8 +153,8 @@ export default function ShippingStatusTable({
             value={status.value}
             onChange={(e) =>
               handleSelectStatus(
-                status.donorShippingNumber,
-                status.hfhShippingNumber,
+                status.donorShippingNumber!,
+                status.hfhShippingNumber!,
                 e.target.value as ShipmentStatus
               )
             }
@@ -172,8 +172,8 @@ export default function ShippingStatusTable({
               size={28}
               onClick={() => {
                 openModal(
-                  status.hfhShippingNumber,
-                  status.donorShippingNumber,
+                  status.hfhShippingNumber!,
+                  status.donorShippingNumber!,
                   items[index] || []
                 );
               }}

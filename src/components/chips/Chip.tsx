@@ -51,9 +51,7 @@ export default function Chip({
         )}
 
         {(revisedAmount ?? amount) !== undefined && (
-          <span
-            className="rounded bg-blue-primary/20 font-bold px-[2px] text-blue-primary"
-          >
+          <span className="rounded bg-blue-primary/20 font-bold px-[2px] text-blue-primary">
             {revisedAmount ?? amount}
           </span>
         )}

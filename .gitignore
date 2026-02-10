@@ -49,3 +49,5 @@ AGENTS.md
 
 # Local Netlify folder
 .netlify
+
+scripts/createStaffUser.ts

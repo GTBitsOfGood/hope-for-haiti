@@ -27,7 +27,6 @@ const finalizedRequiredKeys = new Map<string, string>([
   ["Description", "title"],
   ["Exp.", "expirationDate"],
   ["Container Type", "unitType"],
-  ["Weight Lb", "weight"],
   ["Donor", "donorName"],
   ["# of Containers", "quantity"],
   ["Lot #", "lotNumber"],
@@ -36,17 +35,78 @@ const finalizedRequiredKeys = new Map<string, string>([
   ["Cost per Piece", "unitPrice"],
 ]);
 
-const unfinalizedRequiredKeysList = Array.from(unfinalizedRequiredKeys.keys());
-const finalizedRequiredKeysList = Array.from(finalizedRequiredKeys.keys());
+const finalizedOptionalKeys = new Map<string, string>([
+  ["Weight Lb", "weight"],
+  ["Donor Shipping #", "donorShippingNumber"],
+]);
+
+const normalizeHeader = (key: string): string =>
+  key.replace(/\s+/g, " ").trim();
+
+const canonicalizeHeader = (key: string): string => {
+  const normalized = normalizeHeader(key).replace(/(?:__|_)\d+$/i, "");
+  return normalized.toLowerCase().replace(/[^a-z0-9#]+/g, "");
+};
+
+const buildCanonicalMap = (entries: Map<string, string>) => {
+  const canonical = new Map<string, string>();
+  for (const [label, mappedKey] of entries) {
+    canonical.set(canonicalizeHeader(label), mappedKey);
+  }
+  return canonical;
+};
+
+const unfinalizedRequiredCanonicalMap = buildCanonicalMap(
+  unfinalizedRequiredKeys
+);
+const finalizedRequiredCanonicalMap = buildCanonicalMap(
+  finalizedRequiredKeys
+);
+const finalizedOptionalCanonicalMap =
+  buildCanonicalMap(finalizedOptionalKeys);
+
+const canonicalRequiredKeys = {
+  unfinalized: Array.from(unfinalizedRequiredCanonicalMap.keys()),
+  finalized: Array.from(finalizedRequiredCanonicalMap.keys()),
+};
+
+const normalizeRowKeys = (row: Record<string, unknown>) => {
+  const normalized: Record<string, unknown> = {};
+  for (const [rawKey, value] of Object.entries(row)) {
+    const canonicalKey = canonicalizeHeader(rawKey);
+    if (!canonicalKey) continue;
+    normalized[canonicalKey] = value;
+  }
+  return normalized;
+};
+
+const skipEmptyRows = (text: string): string => {
+  const lines = text.split("\n");
+  const firstNonEmptyIndex = lines.findIndex((line) => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && trimmed !== "," && !/^,+$/.test(trimmed);
+  });
+
+  return firstNonEmptyIndex > 0
+    ? lines.slice(firstNonEmptyIndex).join("\n")
+    : text;
+};
 
 const containsRequiredKeys = (
   type: "unfinalized" | "finalized",
   fields?: string[]
-) => {
-  if (!fields) return false;
-  return type === "finalized"
-    ? finalizedRequiredKeysList.every((key) => fields.includes(key))
-    : unfinalizedRequiredKeysList.every((key) => fields.includes(key));
+): { valid: boolean; missingKeys: string[] } => {
+  if (!fields) return { valid: false, missingKeys: [] };
+  const canonicalFields = new Set(
+    fields.map((key) => canonicalizeHeader(key))
+  );
+  const requiredKeys =
+    type === "finalized"
+      ? canonicalRequiredKeys.finalized
+      : canonicalRequiredKeys.unfinalized;
+
+  const missingKeys = requiredKeys.filter((key) => !canonicalFields.has(key));
+  return { valid: missingKeys.length === 0, missingKeys };
 };
 
 const hasValue = (value: unknown) => {
@@ -62,22 +122,38 @@ const filterEmptyRows = (
   rows: Record<string, unknown>[]
 ) =>
   type === "unfinalized"
-    ? rows.filter((row) => hasValue(row["Generic Description"]))
-    : rows.filter((row) => hasValue(row["Donor"]));
+    ? rows.filter((row) =>
+        hasValue(row[canonicalizeHeader("Generic Description")])
+      )
+    : rows.filter((row) => hasValue(row[canonicalizeHeader("Donor")]));
 
 const remapRequiredColumns = (
   type: "unfinalized" | "finalized",
   row: Record<string, unknown>
 ): Record<string, unknown> => {
-  const updated: Record<string, unknown> = { ...row };
-  const keys =
-    type === "unfinalized" ? unfinalizedRequiredKeys : finalizedRequiredKeys;
-  for (const [originalKey, newKey] of keys) {
-    if (Object.prototype.hasOwnProperty.call(updated, originalKey)) {
-      updated[newKey] = updated[originalKey];
-      delete updated[originalKey];
+  const normalizedRow = normalizeRowKeys(row);
+  const requiredMap =
+    type === "unfinalized"
+      ? unfinalizedRequiredCanonicalMap
+      : finalizedRequiredCanonicalMap;
+  const optionalMap =
+    type === "unfinalized"
+      ? new Map<string, string>()
+      : finalizedOptionalCanonicalMap;
+
+  const updated: Record<string, unknown> = {};
+
+  const assignFromMap = (map: Map<string, string>) => {
+    for (const [canonicalKey, newKey] of map) {
+      if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
+        updated[newKey] = normalizedRow[canonicalKey];
+      }
     }
-  }
+  };
+
+  assignFromMap(requiredMap);
+  assignFromMap(optionalMap);
+
   return updated;
 };
 
@@ -95,15 +171,10 @@ const transformDonorOfferRow = (
     transformed["initialQuantity"] = quantity;
   }
 
-  if (
-    weight !== undefined &&
-    weight !== null &&
-    weight !== 0 &&
-    weight !== "0"
-  ) {
+  if (weight !== undefined && weight !== null) {
     transformed["weight"] = weight;
   } else {
-    throw new Error("Weight is required and cannot be zero");
+    throw new Error("Weight is required");
   }
 
   delete transformed["quantity"];
@@ -320,25 +391,30 @@ export default class FileService {
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const csvText = XLSX.utils.sheet_to_csv(sheet);
+        const csvText = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
         const { data, meta } = Papa.parse(csvText, { header: true });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields || [];
+        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       } else if (fileExt === "csv") {
-        const text = await file.text();
+        const text = skipEmptyRows(await file.text());
         const { data, meta } = Papa.parse(text, {
           header: true,
           skipEmptyLines: true,
         });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields || [];
+        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       }
+      jsonData = jsonData.map((row) => normalizeRowKeys(row));
       jsonData = filterEmptyRows("unfinalized", jsonData);
 
-      if (!fields || !containsRequiredKeys("unfinalized", fields)) {
-        throw new ArgumentError("File does not contain required keys");
+      const validationResult = containsRequiredKeys("unfinalized", fields);
+      if (!fields || !validationResult.valid) {
+        const missingKeysList = validationResult.missingKeys.join(", ");
+        throw new ArgumentError(
+          `File does not contain required keys. Missing: ${missingKeysList || "unknown"}`
+        );
       }
 
       const transformedData = jsonData.map(transformDonorOfferRow);
@@ -367,28 +443,33 @@ export default class FileService {
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const csvText = XLSX.utils.sheet_to_csv(sheet);
+        const csvText = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
         const { data, meta } = Papa.parse(csvText, { header: true });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields || [];
+        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       } else {
-        const text = await file.text();
+        const text = skipEmptyRows(await file.text());
         const { data, meta } = Papa.parse(text, {
           header: true,
           skipEmptyLines: true,
         });
 
         jsonData = data as Record<string, unknown>[];
-        fields = meta.fields || [];
+        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       }
 
+      jsonData = jsonData.map((row) => normalizeRowKeys(row));
       jsonData = filterEmptyRows("finalized", jsonData).map((row) =>
         remapRequiredColumns("finalized", row)
       );
 
-      if (!fields || !containsRequiredKeys("finalized", fields)) {
-        throw new ArgumentError("File does not contain required keys");
+      const validationResult = containsRequiredKeys("finalized", fields);
+      if (!fields || !validationResult.valid) {
+        const missingKeysList = validationResult.missingKeys.join(", ");
+        throw new ArgumentError(
+          `File does not contain required keys. Missing: ${missingKeysList || "unknown"}`
+        );
       }
 
       return { data: jsonData, fields };

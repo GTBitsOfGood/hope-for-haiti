@@ -1,11 +1,17 @@
 // src/app/api/generalItems/compare/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { MatchingService } from "@/services/matchingService";
-import { ArgumentError, errorResponse } from "@/util/errors";
+import { ArgumentError, AuthenticationError, errorResponse } from "@/util/errors";
 import { db } from "@/db";
+import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
     const { searchParams } = new URL(req.url);
     const title = (searchParams.get("title") ?? "").trim();
     const donorOfferIdParam = searchParams.get("donorOfferId");
@@ -17,11 +23,52 @@ export async function GET(req: NextRequest) {
       throw new ArgumentError("Missing required parameter: title");
     }
 
-    // Base matches (id, title, donorOfferId, distance, similarity, strength handled by service)
+    // Get UNFINALIZED donor offers where this partner has visibility
+    const unfinalizedVisibleOffers = await db.donorOffer.findMany({
+      where: {
+        state: "UNFINALIZED",
+        partnerVisibilities: {
+          some: {
+            id: parseInt(session.user.id),
+            enabled: true,
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    // Get ALL ARCHIVED donor offers (any partner can see unallocated items)
+    const archivedOffers = await db.donorOffer.findMany({
+      where: {
+        state: "ARCHIVED",
+      },
+      select: { id: true },
+    });
+
+    const visibleDonorOfferIds = [
+      ...unfinalizedVisibleOffers.map((offer) => offer.id),
+      ...archivedOffers.map((offer) => offer.id),
+    ];
+
+    // If no accessible donor offers, return empty results
+    if (visibleDonorOfferIds.length === 0) {
+      return NextResponse.json({
+        queryTitle: title,
+        count: 0,
+        results: [],
+      });
+    }
+
+    // If specific donorOfferId provided, verify partner has access
+    const finalDonorOfferId = donorOfferId
+      ? (visibleDonorOfferIds.includes(donorOfferId) ? donorOfferId : undefined)
+      : undefined;
+
     const baseResults = await MatchingService.getTopKMatches({
       query: title,
       k: 4,
-      donorOfferId,
+      donorOfferId: finalDonorOfferId,
+      donorOfferIds: finalDonorOfferId ? undefined : visibleDonorOfferIds,
     });
 
 

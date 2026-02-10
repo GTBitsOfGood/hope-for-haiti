@@ -1,9 +1,19 @@
-// src/services/MatchingService.ts
 import { Prisma } from "@prisma/client";
 import { db } from "@/db";
 import { getOpenAIClient } from "@/lib/azureOpenAI";
 
 const EMBEDDING_DIMENSION = 1536;
+
+export type CachedEmbedding = {
+  id: number;
+  generalItemId: number | null;
+  title: string;
+  unitType?: string;
+  embedding: number[];
+  expirationDate: Date | null;
+};
+
+export type EmbeddingCache = Map<number, CachedEmbedding[]>;
 
 type BaseMetadata = {
   generalItemId?: number | null;
@@ -77,7 +87,7 @@ async function embed(texts: string[]): Promise<number[][]> {
   }
 
   const resp = await client.embeddings.create({
-    model: deployment, // use Azure deployment name
+    model: deployment,
     input: texts,
   });
 
@@ -165,43 +175,6 @@ function resolveTarget(
   return { generalItemId, wishlistId };
 }
 
-function buildSearchWhereClause(filters: SearchFilters): Prisma.Sql | null {
-  const conditions: Prisma.Sql[] = [];
-
-  const generalIds = dedupeNumbers([
-    filters.generalItemId,
-    ...(filters.generalItemIds ?? []),
-  ]);
-  if (generalIds.length === 1) {
-    conditions.push(Prisma.sql`emb."generalItemId" = ${generalIds[0]}`);
-  } else if (generalIds.length > 1) {
-    conditions.push(Prisma.sql`emb."generalItemId" = ANY(${generalIds})`);
-  }
-
-  const wishlistIds = dedupeNumbers([
-    filters.wishlistId,
-    ...(filters.wishlistIds ?? []),
-  ]);
-  if (wishlistIds.length === 1) {
-    conditions.push(Prisma.sql`emb."wishlistId" = ${wishlistIds[0]}`);
-  } else if (wishlistIds.length > 1) {
-    conditions.push(Prisma.sql`emb."wishlistId" = ANY(${wishlistIds})`);
-  }
-
-  const donorOfferIds = dedupeNumbers([
-    filters.donorOfferId,
-    ...(filters.donorOfferIds ?? []),
-  ]);
-  if (donorOfferIds.length === 1) {
-    conditions.push(Prisma.sql`emb."donorOfferId" = ${donorOfferIds[0]}`);
-  } else if (donorOfferIds.length > 1) {
-    conditions.push(Prisma.sql`emb."donorOfferId" = ANY(${donorOfferIds})`);
-  }
-
-  if (!conditions.length) return null;
-  return Prisma.sql`WHERE ${joinSql(conditions, Prisma.sql` AND `)}`;
-}
-
 function buildDeleteConditions(params: {
   embeddingIds?: number[];
   generalItemIds?: number[];
@@ -245,10 +218,7 @@ function buildDeleteConditions(params: {
 }
 
 export class MatchingService {
-  /**
-   * Add to the vector store (single or batch).
-   */
-  static async add(items: ItemInput | ItemInput[]): Promise<void> {
+    static async add(items: ItemInput | ItemInput[]): Promise<void> {
     const batch = asArray(items)
       .map((item) => ({
         raw: item,
@@ -308,31 +278,25 @@ export class MatchingService {
     );
   }
 
-  /**
-   * Remove from the vector store using any supported metadata.
-   */
-  static async remove(params: RemoveParams): Promise<void> {
+    static async remove(params: RemoveParams): Promise<void> {
     const embeddingTargets = dedupeNumbers(params.embeddingIds ?? []);
-    const generalTargets = dedupeNumbers(params.generalItemIds ?? []);
     const wishlistTargets = dedupeNumbers(params.wishlistIds ?? []);
-    const donorTargets = dedupeNumbers(params.donorOfferIds ?? []);
 
-    if (
-      !embeddingTargets.length &&
-      !generalTargets.length &&
-      !wishlistTargets.length &&
-      !donorTargets.length
-    ) {
+    if (!embeddingTargets.length && !wishlistTargets.length) {
       throw new Error(
-        "Provide at least one identifier: embeddingIds, generalItemIds, wishlistIds, or donorOfferIds."
+        "Provide at least one identifier: embeddingIds or wishlistIds. Note: Item embeddings cannot be deleted directly."
+      );
+    }
+
+    if (params.generalItemIds?.length || params.donorOfferIds?.length) {
+      throw new Error(
+        "Item embeddings (generalItemIds, donorOfferIds) cannot be deleted. Only wishlist embeddings can be removed."
       );
     }
 
     const conditions = buildDeleteConditions({
       embeddingIds: embeddingTargets,
-      generalItemIds: generalTargets,
       wishlistIds: wishlistTargets,
-      donorOfferIds: donorTargets,
     });
 
     const whereClause =
@@ -344,14 +308,12 @@ export class MatchingService {
       Prisma.sql`
         DELETE FROM "ItemEmbeddings"
         WHERE ${whereClause}
+          AND "wishlistId" IS NOT NULL
       `
     );
   }
 
-  /**
-   * Modify existing vectors (single or batch).
-   */
-  static async modify(
+    static async modify(
     items: ModifyInput | ModifyInput[]
   ): Promise<void> {
     const batch = asArray(items);
@@ -434,17 +396,14 @@ export class MatchingService {
     }
   }
 
-  /**
-   * Get top-K matches for one or many query strings.
-   */
-  static async getTopKMatches(params: SingleQueryParams): Promise<MatchResult[]>;
+    static async getTopKMatches(params: SingleQueryParams): Promise<MatchResult[]>;
   static async getTopKMatches(
     params: MultiQueryParams
   ): Promise<MatchResult[][]>;
   static async getTopKMatches(
     params: SingleQueryParams | MultiQueryParams
   ): Promise<MatchResult[] | MatchResult[][]> {
-    const { k, distanceCutoff = 0.4, hardCutoff = 0.25 } = params;
+    const { k, distanceCutoff = 0.5, hardCutoff = 0.3 } = params;
 
     let original: (string | undefined)[];
     let isMulti = false;
@@ -479,7 +438,72 @@ export class MatchingService {
     const perEmbedded = await Promise.all(
       embeddings.map(async (embedding) => {
         const vectorExpr = vectorToSql(embedding);
-        const whereClause = buildSearchWhereClause(metadataFilters);
+
+        const baseFilterConditions: Prisma.Sql[] = [];
+
+        if (metadataFilters.generalItemId !== undefined || metadataFilters.generalItemIds) {
+          const generalIds = dedupeNumbers([
+            metadataFilters.generalItemId,
+            ...(metadataFilters.generalItemIds ?? []),
+          ]);
+          if (generalIds.length === 1) {
+            baseFilterConditions.push(Prisma.sql`emb."generalItemId" = ${generalIds[0]}`);
+          } else if (generalIds.length > 1) {
+            baseFilterConditions.push(Prisma.sql`emb."generalItemId" = ANY(${generalIds})`);
+          }
+        }
+        if (metadataFilters.wishlistId !== undefined || metadataFilters.wishlistIds) {
+          const wishlistIds = dedupeNumbers([
+            metadataFilters.wishlistId,
+            ...(metadataFilters.wishlistIds ?? []),
+          ]);
+          if (wishlistIds.length === 1) {
+            baseFilterConditions.push(Prisma.sql`emb."wishlistId" = ${wishlistIds[0]}`);
+          } else if (wishlistIds.length > 1) {
+            baseFilterConditions.push(Prisma.sql`emb."wishlistId" = ANY(${wishlistIds})`);
+          }
+        }
+        if (metadataFilters.donorOfferId !== undefined || metadataFilters.donorOfferIds) {
+          const donorOfferIds = dedupeNumbers([
+            metadataFilters.donorOfferId,
+            ...(metadataFilters.donorOfferIds ?? []),
+          ]);
+          if (donorOfferIds.length === 1) {
+            baseFilterConditions.push(Prisma.sql`emb."donorOfferId" = ${donorOfferIds[0]}`);
+          } else if (donorOfferIds.length > 1) {
+            baseFilterConditions.push(Prisma.sql`emb."donorOfferId" = ANY(${donorOfferIds})`);
+          }
+        }
+
+        // Only match general item embeddings (not wishlist embeddings)
+        baseFilterConditions.push(Prisma.sql`emb."generalItemId" IS NOT NULL`);
+
+        // Add matchability condition: item must be in matchable donor offer
+        baseFilterConditions.push(Prisma.sql`
+          EXISTS (
+            SELECT 1
+            FROM "ItemEmbeddings" item_emb
+            INNER JOIN "DonorOffer" donor ON donor."id" = item_emb."donorOfferId"
+            WHERE item_emb."generalItemId" = gi."id"
+              AND item_emb."donorOfferId" IS NOT NULL
+              AND (
+                (donor."state" = 'UNFINALIZED' AND (donor."partnerResponseDeadline" IS NULL OR donor."partnerResponseDeadline" > NOW()))
+                OR (
+                  donor."state" = 'ARCHIVED'
+                  AND EXISTS (
+                    SELECT 1
+                    FROM "LineItem" li
+                    LEFT JOIN "Allocation" a ON a."lineItemId" = li."id"
+                    WHERE li."generalItemId" = gi."id" AND a."id" IS NULL
+                  )
+                )
+              )
+          )
+        `);
+
+        const combinedWhereClause = baseFilterConditions.length > 0
+          ? Prisma.sql`WHERE ${joinSql(baseFilterConditions, Prisma.sql` AND `)}`
+          : Prisma.sql``;
 
         const clauses: Prisma.Sql[] = [
           Prisma.sql`
@@ -497,11 +521,8 @@ export class MatchingService {
             LEFT JOIN "GeneralItem" gi ON gi."id" = emb."generalItemId"
             LEFT JOIN "Wishlist" wl ON wl."id" = emb."wishlistId"
           `,
+          combinedWhereClause,
         ];
-
-        if (whereClause) {
-          clauses.push(whereClause);
-        }
 
         clauses.push(
           Prisma.sql`
@@ -566,4 +587,138 @@ export class MatchingService {
 
     return isMulti ? perOriginal : perOriginal[0] ?? [];
   }
+
+    static async loadDonorOfferEmbeddings(
+    donorOfferId: number,
+    cache: EmbeddingCache
+  ): Promise<void> {
+    const rows = await db.$queryRaw<Array<{
+      id: number;
+      generalItemId: number | null;
+      embedding: string;
+      title: string;
+      unitType: string | null;
+      expirationDate: Date | null;
+    }>>`
+      SELECT
+        emb."id",
+        emb."generalItemId",
+        emb."embedding"::text as embedding,
+        gi."title",
+        gi."unitType",
+        gi."expirationDate"
+      FROM "ItemEmbeddings" emb
+      INNER JOIN "GeneralItem" gi ON gi."id" = emb."generalItemId"
+      WHERE emb."donorOfferId" = ${donorOfferId}
+    `;
+
+    const cached: CachedEmbedding[] = rows.map((row) => ({
+      id: row.id,
+      generalItemId: row.generalItemId,
+      title: row.title,
+      unitType: row.unitType ?? undefined,
+      embedding: JSON.parse(row.embedding),
+      expirationDate: row.expirationDate,
+    }));
+
+    cache.set(donorOfferId, cached);
+  }
+
+    static async findSimilarFromCache(
+    donorOfferId: number,
+    query: string,
+    cache: EmbeddingCache,
+    filters: {
+      unitType?: string;
+      expirationDate?: Date | null;
+      expirationTolerance?: number;
+    },
+    distanceCutoff = 0.15
+  ): Promise<CachedEmbedding | null> {
+    const cached = cache.get(donorOfferId);
+
+    if (!cached || cached.length === 0) {
+      return null;
+    }
+
+    const candidates = cached.filter((item) => {
+      if (filters.unitType) {
+        const normalizedItemType = item.unitType?.replace(/\s+/g, " ").trim().toLowerCase();
+        const normalizedFilterType = filters.unitType.replace(/\s+/g, " ").trim().toLowerCase();
+        if (normalizedItemType !== normalizedFilterType) {
+          return false;
+        }
+      }
+
+      if (filters.expirationDate !== undefined) {
+        const tolerance = filters.expirationTolerance ?? 1;
+        if (!datesWithinTolerance(filters.expirationDate, item.expirationDate, tolerance)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const [queryEmbedding] = await embed([query]);
+
+    let bestMatch: CachedEmbedding | null = null;
+    let bestDistance = Infinity;
+
+    for (const item of candidates) {
+      const distance = calculateCosineDistance(queryEmbedding, item.embedding);
+      if (distance < bestDistance && distance <= distanceCutoff) {
+        bestDistance = distance;
+        bestMatch = item;
+      }
+    }
+
+    return bestMatch;
+  }
+
+}
+
+function calculateCosineDistance(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error("Vector dimensions must match");
+  }
+  
+  let dotProduct = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+  }
+  
+  let magnitudeA = 0;
+  let magnitudeB = 0;
+  for (let i = 0; i < a.length; i++) {
+    magnitudeA += a[i] * a[i];
+    magnitudeB += b[i] * b[i];
+  }
+  magnitudeA = Math.sqrt(magnitudeA);
+  magnitudeB = Math.sqrt(magnitudeB);
+  
+  if (magnitudeA === 0 || magnitudeB === 0) {
+    return 1;
+  }
+  
+  const cosineSimilarity = dotProduct / (magnitudeA * magnitudeB);
+  
+  return 1 - cosineSimilarity;
+}
+
+function datesWithinTolerance(
+  date1: Date | null,
+  date2: Date | null,
+  toleranceDays: number
+): boolean {
+  if (date1 === null && date2 === null) return true;
+  if (date1 === null || date2 === null) return false;
+
+  const diffMs = Math.abs(date1.getTime() - date2.getTime());
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  return diffDays <= toleranceDays;
 }

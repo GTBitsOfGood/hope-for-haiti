@@ -99,3 +99,12 @@ export type TableDistribution = {
     }[];
   }[];
 };
+
+export type PendingDistributionSearchResult = {
+  id: number;
+  createdAt: Date;
+  partner: {
+    id: number;
+    name: string;
+  };
+};

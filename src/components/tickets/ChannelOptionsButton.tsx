@@ -1,4 +1,4 @@
-import { Channel, ChannelData } from "stream-chat";
+import { Channel} from "stream-chat";
 import Portal from "../baseTable/Portal";
 import { useState, useRef } from "react";
 import { DotsThree } from "@phosphor-icons/react";
@@ -13,21 +13,32 @@ export default function ChannelOptionsButton({
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   async function closeTicket() {
-    // Update the channel directly through Stream Chat
-    // This updates the backend and broadcasts to all listeners
-    const promise = channel.update({
-      ...channel.data,
-      closed: true,
-    } as ChannelData & { closed: boolean }); 
+
+    const channelId = channel.id; 
+
+    if (!channelId) {
+      toast.error("Failed to close ticket: missing channel ID");
+      return;
+    }
+
+    const promise = fetch(`/api/tickets/${channelId}/close`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json"},
+    }).then(async (res) => {
+      if (!res.ok) {
+        const data = await res.json(); 
+        throw new Error(data.message || "Failed to close ticket"); 
+      }
+      return res.json()
+    })
 
     toast.promise(promise, {
       loading: "Closing ticket...",
-      success: "Ticket closed",
-      error: "Failed to close ticket",
-    });
+      success: "Ticket closed", 
+      error: (err: Error ) => err.message || "failed to close ticket",
+    })
 
-    await promise;
-
+    await promise; 
     setIsDropdownOpen(false);
   }
 

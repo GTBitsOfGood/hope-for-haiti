@@ -13,8 +13,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const patchParamSchema = z.object({
-  donorShippingNumber: z.string(),
-  hfhShippingNumber: z.string(),
+  id: z.string().transform((val) => parseInt(val, 10)),
 });
 
 const patchBodySchema = z.object({
@@ -66,11 +65,9 @@ export async function PATCH(request: Request) {
     UserService.checkPermission(session.user, "shipmentWrite");
 
     const params = new URL(request.url).searchParams;
-    const paramsResolved = {
-      donorShippingNumber: params.get("donorShippingNumber"),
-      hfhShippingNumber: params.get("hfhShippingNumber"),
-    };
-    const parsedParams = patchParamSchema.safeParse(paramsResolved);
+    const parsedParams = patchParamSchema.safeParse({
+      id: params.get("id"),
+    });
     if (!parsedParams.success) {
       throw new ArgumentError(parsedParams.error.message);
     }
@@ -82,8 +79,7 @@ export async function PATCH(request: Request) {
     }
 
     await ShippingStatusService.updateShippingStatus({
-      donorShippingNumber: parsedParams.data.donorShippingNumber,
-      hfhShippingNumber: parsedParams.data.hfhShippingNumber,
+      id: parsedParams.data.id,
       value: parsedBody.data.status,
     });
 

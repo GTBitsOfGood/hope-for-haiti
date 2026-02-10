@@ -1,4 +1,5 @@
-import BaseTable, { tableConditional } from "../baseTable/BaseTable";
+import { useEffect } from "react";
+import BaseTable, { extendTableHeader, tableConditional } from "../baseTable/BaseTable";
 
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {
@@ -25,11 +26,18 @@ interface PreviewTableProps {
   final: boolean;
 }
 
-export const PreviewTable = ({ data, final }: PreviewTableProps) => (
-  <div className="p-4 mt-6 bg-zinc-100 border border-zinc-300 rounded">
+export const PreviewTable = ({ data, final }: PreviewTableProps) => {
+  
+  useEffect(() => {
+    console.log(data, final)
+  }, [data, final])
+  
+  return (
+  <div className="overflow-x-auto mt-4 bg-white rounded">
     <BaseTable
+      pagination={false}
       headers={[
-        "Title",
+        extendTableHeader("Title", "min-w-96"),
         "Quantity",
         "Unit Type",
         "Expiration",
@@ -38,11 +46,8 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
           "Lot",
           "Pallet",
           "Box",
-          "Max Limit",
           "Donor Shipping #",
           "HfH Shipping #",
-          "Visibility",
-          "Comment",
         ]),
       ]}
       rows={data.map((item) => {
@@ -62,15 +67,12 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => (
               item.lotNumber,
               item.palletNumber,
               item.boxNumber,
-              item.maxRequestLimit,
               item.donorShippingNumber,
               item.hfhShippingNumber,
-              item.visible ? "Visible" : "Hidden",
-              item.notes,
             ]),
           ],
         };
       })}
     />
   </div>
-);
+);};

@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { DonorOffer } from "@prisma/client";
@@ -17,7 +23,6 @@ import PartnerRequestChipGroup, {
 import toast from "react-hot-toast";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
 
-// Types for stream chunks
 type StreamingChunk = {
   itemIndex: number;
   requests: { partnerId: number; finalQuantity: number }[];
@@ -75,6 +80,11 @@ export default function AdminDynamicDonorOfferScreen() {
   const [currentItems, setCurrentItems] = useState<GeneralItemWithRequests[]>(
     []
   );
+  const currentItemsRef = useRef<GeneralItemWithRequests[]>([]);
+
+  useEffect(() => {
+    currentItemsRef.current = currentItems;
+  }, [currentItems]);
 
   const fetchItems = useCallback(
     async (pageSize: number, page: number) => {
@@ -83,13 +93,42 @@ export default function AdminDynamicDonorOfferScreen() {
         { cache: "no-store" }
       );
 
-      const items = data.items;
+      let items = data.items;
+
+      if (isLLMMode && currentItemsRef.current.length > 0) {
+        const existingItemsMap = new Map(
+          currentItemsRef.current.map((item) => [item.id, item])
+        );
+
+        items = items.map((freshItem) => {
+          const existingItem = existingItemsMap.get(freshItem.id);
+          if (existingItem) {
+            return {
+              ...freshItem,
+              requests: freshItem.requests.map((freshRequest) => {
+                const existingRequest = existingItem.requests.find(
+                  (r) => r.id === freshRequest.id
+                );
+                if (existingRequest) {
+                  return {
+                    ...freshRequest,
+                    finalQuantity: existingRequest.finalQuantity,
+                  };
+                }
+                return freshRequest;
+              }),
+            };
+          }
+          return freshItem;
+        });
+      }
+
       setCurrentItems(items);
       const start = (page - 1) * pageSize;
       const paged = items.slice(start, start + pageSize);
       return { data: paged, total: items.length };
     },
-    [apiClient, donorOfferId]
+    [apiClient, donorOfferId, isLLMMode]
   );
 
   const columns: ColumnDefinition<GeneralItemWithRequests>[] = useMemo(
@@ -114,11 +153,6 @@ export default function AdminDynamicDonorOfferScreen() {
         id: "initialQuantity",
         header: "Quantity",
         cell: (i) => i.initialQuantity,
-      },
-      {
-        id: "description",
-        header: "Description",
-        cell: (i) => i.description || "N/A",
       },
       {
         id: "requestSummary",
@@ -155,7 +189,6 @@ export default function AdminDynamicDonorOfferScreen() {
         quantity?: number;
       }[]
     ) => {
-      // Update table
       tableRef.current?.updateItemById(itemId, (currentItem) => {
         const updatedItem = {
           ...currentItem,
@@ -179,7 +212,6 @@ export default function AdminDynamicDonorOfferScreen() {
         return updatedItem;
       });
 
-      // Update currentItems state
       setCurrentItems((prevItems) =>
         prevItems.map((item) => {
           if (item.id === itemId) {
@@ -217,8 +249,42 @@ export default function AdminDynamicDonorOfferScreen() {
     setIsLLMMode(true);
     setIsStreamComplete(false);
 
-    // Helper function to process a chunk
-    const processChunk = (chunk: StreamChunk) => {
+    const pageSize = 20;
+
+    const chunkQueue: StreamChunk[] = [];
+    let isProcessing = false;
+
+    const scrollToRow = (itemId: number) => {
+      setTimeout(() => {
+        const rowElement = document.querySelector(
+          `tr[data-row-id="${itemId}"]`
+        );
+        if (rowElement) {
+          rowElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      }, 100);
+    };
+
+    const scrollToTop = () => {
+      setTimeout(() => {
+        const tableContainer = document.querySelector(
+          '[data-table-container="true"]'
+        );
+        if (tableContainer) {
+          tableContainer.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        } else {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }, 50);
+    };
+
+    const processChunk = async (chunk: StreamChunk) => {
       if ("test" in chunk) {
         return;
       }
@@ -232,13 +298,51 @@ export default function AdminDynamicDonorOfferScreen() {
         return;
       }
 
-      // Handle streaming chunk
       if ("itemIndex" in chunk && "requests" in chunk) {
-        const currentItem = currentItems[chunk.itemIndex];
+        const currentItem = currentItemsRef.current[chunk.itemIndex];
         if (currentItem) {
+          const targetPage = Math.floor(chunk.itemIndex / pageSize) + 1;
+          const currentPage = tableRef.current?.getPage() ?? 1;
+
+          if (targetPage !== currentPage) {
+            tableRef.current?.setPage(targetPage);
+            scrollToTop();
+            await new Promise((resolve) => setTimeout(resolve, 300));
+          }
+
           updateItemRequests(currentItem.id, chunk.requests);
+
+          tableRef.current?.setOpenRowIds((prev) => {
+            const next = new Set(prev);
+            next.add(currentItem.id);
+            return next;
+          });
+
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          scrollToRow(currentItem.id);
+
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
+    };
+
+    const processQueue = async () => {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      while (chunkQueue.length > 0) {
+        const chunk = chunkQueue.shift();
+        if (chunk) {
+          await processChunk(chunk);
+        }
+      }
+
+      isProcessing = false;
+    };
+
+    const enqueueChunk = (chunk: StreamChunk) => {
+      chunkQueue.push(chunk);
+      processQueue();
     };
 
     let buffer = "";
@@ -274,12 +378,7 @@ export default function AdminDynamicDonorOfferScreen() {
         },
         onChunk: (chunk) => {
           if (!chunk) return;
-          while (pendingMessages.length > 0) {
-            const pending = pendingMessages.shift()!;
-            processChunk(pending);
-          }
-
-          processChunk(chunk);
+          enqueueChunk(chunk);
         },
         onDone: () => {
           setIsStreamComplete(true);
@@ -310,6 +409,8 @@ export default function AdminDynamicDonorOfferScreen() {
   const handleUndo = useCallback(() => {
     setIsLLMMode(false);
     setIsStreamComplete(false);
+
+    tableRef.current?.setOpenRowIds(new Set());
 
     if (preStreamState.length > 0) {
       console.log("Reverting to pre-stream state");
@@ -363,7 +464,6 @@ export default function AdminDynamicDonorOfferScreen() {
   const handleRequestUpdated = useCallback(
     (itemId?: number, updatedRequests?: PartnerRequestChipData[]) => {
       if (isLLMMode && itemId && updatedRequests) {
-        // In LLM mode, update the specific item without reloading
         tableRef.current?.updateItemById(itemId, (currentItem) => {
           return {
             ...currentItem,
@@ -380,7 +480,6 @@ export default function AdminDynamicDonorOfferScreen() {
           };
         });
 
-        // Also update currentItems state
         setCurrentItems((prevItems) =>
           prevItems.map((item) => {
             if (item.id === itemId) {
@@ -404,7 +503,6 @@ export default function AdminDynamicDonorOfferScreen() {
           })
         );
       } else {
-        // Not in LLM mode, reload the table
         tableRef.current?.reload();
       }
     },

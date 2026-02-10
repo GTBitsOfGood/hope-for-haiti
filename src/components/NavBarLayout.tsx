@@ -11,37 +11,76 @@ import {
   UserList,
   ClipboardText,
   Chat,
+  SignOut,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "./context/UserContext";
 import { useEffect, useState } from "react";
 import { hasAnyPermission, hasPermission, isPartner } from "@/lib/userUtils";
+import { signOut } from "next-auth/react";
+import { useApiClient } from "@/hooks/useApiClient";
 
 function NavLink({
   href,
   icon,
   label,
+  onClick,
   placeLast = false,
+  className: customClassName,
+  liClassName,
+  noWrapper = false,
 }: {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   icon: React.ReactNode;
-  label: string;
+  label?: string;
   placeLast?: boolean;
+  className?: string;
+  liClassName?: string;
+  noWrapper?: boolean;
 }) {
   const path = usePathname();
   let className =
     "mb-2 w-full px-2 py-2 flex justify-start items-center space-x-2 rounded-xl";
   if (path === href) className += " bg-white";
 
-  return (
-    <li className={placeLast ? "mt-auto" : ""}>
-      <Link href={href} className={className}>
-        {icon}
+  if (customClassName) className += ` ${customClassName}`;
+
+  const children = (
+    <>
+      {icon}
+      {label && (
         <p className="font-light sm:hidden md:block whitespace-nowrap">
           {label}
         </p>
-      </Link>
+      )}
+    </>
+  );
+
+  const liClass = [
+    placeLast ? "mt-auto" : "",
+    liClassName || "",
+  ].filter(Boolean).join(" ");
+
+  const content = href ? (
+    <Link href={href} className={className} onClick={onClick}>
+      {children}
+    </Link>
+  ) : (
+    <button onClick={onClick} className={className}>
+      {children}
+    </button>
+  );
+
+  if (noWrapper) {
+    return content;
+  }
+
+  return (
+    <li className={liClass || undefined}>
+      {content}
     </li>
   );
 }
@@ -116,13 +155,78 @@ function NavLinks() {
           icon={<Package size={22} />}
         />
       )}
-      <NavLink
-        href="/profile"
-        label="Profile"
-        icon={<UserCircle size={22} />}
-        placeLast
-      />
+      {/* Spacer to push the profile and sign out buttons to the bottom */}
+      <li className="flex-grow" />
+      <ul className="flex gap-2">
+        <li className="flex-1 mt-auto">
+          <NavLink
+            href="/profile"
+            label="Profile"
+            icon={<UserCircle size={22} />}
+            noWrapper
+          />
+        </li>
+        {user?.isSuper && (
+          <li className="flex-shrink-0 mt-auto">
+            <ResetButton />
+          </li>
+        )}
+        <li className="flex-shrink-0 mt-auto">
+          <NavLink
+            onClick={signOut}
+            icon={<SignOut size={22} />}
+            className="border-red-primary border rounded text-red-primary hover:bg-red-primary/10 transition-all duration-100 !w-auto"
+            noWrapper
+          />
+        </li>
+      </ul>
     </>
+  );
+}
+
+function ResetButton() {
+  const { user } = useUser();
+  const { apiClient } = useApiClient();
+  const [isResetting, setIsResetting] = useState(false);
+
+  if (!user?.isSuper) {
+    return null;
+  }
+
+  const handleReset = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to reset the database? This will delete all data and cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsResetting(true);
+      await apiClient.post("/api/reset");
+      alert("Database reset successfully! Please refresh the page.");
+      window.location.reload();
+    } catch (error) {
+      alert(
+        `Failed to reset database: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleReset}
+      disabled={isResetting}
+      className="border-red-primary border text-red-primary hover:bg-red-primary/10 transition-all duration-100 !w-auto mb-2 px-2 py-2 flex justify-start items-center space-x-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+      title="Reset Database"
+    >
+      <ArrowClockwise size={22} className={isResetting ? "animate-spin" : ""} />
+    </button>
   );
 }
 
@@ -144,7 +248,7 @@ function DesktopNavbar() {
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
 
-      <ul className="p-1 w-full flex flex-col flex-1">
+      <ul className="p-1 w-full flex flex-col flex-1 flex-grow">
         <NavLinks />
       </ul>
     </nav>
@@ -165,7 +269,7 @@ function MobileNavbar() {
 
   return (
     <nav
-      className={`fixed top-4 right-4 p-4 rounded-lg sm:hidden overflow-hidden transition-all ${open ? "w-64 h-[28rem] bg-blue-light" : "w-12 h-12"}`}
+      className={`fixed top-4 right-4 p-4 rounded-lg sm:hidden overflow-hidden transition-all ${open ? "w-64 h-[30rem] bg-blue-light" : "w-12 h-12"}`}
     >
       <div
         className={`w-full h-full flex flex-col items-start transition-all ${open ? "opacity-100" : "opacity-0"}`}

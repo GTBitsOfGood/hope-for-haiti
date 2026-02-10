@@ -42,7 +42,6 @@ export class GeneralItemService {
 
   static async updateGeneralItem(id: number, updates: UpdateGeneralItemParams) {
     try {
-      // Check if the general item belongs to an archived donor offer
       const generalItem = await db.generalItem.findUnique({
         where: { id },
         include: {
@@ -74,7 +73,6 @@ export class GeneralItemService {
 
   static async deleteGeneralItem(id: number) {
     try {
-      // Check if the general item belongs to an archived donor offer
       const generalItem = await db.generalItem.findUnique({
         where: { id },
         include: {
@@ -140,9 +138,14 @@ export class GeneralItemService {
         },
         donorOffer: true,
       },
-      orderBy: {
-        id: "asc",
-      },
+      orderBy: [
+        {
+          requests: {
+            _count: "desc",
+          },
+        },
+        { id: "asc" },
+      ],
       take: pageSize,
       skip: page && pageSize ? (page - 1) * pageSize : undefined,
     };
@@ -173,8 +176,14 @@ export class GeneralItemService {
         ? item.requests.filter((request) => request.createdAt >= archivedAt)
         : item.requests;
 
+      const quantity = item.items.reduce(
+        (sum, lineItem) => sum + lineItem.quantity,
+        0
+      );
+
       return {
         ...item,
+        quantity,
         requests: filteredRequests,
       };
     });
@@ -251,8 +260,12 @@ export class GeneralItemService {
       ...filterWhere,
       OR: [
         {
+          // UNFINALIZED offers: restricted to partners with visibility
           donorOffer: {
             state: $Enums.DonorOfferState.UNFINALIZED,
+            partnerResponseDeadline: {
+              gt: new Date(),
+            },
             partnerVisibilities: {
               some: {
                 id: partnerId,
@@ -261,13 +274,9 @@ export class GeneralItemService {
           },
         },
         {
+          // ARCHIVED offers with unallocated items: open to ALL partners
           donorOffer: {
             state: $Enums.DonorOfferState.ARCHIVED,
-            partnerVisibilities: {
-              some: {
-                id: partnerId,
-              },
-            },
           },
           items: {
             some: {
@@ -402,19 +411,24 @@ export class GeneralItemService {
           SELECT gi.id, dof."partnerResponseDeadline"
           FROM "GeneralItem" gi
           INNER JOIN "DonorOffer" dof ON gi."donorOfferId" = dof.id
-          INNER JOIN "_DonorOfferToUser" dotu ON dof.id = dotu."A"
-          WHERE dotu."B" = ${partnerId}
-            AND (
-              (dof.state = 'UNFINALIZED'::"DonorOfferState")
+          WHERE (
+              (
+                dof.state = 'UNFINALIZED'::"DonorOfferState"
+                AND dof."partnerResponseDeadline" > NOW()
+                AND EXISTS (
+                  SELECT 1 FROM "_DonorOfferToUser" dotu
+                  WHERE dotu."A" = dof.id AND dotu."B" = ${partnerId}
+                )
+              )
               OR
-              (dof.state = 'ARCHIVED'::"DonorOfferState" AND EXISTS (
-                SELECT 1 FROM "LineItem" li
-                WHERE li."generalItemId" = gi.id
-                  AND NOT EXISTS (
-                    SELECT 1 FROM "Allocation" a
-                    WHERE a."lineItemId" = li.id
-                  )
-              ))
+              (
+                dof.state = 'ARCHIVED'::"DonorOfferState"
+                AND EXISTS (
+                  SELECT 1 FROM "LineItem" li
+                  LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+                  WHERE li."generalItemId" = gi.id AND a.id IS NULL
+                )
+              )
             )
             AND NOT EXISTS (
               SELECT 1 FROM "GeneralItemRequest" gir
@@ -434,7 +448,6 @@ export class GeneralItemService {
 
       const orderedIds = await db.$queryRaw<{ id: number }[]>(orderedIdsSql);
 
-      // Maintain same order as in priority IDs
       const orderedIdList = priorityIds
         .filter((id) => orderedIds.some((row) => row.id === id))
         .concat(
@@ -719,6 +732,13 @@ ${userLines}`;
     try {
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed?.items)) {
+        if (parsed.items.length !== items.length) {
+          console.warn(
+            `AI returned ${parsed.items.length} items, expected ${items.length}. Falling back to default metadata.`
+          );
+          return items.map(GeneralItemService.defaultMetadata);
+        }
+
         return parsed.items.map(
           (
             entry: {
@@ -732,7 +752,6 @@ ${userLines}`;
         );
       }
     } catch {
-      // Fall through to deterministic fallback below.
     }
 
     return items.map(GeneralItemService.defaultMetadata);

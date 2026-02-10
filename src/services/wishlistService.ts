@@ -9,10 +9,10 @@ import { NotFoundError, ArgumentError } from "@/util/errors";
 import { buildWhereFromFilters } from "@/util/table";
 import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { MatchingService } from "./matchingService";
 
 export class WishlistService {
   static async createWishlist(data: CreateWishlistData) {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
       select: { enabled: true, pending: true },
@@ -30,9 +30,16 @@ export class WishlistService {
       throw new ArgumentError("Cannot create wishlist for pending partner");
     }
 
-    await db.wishlist.create({
+    const wishlist = await db.wishlist.create({
       data,
     });
+
+    await MatchingService.add({
+      wishlistId: wishlist.id,
+      title: wishlist.name,
+    });
+
+    return wishlist;
   }
 
   /**
@@ -62,6 +69,8 @@ export class WishlistService {
         id,
       },
     });
+
+    await MatchingService.remove({ wishlistIds: [id] });
   }
 
   static async linkWishlistToGeneralItem(
@@ -77,6 +86,8 @@ export class WishlistService {
           generalItemId: generalItemId,
         },
       });
+
+      await MatchingService.remove({ wishlistIds: [wishlistId] });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === "P2025") {

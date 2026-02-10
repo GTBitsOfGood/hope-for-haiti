@@ -9,6 +9,7 @@ interface TableRow {
 }
 
 interface BaseTableProps {
+  pagination?: boolean;
   headers: React.ReactNode[];
   rows: TableRow[];
   headerClassName?: string;
@@ -55,6 +56,7 @@ export function renderHeaders(
 }
 
 export default function BaseTable({
+  pagination = true,
   headers,
   rows,
   headerClassName = "bg-blue-light text-gray-primary/70 border-b-2 border-blue-primary/10",
@@ -105,17 +107,21 @@ export default function BaseTable({
         </table>
       </div>
       <div className="mt-2 flex justify-end items-center text-gray-primary">
-        <CgChevronLeft
-          onClick={decrementPage}
-          className="inline-block w-6 h-6 mr-2 cursor-pointer"
-        />
-        <span>
-          Page {currentPage} of {Math.ceil(rows.length / pageSize)}
-        </span>
-        <CgChevronRight
-          onClick={incrementPage}
-          className="inline-block w-6 h-6 ml-2 cursor-pointer"
-        />
+        {pagination && (
+            <>
+          <CgChevronLeft
+            onClick={decrementPage}
+            className="inline-block w-6 h-6 mr-2 cursor-pointer"
+          />
+          <span>
+            Page {currentPage} of {Math.ceil(rows.length / pageSize)}
+          </span>
+          <CgChevronRight
+            onClick={incrementPage}
+            className="inline-block w-6 h-6 ml-2 cursor-pointer"
+          />
+          </>
+          )}
       </div>
     </div>
   );

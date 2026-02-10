@@ -10,9 +10,10 @@ import {
   CompletedSignOffResponse,
   PartnerAllocationSummaryResponse,
 } from "@/types/api/distribution.types";
-import { Prisma } from "@prisma/client";
+import { Prisma, ShipmentStatus } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import { hasShippingIdentifier } from "@/util/shipping";
 
 export default class DistributionService {
   static async getAllDistributions(
@@ -135,7 +136,9 @@ export default class DistributionService {
     };
   }
 
-  static async getDistributionsForDonorOffer(donorOfferId: number): Promise<
+  static async getDistributionsForDonorOffer(
+    donorOfferId: number
+  ): Promise<
     Record<
       number,
       {
@@ -143,7 +146,7 @@ export default class DistributionService {
         partnerId: number;
         partnerName: string;
         pending: boolean;
-      }[]
+      }
     >
   > {
     const distributions = await db.distribution.findMany({
@@ -176,14 +179,24 @@ export default class DistributionService {
 
     return distributions.reduce(
       (acc, distribution) => {
-        const bucket = acc[distribution.partnerId] ?? [];
-        bucket.push({
+        const nextSummary = {
           id: distribution.id,
           partnerId: distribution.partnerId,
           partnerName: distribution.partner.name,
           pending: distribution.pending,
-        });
-        acc[distribution.partnerId] = bucket;
+        };
+
+        const existing = acc[distribution.partnerId];
+        if (!existing) {
+          acc[distribution.partnerId] = nextSummary;
+          return acc;
+        }
+
+        // Prefer pending distributions so new allocations always reuse the active record.
+        if (!existing.pending && nextSummary.pending) {
+          acc[distribution.partnerId] = nextSummary;
+        }
+
         return acc;
       },
       {} as Record<
@@ -193,7 +206,7 @@ export default class DistributionService {
           partnerId: number;
           partnerName: string;
           pending: boolean;
-        }[]
+        }
       >
     );
   }
@@ -209,6 +222,55 @@ export default class DistributionService {
     }
 
     return distribution;
+  }
+
+  static async getPendingDistributions(params?: {
+    term?: string;
+    excludeIds?: number[];
+  }) {
+    const partnerWhere: Prisma.UserWhereInput = {
+      enabled: true,
+      pending: false,
+    };
+
+    // Add search filter if term is provided
+    if (params?.term && params.term.trim().length > 0) {
+      partnerWhere.name = {
+        contains: params.term.trim(),
+        mode: "insensitive",
+      };
+    }
+
+    const where: Prisma.DistributionWhereInput = {
+      pending: true,
+      partner: partnerWhere,
+    };
+
+    // Exclude specific distribution IDs if provided
+    if (params?.excludeIds && params.excludeIds.length > 0) {
+      where.id = {
+        notIn: params.excludeIds,
+      };
+    }
+
+    const distributions = await db.distribution.findMany({
+      where,
+      select: {
+        id: true,
+        createdAt: true,
+        partner: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return distributions;
   }
 
   static async getSignedDistributions(
@@ -305,22 +367,36 @@ export default class DistributionService {
         if (!item)
           throw new NotFoundError(`Item ${allocation.lineItemId} not found`);
 
-        if (item?.donorShippingNumber && item.hfhShippingNumber) {
+        const tuple = {
+          donorShippingNumber: item?.donorShippingNumber,
+          hfhShippingNumber: item?.hfhShippingNumber,
+        };
+
+        if (!hasShippingIdentifier(tuple)) {
+          continue;
+        }
+
+        let shipmentStatus: ShipmentStatus =
+          ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR;
+
+        if (tuple.donorShippingNumber && tuple.hfhShippingNumber) {
           const shippingStatus = await db.shippingStatus.findFirst({
             where: {
-              hfhShippingNumber: item.hfhShippingNumber,
-              donorShippingNumber: item.donorShippingNumber,
+              hfhShippingNumber: tuple.hfhShippingNumber,
+              donorShippingNumber: tuple.donorShippingNumber,
             },
           });
 
           if (shippingStatus) {
-            items.push({
-              ...item,
-              shipmentStatus: shippingStatus.value,
-              quantityAllocated: item.quantity,
-            });
+            shipmentStatus = shippingStatus.value;
           }
         }
+
+        items.push({
+          ...item,
+          shipmentStatus,
+          quantityAllocated: item.quantity,
+        });
       }
     }
 
@@ -572,10 +648,99 @@ export default class DistributionService {
       }
     }
 
-    return db.distribution.update({
+    const currentDistribution = await db.distribution.findUnique({
+      where: { id: distributionId },
+      select: { pending: true },
+    });
+
+    if (!currentDistribution) {
+      throw new NotFoundError("Distribution not found");
+    }
+
+    const updatedDistribution = await db.distribution.update({
       where: { id: distributionId },
       data,
     });
+
+    if (
+      data.pending === false &&
+      currentDistribution.pending === true
+    ) {
+      await this.createShipmentsForDistribution(distributionId);
+    }
+
+    return updatedDistribution;
+  }
+
+  private static async createShipmentsForDistribution(distributionId: number) {
+    const allocations = await db.allocation.findMany({
+      where: { distributionId },
+      include: {
+        lineItem: {
+          select: {
+            donorShippingNumber: true,
+            hfhShippingNumber: true,
+          },
+        },
+      },
+    });
+
+    const shippingTuples = new Map<
+      string,
+      { donorShippingNumber: string | null; hfhShippingNumber: string | null }
+    >();
+
+    for (const allocation of allocations) {
+      const { donorShippingNumber, hfhShippingNumber } =
+        allocation.lineItem;
+
+      if (!donorShippingNumber && !hfhShippingNumber) {
+        continue;
+      }
+
+      const key = `${donorShippingNumber || ""}|${hfhShippingNumber || ""}`;
+
+      if (!shippingTuples.has(key)) {
+        shippingTuples.set(key, {
+          donorShippingNumber,
+          hfhShippingNumber,
+        });
+      }
+    }
+
+    const shipmentPromises = Array.from(shippingTuples.values()).map(
+      async (tuple) => {
+        const where: Prisma.ShippingStatusWhereInput = {};
+
+        if (tuple.donorShippingNumber !== null) {
+          where.donorShippingNumber = tuple.donorShippingNumber;
+        } else {
+          where.donorShippingNumber = null;
+        }
+
+        if (tuple.hfhShippingNumber !== null) {
+          where.hfhShippingNumber = tuple.hfhShippingNumber;
+        } else {
+          where.hfhShippingNumber = null;
+        }
+
+        const existingShipment = await db.shippingStatus.findFirst({
+          where,
+        });
+
+        if (!existingShipment) {
+          await db.shippingStatus.create({
+            data: {
+              donorShippingNumber: tuple.donorShippingNumber ?? undefined,
+              hfhShippingNumber: tuple.hfhShippingNumber ?? undefined,
+              value: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
+            },
+          });
+        }
+      }
+    );
+
+    await Promise.all(shipmentPromises);
   }
 
   static async deleteDistribution(distributionId: number): Promise<void> {
