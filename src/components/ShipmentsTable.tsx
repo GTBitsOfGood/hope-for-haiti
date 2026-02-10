@@ -37,6 +37,7 @@ export default function ShipmentsTable() {
         page: page.toString(),
         pageSize: pageSize.toString(),
         filters: JSON.stringify(filters),
+        isCompleted: "false",
       });
       const res = await apiClient.get<{ data: Shipment[]; total: number }>(
         `/api/shipments?${searchParams.toString()}`
