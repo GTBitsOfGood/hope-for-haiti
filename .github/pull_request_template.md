@@ -1,6 +1,12 @@
 ## Description
 
-Resolves
+Resolves ticket number:
+
+
+Explain what your code changes:
+
+
+List the steps you took to test your code:
 
 ## Checklist
 
