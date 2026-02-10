@@ -97,13 +97,15 @@ export default function NotificationHandler({
       if (!payload) {
         return;
       }
-
-      try {
-        const viewed = pathname === payload.action ? "&view=true" : ""; 
-        await apiClient.patch(`/api/notifications/${payload.id}?delivery=true${viewed}`);
-      } catch (error) {
-        console.error(`Failed to PATCH notification ${payload.id}: ${error}`)
+      if (payload.id > 0) {
+        try {
+          const viewed = pathname === payload.action ? "&view=true" : ""; 
+          await apiClient.patch(`/api/notifications/${payload.id}?delivery=true${viewed}`);
+        } catch (error) {
+          console.error(`Failed to PATCH notification ${payload.id}: ${error}`)
+        }
       }
+
 
       setNotifications((prev) => {
         return [payload, ...prev];
