@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import FloatingNotification from "./dashboard/FloatingNotification";
 import { useUser } from "./context/UserContext";
 import { Notification } from "@prisma/client";
 import toast, { Toast } from "react-hot-toast";
@@ -20,23 +21,28 @@ import { StreamChat, Event } from "stream-chat";
 
 let realtimeInstance: Ably.Realtime | null = null;
 
-function getRealtimeClient() {
-  if (typeof window === "undefined") {
-    return null;
-  }
+export type UnifiedNotification = {
+  id: string | number;
+  title: string;
+  action?: string | null;
+  actionText?: string | null;
+  dateCreated: Date;
+  isChat?: boolean;
+};
 
+function getRealtimeClient() {
+  if (typeof window === "undefined") return null;
   if (!realtimeInstance) {
     realtimeInstance = new Ably.Realtime({
       authUrl: "/api/ably",
       autoConnect: false,
     });
   }
-
   return realtimeInstance;
 }
 
 const NotificationContext = createContext<{
-  notifications: Notification[];
+  notifications: UnifiedNotification[];
   refreshNotifications: () => Promise<void>;
 }>({
   notifications: [],
@@ -56,47 +62,55 @@ export default function NotificationHandler({
   const searchParams = useSearchParams();
   const router = useRouter();
   const [client, setClient] = useState<Ably.Realtime | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
 
   useEffect(() => {
     const realtime = getRealtimeClient();
-    if (!realtime) {
-      return;
-    }
-
+    if (!realtime) return;
     setClient(realtime);
-
-    if (realtime.connection.state === "initialized") {
-      realtime.connect();
-    }
+    if (realtime.connection.state === "initialized") realtime.connect();
   }, []);
 
   const refreshNotifications = useCallback(async () => {
-    if (!user?.id) {
-      return;
-    }
-
+    if (!user?.id) return;
     try {
       const data = await apiClient.get<{ notifications: Notification[] }>(
         "/api/notifications"
       );
-      setNotifications(data.notifications);
+
+      const mapped = data.notifications.map((n) => ({
+        id: n.id,
+        title: n.title,
+        action: n.action ?? undefined,
+        actionText: n.actionText ?? undefined,
+        dateCreated: new Date(n.dateCreated),
+        isChat: false,
+      }));
+      setNotifications(mapped);
     } catch (error) {
       console.error(`Failed to fetch notifications: ${error}`);
     }
   }, [apiClient, user?.id]);
 
   useEffect(() => {
-    if (!user?.id || !client) {
-      return;
-    }
+    if (!user?.id || !client) return;
     refreshNotifications();
 
     const handleRealtimeNotification = async (message: Message) => {
       const payload = message.data as Notification;
-      if (!payload) {
-        return;
+      if (!payload) return;
+
+      if (payload.id > 0) {
+        try {
+          const viewed = pathname === payload.action ? "&view=true" : "";
+          await apiClient.patch(
+            `/api/notifications/${payload.id}?delivery=true${viewed}`
+          );
+        } catch (error) {
+          console.error(`Failed to PATCH notification ${payload.id}: ${error}`);
+        }
       }
+      
       if (payload.id > 0) {
         try {
           const viewed = pathname === payload.action ? "&view=true" : ""; 
@@ -106,28 +120,38 @@ export default function NotificationHandler({
         }
       }
 
-
-      setNotifications((prev) => {
-        return [payload, ...prev];
-      });
+      setNotifications((prev) => [
+        {
+          id: payload.id,
+          title: payload.title,
+          action: payload.action ?? undefined,
+          actionText: payload.actionText ?? undefined,
+          dateCreated: new Date(payload.dateCreated),
+          isChat: false,
+        },
+        ...prev,
+      ]);
 
       if (pathname === "/") return;
 
-      toast.custom((t: Toast) => (
-        <NotificationCard 
-          id={payload.id}
-          message={payload.title} 
-          actionText={payload.actionText ?? undefined} 
-          actionUrl={payload.action ?? undefined} 
-          t={t}
-          hideAction={pathname === payload.action}
-        />
-      ), {duration: 60 * 1000}); // 60 seconds
+      toast.custom(
+        (t: Toast) => (
+          <NotificationCard
+            id={payload.id}
+            message={payload.title}
+            dateCreated={payload.dateCreated}
+            actionText={payload.actionText ?? undefined}
+            actionUrl={payload.action ?? undefined}
+            t={t}
+            hideAction={pathname === payload.action}
+          />
+        ),
+        { duration: 60 * 1000 }
+      );
     };
 
     const channelName = `${process.env.NODE_ENV}:user:${user.id}`;
     const channel = client.channels.get(channelName);
-
     channel.subscribe("notification:new", handleRealtimeNotification);
     return () => {
       channel.unsubscribe("notification:new", handleRealtimeNotification);
@@ -216,10 +240,91 @@ export default function NotificationHandler({
     };
   }, [pathname, router, searchParams, user?.name, user?.streamUserId, user?.streamUserToken]);
 
+  useEffect(() => {
+    if (
+      !user?.streamUserId ||
+      !user.streamUserToken ||
+      !process.env.NEXT_PUBLIC_STREAMIO_API_KEY
+    )
+      return;
+
+    const streamClient = new StreamChat(
+      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
+    );
+    let didInterrupt = false;
+
+    const handleTicketMessage = (event: Event) => {
+      if (event.channel_type !== "ticket") return;
+
+      const senderId = event.user?.id ?? event.message?.user?.id;
+      if (senderId === user.streamUserId) return;
+
+      const channelId = event.channel?.id ?? event.cid?.split(":")[1];
+      if (!channelId || searchParams.get("activeTab") === "Unresolved") return;
+
+      const text = event.message?.text?.trim();
+
+      setNotifications((prev) => [
+        {
+          id: event.message?.id ?? Date.now(),
+          title: `Ticket: ${text || "New message"}`,
+          action: `/support?channel-id=${channelId}`,
+          actionText: "Reply",
+          dateCreated: new Date(),
+          isChat: true,
+        },
+        ...prev,
+      ]);
+
+      // OLD NOTIFICATION TOAST STYLE
+
+      // const payload: TicketMessageNotification = {
+      //   channelId,
+      //   channelName: (event.channel as any)?.name ?? "Support Ticket",
+      //   messagePreview: text ? text : "Attachment",
+      //   senderName: event.user?.name ?? "Support",
+      //   url: `/support?channel-id=${channelId}`,
+      // };
+
+      // toast.custom(
+      //   (t: Toast) => <TicketMessageToast notification={payload} t={t} />,
+      //   { duration: 60 * 1000 }
+      // );
+    };
+
+    streamClient
+      .connectUser(
+        { id: user.streamUserId, name: user.name ?? undefined },
+        user.streamUserToken
+      )
+      .then(() => {
+        if (!didInterrupt)
+          streamClient.on("notification.message_new", handleTicketMessage);
+      });
+
+    return () => {
+      didInterrupt = true;
+      streamClient.off("notification.message_new", handleTicketMessage);
+      streamClient.disconnectUser();
+    };
+  }, [
+    pathname,
+    router,
+    searchParams,
+    user?.name,
+    user?.streamUserId,
+    user?.streamUserToken,
+  ]);
+
   const value = useMemo(
     () => ({ notifications, refreshNotifications }),
     [notifications, refreshNotifications]
   );
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return (
+    <NotificationContext.Provider value={value}>
+      <FloatingNotification notifications={notifications} />
+      {children}
+    </NotificationContext.Provider>
+  );
 }
