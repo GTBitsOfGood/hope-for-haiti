@@ -7,222 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id                     Int                  @id @default(autoincrement())
-  email                  String               @unique
-  name                   String
-  passwordHash           String
-  type                   UserType
-  tag                    String?
-  enabled                Boolean              @default(true)
-  pending                Boolean              @default(true)
-  partnerDetails         Json?
-  streamUserToken        String?              @unique
-  streamUserId           String?              @unique
-  allocationRead         Boolean              @default(false)
-  allocationWrite        Boolean              @default(false)
-  archivedRead           Boolean              @default(false)
-  distributionRead       Boolean              @default(false)
-  distributionWrite      Boolean              @default(false)
-  isSuper                Boolean              @default(false)
-  itemNotify             Boolean              @default(false)
-  offerWrite             Boolean              @default(false)
-  requestRead            Boolean              @default(false)
-  requestWrite           Boolean              @default(false)
-  shipmentRead           Boolean              @default(false)
-  shipmentWrite          Boolean              @default(false)
-  signoffWrite           Boolean              @default(false)
-  supportNotify          Boolean              @default(false)
-  supportRead            Boolean              @default(false)
-  supportWrite           Boolean              @default(false)
-  userRead               Boolean              @default(false)
-  userWrite              Boolean              @default(false)
-  wishlistRead           Boolean              @default(false)
-  allocations            Allocation[]
-  distributions          Distribution[]
-  generalItemRequests    GeneralItemRequest[]
-  notifications          Notification[]
-  invite                 UserInvite?
-  wishlists              Wishlist[]
-  donorOfferVisibilities DonorOffer[]         @relation("DonorOfferToUser")
-}
-
-model UserInvite {
-  id         Int      @id @default(autoincrement())
-  token      String   @unique
-  expiration DateTime
-  userId     Int      @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model DonorOffer {
-  id                      Int             @id @default(autoincrement())
-  state                   DonorOfferState
-  offerName               String
-  donorName               String
-  partnerResponseDeadline DateTime
-  donorResponseDeadline   DateTime
-  archivedAt              DateTime?
-  items                   GeneralItem[]
-  embeddings              ItemEmbedding[]
-  partnerVisibilities     User[]          @relation("DonorOfferToUser")
-}
-
-model GeneralItem {
-  id              Int                  @id @default(autoincrement())
-  donorOfferId    Int
-  title           String
-  expirationDate  DateTime?            @db.Date
-  unitType        String
-  initialQuantity Int
-  requestQuantity Int?
-  description     String?
-  type            ItemType?
-  category        ItemCategory?
-  weight          Decimal              @db.Decimal(10, 2)
-  donorOffer      DonorOffer           @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
-  requests        GeneralItemRequest[]
-  embedding       ItemEmbedding?       @relation("GeneralItemEmbedding")
-  items           LineItem[]
-  wishlists       Wishlist[]
-
-  @@unique([donorOfferId, title, expirationDate, unitType])
-}
-
-model LineItem {
-  id                  Int          @id @default(autoincrement())
-  donorName           String
-  quantity            Int
-  lotNumber           String
-  palletNumber        String
-  boxNumber           String
-  unitPrice           Decimal      @db.Money
-  maxRequestLimit     String?
-  donorShippingNumber String?
-  hfhShippingNumber   String?
-  datePosted          DateTime     @default(now())
-  ndc                 String?
-  notes               String?
-  allowAllocations    Boolean
-  visible             Boolean
-  gik                 Boolean
-  generalItemId       Int?
-  allocation          Allocation?
-  generalItem         GeneralItem? @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
-}
-
-model ItemEmbedding {
-  id            Int                   @id @default(autoincrement())
-  generalItemId Int?                  @unique
-  wishlistId    Int?                  @unique
-  donorOfferId  Int?
-  embedding     Unsupported("vector")
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  donorOffer    DonorOffer?           @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
-  generalItem   GeneralItem?          @relation("GeneralItemEmbedding", fields: [generalItemId], references: [id], onDelete: Cascade)
-  wishlist      Wishlist?             @relation("WishlistEmbedding", fields: [wishlistId], references: [id], onDelete: Cascade)
-
-  @@index([donorOfferId])
-  @@index([generalItemId])
-  @@index([wishlistId])
-  @@map("ItemEmbeddings")
-}
-
-model GeneralItemRequest {
-  id            Int              @id @default(autoincrement())
-  generalItemId Int
-  partnerId     Int
-  quantity      Int
-  finalQuantity Int              @default(0)
-  comments      String?
-  priority      RequestPriority?
-  createdAt     DateTime         @default(now())
-  generalItem   GeneralItem      @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
-  partner       User             @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  @@unique([generalItemId, partnerId])
-}
-
-model Allocation {
-  id             Int          @id @default(autoincrement())
-  partnerId      Int?
-  lineItemId     Int          @unique
-  distributionId Int
-  signOffId      Int?
-  distribution   Distribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
-  lineItem       LineItem     @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
-  partner        User?        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  signOff        SignOff?     @relation(fields: [signOffId], references: [id], onDelete: Cascade)
-}
-
-model Distribution {
-  id          Int          @id @default(autoincrement())
-  partnerId   Int
-  pending     Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  allocations Allocation[]
-  partner     User         @relation(fields: [partnerId], references: [id])
-}
-
-model SignOff {
-  id              Int          @id @default(autoincrement())
-  staffMemberName String
-  partnerId       Int
-  partnerName     String
-  date            DateTime
-  signatureUrl    String?
-  createdAt       DateTime     @default(now())
-  allocations     Allocation[]
-}
-
-model ShippingStatus {
-  id                  Int            @id @default(autoincrement())
-  donorShippingNumber String?
-  hfhShippingNumber   String?
-  value               ShipmentStatus
-
-  @@unique([donorShippingNumber, hfhShippingNumber])
-}
-
-model Wishlist {
-  id            Int             @id @default(autoincrement())
-  name          String
-  quantity      Int?
-  priority      RequestPriority
-  lastUpdated   DateTime        @updatedAt
-  comments      String
-  partnerId     Int
-  generalItemId Int?
-  embedding     ItemEmbedding?  @relation("WishlistEmbedding")
-  generalItem   GeneralItem?    @relation(fields: [generalItemId], references: [id])
-  partner       User            @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-}
-
-model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  token     String   @unique
-  expiresAt DateTime
-  used      Boolean  @default(false)
-}
-
-model Notification {
-  id          Int       @id @default(autoincrement())
-  title       String
-  action      String?
-  actionText  String?
-  dateCreated DateTime  @default(now())
-  dateViewed  DateTime?
-  userId      Int
-  isDelivered Boolean   @default(false)
-  payload     Json?
-  template    String?
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, dateViewed])
-}
+// ============================================================================
+// Enums
+// ============================================================================
 
 enum RequestPriority {
   LOW
@@ -301,4 +88,292 @@ enum ItemCategory {
   WASH
   WOUND_CARE
   X_RAY
+}
+
+// ============================================================================
+// User Management
+// ============================================================================
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  passwordHash String
+  type         UserType
+  tag          String?
+  enabled      Boolean  @default(true)
+  pending      Boolean  @default(true)
+  
+  isSuper            Boolean @default(false)
+  userRead           Boolean @default(false)
+  userWrite          Boolean @default(false)
+  itemNotify         Boolean @default(false)
+  offerWrite         Boolean @default(false)
+  requestRead        Boolean @default(false)
+  requestWrite       Boolean @default(false)
+  allocationRead     Boolean @default(false)
+  allocationWrite    Boolean @default(false)
+  archivedRead       Boolean @default(false)
+  distributionRead   Boolean @default(false)
+  distributionWrite  Boolean @default(false)
+  shipmentRead       Boolean @default(false)
+  shipmentWrite      Boolean @default(false)
+  signoffWrite       Boolean @default(false)
+  wishlistRead       Boolean @default(false)
+  supportRead        Boolean @default(false)
+  supportWrite       Boolean @default(false)
+  supportNotify      Boolean @default(false)
+
+  donorOfferVisibilities DonorOffer[]
+  partnerDetails         Json?
+  generalItemRequests    GeneralItemRequest[]
+  allocations            Allocation[]
+  distributions          Distribution[]
+  wishlists              Wishlist[]
+  invite                 UserInvite?
+  notifications          Notification[]
+
+  streamUserId    String? @unique
+  streamUserToken String? @unique
+}
+
+model UserInvite {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  expiration DateTime
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int      @unique
+}
+
+// ============================================================================
+// Donor Offers
+// ============================================================================
+
+model DonorOffer {
+  id Int @id @default(autoincrement())
+
+  state                   DonorOfferState
+  offerName               String
+  donorName               String
+  partnerResponseDeadline DateTime
+  donorResponseDeadline   DateTime
+  archivedAt              DateTime?
+
+  partnerVisibilities User[]
+  items               GeneralItem[]
+  embeddings          ItemEmbedding[]
+}
+
+// ============================================================================
+// Items
+// ============================================================================
+
+model GeneralItem {
+  id Int @id @default(autoincrement())
+
+  donorOfferId Int
+  donorOffer   DonorOffer @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
+
+  title          String
+  expirationDate DateTime? @db.Date
+  unitType       String
+
+  initialQuantity Int
+  requestQuantity Int?
+
+  description String?
+  type        ItemType?
+  category    ItemCategory?
+
+  weight Decimal @db.Decimal(10, 2)
+
+  requests  GeneralItemRequest[]
+  items     LineItem[]
+  wishlists Wishlist[]
+  embedding ItemEmbedding? @relation("GeneralItemEmbedding")
+
+  @@unique([donorOfferId, title, expirationDate, unitType])
+}
+
+// A specific item inside a general item. Ex: a specific box inside a donation of many boxes
+model LineItem {
+  id Int @id @default(autoincrement())
+
+  // Columns that define a unique line item
+  donorName           String
+  quantity            Int
+  lotNumber           String
+  palletNumber        String
+  boxNumber           String
+  unitPrice           Decimal   @db.Money
+  maxRequestLimit     String?
+  donorShippingNumber String?
+  hfhShippingNumber   String?
+  datePosted          DateTime  @default(now())
+  ndc                 String?
+  notes               String?
+
+  allowAllocations Boolean
+  visible          Boolean
+  gik              Boolean
+
+  generalItemId Int?
+  generalItem   GeneralItem? @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
+
+  allocation Allocation? @relation
+}
+
+model ItemEmbedding {
+  id            Int      @id @default(autoincrement())
+  generalItemId Int?     @unique
+  wishlistId    Int?     @unique
+  donorOfferId  Int?
+  embedding     Unsupported("vector")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  generalItem GeneralItem? @relation("GeneralItemEmbedding", fields: [generalItemId], references: [id], onDelete: Cascade)
+  wishlist    Wishlist?    @relation("WishlistEmbedding", fields: [wishlistId], references: [id], onDelete: Cascade)
+  donorOffer  DonorOffer?  @relation(fields: [donorOfferId], references: [id], onDelete: Cascade)
+
+  @@index([donorOfferId])
+  @@index([generalItemId])
+  @@index([wishlistId])
+  @@map("ItemEmbeddings")
+}
+
+// ============================================================================
+// Requests
+// ============================================================================
+
+model GeneralItemRequest {
+  id Int @id @default(autoincrement())
+
+  generalItemId Int
+  generalItem   GeneralItem @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  quantity      Int
+  finalQuantity Int              @default(0)
+  comments      String?
+  priority      RequestPriority?
+
+  createdAt DateTime @default(now())
+
+  @@unique([generalItemId, partnerId])
+}
+
+// ============================================================================
+// Allocations & Distributions
+// ============================================================================
+
+model Allocation {
+  id Int @id @default(autoincrement())
+
+  partnerId Int?
+  partner   User? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  lineItemId Int      @unique
+  lineItem   LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
+
+  distributionId Int
+  distribution   Distribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+
+  signOffId Int?
+  signOff   SignOff? @relation(fields: [signOffId], references: [id], onDelete: Cascade)
+}
+
+model Distribution {
+  id Int @id @default(autoincrement())
+
+  partnerId Int
+  partner   User @relation(fields: [partnerId], references: [id])
+
+  pending Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  allocations Allocation[]
+}
+
+model SignOff {
+  id Int @id @default(autoincrement())
+
+  staffMemberName String
+  partnerId       Int
+  partnerName     String
+  date            DateTime
+  signatureUrl    String?
+
+  createdAt DateTime @default(now())
+
+  allocations Allocation[]
+}
+
+// ============================================================================
+// Shipping
+// ============================================================================
+
+model ShippingStatus {
+  id Int @id @default(autoincrement())
+
+  donorShippingNumber String?
+  hfhShippingNumber   String?
+
+  value ShipmentStatus
+
+  @@unique([donorShippingNumber, hfhShippingNumber])
+}
+
+// ============================================================================
+// Wishlists
+// ============================================================================
+
+model Wishlist {
+  id Int @id @default(autoincrement())
+
+  name     String
+  quantity Int?
+  priority RequestPriority
+
+  lastUpdated DateTime @updatedAt
+
+  comments  String
+  partnerId Int
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  generalItemId Int?
+  generalItem   GeneralItem? @relation(fields: [generalItemId], references: [id])
+  embedding     ItemEmbedding? @relation("WishlistEmbedding")
+}
+
+// ============================================================================
+// Miscellaneous
+// ============================================================================
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+}
+
+model Notification {
+  id           Int       @id @default(autoincrement())
+  title        String
+  action       String?
+  actionText   String?
+  dateCreated  DateTime  @default(now())
+  dateViewed   DateTime?
+  isDelivered  Boolean   @default(false)
+  template     String?
+  payload      Json?
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dateViewed])
 }
