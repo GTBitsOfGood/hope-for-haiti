@@ -15,12 +15,20 @@ export default function SignInPage() {
       const resp = await signIn("credentials", {
         email,
         password,
-        redirect: true,
+        redirect: false,
+        callbackUrl: "/",
       });
 
-      if (resp?.code === INVALID_CREDENTIALS_ERR) {
-        return toast.error("Invalid credentials");
+      if (resp?.error) {
+        if (resp.error === INVALID_CREDENTIALS_ERR) {
+          toast.error("Invalid credentials");
+        } else {
+          toast.error(resp.error);
+        }
+        return;
       }
+
+      window.location.href = resp?.url ?? "/";
     } catch (e) {
       toast.error("Unknown error");
       console.error(e);
