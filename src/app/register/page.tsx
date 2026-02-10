@@ -44,7 +44,7 @@ export default function RegisterPage() {
       const result = await signIn("credentials", {
         email: inviteData?.email,
         password,
-        redirect: false,
+        redirect: true,
       });
 
       if (result?.error) {
