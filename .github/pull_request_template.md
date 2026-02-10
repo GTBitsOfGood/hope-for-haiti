@@ -1,6 +1,6 @@
 ## Description
 
-Resolves ticket number:
+Resolves ticket number: #
 
 
 Explain what your code changes:
