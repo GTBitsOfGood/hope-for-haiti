@@ -31,12 +31,7 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const isCompletedParam = url.searchParams.get("isCompleted");
-    const isCompleted =
-      isCompletedParam === "true"
-        ? true
-        : isCompletedParam === "false"
-          ? false
-          : undefined;
+    const isCompleted = isCompletedParam === "true"  ? true  : isCompletedParam === "false" ? false : undefined;
 
     const parsed = tableParamsSchema.safeParse({
       pageSize: Number(url.searchParams.get("pageSize")),
