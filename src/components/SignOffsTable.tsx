@@ -1,7 +1,7 @@
 "use client";
 import { format } from "date-fns";
 import { useState, useRef, useCallback } from "react";
-import { CaretDown, Package } from "@phosphor-icons/react";
+import { Package } from "@phosphor-icons/react";
 import { useApiClient } from "@/hooks/useApiClient";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
@@ -14,7 +14,7 @@ import ShippingStatusTag from "./tags/ShippingStatusTag";
 import DetailedChip from "./chips/DetailedChip";
 
 function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
-  const [showSignOffs, setShowSignOffs] = useState(true);
+  const [showSignOffs] = useState(true);
 
   if (!shipment.signOffs?.length) {
     return <div className="text-sm text-gray-500">No sign-offs found.</div>;
