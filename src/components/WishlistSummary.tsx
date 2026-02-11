@@ -101,7 +101,7 @@ export default function WishlistSummary() {
         showContainer 
           ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" 
           : "h-0"
-      } transition-all duration-200 text-sm text-gray-700`}
+      } transition-all duration-200 text-md text-black`}
     >
       {displayedText.split("\n").map((line, index, array) => (
         <div key={index} className={line.trim() === "" ? "h-4" : "mb-2 last:mb-0 inline-block w-full"}>
