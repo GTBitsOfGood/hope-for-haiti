@@ -2,6 +2,7 @@
 
 import { useStreamClient } from "@/hooks/useStreamClient";
 import { useEffect, useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 
 export default function WishlistSummary() {
   const [fullText, setFullText] = useState<string>("");
@@ -96,10 +97,22 @@ export default function WishlistSummary() {
 
   return (
     <div
-      className={`mt-8 mb-5 ${showContainer ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" : "h-0"} transition-all duration-200`}
+      className={`mt-8 mb-5 ${
+        showContainer 
+          ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" 
+          : "h-0"
+      } transition-all duration-200 text-md text-black`}
     >
-      {displayedText}
-      {showCursor && <span className="animate-pulse">|</span>}
+      {displayedText.split("\n").map((line, index, array) => (
+        <div key={index} className={line.trim() === "" ? "h-4" : "mb-2 last:mb-0 inline-block w-full"}>
+          <ReactMarkdown components={{ p: "span" }}>
+            {line}
+          </ReactMarkdown>
+          {showCursor && index === array.length - 1 && (
+            <span className="animate-pulse">|</span>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
