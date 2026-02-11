@@ -210,7 +210,7 @@ export class WishlistService {
     if (wishlists.length < 10) {
       yield "Not enough wishlist items to generate a summary";
       return;
-    } // implemented #265
+    }
 
     const { client } = getOpenAIClient();
     if (!client) {
