@@ -199,8 +199,13 @@ export class WishlistService {
   static async *streamWishlistSummary() {
     const wishlists = await this.getUnfulfilledWishlists();
 
+    if (wishlists.length === 0) {
+      yield "No wishlist items";
+      return;
+    }
+
     if (wishlists.length < 10) {
-      yield "";
+      yield "Not enough wishlist items to generate a summary";
       return;
     }
 
