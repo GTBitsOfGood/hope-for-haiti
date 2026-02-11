@@ -30,6 +30,9 @@ export async function GET(request: Request) {
     UserService.checkPermission(session.user, "shipmentRead");
 
     const url = new URL(request.url);
+    const isCompletedParam = url.searchParams.get("isCompleted");
+    const isCompleted = isCompletedParam === "true"  ? true  : isCompletedParam === "false" ? false : undefined;
+
     const parsed = tableParamsSchema.safeParse({
       pageSize: Number(url.searchParams.get("pageSize")),
       page: Number(url.searchParams.get("page")),
@@ -47,7 +50,8 @@ export async function GET(request: Request) {
     const result = await ShippingStatusService.getShipments(
       page,
       pageSize,
-      filters
+      filters,
+      isCompleted
     );
     return NextResponse.json(result);
   } catch (error) {
