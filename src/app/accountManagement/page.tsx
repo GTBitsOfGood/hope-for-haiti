@@ -313,6 +313,8 @@ export default function AccountManagementPage() {
     {
       id: "type",
       header: "Role",
+      filterType: "enum",
+      filterOptions: Object.values(UserType),
       cell: (item) => formatUserType(item.type),
     },
     {
