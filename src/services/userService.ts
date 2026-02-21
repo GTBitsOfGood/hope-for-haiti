@@ -77,6 +77,8 @@ export default class UserService {
         partnerDetails: true,
         streamUserId: true,
         streamUserToken: true,
+        isSuper: true,
+        userWrite: true,
         invite: {
           select: {
             token: true,
@@ -400,6 +402,12 @@ export default class UserService {
     }
 
     if (data.permissions) {
+      if (existingUser.isSuper && existingUser.userWrite) {
+        throw new AuthorizationError(
+          "Cannot modify permissions for users with isSuper and userWrite"
+        );
+      }
+
       const finalPermissions = {
         ...existingUser,
         ...data.permissions,

@@ -36,6 +36,8 @@ interface AccountUserResponse {
   tag: string | null;
   enabled: boolean;
   pending: boolean;
+  isSuper?: boolean;
+  userWrite?: boolean;
   invite?: {
     token: string;
     expiration: string;
@@ -141,6 +143,14 @@ export default function AccountManagementPage() {
   const handleDeactivateAccount = (user: AccountRow) => {
     if (!canManageAccounts) return;
     if (user.pending) return;
+    if (currentUser && user.id === Number(currentUser.id)) {
+      toast.error("You cannot deactivate your own account.");
+      return;
+    }
+    if (Boolean(user.isSuper && user.userWrite)) {
+      toast.error("You cannot deactivate accounts with super admin permissions.");
+      return;
+    }
     setSelectedUser(user);
     setDeactivateModalOpen(true);
   };
@@ -216,6 +226,18 @@ export default function AccountManagementPage() {
   const confirmDeactivateAccount = async () => {
     if (!canManageAccounts) return;
     if (!selectedUser || selectedUser.pending) return;
+    if (currentUser && selectedUser.id === Number(currentUser.id)) {
+      toast.error("You cannot deactivate your own account.");
+      setDeactivateModalOpen(false);
+      setSelectedUser(null);
+      return;
+    }
+    if (Boolean(selectedUser.isSuper && selectedUser.userWrite)) {
+      toast.error("You cannot deactivate accounts with super admin permissions.");
+      setDeactivateModalOpen(false);
+      setSelectedUser(null);
+      return;
+    }
 
     try {
       const isCurrentlyEnabled = selectedUser.enabled;
@@ -334,25 +356,34 @@ export default function AccountManagementPage() {
     },
   ];
 
+  const isProtectedUser = (user: AccountRow) =>
+    Boolean(user.isSuper && user.userWrite);
+
   if (canManageAccounts) {
     baseColumns.push({
       id: "manage",
-      cell: (item) => (
-        <div
-          className="flex justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <AccountDropdown
-            isPending={item.pending}
-            user={{ enabled: item.enabled }}
-            onDeleteAccount={() => handleDeleteAccount(item)}
-            onEditAccount={() => handleEditAccount(item)}
-            onDeactivateAccount={() => handleDeactivateAccount(item)}
-            onSendReminder={() => handleSendReminder(item)}
-            canManage={canManageAccounts}
-          />
-        </div>
-      ),
+      cell: (item) => {
+        const isSelf = currentUser != null && item.id === Number(currentUser.id);
+        const hideDeactivate =
+          isSelf || isProtectedUser(item);
+        return (
+          <div
+            className="flex justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <AccountDropdown
+              isPending={item.pending}
+              user={{ enabled: item.enabled }}
+              onDeleteAccount={() => handleDeleteAccount(item)}
+              onEditAccount={() => handleEditAccount(item)}
+              onDeactivateAccount={() => handleDeactivateAccount(item)}
+              onSendReminder={() => handleSendReminder(item)}
+              canManage={canManageAccounts}
+              hideDeactivateOption={hideDeactivate}
+            />
+          </div>
+        );
+      },
     });
   }
 
@@ -463,7 +494,10 @@ This will restore the user's access to the system.`
           isStaffAccount={selectedUser ? isStaff(selectedUser.type) : true}
           existingTags={tags ?? []}
           onManagePermissions={
-            selectedUser && !selectedUser.pending && isStaff(selectedUser.type)
+            selectedUser &&
+            !selectedUser.pending &&
+            isStaff(selectedUser.type) &&
+            !isProtectedUser(selectedUser)
               ? () => handleManagePermissions(selectedUser)
               : undefined
           }

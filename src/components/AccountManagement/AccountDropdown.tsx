@@ -24,6 +24,8 @@ interface AccountDropdownProps {
   onDeactivateAccount?: () => void;
   onSendReminder?: () => void;
   canManage?: boolean;
+  /** When true, hide Deactivate/Activate option (e.g. for self or protected users) */
+  hideDeactivateOption?: boolean;
 }
 
 export default function AccountDropdown({
@@ -34,6 +36,7 @@ export default function AccountDropdown({
   onDeactivateAccount,
   onSendReminder,
   canManage = true,
+  hideDeactivateOption = false,
 }: AccountDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +67,7 @@ export default function AccountDropdown({
       ];
     } else {
       const isEnabled = user?.enabled !== false;
-      return [
+      const items: DropdownItem[] = [
         {
           icon: <PencilSimple size={18} />,
           label: "Edit account",
@@ -73,15 +76,18 @@ export default function AccountDropdown({
             setIsOpen(false);
           },
         },
-        {
+      ];
+      if (!hideDeactivateOption) {
+        items.push({
           icon: isEnabled ? <EyeSlash size={18} /> : <Eye size={18} />,
           label: isEnabled ? "Deactivate account" : "Activate account",
           onClick: () => {
             onDeactivateAccount?.();
             setIsOpen(false);
           },
-        },
-      ];
+        });
+      }
+      return items;
     }
   };
 
