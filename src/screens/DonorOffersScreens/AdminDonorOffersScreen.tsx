@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   DotsThree,
   Plus,
@@ -8,20 +8,20 @@ import {
   Upload,
   Archive,
 } from "@phosphor-icons/react";
-import { CgSpinner } from "react-icons/cg";
 import { DonorOfferState } from "@prisma/client";
 import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { useFetch } from "@/hooks/useFetch";
-import { AdminDonorOffersResponse } from "@/types/api/donorOffer.types";
-import BaseTable, {
-  extendTableHeader,
-  tableConditional,
-} from "@/components/baseTable/BaseTable";
+import { AdminDonorOffersResponse, AdminDonorOffer } from "@/types/api/donorOffer.types";
+import AdvancedBaseTable, {
+  AdvancedBaseTableHandle,
+  FilterList,
+  ColumnDefinition,
+} from "@/components/baseTable/AdvancedBaseTable";
 import { useUser } from "@/components/context/UserContext";
 import { hasPermission } from "@/lib/userUtils";
+import { useApiClient } from "@/hooks/useApiClient";
 
 enum StatusFilterKey {
   UNFINALIZED = "Unfinalized",
@@ -41,31 +41,35 @@ export default function AdminDonorOffersScreen() {
   );
   const router = useRouter();
   const { user } = useUser();
+  const {apiClient} = useApiClient();
   const canManageOffers = hasPermission(user, "offerWrite");
 
-  const {
-    data: response,
-    isLoading,
-    refetch: refetchOffers,
-  } = useFetch<AdminDonorOffersResponse>("/api/donorOffers", {
-    cache: "no-store",
-    onError: (error) => {
-      toast.error("An error occurred while fetching data");
-      console.error("Fetch error:", error);
-    },
-  });
+  const tableRef = useRef<AdvancedBaseTableHandle<AdminDonorOffer>>(null);
 
-  const offers = response?.donorOffers || [];
-  const filteredOffers = offers.filter((offer) => {
-    if (activeTab === StatusFilterKey.UNFINALIZED) {
-      return offer.state === DonorOfferState.UNFINALIZED;
-    } else if (activeTab === StatusFilterKey.FINALIZED) {
-      return offer.state === DonorOfferState.FINALIZED;
-    } else if (activeTab === StatusFilterKey.ARCHIVED) {
-      return offer.state === DonorOfferState.ARCHIVED;
-    }
-    return true;
-  });
+  const fetchFn = useCallback(
+    async(pageSize: number, page: number, filters: FilterList<AdminDonorOffer>) => {
+      const combinedFilters = {
+        ...filters, 
+        state: {type: "enum" as const, values: [activeTab]},
+      };
+
+      const params = new URLSearchParams({
+        pageSize: pageSize.toString(),
+        page: page.toString(), 
+        filters: JSON.stringify(combinedFilters),
+      });
+
+      const data = await apiClient.get<AdminDonorOffersResponse>(
+        `/api/donorOffers?${params}`
+      );
+
+      return {
+        data: data.donorOffers,
+        total: data.total,
+      };
+    },
+    [apiClient, activeTab]
+  );
 
   const handleArchive = (donorOfferId: number) => {
     (async () => {
@@ -78,7 +82,7 @@ export default function AdminDonorOffersScreen() {
           return;
         }
         toast.success("Donor offer archived");
-        refetchOffers();
+        tableRef.current?.reload();
       } catch (error) {
         toast.error("Error archiving donor offer");
         console.error("Archive error:", error);
@@ -86,17 +90,95 @@ export default function AdminDonorOffersScreen() {
     })();
   };
 
-  const tableHeaders = [
-    "Donor Offer",
-    "Donor Name",
-    tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
-      "Response Deadline",
-      "Partners Responded",
-    ]),
+  const columns: ColumnDefinition<AdminDonorOffer>[] = [
+    {
+      id: "offerName",
+      header: "Donor Offer", 
+      filterType: "string", 
+      cell: (offer) => offer.offerName,
+    },
+    {
+      id: "donorName",
+      header: "Donor Name",
+      filterType: "string",
+      cell: (offer) => offer.donorName, 
+    },
+    ...(activeTab === StatusFilterKey.UNFINALIZED
+      ? [
+          {
+            id: "responseDeadline",
+            header: "Response Deadline",
+            filterType: "date" as const, 
+            cell: (offer: AdminDonorOffer) => 
+              offer.responseDeadline
+                ? new Date(offer.responseDeadline).toLocaleDateString()
+                : "N/A",
+          },
+          {
+            id: "partnersResponded",
+            header: "Partners Responded", 
+            cell: (offer: AdminDonorOffer) => 
+              `${offer.invitedPartners.filter((p) => p.responded).length}/${offer.invitedPartners.length}`, 
+          },
+      ]
+      : [])
   ];
 
   if (canManageOffers) {
-    tableHeaders.push([extendTableHeader("Manage", "w-12")]);
+    columns.push({
+      id: "manage",
+      header: "Manage",
+      filterable: false,
+      cell: (offer) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Menu as="div" className="float-right relative">
+            <MenuButton>
+              <DotsThree weight="bold" />
+            </MenuButton>
+            <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+              {offer.state !== DonorOfferState.ARCHIVED && (
+                <MenuItem
+                  as="button"
+                  className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => router.push(`/donorOffers/${offer.donorOfferId}/edit`)}
+                >
+                  <PencilSimple className="inline-block mr-2" size={22} />
+                  Edit Offer Details
+                </MenuItem>
+              )}
+              {offer.state === DonorOfferState.UNFINALIZED && (
+                <MenuItem
+                  as="button"
+                  className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => router.push(`/donorOffers/${offer.donorOfferId}/finalize`)}
+                >
+                  <Upload className="inline-block mr-2" size={22} />
+                  Upload Final Offer
+                </MenuItem>
+              )}
+              {offer.state === DonorOfferState.FINALIZED && (
+                <MenuItem
+                  as="button"
+                  className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => handleArchive(offer.donorOfferId)}
+                >
+                  <Archive className="inline-block mr-2" size={22} />
+                  Archive Offer
+                </MenuItem>
+              )}
+              {offer.state === DonorOfferState.ARCHIVED && (
+                <MenuItem
+                  as="div"
+                  className="flex w-full px-3 py-2 text-sm text-gray-500 italic cursor-default"
+                >
+                  Archived (Read-Only)
+                </MenuItem>
+              )}
+            </MenuItems>
+          </Menu>
+        </div>
+      ),
+    });
   }
 
   return (
@@ -115,115 +197,24 @@ export default function AdminDonorOffersScreen() {
             </button>
           ))}
         </div>
-        <div className="flex gap-4 mb-6">
-          <button className="flex items-center gap-2 border border-red-500 text-red-500 bg-white px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition">
-            <Plus size={18} /> Filter
-          </button>
-          {canManageOffers && (
-            <div className="relative">
-              <button
-                className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-                onClick={() => {
-                  router.push("/donorOffers/create");
-                }}
-              >
-                <Plus size={18} /> Create Donor Offer
-              </button>
-            </div>
-          )}
-        </div>
+        {canManageOffers && (
+          <div className="flex gap-4 mb-6">
+            <button
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+              onClick={() => router.push("/donorOffers/create")}
+            >
+              <Plus size={18} /> Create Donor Offer
+            </button>
+          </div>
+        )}
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center mt-8">
-          <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
-        </div>
-      ) : (
-        <BaseTable
-          headers={tableHeaders}
-          rows={filteredOffers.map((offer) => {
-            const cells = [
-              offer.offerName,
-              offer.donorName,
-              tableConditional(activeTab === StatusFilterKey.UNFINALIZED, [
-                offer.responseDeadline
-                  ? new Date(offer.responseDeadline).toLocaleDateString()
-                  : "N/A",
-                `${
-                  offer.invitedPartners.filter((partner) => partner.responded)
-                    .length
-                }/${offer.invitedPartners.length}`,
-              ]),
-            ];
-
-            if (canManageOffers) {
-              cells.push([
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  key={`manage-${offer.donorOfferId}`}
-                >
-                  <Menu as="div" className="float-right relative">
-                    <MenuButton>
-                      <DotsThree weight="bold" />
-                    </MenuButton>
-                    <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
-                      {offer.state !== DonorOfferState.ARCHIVED && (
-                        <MenuItem
-                          as="button"
-                          className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() =>
-                            router.push(`/donorOffers/${offer.donorOfferId}/edit`)
-                          }
-                        >
-                          <PencilSimple className="inline-block mr-2" size={22} />
-                          Edit Offer Details
-                        </MenuItem>
-                      )}
-                      {offer.state === DonorOfferState.UNFINALIZED && (
-                        <MenuItem
-                          as="button"
-                          className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() =>
-                            router.push(
-                              `/donorOffers/${offer.donorOfferId}/finalize`
-                            )
-                          }
-                        >
-                          <Upload className="inline-block mr-2" size={22} />
-                          Upload Final Offer
-                        </MenuItem>
-                      )}
-                      {offer.state === DonorOfferState.FINALIZED && (
-                        <MenuItem
-                          as="button"
-                          className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => handleArchive(offer.donorOfferId)}
-                        >
-                          <Archive className="inline-block mr-2" size={22} />
-                          Archive Offer
-                        </MenuItem>
-                      )}
-                      {offer.state === DonorOfferState.ARCHIVED && (
-                        <MenuItem
-                          as="div"
-                          className="flex w-full px-3 py-2 text-sm text-gray-500 italic cursor-default"
-                        >
-                          Archived (Read-Only)
-                        </MenuItem>
-                      )}
-                    </MenuItems>
-                  </Menu>
-                </div>,
-              ]);
-            }
-
-            return {
-              cells,
-              onClick: () => router.push(`/donorOffers/${offer.donorOfferId}`),
-            };
-          })}
-        />
-      )}
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={columns}
+        fetchFn={fetchFn}
+        rowId="donorOfferId"
+      />
     </>
   );
 }
