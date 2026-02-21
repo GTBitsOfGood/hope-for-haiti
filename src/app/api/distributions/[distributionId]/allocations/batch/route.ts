@@ -140,7 +140,7 @@ export async function PATCH(request: NextRequest) {
           );
         }
       } else {
-        throw new ArgumentError("Target distributionId is required for transfers.")
+        throw new ArgumentError("Target distributionId is required for transfers.");
       }
     }
 
