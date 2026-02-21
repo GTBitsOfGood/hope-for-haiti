@@ -399,6 +399,30 @@ export default class DonorOfferService {
       filters
     );
 
+    if (filters?.state && filters.state.type === "enum") {
+      (where as Record<string, unknown>).state = {
+        in: filters.state.values.map((v) => v.toUpperCase()),
+      };
+    }
+
+    if (filters?.responseDeadline && filters.responseDeadline.type === "date") {
+      const dateCondition: Record<string, string> = {};
+      if (filters.responseDeadline.gte) dateCondition.gte = filters.responseDeadline.gte; 
+      if (filters.responseDeadline.lte) dateCondition.lte = filters.responseDeadline.lte; 
+      (where as Record<string, unknown>).partnerResponseDeadline = dateCondition; 
+    }
+
+    if (filters?.partnerInvolved && filters.partnerInvolved.type === "string") {
+      (where as Record<string, unknown>).partnerVisibilities = {
+        some: {
+          name: {
+            contains: filters.partnerInvolved.value, 
+            mode: "insensitive",
+          },
+        },
+      };
+    }
+
     const query = Prisma.validator<Prisma.DonorOfferFindManyArgs>()({
       where,
       include: {

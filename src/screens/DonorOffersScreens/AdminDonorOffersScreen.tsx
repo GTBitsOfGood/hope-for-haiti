@@ -103,6 +103,13 @@ export default function AdminDonorOffersScreen() {
       filterType: "string",
       cell: (offer) => offer.donorName, 
     },
+    {
+      id: "partnerInvolved",
+      header: "Partner Involved", 
+      filterType: "string",
+      cell: (offer) => 
+        offer.invitedPartners.map((p) => p.name).join(", "),
+    },
     ...(activeTab === StatusFilterKey.UNFINALIZED
       ? [
           {
