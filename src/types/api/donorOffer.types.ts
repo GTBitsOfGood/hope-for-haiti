@@ -19,6 +19,7 @@ export interface AdminDonorOffer {
   offerName: string;
   donorName: string;
   responseDeadline: Date;
+  donorResponseDeadline: Date;
   state: DonorOfferState;
   invitedPartners: {
     name: string;

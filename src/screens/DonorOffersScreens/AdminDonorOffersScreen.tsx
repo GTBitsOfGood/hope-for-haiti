@@ -120,6 +120,15 @@ export default function AdminDonorOffersScreen() {
             cell: (offer: AdminDonorOffer) => 
               `${offer.invitedPartners.filter((p) => p.responded).length}/${offer.invitedPartners.length}`, 
           },
+          {
+            id: "donorResponseDeadline",
+            header: "Donor Repsonse Deadline", 
+            filterType: "date" as const, 
+            cell: (offer: AdminDonorOffer) => 
+              offer.donorResponseDeadline 
+                ? new Date(offer.donorResponseDeadline).toLocaleDateString() 
+                : "N/A"
+          }
       ]
       : [])
   ];

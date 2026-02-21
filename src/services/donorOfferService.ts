@@ -433,6 +433,7 @@ export default class DonorOfferService {
         offerName: offer.offerName,
         donorName: offer.donorName,
         responseDeadline: offer.partnerResponseDeadline,
+        donorResponseDeadline: offer.donorResponseDeadline,
         state: offer.state,
         invitedPartners: offer.partnerVisibilities.map((pv) => ({
           name: pv.name,
