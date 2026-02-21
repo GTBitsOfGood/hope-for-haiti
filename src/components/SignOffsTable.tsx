@@ -12,6 +12,7 @@ import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./chips/Chip";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
 import DetailedChip from "./chips/DetailedChip";
+import { shippingStatusToText } from "@/util/util";
 
 function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
   const [showSignOffs] = useState(true);
@@ -91,6 +92,7 @@ export default function SignOffsTable() {
     {
       id: "donorShippingNumber",
       header: "Donor Shipping #",
+      filterType: "string", 
       cell: (s) => s.donorShippingNumber,
     },
     {
@@ -99,8 +101,10 @@ export default function SignOffsTable() {
       cell: (s) => s.hfhShippingNumber,
     },
     {
-      id: "status",
+      id: "value",
       header: "Status",
+      filterType: "enum", 
+      filterOptions: Object.values(shippingStatusToText),
       cell: (s) => <ShippingStatusTag status={s.value} />,
     },
     {

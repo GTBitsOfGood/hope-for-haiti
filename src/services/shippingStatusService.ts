@@ -49,6 +49,17 @@ export class ShippingStatusService {
       filters
     );
 
+    if (filters?.value && filters?.value.type === "enum") {
+      const displayNames = filters.value.values; 
+      const enumValueArr = Object.entries(shippingStatusToText);
+      const enumValues = displayNames
+        .map((name) => enumValueArr.find(([,text]) => text === name)?.[0])
+        .filter(Boolean);
+      (where as Record<string, unknown>).value = {
+        in: enumValues
+      };
+    }
+
     const pageNum = page ?? 1;
     const size = pageSize ?? 20;
     const offset = (pageNum - 1) * size;
