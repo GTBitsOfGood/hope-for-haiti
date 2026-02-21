@@ -319,7 +319,6 @@ export default class AllocationService {
         }
       }
 
-      // Check if the target distribution is approved (only approved distributions can receive transfers)
       if (update.distributionId) {
         const targetDistribution = await db.distribution.findUnique({
           where: { id: update.distributionId },
@@ -329,7 +328,7 @@ export default class AllocationService {
           throw new NotFoundError("Target distribution not found");
         }
 
-        if (targetDistribution.pending) {
+        if (!targetDistribution.pending) {
           throw new ArgumentError(
             "Cannot transfer items to an approved distribution. Transfers are only allowed between pending distributions."
           );
