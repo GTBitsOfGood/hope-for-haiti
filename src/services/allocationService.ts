@@ -331,7 +331,7 @@ export default class AllocationService {
 
         if (targetDistribution.pending) {
           throw new ArgumentError(
-            "Cannot transfer items to a pending distribution. Only approved distributions can receive transfers."
+            "Cannot transfer items to an approved distribution. Transfers are only allowed between pending distributions."
           );
         }
       }
