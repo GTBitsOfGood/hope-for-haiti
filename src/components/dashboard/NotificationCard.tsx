@@ -75,6 +75,8 @@ export default function NotificationCard({
   };
 
   const handleClose = async () => {
+    // If toast, then dismiss
+    // If stored in db, then delete
     if (t) toast.dismiss(t.id);
 
     if (!isChat && Number(id) > 0) {
@@ -114,6 +116,9 @@ export default function NotificationCard({
   return (
     <div
       className={`rounded-[7.25px] px-4 py-3 flex items-start gap-3 border relative ${styles.container}`}
+      style={{
+        animation: "slideGrow 0.2s ease-out forwards",
+      }}
     >
       <IconComponent
         className={`flex-shrink-0 ${styles.icon}`}
