@@ -4,7 +4,7 @@ import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
 } from "../baseTable/AdvancedBaseTable";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import { PartnerAllocation } from "@/types/api/allocation.types";
 import { format } from "date-fns";
@@ -12,6 +12,7 @@ import Chip from "../chips/Chip";
 import ShippingStatusTag from "../tags/ShippingStatusTag";
 import SignatureImageTooltip from "../SignatureImageTooltip";
 import { $Enums } from "@prisma/client";
+import { useNotifications } from "@/components/NotificationHandler";
 
 interface PartnerDistributionTableProps {
   pending: boolean; // true = in progress, false = completed
@@ -22,6 +23,11 @@ export default function PartnerDistributionTable({
 }: PartnerDistributionTableProps) {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<PartnerAllocation>>(null);
+  const { refreshTick } = useNotifications();
+
+  useEffect(() => {
+    tableRef.current?.reload?.();
+  }, [refreshTick]);
 
   const fetchTableData = useCallback(
     async (

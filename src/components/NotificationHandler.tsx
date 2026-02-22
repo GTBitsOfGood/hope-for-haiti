@@ -44,9 +44,13 @@ function getRealtimeClient() {
 const NotificationContext = createContext<{
   notifications: UnifiedNotification[];
   refreshNotifications: () => Promise<void>;
+  refreshTick: number;
+  bumpRefreshTick: () => void;
 }>({
   notifications: [],
   refreshNotifications: async () => {},
+  refreshTick: 0,
+  bumpRefreshTick: () => {},
 });
 
 export function useNotifications() {
@@ -63,6 +67,11 @@ export default function NotificationHandler({
   const router = useRouter();
   const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const bumpRefreshTick = useCallback(() => {
+    setRefreshTick((t) => t + 1);
+  }, []);
 
   useEffect(() => {
     const realtime = getRealtimeClient();
@@ -110,15 +119,6 @@ export default function NotificationHandler({
           console.error(`Failed to PATCH notification ${payload.id}: ${error}`);
         }
       }
-      
-      if (payload.id > 0) {
-        try {
-          const viewed = pathname === payload.action ? "&view=true" : ""; 
-          await apiClient.patch(`/api/notifications/${payload.id}?delivery=true${viewed}`);
-        } catch (error) {
-          console.error(`Failed to PATCH notification ${payload.id}: ${error}`)
-        }
-      }
 
       setNotifications((prev) => [
         {
@@ -132,23 +132,33 @@ export default function NotificationHandler({
         ...prev,
       ]);
 
-      if (pathname === "/") return;
+      const shouldRefresh =
+        payload.title?.toLowerCase().includes("shipment") ||
+        payload.action?.startsWith("/distributions") ||
+        payload.action?.startsWith("/items");
 
-      toast.custom(
-        (t: Toast) => (
-          <NotificationCard
-            id={payload.id}
-            message={payload.title}
-            dateCreated={payload.dateCreated}
-            actionText={payload.actionText ?? undefined}
-            actionUrl={payload.action ?? undefined}
-            t={t}
-            hideAction={pathname === payload.action}
-          />
-        ),
-        { duration: 60 * 1000 }
-      );
-    };
+      if (shouldRefresh) {
+        bumpRefreshTick();
+        router.refresh();
+      }
+
+      if (pathname === "/") {
+        toast.custom(
+          (t: Toast) => (
+            <NotificationCard
+              id={payload.id}
+              message={payload.title}
+              dateCreated={payload.dateCreated}
+              actionText={payload.actionText ?? undefined}
+              actionUrl={payload.action ?? undefined}
+              t={t}
+              hideAction={pathname === payload.action}
+            />
+          ),
+          { duration: 60 * 1000 }
+        );
+      }
+    }
 
     const channelName = `${process.env.NODE_ENV}:user:${user.id}`;
     const channel = client.channels.get(channelName);
@@ -317,8 +327,8 @@ export default function NotificationHandler({
   ]);
 
   const value = useMemo(
-    () => ({ notifications, refreshNotifications }),
-    [notifications, refreshNotifications]
+    () => ({ notifications, refreshNotifications, refreshTick, bumpRefreshTick }),
+    [notifications, refreshNotifications, refreshTick, bumpRefreshTick]
   );
 
   return (
