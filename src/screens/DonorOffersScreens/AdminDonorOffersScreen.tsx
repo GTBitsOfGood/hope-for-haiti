@@ -135,7 +135,18 @@ export default function AdminDonorOffersScreen() {
               offer.donorResponseDeadline 
                 ? new Date(offer.donorResponseDeadline).toLocaleDateString() 
                 : "N/A"
-          }
+          },
+          {
+            id: "allPartnersResponded",
+            header: "All Partners Responded", 
+            filterType: "enum" as const, 
+            filterOptions: ["Yes", "No"],
+            cell: (offer: AdminDonorOffer) => 
+              offer.invitedPartners.length > 0 && 
+              offer.invitedPartners.every((p) => p.responded)
+                ? "Yes"
+                : "No",
+          },
       ]
       : [])
   ];
@@ -213,16 +224,6 @@ export default function AdminDonorOffersScreen() {
             </button>
           ))}
         </div>
-        {canManageOffers && (
-          <div className="flex gap-4 mb-6">
-            <button
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-              onClick={() => router.push("/donorOffers/create")}
-            >
-              <Plus size={18} /> Create Donor Offer
-            </button>
-          </div>
-        )}
       </div>
 
       <AdvancedBaseTable
@@ -230,6 +231,16 @@ export default function AdminDonorOffersScreen() {
         columns={columns}
         fetchFn={fetchFn}
         rowId="donorOfferId"
+        toolBar={
+            canManageOffers && (
+              <button
+                // className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition" 
+                className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+                onClick={() => router.push("/donorOffers/create")}
+              >
+                <Plus size={18} /> Create Donor Offer
+              </button>
+          )}
       />
     </>
   );

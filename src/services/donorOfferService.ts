@@ -444,7 +444,7 @@ export default class DonorOfferService {
 
     buildQueryWithPagination(query, page, pageSize);
 
-    const [donorOffers, total] = await Promise.all([
+    const [donorOffers] = await Promise.all([
       db.donorOffer.findMany(query),
       db.donorOffer.count({ where }),
     ]);
@@ -468,7 +468,18 @@ export default class DonorOfferService {
       })
     );
 
-    return { donorOffers: mappedOffers, total };
+    let filteredOffers = mappedOffers;
+    if (filters?.allPartnersResponded && filters.allPartnersResponded.type === "enum") {
+      const wantAllPartnersResponded = filters.allPartnersResponded.values.includes("Yes");
+      filteredOffers = mappedOffers.filter((offer) => {
+        const allPartnersResponded = offer.invitedPartners.length > 0 && 
+          offer.invitedPartners.every((p) => p.responded);
+
+        return wantAllPartnersResponded ? allPartnersResponded : !allPartnersResponded
+      });
+    }
+
+    return {donorOffers: filteredOffers, total: filteredOffers.length}
   }
 
   static async getItemRequests(
