@@ -166,7 +166,7 @@ export default function NotificationHandler({
     return () => {
       channel.unsubscribe("notification:new", handleRealtimeNotification);
     };
-  }, [client, user?.id, pathname, apiClient, refreshNotifications, router]);
+  }, [client, user?.id, pathname, apiClient, refreshNotifications, router, bumpRefreshTick]);
 
   useEffect(() => {
     if (
