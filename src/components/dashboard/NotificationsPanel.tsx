@@ -94,6 +94,15 @@ export default function NotificationsPanel({
         </div>
 
         <div className="py-4 space-y-5 max-h-[600px] overflow-y-auto">
+          <NotificationCard
+            key={999}
+            id={99}
+            message={"hello friends"}
+            actionText={"sudkc"}
+            actionUrl={"skidnaosidn"}
+            dateCreated={new Date()}
+            isChat={true}
+          />
           {filteredNotifications.length > 0 ? (
             <>
               {todayNotifications.length > 0 && (

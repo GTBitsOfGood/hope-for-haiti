@@ -35,10 +35,12 @@ export async function PATCH(
 
     const { notificationId } = idParsed.data;
 
-    const existingNotification = await NotificationService.getNotificationById(notificationId);
+    const existingNotification =
+      await NotificationService.getNotificationById(notificationId);
 
     if (
-      !existingNotification || existingNotification.userId !== Number(session.user.id)
+      !existingNotification ||
+      existingNotification.userId !== Number(session.user.id)
     ) {
       throw new ArgumentError("Notification not found");
     }
@@ -52,12 +54,39 @@ export async function PATCH(
       throw new ArgumentError(searchParams.error.message);
     }
 
-    const updatedNotification = NotificationService.updateNotification(notificationId, {
-      delivery: searchParams.data.delivery ?? undefined,
-      view: searchParams.data.view ?? undefined,
-    });
+    const updatedNotification = NotificationService.updateNotification(
+      notificationId,
+      {
+        delivery: searchParams.data.delivery ?? undefined,
+        view: searchParams.data.view ?? undefined,
+      }
+    );
 
     return NextResponse.json({ notification: updatedNotification });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ notificationId: string }> }
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      throw new AuthenticationError("User not authenticated");
+    }
+
+    const resolvedParams = await params;
+
+    await NotificationService.deleteNotification(
+      Number(resolvedParams.notificationId),
+      Number(session.user.id)
+    );
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     return errorResponse(error);
   }
