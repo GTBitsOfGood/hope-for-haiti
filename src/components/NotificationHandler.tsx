@@ -157,7 +157,7 @@ export default function NotificationHandler({
           ),
           { duration: 60 * 1000 }
         )
-      };
+    };
 
     const channelName = `${process.env.NODE_ENV}:user:${user.id}`;
     const channel = client.channels.get(channelName);
