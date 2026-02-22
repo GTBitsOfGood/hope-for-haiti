@@ -25,7 +25,6 @@ export default function SignatureImageTooltip({
           width={600}
           height={200}
           className="w-full h-auto"
-          unoptimized
         />
       </div>
     </Tooltip>
