@@ -143,20 +143,21 @@ export default function NotificationHandler({
       }
 
       if (pathname === "/") return;
-        toast.custom(
-          (t: Toast) => (
-            <NotificationCard
-              id={payload.id}
-              message={payload.title}
-              dateCreated={payload.dateCreated}
-              actionText={payload.actionText ?? undefined}
-              actionUrl={payload.action ?? undefined}
-              t={t}
-              hideAction={pathname === payload.action}
-            />
-          ),
-          { duration: 60 * 1000 }
-        )
+      
+      toast.custom(
+        (t: Toast) => (
+          <NotificationCard
+            id={payload.id}
+            message={payload.title}
+            dateCreated={payload.dateCreated}
+            actionText={payload.actionText ?? undefined}
+            actionUrl={payload.action ?? undefined}
+            t={t}
+            hideAction={pathname === payload.action}
+          />
+        ),
+        { duration: 60 * 1000 }
+      );
     };
 
     const channelName = `${process.env.NODE_ENV}:user:${user.id}`;
