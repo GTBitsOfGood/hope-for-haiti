@@ -129,7 +129,7 @@ export default function AdminDonorOffersScreen() {
           },
           {
             id: "donorResponseDeadline",
-            header: "Donor Repsonse Deadline", 
+            header: "Donor Response Deadline", 
             filterType: "date" as const, 
             cell: (offer: AdminDonorOffer) => 
               offer.donorResponseDeadline 
