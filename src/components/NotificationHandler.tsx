@@ -142,7 +142,7 @@ export default function NotificationHandler({
         router.refresh();
       }
 
-      if (pathname === "/") {
+      if (pathname === "/") return;
         toast.custom(
           (t: Toast) => (
             <NotificationCard
@@ -158,7 +158,6 @@ export default function NotificationHandler({
           { duration: 60 * 1000 }
         );
       }
-    }
 
     const channelName = `${process.env.NODE_ENV}:user:${user.id}`;
     const channel = client.channels.get(channelName);
