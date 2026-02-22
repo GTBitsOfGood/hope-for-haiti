@@ -81,8 +81,25 @@ export async function DELETE(
 
     const resolvedParams = await params;
 
+    const idParsed = idSchema.safeParse(resolvedParams);
+    if (!idParsed.success) {
+      throw new ArgumentError(idParsed.error.message);
+    }
+
+    const { notificationId } = idParsed.data;
+
+    const existingNotification =
+      await NotificationService.getNotificationById(notificationId);
+
+    if (
+      !existingNotification ||
+      existingNotification.userId !== Number(session.user.id)
+    ) {
+      throw new ArgumentError("Notification not found");
+    }
+
     await NotificationService.deleteNotification(
-      Number(resolvedParams.notificationId),
+      notificationId,
       Number(session.user.id)
     );
 
