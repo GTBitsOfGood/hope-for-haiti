@@ -423,6 +423,34 @@ export default class DonorOfferService {
       };
     }
 
+    if (filters?.allPartnersResponded && filters.allPartnersResponded.type === "enum") {
+      const needEverything = filters.allPartnersResponded.values.includes("Yes");
+
+      const nonRespondedIds = await db.$queryRaw<{ id: number }[]>(Prisma.sql`
+        SELECT DISTINCT jt."A" AS id
+        FROM "_DonorOfferToUser" jt
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "GeneralItemRequest" gir
+          JOIN "GeneralItem" gi ON gi.id = gir."generalItemId"
+          WHERE gi."donorOfferId" = jt."A"
+          AND gir."partnerId" = jt."B"
+        )  
+        UNION
+        SELECT d.id FROM "DonorOffer" d
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "_DonorOfferToUser" jt WHERE jt."A" = d.id
+        )
+      `);
+
+      const ids = nonRespondedIds.map((r) => r.id);
+
+      if (needEverything) {
+        (where as Record<string, unknown>).id = {notIn: ids };
+      } else {
+        (where as Record<string, unknown>).id = {in: ids};
+      }
+    }
+
     const query = Prisma.validator<Prisma.DonorOfferFindManyArgs>()({
       where,
       include: {
@@ -468,18 +496,7 @@ export default class DonorOfferService {
       })
     );
 
-    let filteredOffers = mappedOffers;
-    if (filters?.allPartnersResponded && filters.allPartnersResponded.type === "enum") {
-      const wantAllPartnersResponded = filters.allPartnersResponded.values.includes("Yes");
-      filteredOffers = mappedOffers.filter((offer) => {
-        const allPartnersResponded = offer.invitedPartners.length > 0 && 
-          offer.invitedPartners.every((p) => p.responded);
-
-        return wantAllPartnersResponded ? allPartnersResponded : !allPartnersResponded
-      });
-    }
-
-    return {donorOffers: filteredOffers, total}
+    return {donorOffers: mappedOffers, total}
   }
 
   static async getItemRequests(
