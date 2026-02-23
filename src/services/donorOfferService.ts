@@ -444,7 +444,7 @@ export default class DonorOfferService {
 
     buildQueryWithPagination(query, page, pageSize);
 
-    const [donorOffers] = await Promise.all([
+    const [donorOffers, total] = await Promise.all([
       db.donorOffer.findMany(query),
       db.donorOffer.count({ where }),
     ]);
@@ -479,7 +479,7 @@ export default class DonorOfferService {
       });
     }
 
-    return {donorOffers: filteredOffers, total: filteredOffers.length}
+    return {donorOffers: filteredOffers, total}
   }
 
   static async getItemRequests(
