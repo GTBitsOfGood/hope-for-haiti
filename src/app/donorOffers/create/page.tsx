@@ -41,7 +41,7 @@ export default function CreateDonorOfferPage() {
   const {
     fileName,
     fileSize,
-    fileError,
+    fileErrorMessage,
     fileUploaded,
     fileLoading,
     errors,
@@ -93,7 +93,7 @@ export default function CreateDonorOfferPage() {
   }
 
   const showPreview = () => {
-    if (!fileUploaded || fileError) return;
+    if (!fileUploaded || fileErrorMessage) return;
 
     setPreview(true);
   };
@@ -214,7 +214,7 @@ export default function CreateDonorOfferPage() {
       <FileInfoDisplay
         fileName={fileName}
         fileSize={fileSize}
-        fileError={fileError}
+        fileErrorMessage={fileErrorMessage}
         onReset={resetUpload}
       />
 
@@ -240,7 +240,7 @@ export default function CreateDonorOfferPage() {
           <button
             disabled={
               !fileUploaded ||
-              fileError ||
+              !!fileErrorMessage ||
               !offerName ||
               !donorName ||
               !partnerRequestDeadline ||
@@ -249,7 +249,7 @@ export default function CreateDonorOfferPage() {
             onClick={showPreview}
             className={
               fileUploaded &&
-              !fileError &&
+              !fileErrorMessage &&
               offerName &&
               donorName &&
               partnerRequestDeadline &&

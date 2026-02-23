@@ -13,7 +13,8 @@ interface UseFileUploadOptions<T> {
 interface UseFileUploadResult {
   fileName: string;
   fileSize: number;
-  fileError: boolean;
+  /** Specific error message from validation/API, or null when no error */
+  fileErrorMessage: string | null;
   fileUploaded: boolean;
   fileLoading: boolean;
   errors: string[];
@@ -27,7 +28,7 @@ export function useFileUpload<T>(
 ): UseFileUploadResult {
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState(0);
-  const [fileError, setFileError] = useState(false);
+  const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(null);
   const [fileUploaded, setFileUploaded] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -50,7 +51,7 @@ export function useFileUpload<T>(
     setFileLoading(true);
     setFileName(file.name);
     setFileSize(file.size);
-    setFileError(false);
+    setFileErrorMessage(null);
     setErrors([]);
 
     try {
@@ -67,10 +68,23 @@ export function useFileUpload<T>(
       });
 
       if (!response.ok) {
-        const { errors } = await response.json();
-        setErrors(errors);
+        let errorMessages: string[] = [];
+        try {
+          const body = await response.json();
+          if (Array.isArray(body.errors)) {
+            errorMessages = body.errors;
+          } else if (typeof body.message === "string") {
+            errorMessages = [body.message];
+          }
+        } catch {
+          errorMessages = ["An error occurred while processing the file. Please try again."];
+        }
+        if (errorMessages.length === 0) {
+          errorMessages = ["An error occurred while processing the file. Please try again."];
+        }
+        setErrors(errorMessages);
+        setFileErrorMessage(errorMessages[0]);
         setFileUploaded(false);
-        setFileError(true);
         setFileLoading(false);
         return;
       }
@@ -81,17 +95,16 @@ export function useFileUpload<T>(
       setFileLoading(false);
     } catch (error) {
       console.error("File processing error:", error);
-      setFileError(true);
+      const message = "An error occurred while processing the file. Please try again.";
+      setFileErrorMessage(message);
       setFileLoading(false);
-      setErrors([
-        "An error occurred while processing the file. Please try again.",
-      ]);
+      setErrors([message]);
     }
   };
 
   const resetUpload = () => {
     setFileUploaded(false);
-    setFileError(false);
+    setFileErrorMessage(null);
     setFileName("");
     setFileSize(0);
     setFileLoading(false);
@@ -102,7 +115,7 @@ export function useFileUpload<T>(
   return {
     fileName,
     fileSize,
-    fileError,
+    fileErrorMessage,
     fileUploaded,
     fileLoading,
     errors,
