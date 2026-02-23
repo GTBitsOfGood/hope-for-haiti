@@ -17,7 +17,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { NotificationCard } from "./dashboard";
 import TicketMessageToast, { TicketMessageNotification } from "./tickets/TicketMessageToast";
-import { StreamChat, Event } from "stream-chat";
+import { StreamChat } from "stream-chat";
+import type { Event as StreamEvent } from "stream-chat";
 
 let realtimeInstance: Ably.Realtime | null = null;
 
@@ -111,14 +112,6 @@ export default function NotificationHandler({
         }
       }
       
-      if (payload.id > 0) {
-        try {
-          const viewed = pathname === payload.action ? "&view=true" : ""; 
-          await apiClient.patch(`/api/notifications/${payload.id}?delivery=true${viewed}`);
-        } catch (error) {
-          console.error(`Failed to PATCH notification ${payload.id}: ${error}`)
-        }
-      }
 
       setNotifications((prev) => [
         {
@@ -132,14 +125,23 @@ export default function NotificationHandler({
         ...prev,
       ]);
 
-      if (pathname === "/") return;
+      const isShipmentStatusUpdate =
+        payload.title?.toLowerCase().includes("shipment status") ||
+        payload.actionText?.toLowerCase().includes("shipment") ||
+        payload.action?.includes("distributions");
+
+      if (isShipmentStatusUpdate) {
+        window.dispatchEvent(new Event("shipment-status-updated"));
+      }
+
+      if (pathname === "/login") return;
 
       toast.custom(
         (t: Toast) => (
           <NotificationCard
             id={payload.id}
             message={payload.title}
-            dateCreated={payload.dateCreated}
+            dateCreated={new Date(payload.dateCreated)}
             actionText={payload.actionText ?? undefined}
             actionUrl={payload.action ?? undefined}
             t={t}
@@ -170,7 +172,7 @@ export default function NotificationHandler({
     const streamClient = new StreamChat(process.env.NEXT_PUBLIC_STREAMIO_API_KEY);
     let didInterrupt = false;
 
-    const handleTicketMessage = (event: Event) => {
+    const handleTicketMessage = (event: StreamEvent) => {
       if (event.channel_type !== "ticket") {
         return;
       }
@@ -239,82 +241,6 @@ export default function NotificationHandler({
         );
     };
   }, [pathname, router, searchParams, user?.name, user?.streamUserId, user?.streamUserToken]);
-
-  useEffect(() => {
-    if (
-      !user?.streamUserId ||
-      !user.streamUserToken ||
-      !process.env.NEXT_PUBLIC_STREAMIO_API_KEY
-    )
-      return;
-
-    const streamClient = new StreamChat(
-      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
-    );
-    let didInterrupt = false;
-
-    const handleTicketMessage = (event: Event) => {
-      if (event.channel_type !== "ticket") return;
-
-      const senderId = event.user?.id ?? event.message?.user?.id;
-      if (senderId === user.streamUserId) return;
-
-      const channelId = event.channel?.id ?? event.cid?.split(":")[1];
-      if (!channelId || searchParams.get("activeTab") === "Unresolved") return;
-
-      const text = event.message?.text?.trim();
-
-      setNotifications((prev) => [
-        {
-          id: event.message?.id ?? Date.now(),
-          title: `Ticket: ${text || "New message"}`,
-          action: `/support?channel-id=${channelId}`,
-          actionText: "Reply",
-          dateCreated: new Date(),
-          isChat: true,
-        },
-        ...prev,
-      ]);
-
-      // OLD NOTIFICATION TOAST STYLE
-
-      // const payload: TicketMessageNotification = {
-      //   channelId,
-      //   channelName: (event.channel as any)?.name ?? "Support Ticket",
-      //   messagePreview: text ? text : "Attachment",
-      //   senderName: event.user?.name ?? "Support",
-      //   url: `/support?channel-id=${channelId}`,
-      // };
-
-      // toast.custom(
-      //   (t: Toast) => <TicketMessageToast notification={payload} t={t} />,
-      //   { duration: 60 * 1000 }
-      // );
-    };
-
-    streamClient
-      .connectUser(
-        { id: user.streamUserId, name: user.name ?? undefined },
-        user.streamUserToken
-      )
-      .then(() => {
-        if (!didInterrupt)
-          streamClient.on("notification.message_new", handleTicketMessage);
-      });
-
-    return () => {
-      didInterrupt = true;
-      streamClient.off("notification.message_new", handleTicketMessage);
-      streamClient.disconnectUser();
-    };
-  }, [
-    pathname,
-    router,
-    searchParams,
-    user?.name,
-    user?.streamUserId,
-    user?.streamUserToken,
-  ]);
 
   const value = useMemo(
     () => ({ notifications, refreshNotifications }),
