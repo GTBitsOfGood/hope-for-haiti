@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import UserService from "@/services/userService";
 import DistributionService from "@/services/distributionService";
+import FileService from "@/services/fileService";
 import {
   ArgumentError,
   AuthenticationError,
@@ -76,6 +77,13 @@ export async function POST(request: NextRequest) {
     UserService.checkPermission(session.user, "distributionWrite");
 
     const form = await request.formData();
+  
+    const file = form.get("file") as File;
+
+    if (file) {
+        await FileService.parseFinalizedFile(file); 
+    }
+
     const formObj = {
       partnerId: form.get("partnerId")
         ? parseInt(form.get("partnerId") as string)
