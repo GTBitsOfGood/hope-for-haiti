@@ -22,10 +22,9 @@ export default function SignatureImageTooltip({
         <Image
           src={signatureUrl}
           alt="Signature"
-          className="max-w-xs max-h-48"
-          width={384}
-          height={192}
-          style={{ objectFit: "contain" }}
+          width={600}
+          height={200}
+          className="w-full h-auto"
         />
       </div>
     </Tooltip>
