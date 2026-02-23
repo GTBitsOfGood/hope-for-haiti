@@ -429,6 +429,9 @@ function AdvancedBaseTableInner<T extends object>(
               items.map((item, rowIndex) => (
                 <React.Fragment key={String(resolveRowId(item))}>
                   <tr
+                    data-tutorial={
+                      rowIndex == 0 ? "advanced-table-row" : undefined
+                    }
                     key={String(resolveRowId(item))}
                     data-row-id={resolveRowId(item)}
                     data-odd={rowIndex % 2 !== 0}

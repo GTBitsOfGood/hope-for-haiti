@@ -15,6 +15,8 @@ import AdvancedBaseTable, {
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
+import { Step } from "react-joyride";
+import Tutorial from "@/components/Tutorial";
 import { useSearchParams } from "next/navigation";
 import Chip from "@/components/chips/Chip";
 
@@ -77,6 +79,22 @@ function ActionButton({
     </div>
   );
 }
+
+const tutorialSteps: Step[] = [
+  {
+    target: "body",
+    title: "Welcome to your Items!",
+    content:
+      "Your items page is where you can view avaliable items and send requests for them",
+    placement: "center",
+    isFixed: true,
+  },
+  {
+    target: '[data-tutorial="advanced-table-row"]',
+    title: "Items",
+    content: "Each item has its details, quantity, expiration, and type",
+  },
+];
 
 export default function PartnerItemsScreen() {
   const { apiClient } = useApiClient();
@@ -297,8 +315,11 @@ export default function PartnerItemsScreen() {
 
   return (
     <div className="w-full px-4 py-6 font-[Open_Sans]">
+      <Tutorial tutorialSteps={tutorialSteps} type="items" />
       <h1 className="text-2xl font-semibold text-gray-primary mb-6">
+        
         Available Items
+      
       </h1>
 
       <AdvancedBaseTable

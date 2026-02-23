@@ -11,7 +11,11 @@ export type SessionUser = PermissionFlags & {
   streamUserToken: string | null;
   streamUserId: string | null;
   tag?: string;
-}
+  dashboardTutorial: boolean;
+  itemsTutorial: boolean;
+  requestsTutorial: boolean;
+  wishlistsTutorial: boolean;
+};
 
 interface UseUserType {
   loading: boolean;
