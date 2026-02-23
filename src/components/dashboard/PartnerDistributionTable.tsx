@@ -4,7 +4,7 @@ import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
 } from "../baseTable/AdvancedBaseTable";
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import { PartnerAllocation } from "@/types/api/allocation.types";
 import { format } from "date-fns";
@@ -12,7 +12,6 @@ import Chip from "../chips/Chip";
 import ShippingStatusTag from "../tags/ShippingStatusTag";
 import SignatureImageTooltip from "../SignatureImageTooltip";
 import { $Enums } from "@prisma/client";
-import { useNotifications } from "@/components/NotificationHandler";
 
 interface PartnerDistributionTableProps {
   pending: boolean; // true = in progress, false = completed
@@ -23,11 +22,18 @@ export default function PartnerDistributionTable({
 }: PartnerDistributionTableProps) {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<PartnerAllocation>>(null);
-  const { refreshTick } = useNotifications();
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    tableRef.current?.reload?.();
-  }, [refreshTick]);
+    const onShipmentUpdate = () => {
+      setRefreshKey((k) => k + 1);
+    };
+
+    window.addEventListener("shipment-status-updated", onShipmentUpdate);
+    return () =>
+      window.removeEventListener("shipment-status-updated", onShipmentUpdate);
+  }, []);
 
   const fetchTableData = useCallback(
     async (
@@ -158,6 +164,7 @@ export default function PartnerDistributionTable({
 
   return (
     <AdvancedBaseTable
+      key={refreshKey}
       ref={tableRef}
       columns={pending ? inProgressColumns : completedColumns}
       fetchFn={fetchTableData}
