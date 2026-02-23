@@ -13,6 +13,7 @@ export default function Chip({
   label,
   className,
   popover,
+  textColor,
   setIsDropdownOpenRef,
 }: {
   title: string;
@@ -21,6 +22,7 @@ export default function Chip({
   showLabel?: boolean;
   label?: string;
   className?: string;
+  textColor?: string;
   popover?: ReactNode;
   setIsDropdownOpenRef?: RefObject<
     React.Dispatch<React.SetStateAction<boolean>>
@@ -39,9 +41,9 @@ export default function Chip({
         ref={buttonRef}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         disabled={!popover}
-        className={`relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow ${className}`}
+        className={`${className} relative rounded-lg border border-blue-primary m-2 px-2 py-1 text-sm flex items-center gap-1 hover:shadow`}
       >
-        <span className="text-blue-primary">{title}</span>
+        <span className={textColor ?? "text-blue-primary"}>{title}</span>
         {amount !== undefined && revisedAmount !== amount && (
           <span className="line-through text-gray-primary/50 font-bold px-[2px]">
             {amount}
@@ -49,9 +51,7 @@ export default function Chip({
         )}
 
         {(revisedAmount ?? amount) !== undefined && (
-          <span
-            className="rounded bg-blue-primary/20 font-bold px-[2px] text-blue-primary"
-          >
+          <span className="rounded bg-blue-primary/20 font-bold px-[2px] text-blue-primary">
             {revisedAmount ?? amount}
           </span>
         )}

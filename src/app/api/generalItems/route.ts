@@ -13,6 +13,7 @@ import { z } from "zod";
 import { tableParamsSchema } from "@/schema/tableParams";
 import { MatchingService } from "@/services/matchingService";
 import { WishlistService } from "@/services/wishlistService";
+import DonorOfferService from "@/services/donorOfferService";
 
 const postSchema = z.object({
   donorOfferId: z.number().int().positive(),
@@ -26,8 +27,33 @@ const postSchema = z.object({
   quantityPerUnit: z.number().int().positive(),
   initialQuantity: z.number().int().min(0),
   requestQuantity: z.number().int().min(0).optional(),
-  weight: z.number().positive("Weight must be positive and non-zero"),
+  weight: z.number().min(0, "Weight must be non-negative"),
   lineItem: z.array(singleLineItemSchema).optional(),
+});
+
+const getSchema = tableParamsSchema.extend({
+  initialItems: z
+    .string()
+    .transform((s) => {
+      try {
+        const parsed = JSON.parse(s.trim());
+        if (Array.isArray(parsed)) return parsed.map((id) => Number(id));
+        return [];
+      } catch {
+        return [];
+      }
+    })
+    .optional(),
+  donorOfferId: z
+    .string()
+    .transform((s) => {
+      const id = Number(s);
+      if (isNaN(id)) {
+        return null;
+      }
+      return id;
+    })
+    .optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -89,15 +115,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const parsedParams = tableParamsSchema.safeParse({
+    const parsedParams = getSchema.safeParse({
       filters: request.nextUrl.searchParams.get("filters"),
       page: request.nextUrl.searchParams.get("page"),
       pageSize: request.nextUrl.searchParams.get("pageSize"),
+      initialItems:
+        request.nextUrl.searchParams.get("initialItems") || undefined,
+      donorOfferId:
+        request.nextUrl.searchParams.get("donorOfferId") || undefined,
     });
     if (!parsedParams.success) {
       throw new ArgumentError(parsedParams.error.message);
     }
-    const { filters, page, pageSize } = parsedParams.data;
+    const { filters, page, pageSize, initialItems, donorOfferId } =
+      parsedParams.data;
 
     const wishlists = await WishlistService.getWishlistsByPartner(
       parseInt(session.user.id)
@@ -109,7 +140,15 @@ export async function GET(request: NextRequest) {
     });
 
     const matchedIds: number[] = [];
-    const matchMetadata = new Map<number, { wishlistId: number; wishlistTitle: string; strength: "hard" | "soft"; distance: number }>();
+    const matchMetadata = new Map<
+      number,
+      {
+        wishlistId: number;
+        wishlistTitle: string;
+        strength: "hard" | "soft";
+        distance: number;
+      }
+    >();
 
     for (let i = 0; i < matches.length; i++) {
       const matchList = matches[i];
@@ -122,12 +161,12 @@ export async function GET(request: NextRequest) {
           matchedIds.push(id);
         }
 
-        // Store match metadata - keep strongest match if multiple wishlists match
-        // Priority: hard > soft, then lower distance wins
         const existing = matchMetadata.get(id);
-        const shouldUpdate = !existing ||
+        const shouldUpdate =
+          !existing ||
           (match.strength === "hard" && existing.strength === "soft") ||
-          (match.strength === existing.strength && match.distance < existing.distance);
+          (match.strength === existing.strength &&
+            match.distance < existing.distance);
 
         if (shouldUpdate) {
           matchMetadata.set(id, {
@@ -140,30 +179,54 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const priorityIds = initialItems ?? [];
+
+    if (donorOfferId) {
+      const offer =
+        await DonorOfferService.getDonorOfferGeneralItemIds(donorOfferId);
+      if (offer) {
+        offer.items.forEach((item) => {
+          if (!priorityIds.includes(item.id)) {
+            priorityIds.push(item.id);
+          }
+        });
+      }
+    }
+
+    if (priorityIds.length > 0) {
+      for (const id of matchedIds) {
+        if (!priorityIds.includes(id)) {
+          priorityIds.push(id);
+        }
+      }
+    }
+
     const result = await GeneralItemService.getAvailableItemsForPartner(
       parseInt(session.user.id),
       filters ?? undefined,
       page ?? undefined,
       pageSize ?? undefined,
-      matchedIds.length > 0 ? matchedIds : undefined
+      priorityIds.length > 0 ? priorityIds : undefined
     );
 
     const enrichedItems = result.items.map((item) => {
       const matchInfo = matchMetadata.get(item.id);
       return {
         ...item,
-        wishlistMatch: matchInfo ? {
-          wishlistId: matchInfo.wishlistId,
-          wishlistTitle: matchInfo.wishlistTitle,
-          strength: matchInfo.strength,
-        } : null,
+        wishlistMatch: matchInfo
+          ? {
+              wishlistId: matchInfo.wishlistId,
+              wishlistTitle: matchInfo.wishlistTitle,
+              strength: matchInfo.strength,
+            }
+          : null,
       };
     });
 
     return NextResponse.json(
       {
         items: enrichedItems,
-        total: result.total
+        total: result.total,
       },
       { status: 200 }
     );

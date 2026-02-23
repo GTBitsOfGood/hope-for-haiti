@@ -11,6 +11,10 @@ import {
 import { Prisma, ShipmentStatus } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import {
+  hasShippingIdentifier,
+  shippingTupleKey,
+} from "@/util/shipping";
 
 export default class AllocationService {
   static async createAllocation(data: CreateAllocationData) {
@@ -39,10 +43,11 @@ export default class AllocationService {
     if (data.itemId) {
       itemId = data.itemId;
       
-      // Check if the line item belongs to an archived donor offer
+      // Check if the line item exists and is unallocated
       const lineItem = await db.lineItem.findUnique({
         where: { id: itemId },
         include: {
+          allocation: true,
           generalItem: {
             include: {
               donorOffer: {
@@ -53,8 +58,18 @@ export default class AllocationService {
         }
       });
 
-      if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot create allocations for archived donor offers. Archived offers are read-only.");
+      if (!lineItem) {
+        throw new NotFoundError("Line item not found");
+      }
+
+      if (lineItem.allocation) {
+        throw new ArgumentError("Line item is already allocated");
+      }
+
+      // For ARCHIVED offers: Allow allocation if the line item is unallocated (which we just verified)
+      // For UNFINALIZED offers: Block allocation (items should be finalized first)
+      if (lineItem.generalItem?.donorOffer?.state === "UNFINALIZED") {
+        throw new ArgumentError("Cannot create allocations for unfinalized donor offers. Please finalize the offer first.");
       }
     } else {
       if (
@@ -164,30 +179,42 @@ export default class AllocationService {
       );
     }
 
-    // Check if any line items belong to archived donor offers
+    // Check if any line items belong to unfinalized donor offers
     const lineItemIds = allocations.map(a => a.lineItemId);
     const lineItems = await db.lineItem.findMany({
       where: { id: { in: lineItemIds } },
       include: {
+        allocation: true,
         generalItem: {
           include: {
             donorOffer: {
-              select: { state: true }
-            }
-          }
-        }
-      }
+              select: { state: true },
+            },
+          },
+        },
+      },
     });
 
-    const archivedLineItems = lineItems.filter(
-      li => li.generalItem?.donorOffer?.state === "ARCHIVED"
-    );
-
-    if (archivedLineItems.length > 0) {
+    // Check if any are already allocated
+    const alreadyAllocatedItems = lineItems.filter(li => li.allocation !== null);
+    if (alreadyAllocatedItems.length > 0) {
       throw new ArgumentError(
-        "Cannot create allocations for archived donor offers. Archived offers are read-only."
+        "One or more line items are already allocated."
       );
     }
+
+    // Block allocations for UNFINALIZED offers (must be finalized first)
+    const unfinalizedLineItems = lineItems.filter(
+      li => li.generalItem?.donorOffer?.state === "UNFINALIZED"
+    );
+
+    if (unfinalizedLineItems.length > 0) {
+      throw new ArgumentError(
+        "Cannot create allocations for unfinalized donor offers. Please finalize the offer first."
+      );
+    }
+
+    // ARCHIVED and FINALIZED offers with unallocated line items are OK to allocate
 
     try {
       return await db.$transaction(
@@ -292,7 +319,6 @@ export default class AllocationService {
         }
       }
 
-      // Check if the target distribution is approved (only approved distributions can receive transfers)
       if (update.distributionId) {
         const targetDistribution = await db.distribution.findUnique({
           where: { id: update.distributionId },
@@ -302,9 +328,9 @@ export default class AllocationService {
           throw new NotFoundError("Target distribution not found");
         }
 
-        if (targetDistribution.pending) {
+        if (!targetDistribution.pending) {
           throw new ArgumentError(
-            "Cannot transfer items to a pending distribution. Only approved distributions can receive transfers."
+            "Cannot transfer items to an approved distribution. Transfers are only allowed between pending distributions."
           );
         }
       }
@@ -338,12 +364,12 @@ export default class AllocationService {
               generalItem: {
                 include: {
                   donorOffer: {
-                    select: { state: true }
-                  }
-                }
-              }
-            }
-          }
+                    select: { state: true },
+                  },
+                },
+              },
+            },
+          },
         },
       });
 
@@ -351,10 +377,6 @@ export default class AllocationService {
         throw new ArgumentError(
           "Cannot remove items from an approved distribution. Approved distributions are locked."
         );
-      }
-
-      if (allocation?.lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot delete allocations for archived donor offers. Archived offers are read-only.");
       }
 
       await db.allocation.delete({
@@ -545,18 +567,20 @@ export default class AllocationService {
         donorShippingNumber: a.lineItem.donorShippingNumber,
         hfhShippingNumber: a.lineItem.hfhShippingNumber,
       }))
-      .filter(
-        (
-          pair
-        ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
-          Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
-      );
+      .filter((pair) => hasShippingIdentifier(pair));
+
+    const lookupPairs = shippingNumberPairs.filter(
+      (
+        pair
+      ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
+        Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
+    );
 
     const statusMap = new Map<string, ShipmentStatus>();
-    if (shippingNumberPairs.length > 0) {
+    if (lookupPairs.length > 0) {
       const statusRecords = await db.shippingStatus.findMany({
         where: {
-          OR: shippingNumberPairs.map((pair) => ({
+          OR: lookupPairs.map((pair) => ({
             donorShippingNumber: pair.donorShippingNumber,
             hfhShippingNumber: pair.hfhShippingNumber,
           })),
@@ -564,18 +588,19 @@ export default class AllocationService {
       });
 
       statusRecords.forEach((status) => {
-        const key = `${status.donorShippingNumber}|${status.hfhShippingNumber}`;
+        const key = shippingTupleKey(status);
         statusMap.set(key, status.value);
       });
     }
 
     const data: PartnerAllocation[] = allocations.map((allocation) => {
       let shipmentStatus: ShipmentStatus | undefined;
-      if (
-        allocation.lineItem.donorShippingNumber &&
-        allocation.lineItem.hfhShippingNumber
-      ) {
-        const key = `${allocation.lineItem.donorShippingNumber}|${allocation.lineItem.hfhShippingNumber}`;
+      const tuple = {
+        donorShippingNumber: allocation.lineItem.donorShippingNumber,
+        hfhShippingNumber: allocation.lineItem.hfhShippingNumber,
+      };
+      if (hasShippingIdentifier(tuple)) {
+        const key = shippingTupleKey(tuple);
         shipmentStatus = statusMap.get(key);
       }
 
@@ -587,7 +612,8 @@ export default class AllocationService {
         boxNumber: allocation.lineItem.boxNumber,
         quantity: allocation.lineItem.quantity,
         donorName: allocation.lineItem.donorName,
-        shipmentStatus: shipmentStatus || "WAITING_ARRIVAL_FROM_DONOR",
+        shipmentStatus:
+          shipmentStatus ?? ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
         signOffDate: allocation.signOff?.date,
         signOffStaffMemberName: allocation.signOff?.staffMemberName,
         signOffId: allocation.signOff?.id,

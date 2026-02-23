@@ -11,6 +11,7 @@ import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { DistributionItem } from "@/types/api/distribution.types";
 import FileService from "@/services/fileService";
+import { hasShippingIdentifier } from "@/util/shipping";
 
 export class SignOffService {
   static async createSignOff(data: CreateSignOffData) {
@@ -195,14 +196,16 @@ export class SignOffService {
         let shipmentStatus: ShipmentStatus =
           ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR;
 
-        if (
-          allocation.lineItem.donorShippingNumber &&
-          allocation.lineItem.hfhShippingNumber
-        ) {
+        const tuple = {
+          donorShippingNumber: allocation.lineItem.donorShippingNumber,
+          hfhShippingNumber: allocation.lineItem.hfhShippingNumber,
+        };
+
+        if (hasShippingIdentifier(tuple) && tuple.donorShippingNumber && tuple.hfhShippingNumber) {
           const status = await db.shippingStatus.findFirst({
             where: {
-              donorShippingNumber: allocation.lineItem.donorShippingNumber,
-              hfhShippingNumber: allocation.lineItem.hfhShippingNumber,
+              donorShippingNumber: tuple.donorShippingNumber,
+              hfhShippingNumber: tuple.hfhShippingNumber,
             },
           });
 

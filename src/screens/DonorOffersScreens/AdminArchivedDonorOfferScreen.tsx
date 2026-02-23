@@ -244,7 +244,7 @@ export default function AdminArchivedDonorOfferScreen() {
         quantity: r.quantity,
         priority: null,
         comments: "",
-        itemsAllocated: r.finalQuantity || 0,
+        itemsAllocated: item.items.filter((i) => i.allocation?.partner.id === r.partner.id).reduce((sum, i) => sum + i.quantity, 0),
       }));
 
       const noOpUpdateItem = () => {};

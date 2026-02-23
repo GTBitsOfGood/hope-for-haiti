@@ -5,7 +5,7 @@ const contactSchema = z.object({
   lastName: z.string(),
   orgTitle: z.string(),
   primaryTelephone: z.string(),
-  secondaryTelephone: z.string(),
+  secondaryTelephone: z.string().optional(),
   email: z.string().email(),
 });
 
@@ -15,17 +15,17 @@ export const partnerDetailsSchema = z
     siteName: z.string(),
     address: z.string(),
     department: z.string(),
-    gpsCoordinates: z.string(),
-    website: z.string(),
-    socialMedia: z.string(),
+    gpsCoordinates: z.string().optional(),
+    website: z.string().optional(),
+    socialMedia: z.string().optional(),
 
     // Contact
     regionalContact: contactSchema,
     medicalContact: contactSchema,
     adminDirectorContact: contactSchema,
     pharmacyContact: contactSchema,
-    contactWhatsAppName: z.string(),
-    contactWhatsAppNumber: z.string(),
+    contactWhatsAppName: z.string().optional(),
+    contactWhatsAppNumber: z.string().optional(),
 
     // Introduction
     organizationHistory: z.string(),
@@ -38,7 +38,7 @@ export const partnerDetailsSchema = z
     yearOrganizationEstablished: z.number(),
     registeredWithMssp: z.boolean(),
     proofOfRegistrationWithMssp: z.string().optional(),
-    programUpdatesSinceLastReport: z.string(),
+    programUpdatesSinceLastReport: z.string().optional(),
 
     // Facility
     facilityType: z.array(
@@ -62,26 +62,28 @@ export const partnerDetailsSchema = z
     ),
     governmentRun: z.boolean(),
     emergencyMedicalRecordsSystemPresent: z.boolean(),
-    emergencyMedicalRecordsSystemName: z.string(),
+    emergencyMedicalRecordsSystemName: z.string().optional(),
     numberOfInpatientBeds: z.number().int(),
     numberOfPatientsServedAnnually: z.number().int(),
     communityMobileOutreachOffered: z.boolean(),
-    communityMobileOutreachDescription: z.string(),
+    communityMobileOutreachDescription: z.string().optional(),
 
     // Infrastructure and Services
-    facilityDescription: z.string(),
+    facilityDescription: z.string().optional(),
     cleanWaterAccessible: z.boolean(),
-    cleanWaterDescription: z.string(),
-    closestSourceOfCleanWater: z.string(),
+    cleanWaterDescription: z.string().optional(),
+    closestSourceOfCleanWater: z.string().optional(),
     sanitationFacilitiesPresent: z.boolean(),
-    sanitationFacilitiesLockableFromInside: z.boolean(),
+    sanitationFacilitiesLockableFromInside: z.boolean().optional(),
     electricityAvailable: z.boolean(),
     accessibleByDisablePatients: z.boolean(),
     medicationDisposalProcessDefined: z.boolean(),
-    medicationDisposalProcessDescription: z.string(),
+    medicationDisposalProcessDescription: z.string().optional(),
     pickupVehiclePresent: z.boolean(),
-    pickupVehicleType: z.string(),
-    pickupLocations: z.array(z.enum(["les_cayes", "port_au_prince"])),
+    pickupVehicleType: z.string().optional(),
+    pickupLocations: z
+      .array(z.enum(["les_cayes", "port_au_prince"]))
+      .optional(),
 
     // Programs and Services Provided
     medicalServicesProvided: z.array(
@@ -112,10 +114,10 @@ export const partnerDetailsSchema = z
         "urology",
       ])
     ),
-    otherMedicalServicesProvided: z.string(),
+    otherMedicalServicesProvided: z.string().optional(),
 
     // Finances
-    patientsWhoCannotPay: z.string(),
+    patientsWhoCannotPay: z.string().optional(),
     percentageOfPatientsNeedingFinancialAid: z.number().int(),
     percentageOfPatientsReceivingFreeTreatment: z.number().int(),
     annualSpendingOnMedicationsAndMedicalSupplies: z.enum([
@@ -153,7 +155,7 @@ export const partnerDetailsSchema = z
     numberOfAdministrative: z.number().int(),
     numberOfHealthOfficers: z.number().int(),
     totalNumberOfStaff: z.number().int(),
-    other: z.string(),
+    other: z.string().optional(),
 
     // Medical Supplies
     mostNeededMedicalSupplies: z.array(
@@ -184,7 +186,7 @@ export const partnerDetailsSchema = z
         "syringes_needles",
       ])
     ),
-    otherSpecialityItemsNeeded: z.string(),
+    otherSpecialityItemsNeeded: z.string().optional(),
   })
   .refine(
     (data) => !(data.registeredWithMssp && !data.proofOfRegistrationWithMssp),
@@ -224,7 +226,13 @@ export const partnerDetailsSchema = z
     }
   )
   .refine(
-    (data) => !(!data.cleanWaterAccessible && !data.closestSourceOfCleanWater),
+    (data) =>
+      !(
+        !data.cleanWaterAccessible &&
+        (!data.closestSourceOfCleanWater ||
+          (typeof data.closestSourceOfCleanWater === "string" &&
+            data.closestSourceOfCleanWater.trim() === ""))
+      ),
     {
       message: "Closest source of clean water is required",
       path: ["closestSourceOfCleanWater"],
@@ -234,7 +242,8 @@ export const partnerDetailsSchema = z
     (data) =>
       !(
         data.sanitationFacilitiesPresent &&
-        !data.sanitationFacilitiesLockableFromInside
+        (data.sanitationFacilitiesLockableFromInside === undefined ||
+          data.sanitationFacilitiesLockableFromInside === null)
       ),
     {
       message:
@@ -258,36 +267,82 @@ export const partnerDetailsSchema = z
     path: ["pickupVehicleType"],
   })
   .refine(
-    (data) => !(data.pickupVehiclePresent && data.pickupLocations.length === 0),
+    (data) =>
+      !(
+        data.pickupVehiclePresent &&
+        (!Array.isArray(data.pickupLocations) ||
+          data.pickupLocations.length === 0)
+      ),
     {
       message: "At least one pick-up location required",
       path: ["pickupLocations"],
     }
   )
-  .refine((data) => !(data.anyMenServedLastYear && !data.menServedLastYear), {
-    message: "Must specify how many men (18+) were served last year",
-    path: ["menServedLastYear"],
-  })
   .refine(
-    (data) => !(data.anyWomenServedLastYear && !data.womenServedLastYear),
+    (data) =>
+      !(
+        data.anyMenServedLastYear &&
+        (data.menServedLastYear === undefined ||
+          data.menServedLastYear === null ||
+          (typeof data.menServedLastYear === "number" &&
+            isNaN(data.menServedLastYear)))
+      ),
+    {
+      message: "Must specify how many men (18+) were served last year",
+      path: ["menServedLastYear"],
+    }
+  )
+  .refine(
+    (data) =>
+      !(
+        data.anyWomenServedLastYear &&
+        (data.womenServedLastYear === undefined ||
+          data.womenServedLastYear === null ||
+          (typeof data.womenServedLastYear === "number" &&
+            isNaN(data.womenServedLastYear)))
+      ),
     {
       message: "Must specify how many women (18+) were served last year",
       path: ["womenServedLastYear"],
     }
   )
-  .refine((data) => !(data.anyBoysServedLastYear && !data.boysServedLastYear), {
-    message: "Must specify how many boys (1-17) were served last year",
-    path: ["boysServedLastYear"],
-  })
   .refine(
-    (data) => !(data.anyGirlsServedLastYear && !data.girlsServedLastYear),
+    (data) =>
+      !(
+        data.anyBoysServedLastYear &&
+        (data.boysServedLastYear === undefined ||
+          data.boysServedLastYear === null ||
+          (typeof data.boysServedLastYear === "number" &&
+            isNaN(data.boysServedLastYear)))
+      ),
+    {
+      message: "Must specify how many boys (1-17) were served last year",
+      path: ["boysServedLastYear"],
+    }
+  )
+  .refine(
+    (data) =>
+      !(
+        data.anyGirlsServedLastYear &&
+        (data.girlsServedLastYear === undefined ||
+          data.girlsServedLastYear === null ||
+          (typeof data.girlsServedLastYear === "number" &&
+            isNaN(data.girlsServedLastYear)))
+      ),
     {
       message: "Must specify how many girls (1-17) were served last year",
       path: ["girlsServedLastYear"],
     }
   )
   .refine(
-    (data) => !(data.anyBabyBoysServedLastYear && !data.babyBoysServedLastYear),
+    (data) =>
+      !(
+        data.anyBabyBoysServedLastYear &&
+        (data.babyBoysServedLastYear === undefined ||
+          data.babyBoysServedLastYear === null ||
+          (typeof data.babyBoysServedLastYear === "number" &&
+            isNaN(data.babyBoysServedLastYear)))
+      ),
     {
       message: "Must specify how many baby boys (<1) were served last year",
       path: ["babyBoysServedLastYear"],
@@ -295,7 +350,13 @@ export const partnerDetailsSchema = z
   )
   .refine(
     (data) =>
-      !(data.anyBabyGirlsServedLastYear && !data.babyGirlsServedLastYear),
+      !(
+        data.anyBabyGirlsServedLastYear &&
+        (data.babyGirlsServedLastYear === undefined ||
+          data.babyGirlsServedLastYear === null ||
+          (typeof data.babyGirlsServedLastYear === "number" &&
+            isNaN(data.babyGirlsServedLastYear)))
+      ),
     {
       message: "Must specify how many baby girls (<1) were served last year",
       path: ["babyGirlsServedLastYear"],
@@ -307,9 +368,9 @@ export const partnerDetails1 = z.object({
   siteName: z.string(),
   address: z.string(),
   department: z.string(),
-  gpsCoordinates: z.string(),
-  website: z.string(),
-  socialMedia: z.string(),
+  gpsCoordinates: z.string().optional(),
+  website: z.string().optional(),
+  socialMedia: z.string().optional(),
 });
 
 export const partnerDetails2 = z.object({
@@ -318,8 +379,8 @@ export const partnerDetails2 = z.object({
   medicalContact: contactSchema,
   adminDirectorContact: contactSchema,
   pharmacyContact: contactSchema,
-  contactWhatsAppName: z.string(),
-  contactWhatsAppNumber: z.string(),
+  contactWhatsAppName: z.string().optional(),
+  contactWhatsAppNumber: z.string().optional(),
 });
 
 export const partnerDetails3 = z
@@ -335,7 +396,7 @@ export const partnerDetails3 = z
     yearOrganizationEstablished: z.number(),
     registeredWithMssp: z.boolean(),
     proofOfRegistrationWithMssp: z.string().optional(),
-    programUpdatesSinceLastReport: z.string(),
+    programUpdatesSinceLastReport: z.string().optional(),
   })
   .refine(
     (data) => !(data.registeredWithMssp && !data.proofOfRegistrationWithMssp),
@@ -369,11 +430,11 @@ export const partnerDetails4 = z
     ),
     governmentRun: z.boolean(),
     emergencyMedicalRecordsSystemPresent: z.boolean(),
-    emergencyMedicalRecordsSystemName: z.string(),
+    emergencyMedicalRecordsSystemName: z.string().optional(),
     numberOfInpatientBeds: z.number().int(),
     numberOfPatientsServedAnnually: z.number().int(),
     communityMobileOutreachOffered: z.boolean(),
-    communityMobileOutreachDescription: z.string(),
+    communityMobileOutreachDescription: z.string().optional(),
   })
   .refine(
     (data) =>
@@ -402,19 +463,21 @@ export const partnerDetails4 = z
 export const partnerDetails5 = z
   .object({
     // Infrastructure and Services
-    facilityDescription: z.string(),
+    facilityDescription: z.string().optional(),
     cleanWaterAccessible: z.boolean(),
-    cleanWaterDescription: z.string(),
-    closestSourceOfCleanWater: z.string(),
+    cleanWaterDescription: z.string().optional(),
+    closestSourceOfCleanWater: z.string().optional(),
     sanitationFacilitiesPresent: z.boolean(),
-    sanitationFacilitiesLockableFromInside: z.boolean(),
+    sanitationFacilitiesLockableFromInside: z.boolean().optional(),
     electricityAvailable: z.boolean(),
     accessibleByDisablePatients: z.boolean(),
     medicationDisposalProcessDefined: z.boolean(),
-    medicationDisposalProcessDescription: z.string(),
+    medicationDisposalProcessDescription: z.string().optional(),
     pickupVehiclePresent: z.boolean(),
-    pickupVehicleType: z.string(),
-    pickupLocations: z.enum(["les_cayes", "port_au_prince"]),
+    pickupVehicleType: z.string().optional(),
+    pickupLocations: z
+      .array(z.enum(["les_cayes", "port_au_prince"]))
+      .optional(),
   })
   .refine(
     (data) => !(data.cleanWaterAccessible && !data.cleanWaterDescription),
@@ -424,7 +487,13 @@ export const partnerDetails5 = z
     }
   )
   .refine(
-    (data) => !(!data.cleanWaterAccessible && !data.closestSourceOfCleanWater),
+    (data) =>
+      !(
+        !data.cleanWaterAccessible &&
+        (!data.closestSourceOfCleanWater ||
+          (typeof data.closestSourceOfCleanWater === "string" &&
+            data.closestSourceOfCleanWater.trim() === ""))
+      ),
     {
       message: "Closest source of clean water is required",
       path: ["closestSourceOfCleanWater"],
@@ -434,7 +503,8 @@ export const partnerDetails5 = z
     (data) =>
       !(
         data.sanitationFacilitiesPresent &&
-        !data.sanitationFacilitiesLockableFromInside
+        (data.sanitationFacilitiesLockableFromInside === undefined ||
+          data.sanitationFacilitiesLockableFromInside === null)
       ),
     {
       message:
@@ -458,7 +528,12 @@ export const partnerDetails5 = z
     path: ["pickupVehicleType"],
   })
   .refine(
-    (data) => !(data.pickupVehiclePresent && data.pickupLocations.length === 0),
+    (data) =>
+      !(
+        data.pickupVehiclePresent &&
+        (!Array.isArray(data.pickupLocations) ||
+          data.pickupLocations.length === 0)
+      ),
     {
       message: "At least one pick-up location required",
       path: ["pickupLocations"],
@@ -495,12 +570,12 @@ export const partnerDetails6 = z.object({
       "urology",
     ])
   ),
-  otherMedicalServicesProvided: z.string(),
+  otherMedicalServicesProvided: z.string().optional(),
 });
 
 export const partnerDetails7 = z.object({
   // Finances
-  patientsWhoCannotPay: z.string(),
+  CannotPay: z.string().optional(),
   percentageOfPatientsNeedingFinancialAid: z.number().int(),
   percentageOfPatientsReceivingFreeTreatment: z.number().int(),
   annualSpendingOnMedicationsAndMedicalSupplies: z.enum([
@@ -543,7 +618,7 @@ export const partnerDetails9 = z.object({
   numberOfAdministrative: z.number().int(),
   numberOfHealthOfficers: z.number().int(),
   totalNumberOfStaff: z.number().int(),
-  other: z.string(),
+  other: z.string().optional(),
 });
 
 export const partnerDetails10 = z.object({
@@ -576,7 +651,7 @@ export const partnerDetails10 = z.object({
       "syringes_needles",
     ])
   ),
-  otherSpecialityItemsNeeded: z.string(),
+  otherSpecialityItemsNeeded: z.string().optional(),
 });
 
 export type PartnerDetails1 = z.infer<typeof partnerDetails1>;

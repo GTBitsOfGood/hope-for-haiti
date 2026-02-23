@@ -12,8 +12,7 @@ export interface ShippingStatusWithItems {
 }
 
 export interface UpdateShippingStatusData {
-  donorShippingNumber: string;
-  hfhShippingNumber: string;
+  id: number;
   value: ShipmentStatus;
 }
 

@@ -9,10 +9,10 @@ import { NotFoundError, ArgumentError } from "@/util/errors";
 import { buildWhereFromFilters } from "@/util/table";
 import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { MatchingService } from "./matchingService";
 
 export class WishlistService {
   static async createWishlist(data: CreateWishlistData) {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
       select: { enabled: true, pending: true },
@@ -30,9 +30,16 @@ export class WishlistService {
       throw new ArgumentError("Cannot create wishlist for pending partner");
     }
 
-    await db.wishlist.create({
+    const wishlist = await db.wishlist.create({
       data,
     });
+
+    await MatchingService.add({
+      wishlistId: wishlist.id,
+      title: wishlist.name,
+    });
+
+    return wishlist;
   }
 
   /**
@@ -62,6 +69,8 @@ export class WishlistService {
         id,
       },
     });
+
+    await MatchingService.remove({ wishlistIds: [id] });
   }
 
   static async linkWishlistToGeneralItem(
@@ -77,6 +86,8 @@ export class WishlistService {
           generalItemId: generalItemId,
         },
       });
+
+      await MatchingService.remove({ wishlistIds: [wishlistId] });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === "P2025") {
@@ -149,6 +160,9 @@ export class WishlistService {
       where: {
         generalItemId: null,
       },
+      include: {
+        partner: true,
+      }, // added for AI recognition
     });
   }
 
@@ -188,8 +202,13 @@ export class WishlistService {
   static async *streamWishlistSummary() {
     const wishlists = await this.getUnfulfilledWishlists();
 
+    if (wishlists.length === 0) {
+      yield "No wishlist items";
+      return;
+    }
+
     if (wishlists.length < 10) {
-      yield "";
+      yield "Not enough wishlist items to generate a summary";
       return;
     }
 
@@ -198,14 +217,19 @@ export class WishlistService {
       throw new Error("OpenAI client not configured");
     }
 
-    const systemPrompt = `Summarize wishlists in under 75 words using this structure: (1) Overall trend/theme across all items. (2) High priority items summary. (3) Medium priority items summary. (4) Low priority items summary. Adapt structure if priorities are disproportionate (e.g., skip sentences for missing priorities). Maximum 4 sentences. Be extremely concise and comprehensible.`;
+    const systemPrompt = `You are a Senior Inventory Analyst for Hope for Haiti. 
+    Provide a high-value, analytical summary of unfulfilled wishlists.
+    - ACTIONABILITY: Use Markdown bolding (**text**) for high-priority items, large quantities (e.g., **500 units**), and key partner names.
+    - STRUCTURE: Use exactly these three headers: **Top Critical Trends:**, **Partner Highlights:**, and **Aging Requests:**.
+    - FORMATTING: Start each section header on a NEW LINE (\\n). Use sentence case for the descriptions.
+    - CONSTRAINTS: Maximum 5 sentences. Be professional and concise.`;
 
     const userPrompt = `Here is the list of unfulfilled wishlists:\n${wishlists
       .map(
         (w) =>
-          `- ${w.name} (Priority: ${w.priority.toLowerCase()}, Quantity: ${w.quantity}, Comments: ${w.comments || "None"})`
+          `- Partner: **${w.partner.name}** | Item: ${w.name} | Priority: **${w.priority.toLowerCase()}** | Quantity: ${w.quantity} | Last Updated: ${w.lastUpdated.toLocaleDateString()} | Comments: ${w.comments || "None"}`
       )
-      .join("\n")}\n\nPlease provide a concise summary.`;
+      .join("\n")}\n\nPlease identify trends and aging requests.`;
 
     const stream = await client.chat.completions.create({
       model: process.env.AZURE_OPENAI_DEPLOYMENT || "omni-moderate",

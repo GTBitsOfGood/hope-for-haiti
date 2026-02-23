@@ -17,6 +17,8 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 import { Step } from "react-joyride";
 import Tutorial from "@/components/Tutorial";
+import { useSearchParams } from "next/navigation";
+import Chip from "@/components/chips/Chip";
 
 interface ActionButtonProps {
   item: AvailableItemDTO;
@@ -104,6 +106,8 @@ export default function PartnerItemsScreen() {
 
   const tableRef = useRef<AdvancedBaseTableHandle<AvailableItemDTO>>(null);
 
+  const searchParams = useSearchParams();
+
   const fetchAvailableItems = useCallback(
     async (
       pageSize: number,
@@ -111,10 +115,16 @@ export default function PartnerItemsScreen() {
       filters: FilterList<AvailableItemDTO>
     ) => {
       try {
+        const initialItems = searchParams.get("initialItems");
+
+        const donorOfferId = searchParams.get("donorOfferId");
+
         const params = new URLSearchParams({
           pageSize: pageSize.toString(),
           page: page.toString(),
           filters: JSON.stringify(filters),
+          ...(initialItems ? { initialItems } : {}),
+          ...(donorOfferId ? { donorOfferId } : {}),
         });
 
         const data = await apiClient.get<AvailableItemsResponse>(
@@ -131,7 +141,7 @@ export default function PartnerItemsScreen() {
         throw error;
       }
     },
-    [apiClient]
+    [apiClient, searchParams]
   );
 
   const handleRequestSave = async (
@@ -234,14 +244,24 @@ export default function PartnerItemsScreen() {
       header: "Actions",
       cell: (item) => {
         return (
-          <ActionButton
-            item={item}
-            onOpenPopover={handlePopoverOpen}
-            isPopoverOpen={isPopoverOpen}
-            onPopoverClose={handlePopoverClose}
-            onRequestSave={(data) => handleRequestSave(item, data)}
-            selectedItem={selectedItem}
-          />
+          <div className="flex flex-col">
+            <ActionButton
+              item={item}
+              onOpenPopover={handlePopoverOpen}
+              isPopoverOpen={isPopoverOpen}
+              onPopoverClose={handlePopoverClose}
+              onRequestSave={(data) => handleRequestSave(item, data)}
+              selectedItem={selectedItem}
+            />
+            <div className="text-xs mt-1 text-red-primary">
+              Deadline:{" "}
+              {item.donorOffer.partnerResponseDeadline
+                ? new Date(
+                    item.donorOffer.partnerResponseDeadline
+                  ).toLocaleDateString()
+                : "N/A"}
+            </div>
+          </div>
         );
       },
     },
@@ -277,6 +297,12 @@ export default function PartnerItemsScreen() {
       header: "Unit Type",
       filterType: "string",
     },
+    {
+      id: "donorName",
+      header: "Donor",
+      filterType: "string",
+        cell: (item) => <Chip title={item.donorOffer.donorName} className={item.wishlistMatch ? "border-red-primary" : undefined} textColor={item.wishlistMatch ? "text-red-primary" : undefined} />,
+      },
   ];
 
   const getRowClassName = (item: AvailableItemDTO) => {
@@ -291,7 +317,9 @@ export default function PartnerItemsScreen() {
     <div className="w-full px-4 py-6 font-[Open_Sans]">
       <Tutorial tutorialSteps={tutorialSteps} type="items" />
       <h1 className="text-2xl font-semibold text-gray-primary mb-6">
+        
         Available Items
+      
       </h1>
 
       <AdvancedBaseTable

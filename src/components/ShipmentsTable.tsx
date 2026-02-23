@@ -37,6 +37,7 @@ export default function ShipmentsTable() {
         page: page.toString(),
         pageSize: pageSize.toString(),
         filters: JSON.stringify(filters),
+        isCompleted: "false",
       });
       const res = await apiClient.get<{ data: Shipment[]; total: number }>(
         `/api/shipments?${searchParams.toString()}`
@@ -160,7 +161,10 @@ function OptionsButton({
     <div className="relative">
       <button
         ref={buttonRef}
-        onClick={() => setIsBaseDropdownOpen(!isBaseDropdownOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsBaseDropdownOpen(!isBaseDropdownOpen);
+        }}
         className="px-2 py-1 rounded hover:bg-gray-100"
       >
         <DotsThree size={16} />
@@ -173,7 +177,8 @@ function OptionsButton({
         className="w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5 py-1"
       >
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setIsStatusDropdownOpen(true);
             setIsBaseDropdownOpen(false);
           }}
@@ -190,14 +195,16 @@ function OptionsButton({
         position="bottom-right"
         className="bg-white border border-gray-primary/20 rounded shadow-lg p-2 text-sm w-1/5"
       >
-        <ChangeShippingStatusMenu
-          shipment={shipment}
-          fetchTableData={fetchTableData}
-          back={() => {
-            setIsBaseDropdownOpen(true);
-            setIsStatusDropdownOpen(false);
-          }}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <ChangeShippingStatusMenu
+            shipment={shipment}
+            fetchTableData={fetchTableData}
+            back={() => {
+              setIsBaseDropdownOpen(true);
+              setIsStatusDropdownOpen(false);
+            }}
+          />
+        </div>
       </Portal>
     </div>
   );

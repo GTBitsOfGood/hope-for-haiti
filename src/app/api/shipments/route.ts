@@ -13,8 +13,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const patchParamSchema = z.object({
-  donorShippingNumber: z.string(),
-  hfhShippingNumber: z.string(),
+  id: z.string().transform((val) => parseInt(val, 10)),
 });
 
 const patchBodySchema = z.object({
@@ -31,6 +30,9 @@ export async function GET(request: Request) {
     UserService.checkPermission(session.user, "shipmentRead");
 
     const url = new URL(request.url);
+    const isCompletedParam = url.searchParams.get("isCompleted");
+    const isCompleted = isCompletedParam === "true"  ? true  : isCompletedParam === "false" ? false : undefined;
+
     const parsed = tableParamsSchema.safeParse({
       pageSize: Number(url.searchParams.get("pageSize")),
       page: Number(url.searchParams.get("page")),
@@ -48,7 +50,8 @@ export async function GET(request: Request) {
     const result = await ShippingStatusService.getShipments(
       page,
       pageSize,
-      filters
+      filters,
+      isCompleted
     );
     return NextResponse.json(result);
   } catch (error) {
@@ -66,11 +69,9 @@ export async function PATCH(request: Request) {
     UserService.checkPermission(session.user, "shipmentWrite");
 
     const params = new URL(request.url).searchParams;
-    const paramsResolved = {
-      donorShippingNumber: params.get("donorShippingNumber"),
-      hfhShippingNumber: params.get("hfhShippingNumber"),
-    };
-    const parsedParams = patchParamSchema.safeParse(paramsResolved);
+    const parsedParams = patchParamSchema.safeParse({
+      id: params.get("id"),
+    });
     if (!parsedParams.success) {
       throw new ArgumentError(parsedParams.error.message);
     }
@@ -82,8 +83,7 @@ export async function PATCH(request: Request) {
     }
 
     await ShippingStatusService.updateShippingStatus({
-      donorShippingNumber: parsedParams.data.donorShippingNumber,
-      hfhShippingNumber: parsedParams.data.hfhShippingNumber,
+      id: parsedParams.data.id,
       value: parsedBody.data.status,
     });
 

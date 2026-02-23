@@ -78,6 +78,8 @@ export type TableAllocation = {
 export type TableDistribution = {
   id: number;
   pending: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   partner: {
     id: number;
     name: string;
@@ -96,4 +98,13 @@ export type TableDistribution = {
       donorShippingNumber: string | null;
     }[];
   }[];
+};
+
+export type PendingDistributionSearchResult = {
+  id: number;
+  createdAt: Date;
+  partner: {
+    id: number;
+    name: string;
+  };
 };

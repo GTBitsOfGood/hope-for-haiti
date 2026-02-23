@@ -11,7 +11,13 @@ import LineItemChipGroup, {
   PartnerDistributionSummary,
 } from "@/components/chips/LineItemChipGroup";
 import { toast } from "react-hot-toast";
-import { AllocationChange, AllocationTableItem } from "./types";
+import {
+  AllocationChange,
+  AllocationTableItem,
+  AllocationTableMeta,
+  GeneralItemOption,
+  OrphanedRequest,
+} from "./types";
 import {
   buildPreviewAllocations,
   cloneAllocationItems,
@@ -21,9 +27,26 @@ import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import { solveAllocationPrograms } from "@/util/solveAllocationPrograms";
 import ToggleViewSwitch from "../ToggleViewSwitch";
 import PartnerAllocationChipGroup from "../chips/PartnerAllocationChipGroup";
+import Chip from "../chips/Chip";
+import { useApiClient } from "@/hooks/useApiClient";
 
 type SuggestionResponse = {
   programs: AllocationSuggestionProgram[];
+};
+
+type ReassignRequestResponse = {
+  request: {
+    id: number;
+    generalItemId: number;
+    partnerId: number;
+    partner: { id: number; name: string };
+    quantity: number;
+    finalQuantity?: number | null;
+    itemsAllocated: number;
+  };
+  targetGeneralItem: { id: number; title: string };
+  previousGeneralItemId: number;
+  deletedGeneralItemId: number | null;
 };
 
 type SuggestionConfig = {
@@ -31,6 +54,7 @@ type SuggestionConfig = {
   onSuggest: (items: AllocationTableItem[]) => Promise<SuggestionResponse>;
   onApply: (changes: AllocationChange[]) => Promise<number>;
   onAfterApply?: () => void;
+  onModifiedPagesChange?: (pageCount: number) => void;
 };
 
 export type AllocationTableProps = {
@@ -38,7 +62,11 @@ export type AllocationTableProps = {
     pageSize: number,
     page: number,
     filters: FilterList<AllocationTableItem>
-  ) => Promise<{ data: AllocationTableItem[]; total: number }>;
+  ) => Promise<{
+    data: AllocationTableItem[];
+    total: number;
+    meta?: AllocationTableMeta;
+  }>;
   columns?: ColumnDefinition<AllocationTableItem>[];
   pageSize?: number;
   ensureDistributionForPartner?: (
@@ -98,16 +126,22 @@ export default function AllocationTable({
   toolBarExtras,
   emptyState,
 }: AllocationTableProps) {
+  const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<AllocationTableItem>>(null);
   const currentItemsRef = useRef<AllocationTableItem[]>([]);
   const preInteractionItemsRef = useRef<AllocationTableItem[]>([]);
+  const fullItemsCacheRef = useRef<Map<number, AllocationTableItem>>(new Map());
 
+  const [orphanedRequests, setOrphanedRequests] = useState<OrphanedRequest[]>([]);
+  const [generalItemOptions, setGeneralItemOptions] = useState<GeneralItemOption[]>([]);
+  const [processingRequestId, setProcessingRequestId] = useState<number | null>(null);
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"partner" | "allocation">("partner");
+  const [activeView, setActiveView] = useState<"partner" | "allocation">(
+    "partner"
+  );
 
-  // Initialize from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("ALLOCATION_VIEW_TYPE");
     if (stored) {
@@ -117,12 +151,10 @@ export default function AllocationTable({
           setActiveView(parsed);
         }
       } catch {
-        // Invalid stored value, ignore
       }
     }
   }, []);
 
-  // Save to localStorage when activeView changes
   useEffect(() => {
     localStorage.setItem("ALLOCATION_VIEW_TYPE", JSON.stringify(activeView));
   }, [activeView]);
@@ -145,59 +177,137 @@ export default function AllocationTable({
   const wrappedFetchFn = useCallback<AllocationTableProps["fetchFn"]>(
     async (pageSizeArg, pageArg, filters) => {
       const result = await fetchFn(pageSizeArg, pageArg, filters);
-      currentItemsRef.current = cloneAllocationItems(result.data);
-      return result;
+      let items = cloneAllocationItems(result.data);
+
+      setOrphanedRequests(result.meta?.orphanedRequests ?? []);
+      setGeneralItemOptions(result.meta?.generalItemOptions ?? []);
+
+      if (isInteractionMode) {
+        const baselineLineMap = new Map<
+          number,
+          AllocationTableItem["items"][number]
+        >();
+        preInteractionItemsRef.current.forEach((item) => {
+          item.items.forEach((line) => {
+            baselineLineMap.set(line.id, line);
+          });
+        });
+
+        items = items.map((freshItem) => {
+          const cachedItem = fullItemsCacheRef.current.get(freshItem.id);
+          if (cachedItem) {
+            return {
+              ...freshItem,
+              items: freshItem.items.map((freshLine) => {
+                const cachedLine = cachedItem.items.find(
+                  (l) => l.id === freshLine.id
+                );
+                if (cachedLine) {
+                  const baselineLine = baselineLineMap.get(freshLine.id);
+                  const baselineAllocation = baselineLine?.allocation ?? null;
+                  const cachedAllocation = cachedLine.allocation;
+
+                  const baselinePartnerId =
+                    baselineAllocation?.partner?.id ?? null;
+                  const cachedPartnerId = cachedAllocation?.partner?.id ?? null;
+
+                  if (baselinePartnerId !== cachedPartnerId) {
+                    return {
+                      ...freshLine,
+                      allocation: cachedAllocation
+                        ? {
+                            id: cachedAllocation.id,
+                            partner: cachedAllocation.partner
+                              ? {
+                                  id: cachedAllocation.partner.id,
+                                  name: cachedAllocation.partner.name,
+                                }
+                              : null,
+                          }
+                        : null,
+                    };
+                  }
+                }
+                return freshLine;
+              }),
+            };
+          }
+          return freshItem;
+        });
+
+        items = recomputeItemsAllocated(items);
+
+        items.forEach((item) => {
+          fullItemsCacheRef.current.set(
+            item.id,
+            cloneAllocationItems([item])[0]
+          );
+        });
+      } else {
+        fullItemsCacheRef.current.clear();
+      }
+
+      currentItemsRef.current = items;
+      return { data: items, total: result.total };
     },
-    [fetchFn]
+    [fetchFn, isInteractionMode]
   );
 
   const updateItemById = useCallback<
     AdvancedBaseTableHandle<AllocationTableItem>["updateItemById"]
-  >((id, updater) => {
-    if (!tableRef.current) {
-      return;
-    }
-
-    let nextItem: AllocationTableItem | undefined;
-
-    tableRef.current.updateItemById(id, (current) => {
-      const resolvedUpdate =
-        typeof updater === "function"
-          ? (
-              updater as (
-                current: AllocationTableItem
-              ) =>
-                | Partial<AllocationTableItem>
-                | AllocationTableItem
-                | undefined
-            )(current)
-          : updater;
-
-      if (resolvedUpdate === undefined) {
-        nextItem = current;
-        return current;
+  >(
+    (id, updater) => {
+      if (!tableRef.current) {
+        return;
       }
 
-      const mergedValue =
-        typeof resolvedUpdate === "object" && !Array.isArray(resolvedUpdate)
-          ? ({
-              ...current,
-              ...(resolvedUpdate as Partial<AllocationTableItem>),
-            } as AllocationTableItem)
-          : (resolvedUpdate as AllocationTableItem);
+      let nextItem: AllocationTableItem | undefined;
 
-      nextItem = mergedValue;
-      return mergedValue;
-    });
+      tableRef.current.updateItemById(id, (current) => {
+        const resolvedUpdate =
+          typeof updater === "function"
+            ? (
+                updater as (
+                  current: AllocationTableItem
+                ) =>
+                  | Partial<AllocationTableItem>
+                  | AllocationTableItem
+                  | undefined
+              )(current)
+            : updater;
 
-    if (!nextItem) {
-      return;
-    }
+        if (resolvedUpdate === undefined) {
+          nextItem = current;
+          return current;
+        }
 
-    currentItemsRef.current = currentItemsRef.current.map((item) =>
-      item.id === id ? cloneAllocationItems([nextItem!])[0] : item
-    );
-  }, []);
+        const mergedValue =
+          typeof resolvedUpdate === "object" && !Array.isArray(resolvedUpdate)
+            ? ({
+                ...current,
+                ...(resolvedUpdate as Partial<AllocationTableItem>),
+              } as AllocationTableItem)
+            : (resolvedUpdate as AllocationTableItem);
+
+        nextItem = mergedValue;
+        return mergedValue;
+      });
+
+      if (!nextItem) {
+        return;
+      }
+
+      const clonedItem = cloneAllocationItems([nextItem!])[0];
+      currentItemsRef.current = currentItemsRef.current.map((item) =>
+        item.id === id ? clonedItem : item
+      );
+
+      if (isInteractionMode && typeof id === "number") {
+        fullItemsCacheRef.current.set(id, clonedItem);
+      }
+    },
+    [isInteractionMode]
+  );
 
   const updateItemsAllocated = useCallback(
     (itemId: number, partnerId: number) => {
@@ -218,13 +328,130 @@ export default function AllocationTable({
     [updateItemById]
   );
 
-  const handleSuggestAllocations = useCallback(async () => {
-    if (!suggestionConfig) {
-      return;
+  const fetchAllItems = useCallback(async (): Promise<
+    AllocationTableItem[]
+  > => {
+    const allItems: AllocationTableItem[] = [];
+    const emptyFilters: FilterList<AllocationTableItem> = {};
+
+    const firstPageResult = await fetchFn(pageSize, 1, emptyFilters);
+    const total = firstPageResult.total;
+    allItems.push(...cloneAllocationItems(firstPageResult.data));
+
+    const totalPages = Math.ceil(total / pageSize);
+    if (totalPages > 1) {
+      const remainingPages = Array.from(
+        { length: totalPages - 1 },
+        (_, i) => i + 2
+      );
+
+      const remainingResults = await Promise.all(
+        remainingPages.map((page) => fetchFn(pageSize, page, emptyFilters))
+      );
+
+      remainingResults.forEach((result) => {
+        allItems.push(...cloneAllocationItems(result.data));
+      });
     }
 
-    if (!currentItemsRef.current.length) {
-      toast("No items available for suggestions.");
+    return allItems;
+  }, [fetchFn, pageSize]);
+
+  const handleReassignOrphanRequest = useCallback(
+    async (requestId: number, targetGeneralItemId: number) => {
+      if (!targetGeneralItemId) {
+        return;
+      }
+
+      setProcessingRequestId(requestId);
+      try {
+        const response = await apiClient.post<ReassignRequestResponse>(
+          "/api/requests/reassign",
+          {
+            body: JSON.stringify({ requestId, targetGeneralItemId }),
+          }
+        );
+
+        toast.success(
+          `Request reassigned to ${response.targetGeneralItem.title}`
+        );
+        setOrphanedRequests((prev) =>
+          prev.filter((request) => request.requestId !== requestId)
+        );
+        tableRef.current?.reload();
+      } catch (error) {
+        console.error("Failed to reassign request", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to reassign request"
+        );
+      } finally {
+        setProcessingRequestId(null);
+      }
+    },
+    [apiClient]
+  );
+
+  const renderOrphanedRequestPopover = useCallback(
+    (request: OrphanedRequest) => {
+      if (generalItemOptions.length === 0) {
+        return (
+          <p className="text-sm text-gray-500">
+            No general items with line items are available yet. Load the
+            donor offer inventory before reassigning.
+          </p>
+        );
+      }
+
+      return (
+        <div className="text-sm">
+          <p className="text-gray-500 mb-2">Select a general item</p>
+          <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+            {generalItemOptions.map((option) => {
+              const partnerAllocation = option.partnerAllocations.find(
+                (pa) => pa.partnerId === request.partner.id
+              );
+
+              return (
+                <button
+                  key={option.id}
+                  onClick={() =>
+                    handleReassignOrphanRequest(request.requestId, option.id)
+                  }
+                  disabled={processingRequestId === request.requestId}
+                  className="rounded px-2 py-1 text-left transition-colors duration-150 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-between gap-3"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{option.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {(option.unitType ?? "Unknown unit").trim()} ·{" "}
+                      {option.expirationDate
+                        ? new Date(option.expirationDate).toLocaleDateString()
+                        : "No expiration"}
+                    </p>
+                  </div>
+                  {partnerAllocation && (
+                    <div className="self-start bg-blue-primary/20 rounded font-bold px-[3px] flex-shrink-0">
+                      <p className="text-blue-primary">
+                        {partnerAllocation.allocatedQuantity}/
+                        {partnerAllocation.finalRequestedQuantity ??
+                          partnerAllocation.requestedQuantity}
+                      </p>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    },
+    [generalItemOptions, handleReassignOrphanRequest, processingRequestId]
+  );
+
+  const handleSuggestAllocations = useCallback(async () => {
+    if (!suggestionConfig) {
       return;
     }
 
@@ -234,68 +461,172 @@ export default function AllocationTable({
 
     setIsInteractionMode(true);
     setIsProcessingSuggestions(true);
-    setStatusMessage("Generating allocation suggestions...");
-    preInteractionItemsRef.current = cloneAllocationItems(
-      currentItemsRef.current
-    );
+    setStatusMessage("Fetching all items...");
 
     try {
-      const response = await suggestionConfig.onSuggest(
-        currentItemsRef.current
-      );
+      const allItems = await fetchAllItems();
+
+      if (!allItems.length) {
+        toast("No items available for suggestions.");
+        setIsInteractionMode(false);
+        setIsProcessingSuggestions(false);
+        setStatusMessage(null);
+        return;
+      }
+
+      preInteractionItemsRef.current = cloneAllocationItems(allItems);
+
+      setStatusMessage("Generating allocation suggestions...");
+
+      const response = await suggestionConfig.onSuggest(allItems);
       const programs = response.programs ?? [];
 
       if (!programs.length) {
         toast("No allocation changes suggested.");
-        const recomputed = recomputeItemsAllocated(currentItemsRef.current);
-        tableRef.current?.setItems(recomputed);
-        currentItemsRef.current = recomputed;
+        const recomputed = recomputeItemsAllocated(allItems);
+        const start = 0;
+        const paged = recomputed.slice(start, start + pageSize);
+        tableRef.current?.setItems(paged);
+        currentItemsRef.current = paged;
+        recomputed.forEach((item) => {
+          fullItemsCacheRef.current.set(
+            item.id,
+            cloneAllocationItems([item])[0]
+          );
+        });
         setIsInteractionMode(false);
         preInteractionItemsRef.current = [];
+        fullItemsCacheRef.current.clear();
+
+        if (suggestionConfig?.onModifiedPagesChange) {
+          suggestionConfig.onModifiedPagesChange(0);
+        }
+
         return;
       }
 
       const allocationData = await solveAllocationPrograms(programs);
 
       const { previewItems, suggestions } = buildPreviewAllocations(
-        currentItemsRef.current,
+        allItems,
         allocationData
       );
 
       if (!suggestions.length) {
         toast("No allocation changes suggested.");
         setIsInteractionMode(false);
-        const recomputed = recomputeItemsAllocated(currentItemsRef.current);
-        tableRef.current?.setItems(recomputed);
-        currentItemsRef.current = recomputed;
+        const recomputed = recomputeItemsAllocated(allItems);
+        const start = 0;
+        const paged = recomputed.slice(start, start + pageSize);
+        tableRef.current?.setItems(paged);
+        currentItemsRef.current = paged;
+        recomputed.forEach((item) => {
+          fullItemsCacheRef.current.set(
+            item.id,
+            cloneAllocationItems([item])[0]
+          );
+        });
         preInteractionItemsRef.current = [];
+        fullItemsCacheRef.current.clear();
+
+        if (suggestionConfig?.onModifiedPagesChange) {
+          suggestionConfig.onModifiedPagesChange(0);
+        }
+
         return;
       }
 
-      tableRef.current?.setItems(previewItems);
-      currentItemsRef.current = previewItems;
+      previewItems.forEach((item) => {
+        fullItemsCacheRef.current.set(item.id, cloneAllocationItems([item])[0]);
+      });
+
+      const baselineLineMap = new Map<
+        number,
+        AllocationTableItem["items"][number]
+      >();
+      preInteractionItemsRef.current.forEach((item) => {
+        item.items.forEach((line) => {
+          baselineLineMap.set(line.id, line);
+        });
+      });
+
+      const modifiedItemIds = new Set<number>();
+      previewItems.forEach((item) => {
+        const hasChanges = item.items.some((line) => {
+          const baselineLine = baselineLineMap.get(line.id);
+          const baselinePartnerId =
+            baselineLine?.allocation?.partner?.id ?? null;
+          const currentPartnerId = line.allocation?.partner?.id ?? null;
+          return baselinePartnerId !== currentPartnerId;
+        });
+        if (hasChanges) {
+          modifiedItemIds.add(item.id);
+        }
+      });
+
+      const modifiedPages = new Set<number>();
+      modifiedItemIds.forEach((itemId) => {
+        const itemIndex = previewItems.findIndex((item) => item.id === itemId);
+        if (itemIndex !== -1) {
+          const page = Math.floor(itemIndex / pageSize) + 1;
+          modifiedPages.add(page);
+        }
+      });
+
+      if (suggestionConfig?.onModifiedPagesChange) {
+        suggestionConfig.onModifiedPagesChange(modifiedPages.size);
+      }
+
+      if (modifiedItemIds.size > 0) {
+        tableRef.current?.setOpenRowIds((prev) => {
+          const next = new Set(prev);
+          modifiedItemIds.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+
+      const start = 0;
+      const paged = previewItems.slice(start, start + pageSize);
+      tableRef.current?.setItems(paged);
+      currentItemsRef.current = paged;
     } catch (error) {
       console.error("Failed to suggest allocations", error);
       toast.error("Failed to suggest allocations");
-      const restored = cloneAllocationItems(preInteractionItemsRef.current);
-      tableRef.current?.setItems(restored);
-      currentItemsRef.current = restored;
+      if (preInteractionItemsRef.current.length > 0) {
+        const restored = cloneAllocationItems(preInteractionItemsRef.current);
+        const start = 0;
+        const paged = restored.slice(start, start + pageSize);
+        tableRef.current?.setItems(paged);
+        currentItemsRef.current = paged;
+      }
       setIsInteractionMode(false);
       preInteractionItemsRef.current = [];
+      fullItemsCacheRef.current.clear();
     } finally {
       setIsProcessingSuggestions(false);
       setStatusMessage(null);
     }
-  }, [suggestionConfig, isProcessingSuggestions]);
+  }, [suggestionConfig, isProcessingSuggestions, fetchAllItems, pageSize]);
 
   const handleUndo = useCallback(() => {
     const restored = cloneAllocationItems(preInteractionItemsRef.current);
-    tableRef.current?.setItems(restored);
-    currentItemsRef.current = restored;
+    const start = 0;
+    const paged = restored.slice(start, start + pageSize);
+    tableRef.current?.setItems(paged);
+    currentItemsRef.current = paged;
+    fullItemsCacheRef.current.clear();
     setIsInteractionMode(false);
     setStatusMessage(null);
     preInteractionItemsRef.current = [];
-  }, []);
+
+    tableRef.current?.setOpenRowIds(new Set());
+
+    if (suggestionConfig?.onModifiedPagesChange) {
+      suggestionConfig.onModifiedPagesChange(0);
+    }
+
+    tableRef.current?.reload();
+  }, [pageSize, suggestionConfig]);
 
   const collectPendingChanges = useCallback((): AllocationChange[] => {
     const baselineLineMap = new Map<
@@ -310,7 +641,7 @@ export default function AllocationTable({
 
     const changes: AllocationChange[] = [];
 
-    currentItemsRef.current.forEach((item) => {
+    fullItemsCacheRef.current.forEach((item) => {
       item.items.forEach((line) => {
         const baselineLine = baselineLineMap.get(line.id);
         const previousPartner = baselineLine?.allocation?.partner ?? null;
@@ -371,6 +702,12 @@ export default function AllocationTable({
       setIsInteractionMode(false);
       setStatusMessage(null);
       preInteractionItemsRef.current = [];
+      fullItemsCacheRef.current.clear();
+
+      if (suggestionConfig.onModifiedPagesChange) {
+        suggestionConfig.onModifiedPagesChange(0);
+      }
+
       suggestionConfig.onAfterApply?.();
     } catch (error) {
       console.error("Failed to keep suggested allocations", error);
@@ -491,15 +828,46 @@ export default function AllocationTable({
   );
 
   return (
-    <AdvancedBaseTable
-      ref={tableRef}
-      columns={resolvedColumns}
-      fetchFn={wrappedFetchFn}
-      rowId="id"
-      pageSize={pageSize}
-      toolBar={toolbarContent}
-      rowBody={renderRowBody}
-      emptyState={resolvedEmptyState}
-    />
+    <div className="flex flex-col gap-4">
+      {orphanedRequests.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <div className="flex flex-col gap-1 text-amber-900">
+            <p className="font-semibold">Requests waiting for inventory</p>
+            <p className="text-sm text-amber-800">
+              These partner requests are linked to general items that never
+              received any line items. Move them to a valid general item so they
+              can be allocated.
+            </p>
+          </div>
+          <div className="-m-2 mt-3 flex flex-wrap">
+            {orphanedRequests.map((request) => (
+              <Chip
+                key={request.requestId}
+                title={request.generalItemTitle}
+                label={request.partner.name}
+                showLabel
+                amount={request.quantity}
+                revisedAmount={
+                  request.finalQuantity ?? request.quantity
+                }
+                textColor="text-amber-900"
+                className="border-amber-400 bg-white"
+                popover={renderOrphanedRequestPopover(request)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={resolvedColumns}
+        fetchFn={wrappedFetchFn}
+        rowId="id"
+        pageSize={pageSize}
+        toolBar={toolbarContent}
+        rowBody={renderRowBody}
+        emptyState={resolvedEmptyState}
+      />
+    </div>
   );
 }

@@ -14,6 +14,7 @@ export default {
         token.id = user.id || "";
         token.type = user.type;
         token.enabled = user.enabled;
+        token.pending = user.pending;
       }
 
       return token;
@@ -22,6 +23,7 @@ export default {
       session.user.id = token.id;
       session.user.type = token.type;
       session.user.enabled = token.enabled;
+      session.user.pending = token.pending;
 
       return session;
     },

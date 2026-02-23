@@ -15,34 +15,149 @@ import { buildWhereFromFilters } from "@/util/table";
 import { shippingStatusToText } from "@/util/util";
 import { NotificationService } from "./notificationService";
 import FileService from "@/services/fileService";
+import {
+  hasShippingIdentifier,
+  normalizeShippingTuple,
+  shippingTupleKey,
+} from "@/util/shipping";
+
+const convertShippingStatusForResponse = (status: ShippingStatus) => ({
+  ...status,
+  donorShippingNumber: status.donorShippingNumber ?? "",
+  hfhShippingNumber: status.hfhShippingNumber ?? "",
+});
+
+const buildShippingWhereInput = (
+  tuple: Parameters<typeof normalizeShippingTuple>[0]
+): Prisma.LineItemWhereInput => {
+  const normalized = normalizeShippingTuple(tuple);
+  return {
+    donorShippingNumber: normalized.donorShippingNumber ?? undefined,
+    hfhShippingNumber: normalized.hfhShippingNumber ?? undefined,
+  };
+};
 
 export class ShippingStatusService {
   static async getShipments(
     page?: number,
     pageSize?: number,
-    filters?: Filters
+    filters?: Filters,
+    isCompleted?: boolean
   ): Promise<{ data: Shipment[]; total: number }> {
     const where = buildWhereFromFilters<Prisma.ShippingStatusWhereInput>(
       Object.keys(Prisma.ShippingStatusScalarFieldEnum),
       filters
     );
 
-    const [statuses, totalCount] = await Promise.all([
-      db.shippingStatus.findMany({
-        where,
-        skip: page && pageSize ? (page - 1) * pageSize : undefined,
-        take: pageSize,
-      }),
-      db.shippingStatus.count({ where }),
-    ]);
+    const pageNum = page ?? 1;
+    const size = pageSize ?? 20;
+    const offset = (pageNum - 1) * size;
+
+    let statuses: ShippingStatus[] = [];
+    let totalCount = 0;
+
+    if (typeof isCompleted === "boolean") {
+      const completionPredicate = isCompleted
+        ? Prisma.sql`
+        EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NOT NULL
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NULL
+        )
+      `
+        : Prisma.sql`
+        EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NULL
+        )
+      `;
+
+
+      const idRows = await db.$queryRaw<{ id: number }[]>(
+        Prisma.sql`
+      SELECT ss.id
+      FROM "ShippingStatus" ss
+      WHERE
+        (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
+        AND ${completionPredicate}
+      ORDER BY ss.id DESC
+      LIMIT ${size} OFFSET ${offset}
+    `
+      );
+
+      const countRows = await db.$queryRaw<{ count: bigint }[]>(
+        Prisma.sql`
+      SELECT COUNT(*)::bigint AS count
+      FROM "ShippingStatus" ss
+      WHERE
+        (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
+        AND ${completionPredicate}
+    `
+      );
+
+      totalCount = Number(countRows[0]?.count ?? 0);
+
+      const ids = idRows.map((r) => r.id);
+      if (ids.length) {
+        const fetched = await db.shippingStatus.findMany({
+          where: { id: { in: ids } },
+        });
+
+        const byId = new Map(fetched.map((s) => [s.id, s]));
+        statuses = ids
+          .map((id) => byId.get(id))
+          .filter(Boolean) as ShippingStatus[];
+      } else {
+        statuses = [];
+      }
+    } else {
+      const [paged, count] = await Promise.all([
+        db.shippingStatus.findMany({
+          where,
+          skip: page && pageSize ? offset : undefined,
+          take: page && pageSize ? size : undefined,
+        }),
+        db.shippingStatus.count({ where }),
+      ]);
+
+      statuses = paged;
+      totalCount = count;
+    }
+
+
+
+    const validStatuses = statuses.filter((status) =>
+      hasShippingIdentifier(status)
+    );
+
+    if (validStatuses.length === 0) {
+      return { data: [], total: 0 };
+    }
+
+    const lineItemClauses = validStatuses.map((status) =>
+      buildShippingWhereInput(status)
+    );
 
     const lineItems = await db.lineItem.findMany({
-      where: {
-        donorShippingNumber: {
-          in: statuses.map((s) => s.donorShippingNumber),
-        },
-        hfhShippingNumber: { in: statuses.map((s) => s.hfhShippingNumber) },
-      },
+      where: lineItemClauses.length ? { OR: lineItemClauses } : undefined,
       include: {
         generalItem: true,
         allocation: {
@@ -67,22 +182,26 @@ export class ShippingStatusService {
       },
     });
 
-    const shipments: Shipment[] = statuses.map((status) => ({
-      ...status,
-      signOffs: [],
-      lineItems: [],
-    }));
+    const shipments: Shipment[] = [];
+    const shipmentMap = new Map<string, Shipment>();
+
+    for (const status of validStatuses) {
+      const shipment: Shipment = {
+        ...convertShippingStatusForResponse(status),
+        signOffs: [],
+        lineItems: [],
+      };
+
+      shipments.push(shipment);
+      shipmentMap.set(shippingTupleKey(status), shipment);
+    }
 
     for (const lineItem of lineItems) {
       if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
         continue;
       }
 
-      const shipment = shipments.find(
-        (s) =>
-          s.donorShippingNumber === lineItem.donorShippingNumber &&
-          s.hfhShippingNumber === lineItem.hfhShippingNumber
-      );
+      const shipment = shipmentMap.get(shippingTupleKey(lineItem));
 
       if (!shipment) {
         continue;
@@ -160,6 +279,7 @@ export class ShippingStatusService {
       data: shipments,
       total: totalCount,
     };
+
   }
 
   static async getShippingStatuses(
@@ -178,8 +298,10 @@ export class ShippingStatusService {
 
     const clauses: Prisma.LineItemWhereInput[] = [
       {
-        donorShippingNumber: { not: null },
-        hfhShippingNumber: { not: null },
+        OR: [
+          { donorShippingNumber: { not: null } },
+          { hfhShippingNumber: { not: null } },
+        ],
       },
     ];
 
@@ -221,8 +343,10 @@ export class ShippingStatusService {
 
     const clauses: Prisma.LineItemWhereInput[] = [
       {
-        donorShippingNumber: { not: null },
-        hfhShippingNumber: { not: null },
+        OR: [
+          { donorShippingNumber: { not: null } },
+          { hfhShippingNumber: { not: null } },
+        ],
       },
       {
         allocation: {
@@ -239,7 +363,7 @@ export class ShippingStatusService {
       clauses,
       statusFilters,
       page,
-      pageSize
+      pageSize,
     );
   }
 
@@ -343,34 +467,40 @@ export class ShippingStatusService {
       },
     });
 
-    const validPairs = shippingNumberPairs.filter(
+    const validPairs = shippingNumberPairs
+      .map((pair) => normalizeShippingTuple(pair))
+      .filter((pair) => hasShippingIdentifier(pair));
+
+    if (validPairs.length === 0) {
+      return { shippingStatuses: [], items: [], total: 0 };
+    }
+
+    const lookupPairs = validPairs.filter(
       (
         pair
       ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
         Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
     );
 
-    if (validPairs.length === 0) {
-      return { shippingStatuses: [], items: [], total: 0 };
-    }
-
-    const statusRecords = await db.shippingStatus.findMany({
-      where: {
-        OR: validPairs.map((pair) => ({
-          donorShippingNumber: pair.donorShippingNumber,
-          hfhShippingNumber: pair.hfhShippingNumber,
-        })),
-      },
-    });
+    const statusRecords = lookupPairs.length
+      ? await db.shippingStatus.findMany({
+          where: {
+            OR: lookupPairs.map((pair) => ({
+              donorShippingNumber: pair.donorShippingNumber,
+              hfhShippingNumber: pair.hfhShippingNumber,
+            })),
+          },
+        })
+      : [];
 
     const statusMap = new Map<string, ShippingStatus>();
     statusRecords.forEach((status) => {
-      const key = `${status.donorShippingNumber}|${status.hfhShippingNumber}`;
+      const key = shippingTupleKey(status);
       statusMap.set(key, status);
     });
 
     const pairsWithStatuses = validPairs.map((pair) => {
-      const key = `${pair.donorShippingNumber}|${pair.hfhShippingNumber}`;
+      const key = shippingTupleKey(pair);
       const status = statusMap.get(key);
 
       if (status) {
@@ -379,9 +509,9 @@ export class ShippingStatusService {
 
       const defaultStatus: ShippingStatus = {
         id: 0,
-        donorShippingNumber: pair.donorShippingNumber,
-        hfhShippingNumber: pair.hfhShippingNumber,
-        value: "WAITING_ARRIVAL_FROM_DONOR",
+        donorShippingNumber: pair.donorShippingNumber ?? "",
+        hfhShippingNumber: pair.hfhShippingNumber ?? "",
+        value: ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR,
       };
 
       return { pair, status: defaultStatus };
@@ -413,22 +543,19 @@ export class ShippingStatusService {
     await Promise.all(
       paginatedPairs.map(async ({ pair, status }, index) => {
         const lineItems = await db.lineItem.findMany({
-          where: {
-            donorShippingNumber: pair.donorShippingNumber,
-            hfhShippingNumber: pair.hfhShippingNumber,
-          },
+          where: buildShippingWhereInput(pair),
         });
 
         items[index] = lineItems;
         shippingStatuses[index] = {
-          ...status,
+          ...convertShippingStatusForResponse(status),
           id: offset + index,
         };
       })
     );
 
     return {
-      shippingStatuses,
+      shippingStatuses: shippingStatuses.map(convertShippingStatusForResponse),
       items,
       total,
     };
@@ -436,31 +563,18 @@ export class ShippingStatusService {
 
   static async updateShippingStatus(data: UpdateShippingStatusData) {
     const existingStatus = await db.shippingStatus.findUnique({
-      where: {
-        donorShippingNumber_hfhShippingNumber: {
-          donorShippingNumber: data.donorShippingNumber,
-          hfhShippingNumber: data.hfhShippingNumber,
-        },
-      },
+      where: { id: data.id },
     });
 
-    const previousStatus = existingStatus?.value;
+    if (!existingStatus) {
+      throw new Error("Shipment not found");
+    }
 
-    await db.shippingStatus.upsert({
-      where: {
-        donorShippingNumber_hfhShippingNumber: {
-          donorShippingNumber: data.donorShippingNumber,
-          hfhShippingNumber: data.hfhShippingNumber,
-        },
-      },
-      update: {
-        value: data.value,
-      },
-      create: {
-        donorShippingNumber: data.donorShippingNumber,
-        hfhShippingNumber: data.hfhShippingNumber,
-        value: data.value,
-      },
+    const previousStatus = existingStatus.value;
+
+    await db.shippingStatus.update({
+      where: { id: data.id },
+      data: { value: data.value },
     });
 
     if (previousStatus === data.value) {
@@ -468,8 +582,8 @@ export class ShippingStatusService {
     }
 
     await this.notifyPartnersOfStatusChange({
-      donorShippingNumber: data.donorShippingNumber,
-      hfhShippingNumber: data.hfhShippingNumber,
+      donorShippingNumber: existingStatus.donorShippingNumber ?? "",
+      hfhShippingNumber: existingStatus.hfhShippingNumber ?? "",
       previousStatus,
       newStatus: data.value,
     });

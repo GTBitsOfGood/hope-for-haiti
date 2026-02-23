@@ -55,6 +55,32 @@ export class NotificationService {
     await client.channels.get(channelName).publish("notification:new", payload);
   }
 
+  static async publishNotificationWithoutSave(
+    userId : number, 
+    data: {
+      title: string;
+      action?: string;
+      actionText?: string;
+    }
+  ) {
+    const client = this.getRestClient();
+    const channelName = `${process.env.NODE_ENV}:user:${userId}`;
+
+    const tempId = -Date.now();
+
+    const payload ={
+      id: tempId,
+      title: data.title,
+      action: data.action || null, 
+      actionText: data.actionText || null, 
+      dateCreated: new Date().toISOString(),
+      dateViewed: null, 
+      userId, 
+    };
+
+    await client.channels.get(channelName).publish("notification:new", payload); 
+  }
+
   static async getNotificationById(notificationId: number) {
     return await db.notification.findUnique({
       where: { id: notificationId },

@@ -298,6 +298,9 @@ model Distribution {
 
   pending Boolean @default(false)
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   allocations Allocation[]
 }
 
@@ -322,8 +325,8 @@ model SignOff {
 model ShippingStatus {
   id Int @id @default(autoincrement())
 
-  donorShippingNumber String
-  hfhShippingNumber   String
+  donorShippingNumber String?
+  hfhShippingNumber   String?
 
   value ShipmentStatus
 

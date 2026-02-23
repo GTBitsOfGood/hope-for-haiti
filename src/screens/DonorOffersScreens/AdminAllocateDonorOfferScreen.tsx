@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
 import AllocationTable from "@/components/allocationTable/AllocationTable";
 import {
   AllocationChange,
   AllocationTableItem,
+  AllocationTableMeta,
 } from "@/components/allocationTable/types";
 import type { FilterList } from "@/components/baseTable/AdvancedBaseTable";
 import type { PartnerDistributionSummary } from "@/components/chips/LineItemChipGroup";
@@ -18,6 +19,8 @@ import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 type AllocationResponse = {
   items: AllocationTableItem[];
   total: number;
+  orphanedRequests: AllocationTableMeta["orphanedRequests"];
+  generalItemOptions: AllocationTableMeta["generalItemOptions"];
 };
 
 type SuggestionResponse = {
@@ -38,34 +41,38 @@ export default function AdminAllocateDonorOfferScreen() {
   const params = useParams<{ donorOfferId: string }>();
   const donorOfferId = Number(params?.donorOfferId);
   const isValidDonorOfferId = Number.isFinite(donorOfferId);
+  const [modifiedPagesCount, setModifiedPagesCount] = useState(0);
 
-  const [distributionsByPartner, setDistributionsByPartner] = useState<
-    Record<number, PartnerDistributionSummary[]>
+  const distributionsRef = useRef<
+    Record<number, PartnerDistributionSummary | undefined>
   >({});
 
   const { refetch: refetchDistributions } = useFetch<{
-    distributions: Record<number, PartnerDistributionSummary[]>;
+    distributions: Record<number, PartnerDistributionSummary>;
   }>(`/api/donorOffers/${donorOfferId}/distributions`, {
     conditionalFetch: isValidDonorOfferId,
     onSuccess: (data) => {
       if (!data?.distributions) {
-        setDistributionsByPartner({});
+        distributionsRef.current = {};
         return;
       }
 
       const normalized = Object.entries(data.distributions).reduce(
-        (acc, [partnerKey, distributions]) => {
+        (acc, [partnerKey, distribution]) => {
+          if (!distribution) {
+            return acc;
+          }
           const partnerId = Number(partnerKey);
-          acc[partnerId] = distributions.map((distribution) => ({
+          acc[partnerId] = {
             ...distribution,
             partnerId,
-          }));
+          };
           return acc;
         },
-        {} as Record<number, PartnerDistributionSummary[]>
+        {} as Record<number, PartnerDistributionSummary>
       );
 
-      setDistributionsByPartner(normalized);
+      distributionsRef.current = normalized;
     },
   });
 
@@ -75,7 +82,6 @@ export default function AdminAllocateDonorOfferScreen() {
       page: number,
       filters: FilterList<AllocationTableItem>
     ) => {
-
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
@@ -102,6 +108,10 @@ export default function AdminAllocateDonorOfferScreen() {
       return {
         data: items,
         total: response.total,
+        meta: {
+          orphanedRequests: response.orphanedRequests ?? [],
+          generalItemOptions: response.generalItemOptions ?? [],
+        },
       };
     },
     [apiClient, donorOfferId, isValidDonorOfferId]
@@ -109,12 +119,9 @@ export default function AdminAllocateDonorOfferScreen() {
 
   const ensureDistributionForPartner = useCallback(
     async (partnerId: number, partnerName: string) => {
-      const existingPending =
-        distributionsByPartner[partnerId]?.find(
-          (distribution) => distribution.pending
-        ) ?? null;
-      if (existingPending) {
-        return existingPending;
+      const existingDistribution = distributionsRef.current[partnerId] ?? null;
+      if (existingDistribution) {
+        return existingDistribution;
       }
 
       const body = new FormData();
@@ -136,26 +143,22 @@ export default function AdminAllocateDonorOfferScreen() {
         pending: distribution.pending,
       };
 
-      setDistributionsByPartner((prev) => ({
-        ...prev,
-        [partnerId]: [...(prev[partnerId] ?? []), summary],
-      }));
+      distributionsRef.current = {
+        ...distributionsRef.current,
+        [partnerId]: summary,
+      };
 
       return summary;
     },
-    [apiClient, distributionsByPartner]
+    [apiClient]
   );
 
   const handleDistributionRemoved = useCallback((partnerId: number) => {
-    setDistributionsByPartner((prev) => {
-      if (!(partnerId in prev)) {
-        return prev;
-      }
-
-      const updated = { ...prev };
+    if (partnerId in distributionsRef.current) {
+      const updated = { ...distributionsRef.current };
       delete updated[partnerId];
-      return updated;
-    });
+      distributionsRef.current = updated;
+    }
   }, []);
 
   const handleSuggestAllocations = useCallback(
@@ -262,6 +265,17 @@ export default function AdminAllocateDonorOfferScreen() {
     <>
       <DonorOfferHeader donorOfferId={params.donorOfferId} />
 
+      {modifiedPagesCount > 0 && (
+        <div className="mb-4 mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            Suggestions have been made across{" "}
+            <strong>{modifiedPagesCount}</strong> page
+            {modifiedPagesCount === 1 ? "" : "s"}. Please review all pages to
+            see all recommendations.
+          </p>
+        </div>
+      )}
+
       <AllocationTable
         fetchFn={fetchTableData}
         ensureDistributionForPartner={ensureDistributionForPartner}
@@ -272,6 +286,7 @@ export default function AdminAllocateDonorOfferScreen() {
           onAfterApply: () => {
             refetchDistributions();
           },
+          onModifiedPagesChange: setModifiedPagesCount,
         }}
       />
     </>

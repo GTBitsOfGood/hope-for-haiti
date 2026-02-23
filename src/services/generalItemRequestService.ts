@@ -77,7 +77,6 @@ export class GeneralItemRequestService {
       "generalItem" | "partner"
     > & { generalItemId: number; partnerId: number }
   ) {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
       select: { enabled: true, pending: true, type: true },
@@ -95,18 +94,37 @@ export class GeneralItemRequestService {
       throw new ArgumentError("Cannot create request for pending partner");
     }
     
-    // Check if the general item belongs to an archived donor offer
     const generalItem = await db.generalItem.findUnique({
       where: { id: data.generalItemId },
       include: {
         donorOffer: {
-          select: { state: true }
+          select: { state: true, partnerResponseDeadline: true }
+        },
+        items: {
+          where: {
+            allocation: null
+          },
+          select: { id: true }
         }
       }
     });
 
-    if (generalItem?.donorOffer?.state === "ARCHIVED") {
-      throw new ArgumentError("Cannot create requests for archived donor offers. Archived offers are read-only.");
+    if (!generalItem) {
+      throw new NotFoundError("General item not found");
+    }
+
+    if (generalItem.donorOffer?.state === "ARCHIVED") {
+      if (generalItem.items.length === 0) {
+        throw new ArgumentError("Cannot create requests for fully allocated archived items.");
+      }
+    }
+    else if (generalItem.donorOffer?.state === "UNFINALIZED") {
+      if (generalItem.donorOffer.partnerResponseDeadline) {
+        const now = new Date();
+        if (now > generalItem.donorOffer.partnerResponseDeadline) {
+          throw new ArgumentError("Cannot create requests after the partner response deadline has passed.");
+        }
+      }
     }
     
     const newRequest = await db.generalItemRequest.create({
@@ -127,22 +145,41 @@ export class GeneralItemRequestService {
 
   static async updateRequest(id: number, data: Partial<UpdateGeneralItemRequestData>) {
     try {
-      // Check if the request's general item belongs to an archived donor offer
       const request = await db.generalItemRequest.findUnique({
         where: { id },
         include: {
           generalItem: {
             include: {
               donorOffer: {
-                select: { state: true }
+                select: { state: true, partnerResponseDeadline: true }
+              },
+              items: {
+                where: {
+                  allocation: null
+                },
+                select: { id: true }
               }
             }
           }
         }
       });
 
-      if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+      if (!request) {
+        throw new NotFoundError("Request not found");
+      }
+
+      if (request.generalItem?.donorOffer?.state === "ARCHIVED") {
+        if (request.generalItem.items.length === 0) {
+          throw new ArgumentError("Cannot update requests for fully allocated archived items.");
+        }
+      }
+      else if (request.generalItem?.donorOffer?.state === "UNFINALIZED") {
+        if (request.generalItem.donorOffer.partnerResponseDeadline) {
+          const now = new Date();
+          if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
+            throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
+          }
+        }
       }
 
       const updatedRequest = await db.generalItemRequest.update({
@@ -164,7 +201,6 @@ export class GeneralItemRequestService {
   static async bulkUpdateRequests(
     updates: Array<{ requestId: number; finalQuantity: number }>
   ) {
-    // Check if any of the requests belong to archived donor offers
     const requestIds = updates.map(u => u.requestId);
     const requests = await db.generalItemRequest.findMany({
       where: { id: { in: requestIds } },
@@ -172,19 +208,37 @@ export class GeneralItemRequestService {
         generalItem: {
           include: {
             donorOffer: {
-              select: { state: true }
+              select: { state: true, partnerResponseDeadline: true }
+            },
+            items: {
+              where: {
+                allocation: null
+              },
+              select: { id: true }
             }
           }
         }
       }
     });
 
-    const archivedRequests = requests.filter(
-      r => r.generalItem?.donorOffer?.state === "ARCHIVED"
+    const fullyAllocatedArchivedRequests = requests.filter(
+      r => r.generalItem?.donorOffer?.state === "ARCHIVED" && 
+           r.generalItem.items.length === 0
     );
 
-    if (archivedRequests.length > 0) {
-      throw new ArgumentError("Cannot update requests for archived donor offers. Archived offers are read-only.");
+    if (fullyAllocatedArchivedRequests.length > 0) {
+      throw new ArgumentError("Cannot update requests for fully allocated archived items.");
+    }
+
+    const now = new Date();
+    const expiredUnfinalizedRequests = requests.filter(
+      r => r.generalItem?.donorOffer?.state === "UNFINALIZED" &&
+           r.generalItem.donorOffer.partnerResponseDeadline && 
+           now > r.generalItem.donorOffer.partnerResponseDeadline
+    );
+
+    if (expiredUnfinalizedRequests.length > 0) {
+      throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
     }
 
     const results = await db.$transaction(
@@ -199,24 +253,185 @@ export class GeneralItemRequestService {
     return results;
   }
 
+  static async reassignRequest(
+    requestId: number,
+    targetGeneralItemId: number
+  ) {
+    return db.$transaction(async (tx) => {
+      const existingRequest = await tx.generalItemRequest.findUnique({
+        where: { id: requestId },
+        include: {
+          partner: {
+            select: { id: true, name: true },
+          },
+          generalItem: {
+            select: {
+              id: true,
+              donorOfferId: true,
+            },
+          },
+        },
+      });
+
+      if (!existingRequest || !existingRequest.generalItem) {
+        throw new NotFoundError("Request not found");
+      }
+
+      const previousGeneralItemId = existingRequest.generalItem.id;
+
+      const targetGeneralItem = await tx.generalItem.findUnique({
+        where: { id: targetGeneralItemId },
+        select: {
+          id: true,
+          donorOfferId: true,
+          title: true,
+        },
+      });
+
+      if (!targetGeneralItem) {
+        throw new NotFoundError("Target general item not found");
+      }
+
+      if (
+        targetGeneralItem.donorOfferId !==
+        existingRequest.generalItem.donorOfferId
+      ) {
+        throw new ArgumentError(
+          "Target general item must belong to the same donor offer."
+        );
+      }
+
+      const targetLineItemCount = await tx.lineItem.count({
+        where: { generalItemId: targetGeneralItemId },
+      });
+
+      if (targetLineItemCount === 0) {
+        throw new ArgumentError(
+          "Target general item does not have any available line items."
+        );
+      }
+
+      const duplicateRequest = await tx.generalItemRequest.findFirst({
+        where: {
+          generalItemId: targetGeneralItemId,
+          partnerId: existingRequest.partnerId,
+        },
+      });
+
+      let updatedRequest;
+
+      if (duplicateRequest) {
+        const mergedQuantity =
+          duplicateRequest.quantity + existingRequest.quantity;
+        const mergedFinalQuantity =
+          duplicateRequest.finalQuantity !== null &&
+          existingRequest.finalQuantity !== null
+            ? duplicateRequest.finalQuantity + existingRequest.finalQuantity
+            : duplicateRequest.finalQuantity ?? existingRequest.finalQuantity;
+
+        updatedRequest = await tx.generalItemRequest.update({
+          where: { id: duplicateRequest.id },
+          data: {
+            quantity: mergedQuantity,
+            finalQuantity: mergedFinalQuantity,
+          },
+        });
+
+        await tx.generalItemRequest.delete({
+          where: { id: requestId },
+        });
+      } else {
+        updatedRequest = await tx.generalItemRequest.update({
+          where: { id: requestId },
+          data: { generalItemId: targetGeneralItemId },
+        });
+      }
+
+      let deletedGeneralItemId: number | null = null;
+      const remainingRequestCount = await tx.generalItemRequest.count({
+        where: { generalItemId: previousGeneralItemId },
+      });
+
+      if (remainingRequestCount === 0) {
+        const remainingLineItems = await tx.lineItem.count({
+          where: { generalItemId: previousGeneralItemId },
+        });
+
+        if (remainingLineItems === 0) {
+          await tx.generalItem.delete({ where: { id: previousGeneralItemId } });
+          deletedGeneralItemId = previousGeneralItemId;
+        }
+      }
+
+      const allocated = await tx.lineItem.aggregate({
+        where: {
+          generalItemId: targetGeneralItemId,
+          allocation: {
+            partnerId: existingRequest.partnerId,
+          },
+        },
+        _sum: {
+          quantity: true,
+        },
+      });
+
+      return {
+        request: {
+          id: updatedRequest.id,
+          generalItemId: updatedRequest.generalItemId,
+          partnerId: updatedRequest.partnerId,
+          quantity: updatedRequest.quantity,
+          finalQuantity: updatedRequest.finalQuantity,
+          partner: existingRequest.partner,
+          itemsAllocated: allocated._sum.quantity ?? 0,
+        },
+        targetGeneralItem: {
+          id: targetGeneralItem.id,
+          title: targetGeneralItem.title,
+        },
+        previousGeneralItemId,
+        deletedGeneralItemId,
+      };
+    });
+  }
+
   static async deleteRequest(id: number) {
     try {
-      // Check if the request's general item belongs to an archived donor offer
       const request = await db.generalItemRequest.findUnique({
         where: { id },
         include: {
           generalItem: {
             include: {
               donorOffer: {
-                select: { state: true }
+                select: { state: true, partnerResponseDeadline: true }
+              },
+              items: {
+                where: {
+                  allocation: null
+                },
+                select: { id: true }
               }
             }
           }
         }
       });
 
-      if (request?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new ArgumentError("Cannot delete requests for archived donor offers. Archived offers are read-only.");
+      if (!request) {
+        throw new NotFoundError("Request not found");
+      }
+
+      if (request.generalItem?.donorOffer?.state === "ARCHIVED") {
+        if (request.generalItem.items.length === 0) {
+          throw new ArgumentError("Cannot delete requests for fully allocated archived items.");
+        }
+      }
+      else if (request.generalItem?.donorOffer?.state === "UNFINALIZED") {
+        if (request.generalItem.donorOffer.partnerResponseDeadline) {
+          const now = new Date();
+          if (now > request.generalItem.donorOffer.partnerResponseDeadline) {
+            throw new ArgumentError("Cannot delete requests after the partner response deadline has passed.");
+          }
+        }
       }
 
       await db.generalItemRequest.delete({
@@ -238,7 +453,6 @@ export class GeneralItemRequestService {
     page?: number,
     pageSize?: number
   ): Promise<GeneralItemRequestsResponse> {
-    // Check if the partner is enabled and not pending
     const partner = await db.user.findUnique({
       where: { id: partnerId },
       select: { enabled: true, pending: true },

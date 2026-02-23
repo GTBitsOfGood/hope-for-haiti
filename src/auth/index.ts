@@ -25,6 +25,7 @@ declare module "next-auth" {
     streamUserId: string | null;
     streamUserToken: string | null;
     enabled: boolean;
+    pending: boolean;
     tag?: string;
     dashboardTutorial: boolean;
     itemsTutorial: boolean;
@@ -45,6 +46,7 @@ declare module "next-auth" {
       itemsTutorial: boolean;
       requestsTutorial: boolean;
       wishlistsTutorial: boolean;
+      pending: boolean;
     } & DefaultSession["user"] &
       PermissionFlags;
   }
@@ -55,6 +57,7 @@ declare module "next-auth/jwt" {
     id: string;
     type: UserType;
     enabled: boolean;
+    pending: boolean;
     name: string | null | undefined;
     streamUserId: string | null;
     streamUserToken: string | null;
@@ -85,6 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             passwordHash: true,
             type: true,
             enabled: true,
+            pending: true,
             tag: true,
             streamUserId: true,
             streamUserToken: true,
@@ -108,6 +112,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id.toString(),
           type: user.type,
           enabled: user.enabled,
+          pending: user.pending,
           name: user.name,
           streamUserId: user.streamUserId,
           streamUserToken: user.streamUserToken,
@@ -126,6 +131,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id || "";
         token.type = user.type;
         token.enabled = user.enabled;
+        token.pending = user.pending;
         token.name = user.name ?? user.email ?? `User ${user.id}`;
         token.streamUserId = user.streamUserId;
         token.streamUserToken = user.streamUserToken;
@@ -145,6 +151,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.id;
       session.user.type = token.type;
       session.user.enabled = token.enabled;
+      session.user.pending = token.pending;
       session.user.name = token.name;
       session.user.streamUserId = token.streamUserId;
       session.user.streamUserToken = token.streamUserToken;

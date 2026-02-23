@@ -13,12 +13,14 @@
     "db:migrate": "env-cmd -f .env npx prisma migrate dev",
     "db:view": "env-cmd -f .env npx prisma studio",
     "db:seed-chroma": "env-cmd -f .env tsx scripts/seed-chroma.ts",
+    "db:createStaffUser": "env-cmd -f .env tsx scripts/createStaffUser.ts",
     "ci:db:migrate": "npx prisma migrate dev",
     "prepare": "husky",
     "email:dev": "email dev --dir ./src/email --port 4000",
     "netlify": "netlify dev",
     "functions:expiringItems": "netlify functions:invoke expiringItems --port 8888",
-    "functions:notifications": "netlify functions:invoke notifications --port 8888"
+    "functions:notifications": "netlify functions:invoke notifications --port 8888",
+    "functions:supportNotifications": "netlify functions:invoke supportNotifications --port 8888"
   },
   "dependencies": {
     "@ably/chat": "^1.1.0",
@@ -48,7 +50,7 @@
     "highs": "^1.8.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
-    "next": "15.0.4",
+    "next": "15.0.7",
     "next-auth": "^5.0.0-beta.25",
     "onnxruntime-node": "^1.23.0",
     "openai": "^4.104.0",
@@ -60,6 +62,7 @@
     "react-joyride": "^2.9.3",
     "react-leaflet": "^5.0.0",
     "react-leaflet-cluster": "^3.1.1",
+    "react-markdown": "^10.1.0",
     "react-select": "^5.10.2",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "react-sketch-canvas": "^6.2.0",

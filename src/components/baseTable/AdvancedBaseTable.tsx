@@ -309,6 +309,19 @@ function AdvancedBaseTableInner<T extends object>(
     return items;
   }, [items]);
 
+  const getCurrentPage = useCallback(() => {
+    return page;
+  }, [page]);
+
+  const setPageExternally = useCallback(
+    (newPage: number) => {
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      const clampedPage = Math.max(1, Math.min(newPage, totalPages));
+      setPage(clampedPage);
+    },
+    [pageSize, total]
+  );
+
   useImperativeHandle(
     ref,
     () => ({
@@ -318,6 +331,9 @@ function AdvancedBaseTableInner<T extends object>(
       removeItemById,
       updateItemById,
       getAllItems,
+      setOpenRowIds,
+      getPage: getCurrentPage,
+      setPage: setPageExternally,
     }),
     [
       reload,
@@ -326,6 +342,9 @@ function AdvancedBaseTableInner<T extends object>(
       upsertItem,
       updateItemById,
       getAllItems,
+      setOpenRowIds,
+      getCurrentPage,
+      setPageExternally,
     ]
   );
 
@@ -336,7 +355,7 @@ function AdvancedBaseTableInner<T extends object>(
   const showEmptyState = !isLoading && !items.length && !error;
 
   return (
-    <div className="w-full">
+    <div className="w-full" data-table-container="true">
       <div className="my-2 space-x-4 flex justify-end">
         {toolBar}
         {!disableFilters && filterableColumns.length > 0 && (
@@ -414,6 +433,7 @@ function AdvancedBaseTableInner<T extends object>(
                       rowIndex == 0 ? "advanced-table-row" : undefined
                     }
                     key={String(resolveRowId(item))}
+                    data-row-id={resolveRowId(item)}
                     data-odd={rowIndex % 2 !== 0}
                     className={`bg-white data-[odd=false]:bg-blue-light/35 border-b border-blue-primary/10 text-gray-primary ${
                       onRowClick || rowBody ? "cursor-pointer" : ""

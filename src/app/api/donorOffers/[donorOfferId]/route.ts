@@ -14,6 +14,7 @@ import {
 import { $Enums } from "@prisma/client";
 import { tableParamsSchema } from "@/schema/tableParams";
 import { formDataToObject } from "@/util/formData";
+import type { EmbeddingCache } from "@/services/matchingService";
 
 /**
  * Schema for getting offer ID from URL params
@@ -154,7 +155,6 @@ export async function DELETE(
 
     UserService.checkPermission(session.user, "offerWrite");
 
-    // Check if the donor offer is archived
     const { donorOffer } = await DonorOfferService.getAdminDonorOfferDetails(
       parsed.data.donorOfferId,
       false
@@ -190,7 +190,6 @@ export async function PATCH(
       throw new ArgumentError(parsed.error.message);
     }
 
-    // Check if the donor offer is archived
     const { donorOffer } = await DonorOfferService.getAdminDonorOfferDetails(
       parsed.data.donorOfferId,
       false
@@ -214,10 +213,14 @@ export async function PATCH(
 
     if (file && file instanceof File) {
       const parsedFileData = await FileService.parseFinalizedFile(file);
+
+      const embeddingCache: EmbeddingCache = new Map();
+
       const result = await DonorOfferService.finalizeDonorOffer(
         parsed.data.donorOfferId,
         parsedFileData,
         preview ?? false,
+        embeddingCache
       );
 
       if (preview) {
@@ -240,8 +243,7 @@ export async function PATCH(
       throw new ArgumentError(updateParsed.error.message);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { file: _, ...updateData } = updateParsed.data;
+    const { file: _, ...updateData } = updateParsed.data; // eslint-disable-line @typescript-eslint/no-unused-vars
 
     const result = await DonorOfferService.updateDonorOffer(
       parsed.data.donorOfferId,
@@ -250,6 +252,7 @@ export async function PATCH(
     
     return NextResponse.json(result);
   } catch (error) {
+    console.error(error);
     return errorResponse(error);
   }
 }

@@ -18,12 +18,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         <AuthenticationProvider>
           <NotificationHandler>
             <NavbarLayout>{children}</NavbarLayout>
-            <Toaster position="top-right" />
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                duration: 4000,
+                className: "border font-medium",
+                success: {
+                  className: "!bg-green-50 !border-green-500 !text-green-700",
+                  iconTheme: {
+                    primary: "#10b981",
+                    secondary: "#ecfdf5",
+                  },
+                },
+                error: {
+                  className: "!bg-red-light !border-red-dark !text-red-primary",
+                  iconTheme: {
+                    primary: "#F7949A",
+                    secondary: "#FEF5F5",
+                  },
+                },
+              }}
+            />
           </NotificationHandler>
         </AuthenticationProvider>
       </body>

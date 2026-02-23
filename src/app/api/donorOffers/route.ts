@@ -45,10 +45,20 @@ export async function POST(req: NextRequest) {
         return parsedFileData;
       }
 
-      const itemDescriptionInput = parsedItems.map((item) => ({
-        title: toSafeString(item["title"]).trim(),
-        unitType: toSafeString(item["unitType"]).trim(),
-      }));
+      const uniqueItems = new Map<
+        string,
+        { title: string; unitType: string }
+      >();
+      parsedItems.forEach((item) => {
+        const title = toSafeString(item["title"]).trim();
+        const unitType = toSafeString(item["unitType"]).trim();
+        const key = `${title}|${unitType}`;
+        if (!uniqueItems.has(key)) {
+          uniqueItems.set(key, { title, unitType });
+        }
+      });
+
+      const itemDescriptionInput = Array.from(uniqueItems.values());
 
       let metadata: Array<{
         description: string;
@@ -63,20 +73,34 @@ export async function POST(req: NextRequest) {
         throw new InternalError("Failed to generate item metadata");
       }
 
-      if (metadata.length !== parsedItems.length) {
+      if (metadata.length !== itemDescriptionInput.length) {
         throw new InternalError(
           "Metadata generation returned unexpected result"
         );
       }
 
+      const metadataMap = new Map<
+        string,
+        { description: string; type: string; category: string }
+      >();
+      Array.from(uniqueItems.keys()).forEach((key, index) => {
+        metadataMap.set(key, metadata[index]);
+      });
+
       return {
         ...parsedFileData,
-        data: parsedItems.map((item, index) => ({
-          ...item,
-          description: metadata[index]?.description ?? null,
-          type: metadata[index]?.type ?? null,
-          category: metadata[index]?.category ?? null,
-        })),
+        data: parsedItems.map((item) => {
+          const title = toSafeString(item["title"]).trim();
+          const unitType = toSafeString(item["unitType"]).trim();
+          const key = `${title}|${unitType}`;
+          const meta = metadataMap.get(key);
+          return {
+            ...item,
+            description: meta?.description ?? null,
+            type: meta?.type ?? null,
+            category: meta?.category ?? null,
+          };
+        }),
       };
     };
 

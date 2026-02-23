@@ -31,7 +31,6 @@ export async function DELETE(
 
     const allocation = await AllocationService.getAllocation(parsed.data);
 
-    // Check if the allocation belongs to an approved distribution
     if (allocation?.distributionId) {
       const distribution = await DistributionService.getDistribution(
         allocation.distributionId
@@ -53,7 +52,6 @@ export async function DELETE(
       );
 
       if (distribution.allocations.length === 0) {
-        // If the distribution has no more allocations, delete it
         deletedDistribution = true;
         DistributionService.deleteDistribution(distribution.id);
       }
