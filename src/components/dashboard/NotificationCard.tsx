@@ -121,9 +121,9 @@ export default function NotificationCard({
 
   return (
     <div
-      className={`rounded-[7.25px] px-4 py-3 flex items-start gap-3 border relative ${styles.container}`}
+      className={`rounded-[0.46875rem] px-4 py-3 flex items-start gap-3 border relative ${styles.container}`}
       style={{
-        animation: "slideGrow 0.2s ease-out forwards",
+        animation: t ? "slideGrow 0.2s ease-out forwards" : undefined,
       }}
     >
       <IconComponent
