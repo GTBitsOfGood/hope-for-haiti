@@ -56,21 +56,22 @@ export default function NotificationCard({
   const handleClick = async (redirect: boolean) => {
     if (!actionUrl) return;
 
-    if (Number(id) > 0) {
+    if (t) toast.dismiss(t.id);
+
+    if (!isChat && Number(id) > 0) {
       try {
-        await apiClient.patch(`/api/notifications/${id}?view=true`);
+        await apiClient.delete(`/api/notifications/${id}`);
       } catch (error) {
-        console.error(`Failed to PATCH notification ${id}: ${error}`);
+        console.error(`Failed to delete notification ${id}: ${error}`);
+      }
+
+      try {
+        await refreshNotifications();
+      } catch (error) {
+        console.error("Failed to refresh notifications", error);
       }
     }
 
-    try {
-      await refreshNotifications();
-    } catch (error) {
-      console.error("Failed to refresh notifications", error);
-    }
-
-    if (t) toast.dismiss(t.id);
     if (redirect) router.push(actionUrl);
   };
 
@@ -82,9 +83,14 @@ export default function NotificationCard({
     if (!isChat && Number(id) > 0) {
       try {
         await apiClient.delete(`/api/notifications/${id}`);
-        await refreshNotifications();
       } catch (error) {
         console.error(`Failed to delete notification ${id}: ${error}`);
+      }
+
+      try {
+        await refreshNotifications();
+      } catch (error) {
+        console.error("Failed to refresh notifications", error);
       }
     }
   };
