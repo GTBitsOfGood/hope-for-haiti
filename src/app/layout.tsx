@@ -26,6 +26,10 @@ export default function RootLayout({
             <Toaster
               position="bottom-right"
               containerClassName="general-toaster"
+              containerStyle={{
+                top: 20,
+                right: 80
+              }}
               toastOptions={{
                 duration: 4000,
                 className: "border font-medium",
