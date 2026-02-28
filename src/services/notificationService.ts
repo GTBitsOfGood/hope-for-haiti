@@ -25,16 +25,32 @@ export class NotificationService {
     return notification;
   }
 
-  static async createNotifications(userIds: number[], data: Omit<Prisma.NotificationCreateInput, "user">) {
+  static async deleteNotification(notificationId: number, userId: number) {
+    return await db.notification.delete({
+      where: {
+        id: notificationId,
+        userId,
+      },
+    });
+  }
+
+  static async createNotifications(
+    userIds: number[],
+    data: Omit<Prisma.NotificationCreateInput, "user">
+  ) {
     const notifications = await db.$transaction(
       userIds.map((userId) =>
         db.notification.create({
           data: { ...data, user: { connect: { id: userId } } },
-        }),
-      ),
+        })
+      )
     );
 
-    await Promise.all(notifications.map((notification) => this.publishNotification(notification)));
+    await Promise.all(
+      notifications.map((notification) =>
+        this.publishNotification(notification)
+      )
+    );
   }
 
   private static async publishNotification(notification: Notification) {
@@ -56,7 +72,7 @@ export class NotificationService {
   }
 
   static async publishNotificationWithoutSave(
-    userId : number, 
+    userId: number,
     data: {
       title: string;
       action?: string;
@@ -68,17 +84,17 @@ export class NotificationService {
 
     const tempId = -Date.now();
 
-    const payload ={
+    const payload = {
       id: tempId,
       title: data.title,
-      action: data.action || null, 
-      actionText: data.actionText || null, 
+      action: data.action || null,
+      actionText: data.actionText || null,
       dateCreated: new Date().toISOString(),
-      dateViewed: null, 
-      userId, 
+      dateViewed: null,
+      userId,
     };
 
-    await client.channels.get(channelName).publish("notification:new", payload); 
+    await client.channels.get(channelName).publish("notification:new", payload);
   }
 
   static async getNotificationById(notificationId: number) {
@@ -99,7 +115,10 @@ export class NotificationService {
     });
   }
 
-  static async updateNotification(notificationId: number, data: {view?: boolean, delivery?: boolean}) {
+  static async updateNotification(
+    notificationId: number,
+    data: { view?: boolean; delivery?: boolean }
+  ) {
     // If a notification is viewed, then it MUST be delivered as well
     // The only time a notification is viewed when delivery=false is if
     // 1. notification is sent & user is offline
@@ -108,7 +127,7 @@ export class NotificationService {
     const isDelivered = data.delivery ? true : data.view ? true : undefined;
     return await db.notification.update({
       where: { id: notificationId },
-      data: { 
+      data: {
         dateViewed: data.view ? new Date() : undefined,
         isDelivered,
       },
