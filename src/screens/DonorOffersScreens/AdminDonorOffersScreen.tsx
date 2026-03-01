@@ -109,6 +109,7 @@ export default function AdminDonorOffersScreen() {
       filterType: "string",
       cell: (offer) => 
         offer.invitedPartners.map((p) => p.name).join(", "),
+      hidden: true, 
     },
     ...(activeTab === StatusFilterKey.UNFINALIZED
       ? [
@@ -131,16 +132,19 @@ export default function AdminDonorOffersScreen() {
             id: "donorResponseDeadline",
             header: "Donor Response Deadline", 
             filterType: "date" as const, 
+            hidden: true, 
             cell: (offer: AdminDonorOffer) => 
               offer.donorResponseDeadline 
                 ? new Date(offer.donorResponseDeadline).toLocaleDateString() 
                 : "N/A"
+            
           },
           {
             id: "allPartnersResponded",
             header: "All Partners Responded", 
             filterType: "enum" as const, 
             filterOptions: ["Yes", "No"],
+            hidden: true, 
             cell: (offer: AdminDonorOffer) => 
               offer.invitedPartners.length > 0 && 
               offer.invitedPartners.every((p) => p.responded)
