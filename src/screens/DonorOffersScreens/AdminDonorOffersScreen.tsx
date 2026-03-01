@@ -162,7 +162,7 @@ export default function AdminDonorOffersScreen() {
             <MenuButton>
               <DotsThree weight="bold" />
             </MenuButton>
-            <MenuItems className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+            <MenuItems anchor="bottom end" className="z-10 rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
               {offer.state !== DonorOfferState.ARCHIVED && (
                 <MenuItem
                   as="button"
@@ -234,7 +234,6 @@ export default function AdminDonorOffersScreen() {
         toolBar={
             canManageOffers && (
               <button
-                // className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition" 
                 className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
                 onClick={() => router.push("/donorOffers/create")}
               >
