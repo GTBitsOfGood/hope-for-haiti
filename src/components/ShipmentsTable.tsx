@@ -15,6 +15,7 @@ import ShipmentsLineItemChipGroup from "./chips/ShipmentsLineItemChipGroup";
 import { useUser } from "@/components/context/UserContext";
 import { hasPermission } from "@/lib/userUtils";
 import SignOffModal from "./SignOffModal";
+import { shippingStatusToText } from "@/util/util";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
@@ -55,6 +56,7 @@ export default function ShipmentsTable() {
     {
       id: "donorShippingNumber",
       header: "Donor Shipping #",
+      filterType: "string",
       cell: (shipment) => shipment.donorShippingNumber,
     },
     {
@@ -63,8 +65,10 @@ export default function ShipmentsTable() {
       cell: (shipment) => shipment.hfhShippingNumber,
     },
     {
-      id: "status",
+      id: "value",
       header: "Status",
+      filterType: "enum", 
+      filterOptions: Object.values(shippingStatusToText),
       cell: (shipment) => <ShippingStatusTag status={shipment.value} />,
     },
     {

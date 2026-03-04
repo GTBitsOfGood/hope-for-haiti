@@ -313,6 +313,8 @@ export default function AccountManagementPage() {
     {
       id: "type",
       header: "Role",
+      filterType: "enum",
+      filterOptions: Object.values(UserType),
       cell: (item) => formatUserType(item.type),
     },
     {
@@ -376,7 +378,7 @@ export default function AccountManagementPage() {
         toolBar={
           canManageAccounts && (
             <button
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+              className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
               onClick={() => setInviteModalOpen(true)}
             >
               <Plus size={18} /> Add account

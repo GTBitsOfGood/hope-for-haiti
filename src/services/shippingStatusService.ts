@@ -49,12 +49,44 @@ export class ShippingStatusService {
       filters
     );
 
+    if (filters?.value && filters?.value.type === "enum") {
+      const displayNames = filters.value.values; 
+      const enumValueArr = Object.entries(shippingStatusToText);
+      const enumValues = displayNames
+        .map((name) => enumValueArr.find(([,text]) => text === name)?.[0])
+        .filter(Boolean);
+      (where as Record<string, unknown>).value = {
+        in: enumValues
+      };
+    }
+
     const pageNum = page ?? 1;
     const size = pageSize ?? 20;
     const offset = (pageNum - 1) * size;
 
     let statuses: ShippingStatus[] = [];
     let totalCount = 0;
+
+    let donorShippingFilter = Prisma.sql`TRUE`;
+    const donorShippingNumberFilter = filters?.donorShippingNumber
+    if (donorShippingNumberFilter && donorShippingNumberFilter.type === "string") {
+      const search = `%${donorShippingNumberFilter.value}%`;
+      donorShippingFilter = Prisma.sql`ss."donorShippingNumber" ILIKE ${search}`;
+    } 
+
+    let statusFilter = Prisma.sql`TRUE`;
+    const valueFilter = filters?.value; 
+    if (valueFilter && valueFilter.type === "enum") {
+      const enumValueArr = Object.entries(shippingStatusToText);
+      const enumValues = valueFilter.values
+        .map((name) => enumValueArr.find(([,text]) => text === name)?.[0])
+        .filter(Boolean) as string[];
+
+      if (enumValues.length > 0) {
+        statusFilter = Prisma.sql`ss."value"::text IN (${Prisma.join(enumValues)})`;
+      }
+    }
+
 
     if (typeof isCompleted === "boolean") {
       const completionPredicate = isCompleted
@@ -91,6 +123,8 @@ export class ShippingStatusService {
       `;
 
 
+
+
       const idRows = await db.$queryRaw<{ id: number }[]>(
         Prisma.sql`
       SELECT ss.id
@@ -98,6 +132,8 @@ export class ShippingStatusService {
       WHERE
         (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
         AND ${completionPredicate}
+        AND ${donorShippingFilter}
+        AND ${statusFilter}
       ORDER BY ss.id DESC
       LIMIT ${size} OFFSET ${offset}
     `
@@ -110,6 +146,8 @@ export class ShippingStatusService {
       WHERE
         (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
         AND ${completionPredicate}
+        AND ${donorShippingFilter} 
+        AND ${statusFilter}
     `
       );
 
