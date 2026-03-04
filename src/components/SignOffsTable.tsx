@@ -13,6 +13,7 @@ import Chip from "./chips/Chip";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
 import DetailedChip from "./chips/DetailedChip";
 import { shippingStatusToText } from "@/util/util";
+import SignatureImageTooltip from "./SignatureImageTooltip";
 
 function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
   const [showSignOffs] = useState(true);
@@ -35,6 +36,21 @@ function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
                     ? format(new Date(signOff.date), "M/d/yyyy 'at' h:mm a")
                     : "N/A"}
                 </span>
+                {signOff.signatureUrl && (
+                  <>
+                    <span className="mx-2">•</span>
+                    <span
+                      data-tooltip-id={`signature-tooltip-${signOff.id}`}
+                      className="underline decoration-dotted cursor-pointer text-gray-500"
+                    >
+                      View signature
+                    </span>
+                    <SignatureImageTooltip
+                      signOffId={signOff.id}
+                      signatureUrl={signOff.signatureUrl}
+                    />
+                  </>
+                )}
               </div>
 
               <div className="flex flex-wrap">

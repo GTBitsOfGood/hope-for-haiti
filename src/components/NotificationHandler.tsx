@@ -16,7 +16,6 @@ import toast, { Toast } from "react-hot-toast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { NotificationCard } from "./dashboard";
-import TicketMessageToast, { TicketMessageNotification } from "./tickets/TicketMessageToast";
 import { StreamChat, Event } from "stream-chat";
 
 let realtimeInstance: Ably.Realtime | null = null;
@@ -110,15 +109,6 @@ export default function NotificationHandler({
           console.error(`Failed to PATCH notification ${payload.id}: ${error}`);
         }
       }
-      
-      if (payload.id > 0) {
-        try {
-          const viewed = pathname === payload.action ? "&view=true" : ""; 
-          await apiClient.patch(`/api/notifications/${payload.id}?delivery=true${viewed}`);
-        } catch (error) {
-          console.error(`Failed to PATCH notification ${payload.id}: ${error}`)
-        }
-      }
 
       setNotifications((prev) => [
         {
@@ -146,7 +136,7 @@ export default function NotificationHandler({
             hideAction={pathname === payload.action}
           />
         ),
-        { duration: 60 * 1000 }
+        { duration: 20 * 1000, position: "top-right" }
       );
     };
 
@@ -167,7 +157,9 @@ export default function NotificationHandler({
       return;
     }
 
-    const streamClient = new StreamChat(process.env.NEXT_PUBLIC_STREAMIO_API_KEY);
+    const streamClient = new StreamChat(
+      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
+    );
     let didInterrupt = false;
 
     const handleTicketMessage = (event: Event) => {
@@ -192,82 +184,17 @@ export default function NotificationHandler({
       }
 
       const text = event.message?.text?.trim();
-
-      const payload: TicketMessageNotification = {
-        channelId,
-        channelName:
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (event.channel as any)?.name ??
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (event.message?.channel as any)?.name ??
-          "Support Ticket",
-        messagePreview: text ? text : "Attachment",
-        senderName:
-          event.user?.name ??
-          event.message?.user?.name ??
-          "Support",
-        url: `/support?channel-id=${channelId}`,
-      };
-
-      toast.custom(
-        (t: Toast) => <TicketMessageToast notification={payload} t={t} />, { duration: 60 * 1000 }
-      );
-    };
-
-    streamClient
-      .connectUser({
-          id: user.streamUserId,
-          name: user.name ?? undefined,
-        }, user.streamUserToken,
-      )
-      .then(() => {
-        if (!didInterrupt) {
-          streamClient.on("notification.message_new", handleTicketMessage);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to connect Stream client for notifications:", error);
-      });
-
-    return () => {
-      didInterrupt = true;
-      streamClient.off("notification.message_new", handleTicketMessage);
-      streamClient
-        .disconnectUser()
-        .catch((error) =>
-          console.error("Failed to disconnect Stream notification client:", error),
-        );
-    };
-  }, [pathname, router, searchParams, user?.name, user?.streamUserId, user?.streamUserToken]);
-
-  useEffect(() => {
-    if (
-      !user?.streamUserId ||
-      !user.streamUserToken ||
-      !process.env.NEXT_PUBLIC_STREAMIO_API_KEY
-    )
-      return;
-
-    const streamClient = new StreamChat(
-      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
-    );
-    let didInterrupt = false;
-
-    const handleTicketMessage = (event: Event) => {
-      if (event.channel_type !== "ticket") return;
-
-      const senderId = event.user?.id ?? event.message?.user?.id;
-      if (senderId === user.streamUserId) return;
-
-      const channelId = event.channel?.id ?? event.cid?.split(":")[1];
-      if (!channelId || searchParams.get("activeTab") === "Unresolved") return;
-
-      const text = event.message?.text?.trim();
+      const channelName =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (event.channel as any)?.name ??
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (event.message?.channel as any)?.name ??
+        "Support Ticket";
 
       setNotifications((prev) => [
         {
           id: event.message?.id ?? Date.now(),
-          title: `Ticket: ${text || "New message"}`,
+          title: `${channelName}: ${text || "New message"}`,
           action: `/support?channel-id=${channelId}`,
           actionText: "Reply",
           dateCreated: new Date(),
@@ -276,36 +203,53 @@ export default function NotificationHandler({
         ...prev,
       ]);
 
-      // OLD NOTIFICATION TOAST STYLE
-
-      // const payload: TicketMessageNotification = {
-      //   channelId,
-      //   channelName: (event.channel as any)?.name ?? "Support Ticket",
-      //   messagePreview: text ? text : "Attachment",
-      //   senderName: event.user?.name ?? "Support",
-      //   url: `/support?channel-id=${channelId}`,
-      // };
-
-      // toast.custom(
-      //   (t: Toast) => <TicketMessageToast notification={payload} t={t} />,
-      //   { duration: 60 * 1000 }
-      // );
+      toast.custom(
+        (t: Toast) => (
+          <NotificationCard
+            id={event.message?.id ?? Date.now()}
+            message={`${channelName}: ${text || "New message"}`}
+            dateCreated={new Date()}
+            actionText="Reply"
+            actionUrl={`/support?channel-id=${channelId}`}
+            t={t}
+            isChat
+          />
+        ),
+        { duration: 20 * 1000, position: "top-right" }
+      );
     };
 
     streamClient
       .connectUser(
-        { id: user.streamUserId, name: user.name ?? undefined },
+        {
+          id: user.streamUserId,
+          name: user.name ?? undefined,
+        },
         user.streamUserToken
       )
       .then(() => {
-        if (!didInterrupt)
+        if (!didInterrupt) {
           streamClient.on("notification.message_new", handleTicketMessage);
+        }
+      })
+      .catch((error) => {
+        console.error(
+          "Failed to connect Stream client for notifications:",
+          error
+        );
       });
 
     return () => {
       didInterrupt = true;
       streamClient.off("notification.message_new", handleTicketMessage);
-      streamClient.disconnectUser();
+      streamClient
+        .disconnectUser()
+        .catch((error) =>
+          console.error(
+            "Failed to disconnect Stream notification client:",
+            error
+          )
+        );
     };
   }, [
     pathname,

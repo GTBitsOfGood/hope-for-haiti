@@ -25,6 +25,7 @@ export default function RootLayout({
             <NavbarLayout>{children}</NavbarLayout>
             <Toaster
               position="bottom-right"
+              containerClassName="general-toaster"
               toastOptions={{
                 duration: 4000,
                 className: "border font-medium",
