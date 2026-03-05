@@ -109,12 +109,15 @@ export default function DistributionTable() {
   if (canManageDistributions) {
     columns.push({
       id: "Manage",
+      headerClassName: "text-right",
       header: "",
       cell: (distribution) => (
-        <OptionsButton
-          distribution={distribution}
-          fetchTableData={tableRef.current!.reload}
-        />
+        <div className="flex float-right">
+          <OptionsButton
+            distribution={distribution}
+            fetchTableData={tableRef.current!.reload}
+          />
+        </div>
       ),
     });
   }

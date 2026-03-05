@@ -339,9 +339,10 @@ export default function AccountManagementPage() {
   if (canManageAccounts) {
     baseColumns.push({
       id: "manage",
+      headerClassName: "text-right",
       cell: (item) => (
         <div
-          className="flex justify-center"
+          className="flex float-right"
           onClick={(e) => e.stopPropagation()}
         >
           <AccountDropdown

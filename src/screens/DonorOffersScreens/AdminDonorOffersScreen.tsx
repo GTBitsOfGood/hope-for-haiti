@@ -159,6 +159,7 @@ export default function AdminDonorOffersScreen() {
     columns.push({
       id: "manage",
       header: "Manage",
+      headerClassName: "text-right",
       filterable: false,
       cell: (offer) => (
         <div onClick={(e) => e.stopPropagation()}>
