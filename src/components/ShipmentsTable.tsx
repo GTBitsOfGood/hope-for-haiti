@@ -104,11 +104,14 @@ export default function ShipmentsTable() {
     columns.push({
       id: "manage",
       header: "Manage",
+      headerClassName: "text-right",
       cell: (shipment) => (
-        <OptionsButton
-          shipment={shipment}
-          fetchTableData={() => tableRef.current?.reload()}
-        />
+        <div className="flex justify-end">
+          <OptionsButton
+            shipment={shipment}
+            fetchTableData={tableRef.current!.reload}
+          />
+        </div>
       ),
     });
   }

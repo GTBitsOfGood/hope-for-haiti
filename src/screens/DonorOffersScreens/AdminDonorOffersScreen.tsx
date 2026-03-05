@@ -159,10 +159,11 @@ export default function AdminDonorOffersScreen() {
     columns.push({
       id: "manage",
       header: "Manage",
+      headerClassName: "text-right",
       filterable: false,
       cell: (offer) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <Menu as="div" className="float-right relative">
+          <Menu as="div" className="flex justify-end relative">
             <MenuButton>
               <DotsThree weight="bold" />
             </MenuButton>
@@ -235,6 +236,7 @@ export default function AdminDonorOffersScreen() {
         columns={columns}
         fetchFn={fetchFn}
         rowId="donorOfferId"
+        onRowClick={(offer) => router.push(`/donorOffers/${offer.donorOfferId}`)}
         toolBar={
             canManageOffers && (
               <button
