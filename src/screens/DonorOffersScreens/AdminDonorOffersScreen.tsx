@@ -236,6 +236,7 @@ export default function AdminDonorOffersScreen() {
         columns={columns}
         fetchFn={fetchFn}
         rowId="donorOfferId"
+        onRowClick={(offer) => router.push(`/donorOffers/${offer.donorOfferId}`)}
         toolBar={
             canManageOffers && (
               <button
