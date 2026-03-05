@@ -112,7 +112,7 @@ export default function DistributionTable() {
       headerClassName: "text-right",
       header: "",
       cell: (distribution) => (
-        <div className="flex float-right">
+        <div className="flex justify-end">
           <OptionsButton
             distribution={distribution}
             fetchTableData={tableRef.current!.reload}

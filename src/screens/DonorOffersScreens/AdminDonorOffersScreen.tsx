@@ -163,7 +163,7 @@ export default function AdminDonorOffersScreen() {
       filterable: false,
       cell: (offer) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <Menu as="div" className="float-right relative">
+          <Menu as="div" className="flex justify-end relative">
             <MenuButton>
               <DotsThree weight="bold" />
             </MenuButton>

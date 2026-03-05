@@ -342,7 +342,7 @@ export default function AccountManagementPage() {
       headerClassName: "text-right",
       cell: (item) => (
         <div
-          className="flex float-right"
+          className="flex justify-end"
           onClick={(e) => e.stopPropagation()}
         >
           <AccountDropdown

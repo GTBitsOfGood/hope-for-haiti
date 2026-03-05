@@ -106,7 +106,7 @@ export default function ShipmentsTable() {
       header: "Manage",
       headerClassName: "text-right",
       cell: (shipment) => (
-        <div className="flex float-right">
+        <div className="flex justify-end">
           <OptionsButton
             shipment={shipment}
             fetchTableData={tableRef.current!.reload}
