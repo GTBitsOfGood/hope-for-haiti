@@ -17,7 +17,8 @@ const patchParamSchema = z.object({
 });
 
 const patchBodySchema = z.object({
-  status: z.nativeEnum($Enums.ShipmentStatus),
+  status: z.nativeEnum($Enums.ShipmentStatus).optional(),
+  hfhShippingNumber: z.string().optional(), 
 });
 
 export async function GET(request: Request) {
@@ -82,10 +83,19 @@ export async function PATCH(request: Request) {
       throw new ArgumentError(parsedBody.error.message);
     }
 
-    await ShippingStatusService.updateShippingStatus({
-      id: parsedParams.data.id,
-      value: parsedBody.data.status,
-    });
+    if (parsedBody.data.status) {
+      await ShippingStatusService.updateShippingStatus({
+        id: parsedParams.data.id,
+        value: parsedBody.data.status, 
+      });
+    }
+
+    if (parsedBody.data.hfhShippingNumber !== undefined) {
+      await ShippingStatusService.updateHfhShippingNumber(
+        parsedParams.data.id,
+        parsedBody.data.hfhShippingNumber
+      );
+    }
 
     return ok();
   } catch (error) {
