@@ -599,6 +599,14 @@ export class ShippingStatusService {
     };
   }
 
+  static async updateHfhShippingNumber(id: number, hfhShippingNumber: string) {
+    await db.shippingStatus.update({
+      where: { id }, 
+      data: { hfhShippingNumber }, 
+    }); 
+  }
+
+
   static async updateShippingStatus(data: UpdateShippingStatusData) {
     const existingStatus = await db.shippingStatus.findUnique({
       where: { id: data.id },
