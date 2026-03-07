@@ -28,6 +28,11 @@ export default function EditHfhShippingNumberModal({
   }, [isOpen, currentHfhShippingNumber]);
 
   const handleSave = async () => {
+    if (!hfhShippingNumber.trim()) {
+      toast.error("HFH Shipping Number cannot be empty"); 
+      return; 
+    }
+    
     setIsSubmitting(true); 
     try {
       const url = new URLSearchParams({ id: shipmentId.toString() });
