@@ -603,6 +603,14 @@ export class ShippingStatusService {
     const existing = await db.shippingStatus.findUnique({ where: { id } });
     if (!existing) throw new Error("Shipment not found");
 
+    if (!existing.donorShippingNumber || !existing.hfhShippingNumber) {
+      await db.shippingStatus.update({
+        where: { id },
+        data: { hfhShippingNumber },
+      });
+      return; 
+    }
+
     await db.$transaction([
       db.shippingStatus.update({
         where: { id },
