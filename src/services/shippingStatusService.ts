@@ -600,22 +600,22 @@ export class ShippingStatusService {
   }
 
   static async updateHfhShippingNumber(id: number, hfhShippingNumber: string) {
-    const existing = await db.shippingStatus.findUnique({
-      where: { id },
-    });
-    
-    await db.shippingStatus.update({
-      where: { id }, 
-      data: { hfhShippingNumber }, 
-    }); 
+    const existing = await db.shippingStatus.findUnique({ where: { id } });
+    if (!existing) throw new Error("Shipment not found");
 
-    await db.lineItem.updateMany({
-      where: {
-        donorShippingNumber: existing?.donorShippingNumber,
-        hfhShippingNumber: existing?.hfhShippingNumber,
-      }, 
-      data: {hfhShippingNumber},
-    })
+    await db.$transaction([
+      db.shippingStatus.update({
+        where: { id },
+        data: { hfhShippingNumber },
+      }),
+      db.lineItem.updateMany({
+        where: {
+          donorShippingNumber: existing.donorShippingNumber,
+          hfhShippingNumber: existing.hfhShippingNumber,
+        },
+        data: { hfhShippingNumber },
+      }),
+    ]);
   }
 
 
