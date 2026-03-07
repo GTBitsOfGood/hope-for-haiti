@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import toast from "react-hot-toast"
 interface EditHfhShippingNumberModalProps {
@@ -19,6 +19,12 @@ export default function EditHfhShippingNumberModal({
   const { apiClient } = useApiClient(); 
   const [hfhShippingNumber, setHfhShippingNumber] = useState(currentHfhShippingNumber);
   const [isSubmitting, setIsSubmitting] = useState(false) 
+
+  useEffect(() => {
+    if (isOpen) {
+      setHfhShippingNumber(currentHfhShippingNumber);
+    }
+  }, [isOpen, currentHfhShippingNumber]);
 
   const handleSave = async () => {
     setIsSubmitting(true); 
