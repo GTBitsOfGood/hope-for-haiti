@@ -83,6 +83,10 @@ export async function PATCH(request: Request) {
       throw new ArgumentError(parsedBody.error.message);
     }
 
+    if (!parsedBody.data.status && parsedBody.data.hfhShippingNumber === undefined) {
+      throw new ArgumentError("The status or hfhShippingNumber must be provided");
+    }
+    
     if (parsedBody.data.status) {
       await ShippingStatusService.updateShippingStatus({
         id: parsedParams.data.id,
