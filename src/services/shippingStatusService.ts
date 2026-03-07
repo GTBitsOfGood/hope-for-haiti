@@ -603,17 +603,20 @@ export class ShippingStatusService {
     const existing = await db.shippingStatus.findUnique({ where: { id } });
     if (!existing) throw new Error("Shipment not found");
 
-    await db.shippingStatus.update({
-      where: { id },
-      data: { hfhShippingNumber },
-    });
+    await db.$transaction(async (tx) => {
+      await tx.shippingStatus.update({
+        where: { id },
+        data: { hfhShippingNumber },
+      });
 
-    if (hasShippingIdentifier(existing)) {
-      await db.lineItem.updateMany({
-        where: buildShippingWhereInput(existing), 
-        data: { hfhShippingNumber }, 
-      })
-    }
+      if (hasShippingIdentifier(existing)) {
+        await tx.lineItem.updateMany({
+          where: buildShippingWhereInput(existing), 
+          data: { hfhShippingNumber }, 
+        })
+      }
+    })
+    
   }
 
 
