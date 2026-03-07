@@ -48,7 +48,7 @@ export default function EditHfhShippingNumberModal({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-lg text-[#22070B]">
+      <div className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-lg">
         <h2 className="text-[20px] font-semibold leading-[28px] mb-4">
           Edit HFH Shipping #
         </h2>
@@ -70,14 +70,14 @@ export default function EditHfhShippingNumberModal({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="bg-white hover:bg-gray-100 text-[#EF3340] border-2 border-[#EF3340] font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white hover:bg-gray-100 text-red-primary border-2 border-red-primary font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isSubmitting}
-            className="bg-[#EF3340] hover:bg-[#a32027] text-white font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-red-primary hover:bg-red-primary/80 text-white font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
