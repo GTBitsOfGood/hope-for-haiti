@@ -83,11 +83,39 @@ function ActionButton({
 const tutorialSteps: Step[] = [
   {
     target: "body",
-    title: "Welcome to your Items!",
+    title: 
+    <div>
+    Welcome to your <span className="text-red-primary">Items!</span>
+    </div>,
     content:
-      "Your items page is where you can view avaliable items and send requests for them",
+    <div>
+      Your <span className="text-red-primary">items</span> page is where you will be able to browse all items available in inventory and make requests depending on your needs.
+      <p><strong>New here? Take a quick tour of this page.</strong></p>
+    </div>,
     placement: "center",
     isFixed: true,
+  },
+  {
+    target: '[data-tutorial="filter-button"]',
+    title: "Filter",
+    content: "Click here to filter your items.",
+    placement: "left",
+  },
+  {
+    target: '[data-tutorial="filter-expanded"]',
+    title: "Filter",
+    content: 
+    <div>
+      <p>Items cam be filtered by:</p>
+      <ul className="list-disc pl-5 mt-2 space-y-1">
+        <li>Name</li>
+        <li>Pallet Number</li>
+        <li>Donor Name</li>
+        <li>Date Range</li>
+      </ul>
+    </div>,
+    placement: "left",
+    spotlightPadding: 0,
   },
   {
     target: '[data-tutorial="advanced-table-row"]',
@@ -105,6 +133,10 @@ export default function PartnerItemsScreen() {
   );
 
   const tableRef = useRef<AdvancedBaseTableHandle<AvailableItemDTO>>(null);
+
+  const handleTutorialStepChange = (stepIndex: number) => {
+    tableRef.current?.setFilterMenuOpen(stepIndex === 2);
+  };
 
   const searchParams = useSearchParams();
 
@@ -315,7 +347,7 @@ export default function PartnerItemsScreen() {
 
   return (
     <div className="w-full px-4 py-6 font-[Open_Sans]">
-      <Tutorial tutorialSteps={tutorialSteps} type="items" />
+      <Tutorial tutorialSteps={tutorialSteps} type="items" onStepChange={handleTutorialStepChange}/>
       <h1 className="text-2xl font-semibold text-gray-primary mb-6">
         
         Available Items

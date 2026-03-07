@@ -334,6 +334,7 @@ function AdvancedBaseTableInner<T extends object>(
       setOpenRowIds,
       getPage: getCurrentPage,
       setPage: setPageExternally,
+      setFilterMenuOpen: setIsFilterMenuOpen,
     }),
     [
       reload,
@@ -361,6 +362,7 @@ function AdvancedBaseTableInner<T extends object>(
         {!disableFilters && filterableColumns.length > 0 && (
           <div className="relative" ref={filterMenuRef}>
             <button
+              data-tutorial="filter-button"
               type="button"
               onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
               className="flex items-center gap-2 rounded-lg border border-red-500 bg-white px-4 py-2 font-medium text-red-500 transition hover:bg-red-50"

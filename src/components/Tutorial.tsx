@@ -1,4 +1,5 @@
-import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
+import { useEffect, useState } from "react";
+import Joyride, { Step, CallBackProps, STATUS, EVENTS, ACTIONS } from "react-joyride";
 import JoyrideStep from "@/components/JoyrideStep";
 import { SessionUser, useUser } from "./context/UserContext";
 
@@ -12,16 +13,32 @@ const nameMap = {
 interface TutorialProps {
   tutorialSteps: Step[];
   type: keyof typeof nameMap;
+  onStepChange?: (stepIndex: number) => void;
 }
 
-export default function Tutorial({ tutorialSteps, type }: TutorialProps) {
+export default function Tutorial({ tutorialSteps, type, onStepChange, }: TutorialProps) {
   const { user } = useUser();
+  const [stepIndex, setStepIndex] = useState(0);
+  const [run, setRun] = useState(false);
+
+  useEffect(() => {
+    if (!user || user[nameMap[type]] || tutorialSteps.length === 0) {
+      return;
+    }
+    setRun(true);
+    onStepChange?.(0);
+  }, [user, type, tutorialSteps, onStepChange]);
   console.log(user);
   if (!user || user[nameMap[type]] || tutorialSteps.length === 0) {
     return null;
   }
+
   const handleJoyrideCallback = (data: CallBackProps) => {
-    if (data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED) {
+    const { type: eventType, index, action, status } = data;
+
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      setRun(false);
+
       fetch(`/api/users/${user.id}`, {
         method: "PATCH",
         headers: {
@@ -31,6 +48,30 @@ export default function Tutorial({ tutorialSteps, type }: TutorialProps) {
       }).catch((error) => {
         console.error("Error updating tutorial status:", error);
       });
+
+      return;
+    }
+
+    if (eventType === EVENTS.STEP_BEFORE) {
+      onStepChange?.(index);
+    }
+
+    if (eventType === EVENTS.STEP_AFTER) {
+      const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
+      const safeNextIndex = Math.max(0, nextIndex);
+
+      if (safeNextIndex === 2) {
+        onStepChange?.(2);
+
+        setTimeout(() => {
+          setStepIndex(2);
+        }, 0);
+
+        return;
+      }
+
+      onStepChange?.(safeNextIndex);
+      setStepIndex(safeNextIndex);
     }
   };
 
@@ -39,7 +80,8 @@ export default function Tutorial({ tutorialSteps, type }: TutorialProps) {
       tooltipComponent={JoyrideStep}
       continuous
       steps={tutorialSteps}
-      run={true}
+      run={run}
+      stepIndex={stepIndex}
       locale={{
         back: "Back",
         close: "Done", // used in non-continuous mode or some configs

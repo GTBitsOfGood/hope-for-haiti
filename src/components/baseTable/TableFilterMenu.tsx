@@ -328,6 +328,7 @@ export default function TableFilterMenu<T extends object>({
   return (
     <form
       ref={formRef}
+      data-tutorial="filter-expanded"
       onSubmit={updateFilters}
       className="absolute -left-[320px] top-full z-40 mt-2 flex w-[min(26rem,calc(100vw-2rem))] max-h-[70vh] flex-col overflow-hidden rounded-xl border border-gray-primary/20 bg-white text-gray-primary shadow-xl focus:outline-none"
     >

@@ -64,4 +64,5 @@ export interface AdvancedBaseTableHandle<T> {
   ) => void;
   getPage: () => number;
   setPage: (page: number) => void;
+  setFilterMenuOpen: (open: boolean) => void;
 }
