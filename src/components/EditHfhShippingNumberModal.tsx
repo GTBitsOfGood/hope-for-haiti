@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
-import toast from "react-hot-toast"
+import toast from "react-hot-toast";
+
 interface EditHfhShippingNumberModalProps {
   isOpen: boolean; 
   onClose: () => void; 
