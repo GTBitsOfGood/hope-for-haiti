@@ -37,8 +37,6 @@ export default function EditHfhShippingNumberModal({
       await promise; 
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error("Failed to update HFH Shipping #: ", error); 
     } finally {
       setIsSubmitting(false); 
     }
