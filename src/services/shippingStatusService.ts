@@ -603,6 +603,7 @@ export class ShippingStatusService {
     const existing = await db.shippingStatus.findUnique({
       where: { id },
     });
+    
     await db.shippingStatus.update({
       where: { id }, 
       data: { hfhShippingNumber }, 
