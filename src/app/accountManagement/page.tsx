@@ -335,6 +335,8 @@ export default function AccountManagementPage() {
     {
       id: "type",
       header: "Role",
+      filterType: "enum",
+      filterOptions: Object.values(UserType),
       cell: (item) => formatUserType(item.type),
     },
     {
@@ -362,28 +364,23 @@ export default function AccountManagementPage() {
   if (canManageAccounts) {
     baseColumns.push({
       id: "manage",
-      cell: (item) => {
-        const isSelf = currentUser != null && item.id === Number(currentUser.id);
-        const hideDeactivate =
-          isSelf || isProtectedUser(item);
-        return (
-          <div
-            className="flex justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <AccountDropdown
-              isPending={item.pending}
-              user={{ enabled: item.enabled }}
-              onDeleteAccount={() => handleDeleteAccount(item)}
-              onEditAccount={() => handleEditAccount(item)}
-              onDeactivateAccount={() => handleDeactivateAccount(item)}
-              onSendReminder={() => handleSendReminder(item)}
-              canManage={canManageAccounts}
-              hideDeactivateOption={hideDeactivate}
-            />
-          </div>
-        );
-      },
+      headerClassName: "text-right",
+      cell: (item) => (
+        <div
+          className="flex justify-end"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <AccountDropdown
+            isPending={item.pending}
+            user={{ enabled: item.enabled }}
+            onDeleteAccount={() => handleDeleteAccount(item)}
+            onEditAccount={() => handleEditAccount(item)}
+            onDeactivateAccount={() => handleDeactivateAccount(item)}
+            onSendReminder={() => handleSendReminder(item)}
+            canManage={canManageAccounts}
+          />
+        </div>
+      ),
     });
   }
 
@@ -407,7 +404,7 @@ export default function AccountManagementPage() {
         toolBar={
           canManageAccounts && (
             <button
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+              className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
               onClick={() => setInviteModalOpen(true)}
             >
               <Plus size={18} /> Add account

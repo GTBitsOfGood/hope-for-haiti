@@ -40,6 +40,7 @@ export default function NotificationsSection({
               key={notification.id}
               id={notification.id}
               message={notification.title}
+              dateCreated={notification.dateCreated}
               actionText={notification.actionText ?? undefined}
               actionUrl={notification.action ?? undefined}
             />

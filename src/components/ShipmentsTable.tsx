@@ -15,6 +15,7 @@ import ShipmentsLineItemChipGroup from "./chips/ShipmentsLineItemChipGroup";
 import { useUser } from "@/components/context/UserContext";
 import { hasPermission } from "@/lib/userUtils";
 import SignOffModal from "./SignOffModal";
+import { shippingStatusToText } from "@/util/util";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
@@ -37,6 +38,7 @@ export default function ShipmentsTable() {
         page: page.toString(),
         pageSize: pageSize.toString(),
         filters: JSON.stringify(filters),
+        isCompleted: "false",
       });
       const res = await apiClient.get<{ data: Shipment[]; total: number }>(
         `/api/shipments?${searchParams.toString()}`
@@ -54,6 +56,7 @@ export default function ShipmentsTable() {
     {
       id: "donorShippingNumber",
       header: "Donor Shipping #",
+      filterType: "string",
       cell: (shipment) => shipment.donorShippingNumber,
     },
     {
@@ -62,8 +65,10 @@ export default function ShipmentsTable() {
       cell: (shipment) => shipment.hfhShippingNumber,
     },
     {
-      id: "status",
+      id: "value",
       header: "Status",
+      filterType: "enum", 
+      filterOptions: Object.values(shippingStatusToText),
       cell: (shipment) => <ShippingStatusTag status={shipment.value} />,
     },
     {
@@ -99,11 +104,14 @@ export default function ShipmentsTable() {
     columns.push({
       id: "manage",
       header: "Manage",
+      headerClassName: "text-right",
       cell: (shipment) => (
-        <OptionsButton
-          shipment={shipment}
-          fetchTableData={() => tableRef.current?.reload()}
-        />
+        <div className="flex justify-end">
+          <OptionsButton
+            shipment={shipment}
+            fetchTableData={tableRef.current!.reload}
+          />
+        </div>
       ),
     });
   }
