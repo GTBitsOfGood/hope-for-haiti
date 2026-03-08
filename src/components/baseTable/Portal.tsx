@@ -21,6 +21,8 @@ interface PortalProps {
   position?: PortalPosition;
   offset?: number;
   className?: string;
+  tutorialId?: string;
+  closeOnOutsideClick?: boolean;
 }
 
 export default function Portal({
@@ -31,6 +33,8 @@ export default function Portal({
   position = "bottom",
   offset = 8,
   className = "",
+  tutorialId,
+  closeOnOutsideClick = true,
 }: PortalProps) {
   const [portalPosition, setPortalPosition] = useState({ top: -9999, left: -9999 });
   const portalRef = useRef<HTMLDivElement>(null);
@@ -128,7 +132,7 @@ export default function Portal({
 
   // Click outside to close
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !closeOnOutsideClick) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -145,13 +149,14 @@ export default function Portal({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, onClose, triggerRef]);
+  }, [isOpen, onClose, triggerRef, closeOnOutsideClick]);
 
   if (!isOpen) return null;
 
   const portalContent = (
     <div
       ref={portalRef}
+      data-tutorial={tutorialId}
       className={`fixed z-50 ${className}`}
       style={{
         top: `${portalPosition.top}px`,
@@ -166,4 +171,3 @@ export default function Portal({
     ? createPortal(portalContent, document.body)
     : null;
 }
-

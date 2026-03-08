@@ -31,7 +31,7 @@ export default function JoyrideStep({
     <div
     {...tooltipProps}
     className={cx(
-      "relative w-[480px] max-w-[30vw] rounded-2xl bg-white px-8 pt-6 pb-4 shadow-xl",
+      "relative w-[480px] max-w-[22vw] rounded-2xl bg-white px-8 pt-6 pb-4 shadow-xl",
       "flex flex-col gap-3"
     )}
   >

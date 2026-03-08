@@ -107,6 +107,8 @@ export default function RequestPopover({
       isOpen={isOpen}
       onClose={onClose}
       triggerRef={buttonRef}
+      tutorialId="request-expanded"
+      closeOnOutsideClick={item.donorOfferItemId !== -999999}
       position="right"
       className="w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4"
     >
@@ -116,39 +118,41 @@ export default function RequestPopover({
             Details pre-populated from wishlist
           </div>
         )}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Quantity
-          </label>
-          <input
-            type="number"
-            min={1}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
-            placeholder="Enter quantity"
-          />
-        </div>
+        <div className="space-y-4" data-tutorial="request-example">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Quantity
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+              placeholder="Enter quantity"
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Priority
-          </label>
-          <select
-            value={priority}
-            onChange={(e) =>
-              setPriority(e.target.value as RequestPriority | "")
-            }
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
-            style={{
-              backgroundColor: getPriorityColor(priority),
-            }}
-          >
-            <option value="">Select Priority</option>
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HIGH">High</option>
-          </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Priority
+            </label>
+            <select
+              value={priority}
+              onChange={(e) =>
+                setPriority(e.target.value as RequestPriority | "")
+              }
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+              style={{
+                backgroundColor: getPriorityColor(priority),
+              }}
+            >
+              <option value="">Select Priority</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+            </select>
+          </div>
         </div>
 
         <div>
@@ -210,6 +214,7 @@ export default function RequestPopover({
             Cancel
           </button>
           <button
+            data-tutorial="request-success"
             onClick={handleSave}
             disabled={priority === "" || (parseInt(quantity) || 0) <= 0}
             className={`px-4 py-2 text-white font-medium rounded ${

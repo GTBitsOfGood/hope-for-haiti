@@ -34,7 +34,34 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     return null;
   }
 
-  const handleJoyrideCallback = (data: CallBackProps) => {
+  const waitForTutorialTarget = async (
+    selector: string,
+    timeout = 2000
+  ): Promise<boolean> => {
+    const start = Date.now();
+
+    return new Promise((resolve) => {
+      const check = () => {
+        const element = document.querySelector(selector);
+
+        if (element) {
+          resolve(true);
+          return;
+        }
+
+        if (Date.now() - start >= timeout) {
+          resolve(false);
+          return;
+        }
+
+        requestAnimationFrame(check);
+      };
+
+      check();
+    });
+};
+
+  const handleJoyrideCallback = async (data: CallBackProps) => {
     const { type: eventType, index, action, status } = data;
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
@@ -59,27 +86,75 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     }
 
     if (eventType === EVENTS.STEP_AFTER) {
-      const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
-      const safeNextIndex = Math.max(0, nextIndex);
+  const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
+  const safeNextIndex = Math.max(0, nextIndex);
 
-      if (safeNextIndex === 2 || safeNextIndex === 3) {
-        onStepChange?.(safeNextIndex);
+  if (safeNextIndex === 2) {
+    setRun(false);
+    onStepChange?.(2);
 
-        setTimeout(() => {
-          setStepIndex(safeNextIndex);
-        }, safeNextIndex === 3 ? 50 : 0);
+    const found = await waitForTutorialTarget(
+      '[data-tutorial="filter-expanded"]'
+    );
 
-        return;
-      }
-
-      onStepChange?.(safeNextIndex);
-      setStepIndex(safeNextIndex);
+    if (found) {
+      setStepIndex(2);
     }
+
+    setRun(true);
+    return;
+  }
+
+  if (safeNextIndex === 3) {
+    setRun(false);
+    onStepChange?.(3);
+
+    const found = await waitForTutorialTarget(
+      '[data-tutorial="individual-item"]'
+    );
+
+    if (found) {
+      setStepIndex(3);
+    }
+
+    setRun(true);
+    return;
+  }
+
+  if (safeNextIndex === 5) {
+    setRun(false);
+    onStepChange?.(5);
+
+    const found = await waitForTutorialTarget(
+      '[data-tutorial="request-expanded"]'
+    );
+
+    if (!found) {
+      console.warn("Could not find request-expanded target");
+      setRun(true);
+      return;
+    }
+
+    setStepIndex(5);
+
+    requestAnimationFrame(() => {
+      setRun(true);
+    });
+
+    return;
+  }
+
+  onStepChange?.(safeNextIndex);
+  setStepIndex(safeNextIndex);
+}
   };
 
   return (
     <Joyride
       tooltipComponent={JoyrideStep}
+      floaterProps={{
+        hideArrow: true,
+      }}
       continuous
       steps={tutorialSteps}
       run={run}

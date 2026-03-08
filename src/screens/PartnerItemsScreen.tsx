@@ -123,9 +123,9 @@ const tutorialSteps: Step[] = [
     title: "Items",
     content:
       <div>
-        <strong className="py-1">This is an individual item.</strong>
-        <p>Here you can see an item&apos;s:</p>
-        <ul className="list-disc pl-5 mt-2 space-y-1">
+        <strong>This is an individual item.</strong>
+        <p className="mt-2">Here you can see an item&apos;s:</p>
+        <ul className="list-disc pl-5 space-y-1">
           <li>Actions</li>
           <li>Title & Description</li>
           <li>Expiration Date</li>
@@ -143,22 +143,23 @@ const tutorialSteps: Step[] = [
     title: "Requesting an Item",
     content:
       <div>
-        <p>Let&apos;s practice requesting an item.</p>
-        <strong className="py-3">To start the request creation process, you would click the <span className="text-red-primary">Request Item</span> button.</strong>
+        <p className="mb-2">Let&apos;s practice requesting an item.</p>
+        <strong className="space-y-3">To start the request creation process, you would click the <span className="text-red-primary">Request Item</span> button.</strong>
       </div>,
-      placement: "bottom",
+      placement: "right",
   },
   {
     target: '[data-tutorial="request-expanded"]',
     title: "Requesting an Item",
-    content: "This window is where you will create your request."
+    content: "This window is where you will create your request.",
+    placement: "right",
   },
   {
     target: '[data-tutorial="request-example"]',
     title: "Requesting an Item",
     content:
     <div>
-      <p>Let&apos;s request an example item! We want 12 canned vegetables, and it&apos;s a high priority item.</p>
+      <p className="mb-2">Let&apos;s request an example item! We want 12 canned vegetables, and it&apos;s a high priority item.</p>
       <ul>
         <li>In the <strong>Quantity</strong> box, type <strong>&quot;12&quot;</strong>.</li>
         <li>In the <strong>Priority</strong> box, select <strong>&quot;High&quot;</strong>.</li>
@@ -167,20 +168,44 @@ const tutorialSteps: Step[] = [
     placement: "right",
   },
   {
-    target: '[data-tutorial="request-example"]',
+    target: '[data-tutorial="request-success"]',
     title: "Requesting an Item",
     content:
     <div>
-      <p>You have successfully created a request!</p>
-      <strong>To complete the request creation process, you would select <span className="text-red-primary">Save</span>.</strong>
+      <p className="mb-2">You have successfully created a request!</p>
+      <strong>To complete the request creation process, you select <span className="text-red-primary">Add Request</span>.</strong>
     </div>,
     placement: "right",
   },
   {
-    target: '[data-tutorial="advanced-table-row"]',
-    title: "Items",
-    content: "Each item has its details, quantity, expiration, and type",
+    target: '[data-tutorial="requests-tab"]',
+    title: "Requests",
+    content:
+    <div>
+      Saved requests are stored in the <strong>Requests</strong> tab.
+    </div>,
     placement: "right",
+  },
+  {
+    target: '[data-tutorial="wishlist-tab"]',
+    title: "Wishlist",
+    content:
+    <div>
+      If you don&apos;t see the item you are searching for, you may click here to access your <strong>Wishlist</strong>.
+    </div>,
+    placement: "right",
+  },
+  {
+    target: 'body',
+    title:
+    <div>
+      Tutorial Completed: <span className="text-red-primary">Items</span>
+    </div>,
+    content:
+    <div>
+      You are now ready to start browsing items.
+    </div>,
+    placement: "center",
   },
 ];
 
@@ -197,49 +222,123 @@ export default function PartnerItemsScreen() {
   const originalItemsRef = useRef<AvailableItemDTO[] | null>(null);
 
   const handleTutorialEnd = () => {
-  if (tutorialRowInsertedRef.current) {
-    tableRef.current?.setItems(originalItemsRef.current ?? []);
-    tutorialRowInsertedRef.current = false;
-    originalItemsRef.current = null;
-  }
+    if (tutorialRowInsertedRef.current) {
+      tableRef.current?.setItems(originalItemsRef.current ?? []);
+      tutorialRowInsertedRef.current = false;
+      originalItemsRef.current = null;
+    }
 
-  tableRef.current?.setFilterMenuOpen(false);
-};
+    tableRef.current?.setFilterMenuOpen(false);
+    setIsPopoverOpen(false);
+    setSelectedItem(null);
+  };
 
-  const handleTutorialStepChange = (stepIndex: number) => {
+  const handleTutorialStepChange = useCallback((stepIndex: number) => {
     tableRef.current?.setFilterMenuOpen(stepIndex === 2);
 
-    if (stepIndex === 3) {
-    const currentItems = tableRef.current?.getAllItems() ?? [];
+    const shouldKeepRequestPopoverOpen =
+      stepIndex === 5 || stepIndex === 6 || stepIndex === 7;
 
-    if (currentItems.length === 0) {
-      originalItemsRef.current = currentItems;
-      tutorialRowInsertedRef.current = true;
-
-      const tutorialItem: AvailableItemDTO = {
-        id: -999999,
-        title: "Canned Vegetables",
-        description: "Tutorial example item",
-        expirationDate: new Date(),
-        availableQuantity: 24,
-        initialQuantity: 24,
-        unitType: "Case",
-        requestId: null,
-        quantityRequested: null,
-        priority: null,
-        comments: null,
-        wishlistMatch: null,
-        donorOffer: {
-          donorName: "Tutorial Donor",
-          partnerResponseDeadline: new Date().toISOString(),
-        },
-      } as AvailableItemDTO;
-
-      tableRef.current?.setItems([tutorialItem]);
+    if (!shouldKeepRequestPopoverOpen) {
+      setIsPopoverOpen(false);
+      setSelectedItem(null);
     }
-    return;
-  }
-};
+
+    if (stepIndex === 3) {
+      const currentItems = tableRef.current?.getAllItems() ?? [];
+
+      if (currentItems.length === 0) {
+        originalItemsRef.current = currentItems;
+        tutorialRowInsertedRef.current = true;
+
+        const tutorialItem: AvailableItemDTO = {
+          id: -999999,
+          title: "Canned Vegetables",
+          description: "Tutorial example item",
+          expirationDate: new Date(),
+          availableQuantity: 24,
+          initialQuantity: 24,
+          unitType: "Case",
+          requestId: null,
+          quantityRequested: null,
+          priority: null,
+          comments: null,
+          wishlistMatch: null,
+          donorOffer: {
+            donorName: "Tutorial Donor",
+            partnerResponseDeadline: new Date().toISOString(),
+          },
+        } as AvailableItemDTO;
+
+        tableRef.current?.setItems([tutorialItem]);
+      }
+      return;
+    }
+
+    if (shouldKeepRequestPopoverOpen) {
+      const currentItems = tableRef.current?.getAllItems() ?? [];
+      const tutorialItem = currentItems.find((item) => item.id === -999999);
+
+      if (tutorialItem) {
+        setSelectedItem(tutorialItem);
+        setIsPopoverOpen(true);
+      }
+
+      if (stepIndex === 6) {
+        const autoFillRequestExample = (attempt = 0) => {
+          const requestExample = document.querySelector(
+            '[data-tutorial="request-example"]'
+          );
+
+          if (!requestExample) {
+            if (attempt < 12) {
+              requestAnimationFrame(() => autoFillRequestExample(attempt + 1));
+            }
+            return;
+          }
+
+          const quantityInput = requestExample.querySelector(
+            'input[type="number"]'
+          ) as HTMLInputElement | null;
+          const prioritySelect = requestExample.querySelector(
+            "select"
+          ) as HTMLSelectElement | null;
+
+          const setNativeValue = (
+            element: HTMLInputElement | HTMLSelectElement,
+            value: string
+          ) => {
+            const prototype =
+              element instanceof HTMLInputElement
+                ? window.HTMLInputElement.prototype
+                : window.HTMLSelectElement.prototype;
+            const valueSetter = Object.getOwnPropertyDescriptor(
+              prototype,
+              "value"
+            )?.set;
+
+            valueSetter?.call(element, value);
+          };
+
+          if (quantityInput) {
+            setNativeValue(quantityInput, "12");
+            quantityInput.dispatchEvent(new Event("input", { bubbles: true }));
+            quantityInput.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+
+          if (prioritySelect) {
+            setNativeValue(prioritySelect, "HIGH");
+            prioritySelect.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        };
+
+        requestAnimationFrame(() => autoFillRequestExample());
+        return;
+      }
+
+      return;
+    }
+  }, []);
 
   const searchParams = useSearchParams();
 
