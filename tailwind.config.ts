@@ -34,6 +34,8 @@ export default {
         sunken: "#F9F9F9",
         red: {
           primary: "#ef3340",
+          dark: "#FBCED1",
+          light: "#FEF5F5",
         },
         orange: {
           primary: "#ec610b",

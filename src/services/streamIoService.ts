@@ -1,4 +1,5 @@
 import { ChannelData, StreamChat } from "stream-chat";
+import { ExtraChannelData } from "@/types/api/streamio.types";
 
 export default class StreamIoService {
   private static client: StreamChat = StreamChat.getInstance(
@@ -169,5 +170,35 @@ export default class StreamIoService {
         throw err;
       }
     }
+  }
+
+  static async closeChannel(channelId: string): Promise<void> {
+    const channel = this.client.channel("ticket", channelId);
+
+    await channel.watch(); 
+
+    await channel.update({...channel.data, closed: true } as ChannelData & {closed: boolean}); 
+  }
+
+  static async getChannelMembers(channelId: string): Promise<string[]> {
+    const channel = this.client.channel("ticket", channelId);
+    const response = await channel.queryMembers({}); 
+
+    return response.members.map(member => member.user_id).filter(Boolean) as string[];
+  }
+
+  static async getChannelData(channelId: string): Promise<{
+    name: string;
+    partnerName: string;
+    closed: boolean;
+  }> {
+    const channel = this.client.channel("ticket", channelId); 
+    await channel.watch(); 
+    const data = channel.data as ExtraChannelData; 
+    return {
+      name: (data?.name as string) || "Support Ticket", 
+      partnerName: (data?.partnerName as string) || "",
+      closed: (data?.closed as boolean) || false,
+    };
   }
 }
