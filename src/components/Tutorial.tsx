@@ -45,6 +45,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
       return;
     }
     hasFinishedRef.current = false;
+    setStepIndex(0);
     setRun(true);
     onStepChange?.(0);
   }, [user, type, tutorialSteps, onStepChange]);
@@ -117,14 +118,12 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
         return;
       }
 
-      const nextIndex =
-        action === ACTIONS.PREV ? currentIndex - 1 : currentIndex + 1;
+      const nextIndex = action === ACTIONS.PREV ? currentIndex - 1 : currentIndex + 1;
       const safeNextIndex = Math.max(
         0,
         Math.min(nextIndex, tutorialSteps.length - 1)
       );
 
-      setRun(false);
       onStepChange?.(safeNextIndex);
 
       const nextTarget = tutorialSteps[safeNextIndex]?.target;
@@ -134,14 +133,13 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
           : null;
 
       if (selector) {
-        await waitForTutorialTarget(selector, 2500);
+        const targetFoundNow = !!document.querySelector(selector);
+        if (!targetFoundNow) {
+          await waitForTutorialTarget(selector, 2500);
+        }
       }
 
       setStepIndex(safeNextIndex);
-
-      requestAnimationFrame(() => {
-        setRun(true);
-      });
     }
   };
 
@@ -149,7 +147,16 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     <Joyride
       tooltipComponent={JoyrideStep}
       floaterProps={{
+        disableAnimation: true,
         hideArrow: true,
+        styles: {
+          floater: {
+            transition: "opacity 0s",
+          },
+          floaterWithAnimation: {
+            transition: "opacity 0s, transform 0s",
+          },
+        },
       }}
       disableOverlayClose={false}
       continuous
