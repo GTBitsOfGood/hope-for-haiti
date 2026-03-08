@@ -230,6 +230,13 @@ function ResetButton() {
   );
 }
 
+function getPortalLabel(isPartnerUser: boolean, isSuper?: boolean) {
+  if (isPartnerUser) return "Partner Portal";
+  if (isSuper) return "Admin Portal";
+
+  return "Staff Portal"; 
+}
+
 function DesktopNavbar() {
   const { user } = useUser();
   const isPartnerUser = isPartner(user?.type);
@@ -243,7 +250,7 @@ function DesktopNavbar() {
       <img src="/logo.svg" alt="Hope for Haiti Logo" className="mt-6 mb-2" />
 
       <h1 className="mt-2 font-bold hidden md:block">
-        {isPartnerUser ? "Partner Portal" : "Staff Portal"}
+        {getPortalLabel(isPartnerUser, user?.isSuper)}
       </h1>
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
@@ -275,7 +282,7 @@ function MobileNavbar() {
         className={`w-full h-full flex flex-col items-start transition-all ${open ? "opacity-100" : "opacity-0"}`}
       >
         <h1 className="m-1.5 mb-1 font-semibold whitespace-nowrap">
-          {isPartnerUser ? "Partner Portal" : "Staff Portal"}
+          {getPortalLabel(isPartnerUser, user?.isSuper)}
         </h1>
 
         <hr className="mt-4 mb-3 h-0.5 bg-blue-dark border-t-0 w-full" />
