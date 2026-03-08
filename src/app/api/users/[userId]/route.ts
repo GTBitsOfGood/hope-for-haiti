@@ -120,7 +120,7 @@ export async function PATCH(
       tag: bodyParsed.data.tag,
       enabled: bodyParsed.data.enabled,
       permissions: bodyParsed.data.permissions,
-    }, session.user);
+    });
 
     return ok();
   } catch (error) {
