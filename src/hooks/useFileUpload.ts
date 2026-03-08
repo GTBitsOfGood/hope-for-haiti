@@ -70,22 +70,19 @@ export function useFileUpload<T>(
         const { errors } = await response.json();
         setErrors(errors);
         setFileUploaded(false);
-        setFileError(true);
-        setFileLoading(false);
         return;
       }
 
       const result = await response.json();
       options.onSuccess(result);
       setFileUploaded(true);
-      setFileLoading(false);
     } catch (error) {
       console.error("File processing error:", error);
+      const message = "An error occurred while processing the file. Please try again.";
       setFileError(true);
+      setErrors([message]);
+    } finally {
       setFileLoading(false);
-      setErrors([
-        "An error occurred while processing the file. Please try again.",
-      ]);
     }
   };
 

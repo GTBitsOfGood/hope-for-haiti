@@ -371,7 +371,7 @@ export default class UserService {
     });
   }
 
-  static async updateUser(data: UpdateUserData) {
+  static async updateUser(data: UpdateUserData, currentUser: User) {
     if (!data.userId || data.userId <= 0) {
       throw new ArgumentError("Valid user ID is required");
     }
@@ -392,13 +392,20 @@ export default class UserService {
       throw new ArgumentError("Name cannot be empty");
     }
 
-    if (
-      data.enabled === false &&
-      (existingUser.userWrite || existingUser.isSuper)
+    if (data.enabled === false &&
+      (existingUser.userWrite && existingUser.isSuper)
     ) {
       throw new AuthorizationError(
-        "Cannot deactivate users with userWrite or isSuper permissions"
+        "Cannot deactivate users with both userWrite and isSuper permissions"
       );
+    }
+
+    if (data.enabled === false && !currentUser.isSuper) {
+      if (existingUser.userWrite || existingUser.isSuper) {
+        throw new AuthorizationError(
+          "You do not have permission to deactivate users with equal or higher roles"
+        );
+      }
     }
 
     if (data.permissions) {
