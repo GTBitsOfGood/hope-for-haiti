@@ -157,9 +157,11 @@ function NavLinks() {
       )}
       {/* Spacer to push the profile and sign out buttons to the bottom */}
       <li className="flex-grow" />
-      <p className="px-2 mb-1 text-sm font-medium line-clamp-2 hidden md:block">
-        {isPartnerUser ? user?.siteName : user?.name}
-      </p>
+      <li>
+        <p className="px-2 mb-1 text-sm font-medium line-clamp-3 hidden md:block">
+          {isPartnerUser ? (user?.siteName ?? user?.name) : user?.name }
+        </p>
+      </li>
       <ul className="flex gap-2">
         <li className="flex-1 mt-auto">
           <NavLink
