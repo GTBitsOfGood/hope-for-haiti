@@ -149,9 +149,38 @@ const tutorialSteps: Step[] = [
       placement: "bottom",
   },
   {
+    target: '[data-tutorial="request-expanded"]',
+    title: "Requesting an Item",
+    content: "This window is where you will create your request."
+  },
+  {
+    target: '[data-tutorial="request-example"]',
+    title: "Requesting an Item",
+    content:
+    <div>
+      <p>Let&apos;s request an example item! We want 12 canned vegetables, and it&apos;s a high priority item.</p>
+      <ul>
+        <li>In the <strong>Quantity</strong> box, type <strong>&quot;12&quot;</strong>.</li>
+        <li>In the <strong>Priority</strong> box, select <strong>&quot;High&quot;</strong>.</li>
+      </ul>
+    </div>,
+    placement: "right",
+  },
+  {
+    target: '[data-tutorial="request-example"]',
+    title: "Requesting an Item",
+    content:
+    <div>
+      <p>You have successfully created a request!</p>
+      <strong>To complete the request creation process, you would select <span className="text-red-primary">Save</span>.</strong>
+    </div>,
+    placement: "right",
+  },
+  {
     target: '[data-tutorial="advanced-table-row"]',
     title: "Items",
     content: "Each item has its details, quantity, expiration, and type",
+    placement: "right",
   },
 ];
 
