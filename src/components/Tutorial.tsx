@@ -22,6 +22,21 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
 
+  const finishTutorial = () => {
+    setRun(false);
+    onTutorialEnd?.();
+
+    fetch(`/api/users/${user.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ tutorialFinished: type }),
+    }).catch((error) => {
+      console.error("Error updating tutorial status:", error);
+    });
+  };
+
   useEffect(() => {
     if (!user || user[nameMap[type]] || tutorialSteps.length === 0) {
       return;
@@ -29,7 +44,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     setRun(true);
     onStepChange?.(0);
   }, [user, type, tutorialSteps, onStepChange]);
-  console.log(user);
+
   if (!user || user[nameMap[type]] || tutorialSteps.length === 0) {
     return null;
   }
@@ -65,19 +80,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     const { type: eventType, index, action, status } = data;
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      setRun(false);
-      onTutorialEnd?.();
-
-      fetch(`/api/users/${user.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tutorialFinished: type }),
-      }).catch((error) => {
-        console.error("Error updating tutorial status:", error);
-      });
-
+      finishTutorial();
       return;
     }
 
@@ -86,67 +89,38 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     }
 
     if (eventType === EVENTS.STEP_AFTER) {
-  const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
-  const safeNextIndex = Math.max(0, nextIndex);
+      const isLastStep = index === tutorialSteps.length - 1;
 
-  if (safeNextIndex === 2) {
-    setRun(false);
-    onStepChange?.(2);
+      if (isLastStep && action !== ACTIONS.PREV) {
+        finishTutorial();
+        return;
+      }
 
-    const found = await waitForTutorialTarget(
-      '[data-tutorial="filter-expanded"]'
-    );
+      const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
+      const safeNextIndex = Math.max(
+        0,
+        Math.min(nextIndex, tutorialSteps.length - 1)
+      );
 
-    if (found) {
-      setStepIndex(2);
+      setRun(false);
+      onStepChange?.(safeNextIndex);
+
+      const nextTarget = tutorialSteps[safeNextIndex]?.target;
+      const selector =
+        typeof nextTarget === "string" && nextTarget !== "body"
+          ? nextTarget
+          : null;
+
+      if (selector) {
+        await waitForTutorialTarget(selector, 2500);
+      }
+
+      setStepIndex(safeNextIndex);
+
+      requestAnimationFrame(() => {
+        setRun(true);
+      });
     }
-
-    setRun(true);
-    return;
-  }
-
-  if (safeNextIndex === 3) {
-    setRun(false);
-    onStepChange?.(3);
-
-    const found = await waitForTutorialTarget(
-      '[data-tutorial="individual-item"]'
-    );
-
-    if (found) {
-      setStepIndex(3);
-    }
-
-    setRun(true);
-    return;
-  }
-
-  if (safeNextIndex === 5) {
-    setRun(false);
-    onStepChange?.(5);
-
-    const found = await waitForTutorialTarget(
-      '[data-tutorial="request-expanded"]'
-    );
-
-    if (!found) {
-      console.warn("Could not find request-expanded target");
-      setRun(true);
-      return;
-    }
-
-    setStepIndex(5);
-
-    requestAnimationFrame(() => {
-      setRun(true);
-    });
-
-    return;
-  }
-
-  onStepChange?.(safeNextIndex);
-  setStepIndex(safeNextIndex);
-}
   };
 
   return (
