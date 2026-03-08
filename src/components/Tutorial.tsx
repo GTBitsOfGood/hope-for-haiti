@@ -29,7 +29,10 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     setRun(false);
     onTutorialEnd?.();
 
-    fetch(`/api/users/${user.id}`, {
+    const userId = user?.id;
+    if (!userId) return;
+
+    fetch(`/api/users/${userId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -147,7 +150,6 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     <Joyride
       tooltipComponent={JoyrideStep}
       floaterProps={{
-        disableAnimation: true,
         hideArrow: true,
         styles: {
           floater: {
