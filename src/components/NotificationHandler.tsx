@@ -112,7 +112,8 @@ export default function NotificationHandler({
 
   const dismissNotification = useCallback(
     async (id: string | number) => {
-      if (Number(id) > 0) {
+      const notification = notifications.find((n) => n.id === id);
+      if (!notification?.isChat && Number(id) > 0) {
         try {
           await apiClient.delete(`/api/notifications/${id}`);
         } catch (error) {
@@ -121,7 +122,7 @@ export default function NotificationHandler({
       }
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     },
-    [apiClient]
+    [apiClient, notifications]
   );
 
   useEffect(() => {
