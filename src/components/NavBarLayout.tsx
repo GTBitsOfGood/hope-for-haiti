@@ -159,6 +159,8 @@ function NavLinks() {
       <li className="flex-grow" />
       <li>
         <p className="px-2 mb-1 text-sm font-medium line-clamp-3 hidden md:block">
+          <span className="font-normal text-xs text-gray-500">Logged in as</span>
+          <br />
           {isPartnerUser ? (user?.siteName ?? user?.name) : user?.name }
         </p>
       </li>
