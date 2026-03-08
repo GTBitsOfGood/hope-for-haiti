@@ -432,14 +432,22 @@ function AdvancedBaseTableInner<T extends object>(
                 <React.Fragment key={String(resolveRowId(item))}>
                   <tr
                     data-tutorial={
-                      rowIndex == 0 ? "advanced-table-row" : undefined
+                      String(resolveRowId(item)) === "-999999"
+                        ? "individual-item"
+                        : rowIndex === 0
+                          ? "advanced-table-row"
+                          : undefined
                     }
                     key={String(resolveRowId(item))}
                     data-row-id={resolveRowId(item)}
                     data-odd={rowIndex % 2 !== 0}
-                    className={`bg-white data-[odd=false]:bg-blue-light/35 border-b border-blue-primary/10 text-gray-primary ${
-                      onRowClick || rowBody ? "cursor-pointer" : ""
-                    } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
+                    className={`${
+                        String(resolveRowId(item)) === "-999999"
+                          ? "!bg-white"
+                          : "bg-white data-[odd=false]:bg-blue-light/35"
+                      } border-b rounded-lg border-blue-primary/10 text-gray-primary ${
+                        onRowClick || rowBody ? "cursor-pointer" : ""
+                      } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
                     onClick={(e) => {
                       onRowClick?.(item);
 
@@ -481,8 +489,9 @@ function AdvancedBaseTableInner<T extends object>(
                           className={`px-4 py-4 whitespace-nowrap overflow-visible ${
                             rowCellStyles ? rowCellStyles : ""
                           } ${column.cellClassName ? column.cellClassName : ""}`}
-                        >
-                          {getDisplayContent(rawContent)}
+                        ><div className="w-full rounded-lg">
+                            {getDisplayContent(rawContent)}
+                          </div>
                         </td>
                       );
                     })}

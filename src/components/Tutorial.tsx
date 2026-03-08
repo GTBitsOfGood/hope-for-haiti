@@ -14,9 +14,10 @@ interface TutorialProps {
   tutorialSteps: Step[];
   type: keyof typeof nameMap;
   onStepChange?: (stepIndex: number) => void;
+  onTutorialEnd?: () => void;
 }
 
-export default function Tutorial({ tutorialSteps, type, onStepChange, }: TutorialProps) {
+export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorialEnd, }: TutorialProps) {
   const { user } = useUser();
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
@@ -38,6 +39,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, }: Tutoria
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
+      onTutorialEnd?.();
 
       fetch(`/api/users/${user.id}`, {
         method: "PATCH",
@@ -60,12 +62,12 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, }: Tutoria
       const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
       const safeNextIndex = Math.max(0, nextIndex);
 
-      if (safeNextIndex === 2) {
-        onStepChange?.(2);
+      if (safeNextIndex === 2 || safeNextIndex === 3) {
+        onStepChange?.(safeNextIndex);
 
         setTimeout(() => {
-          setStepIndex(2);
-        }, 0);
+          setStepIndex(safeNextIndex);
+        }, safeNextIndex === 3 ? 50 : 0);
 
         return;
       }
@@ -82,6 +84,15 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, }: Tutoria
       steps={tutorialSteps}
       run={run}
       stepIndex={stepIndex}
+      styles={{
+        options: {
+          zIndex: 10000,
+          overlayColor: "rgba(0, 0, 0, 0.55)",
+        },
+        spotlight: {
+          borderRadius: 12,
+        },
+      }}
       locale={{
         back: "Back",
         close: "Done", // used in non-continuous mode or some configs

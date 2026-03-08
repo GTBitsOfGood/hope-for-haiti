@@ -16,18 +16,33 @@ export default function JoyrideStep({
   const totalSteps = size ?? 0;
   const showPointer = step.placement !== "center";
 
+  const arrowPositionClasses: Partial<Record<NonNullable<typeof step.placement>, string>> = {
+    left: "absolute right-[-10px] top-1/2 -translate-y-1/2",
+    right: "absolute left-[-10px] top-1/2 -translate-y-1/2",
+    top: "absolute bottom-[-10px] left-1/2 -translate-x-1/2",
+    bottom: "absolute top-[-10px] left-1/2 -translate-x-1/2",
+  };
+
+  const arrowClass = step.placement
+    ? arrowPositionClasses[step.placement]
+    : undefined;
+
   return (
     <div
-      {...tooltipProps}
-      className={cx(
-        "relative w-[480px] max-w-[20vw] rounded-2xl bg-white px-8 pt-6 pb-4 shadow-xl",
-        "flex flex-col gap-3"
-      )}
-    >
-      {/* Right-side speech bubble arrow */}
-      {showPointer && (
-        <div className="pointer-events-none absolute right-[-10px] top-1/2 h-5 w-5 -translate-y-1/2 rotate-45 bg-white shadow-xl" />
-      )}
+    {...tooltipProps}
+    className={cx(
+      "relative w-[480px] max-w-[30vw] rounded-2xl bg-white px-8 pt-6 pb-4 shadow-xl",
+      "flex flex-col gap-3"
+    )}
+  >
+    {showPointer && arrowClass && (
+      <div
+        className={cx(
+          "pointer-events-none h-5 w-5 rotate-45 bg-white shadow-xl",
+          arrowClass
+        )}
+      />
+    )}
 
       {/* Title */}
       {step.title && <h3 className="mr-7 text-2xl font-bold">{step.title}</h3>}
