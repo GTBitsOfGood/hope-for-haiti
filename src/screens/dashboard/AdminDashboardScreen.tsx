@@ -21,6 +21,8 @@ export default function AdminDashboardScreen() {
     );
   }
 
+  const hasUserRead = user.isSuper || user.userRead;
+
   return (
     <div className="w-full">
       <h1 className="text-3xl font-bold mb-8">
