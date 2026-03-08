@@ -48,6 +48,7 @@ function ActionButton({
     <div className="relative">
       <button
         ref={buttonRef}
+        data-tutorial={item.id === -999999 ? "request-button" : undefined}
         onClick={() => onOpenPopover(item)}
         className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
           hasRequest
@@ -90,7 +91,7 @@ const tutorialSteps: Step[] = [
     content:
     <div>
       Your <span className="text-red-primary">items</span> page is where you will be able to browse all items available in inventory and make requests depending on your needs.
-      <p><strong>New here? Take a quick tour of this page.</strong></p>
+      <p className="py-1"><strong>New here? Take a quick tour of this page.</strong></p>
     </div>,
     placement: "center",
     isFixed: true,
@@ -122,7 +123,7 @@ const tutorialSteps: Step[] = [
     title: "Items",
     content:
       <div>
-        <strong>This is an individual item.</strong>
+        <strong className="py-1">This is an individual item.</strong>
         <p>Here you can see an item&apos;s:</p>
         <ul className="list-disc pl-5 mt-2 space-y-1">
           <li>Actions</li>
@@ -143,7 +144,7 @@ const tutorialSteps: Step[] = [
     content:
       <div>
         <p>Let&apos;s practice requesting an item.</p>
-        <strong>To start the request creation process, you would click the <span className="text-red-primary">Request Item</span> button.</strong>
+        <strong className="py-3">To start the request creation process, you would click the <span className="text-red-primary">Request Item</span> button.</strong>
       </div>,
       placement: "bottom",
   },
