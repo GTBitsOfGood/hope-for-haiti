@@ -44,10 +44,12 @@ const NotificationContext = createContext<{
   notifications: UnifiedNotification[];
   refreshNotifications: () => Promise<void>;
   dismissNotification: (id: string | number) => Promise<void>;
+  chatUnreadCount: number;
 }>({
   notifications: [],
   refreshNotifications: async () => {},
   dismissNotification: async () => {},
+  chatUnreadCount: 0,
 });
 
 export function useNotifications() {
@@ -64,6 +66,8 @@ export default function NotificationHandler({
   const router = useRouter();
   const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
+
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   // Ensure that mirroring doesn't overwrite sessionStorage before loading
   const isHydrated = useRef(false);
@@ -112,7 +116,8 @@ export default function NotificationHandler({
 
   const dismissNotification = useCallback(
     async (id: string | number) => {
-      if (Number(id) > 0) {
+      const notification = notifications.find((n) => n.id === id);
+      if (!notification?.isChat && Number(id) > 0) {
         try {
           await apiClient.delete(`/api/notifications/${id}`);
         } catch (error) {
@@ -121,7 +126,7 @@ export default function NotificationHandler({
       }
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     },
-    [apiClient]
+    [apiClient, notifications]
   );
 
   useEffect(() => {
@@ -235,6 +240,25 @@ export default function NotificationHandler({
     );
     let didInterrupt = false;
 
+    const refreshChatUnreadCount = async () => {
+      try {
+        const channels = await streamClient.queryChannels(
+          {
+            type: "ticket",
+            members: { $in: [user.streamUserId!] },
+          },
+          {}
+        );
+        const total = channels.reduce(
+          (sum, ch) => sum + (ch.state.unreadCount ?? 0),
+          0
+        );
+        setChatUnreadCount(total);
+      } catch (error) {
+        console.error("Failed to query chat unread count:", error);
+      }
+    };
+
     const handleTicketMessage = (event: Event) => {
       if (event.channel_type !== "ticket") {
         return;
@@ -276,6 +300,8 @@ export default function NotificationHandler({
         ...prev,
       ]);
 
+      setChatUnreadCount((prev) => prev + 1);
+
       toast.custom(
         (t: Toast) => (
           <NotificationCard
@@ -292,6 +318,11 @@ export default function NotificationHandler({
       );
     };
 
+    const handleMarkRead = (event: Event) => {
+      if (event.channel_type !== "ticket") return;
+      refreshChatUnreadCount();
+    };
+
     streamClient
       .connectUser(
         {
@@ -300,10 +331,11 @@ export default function NotificationHandler({
         },
         user.streamUserToken
       )
-      .then(() => {
-        if (!didInterrupt) {
-          streamClient.on("notification.message_new", handleTicketMessage);
-        }
+      .then(async () => {
+        if (didInterrupt) return;
+        await refreshChatUnreadCount();
+        streamClient.on("notification.message_new", handleTicketMessage);
+        streamClient.on("notification.mark_read", handleMarkRead);
       })
       .catch((error) => {
         console.error(
@@ -315,6 +347,7 @@ export default function NotificationHandler({
     return () => {
       didInterrupt = true;
       streamClient.off("notification.message_new", handleTicketMessage);
+      streamClient.off("notification.mark_read", handleMarkRead);
       streamClient
         .disconnectUser()
         .catch((error) =>
@@ -334,8 +367,13 @@ export default function NotificationHandler({
   ]);
 
   const value = useMemo(
-    () => ({ notifications, refreshNotifications, dismissNotification }),
-    [notifications, refreshNotifications, dismissNotification]
+    () => ({
+      notifications,
+      refreshNotifications,
+      dismissNotification,
+      chatUnreadCount,
+    }),
+    [notifications, refreshNotifications, dismissNotification, chatUnreadCount]
   );
 
   return (
