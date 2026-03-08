@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Joyride, { Step, CallBackProps, STATUS, EVENTS, ACTIONS } from "react-joyride";
 import JoyrideStep from "@/components/JoyrideStep";
 import { SessionUser, useUser } from "./context/UserContext";
@@ -21,8 +21,11 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
   const { user } = useUser();
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
+  const hasFinishedRef = useRef(false);
 
   const finishTutorial = () => {
+    if (hasFinishedRef.current) return;
+    hasFinishedRef.current = true;
     setRun(false);
     onTutorialEnd?.();
 
@@ -41,6 +44,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     if (!user || user[nameMap[type]] || tutorialSteps.length === 0) {
       return;
     }
+    hasFinishedRef.current = false;
     setRun(true);
     onStepChange?.(0);
   }, [user, type, tutorialSteps, onStepChange]);
@@ -78,25 +82,43 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
 
   const handleJoyrideCallback = async (data: CallBackProps) => {
     const { type: eventType, index, action, status } = data;
+    const currentIndex = typeof index === "number" ? index : stepIndex;
+    const lastIndex = tutorialSteps.length - 1;
+    const isOnLastStep = currentIndex === lastIndex;
+    const endedByClose = action === ACTIONS.CLOSE;
+    const endedBySkip = action === ACTIONS.SKIP;
+    const endedByDone =
+      (status === STATUS.FINISHED && isOnLastStep) ||
+      (eventType === EVENTS.STEP_AFTER &&
+        action === ACTIONS.NEXT &&
+        isOnLastStep);
 
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+    if (endedByClose || endedBySkip || endedByDone) {
       finishTutorial();
       return;
     }
 
-    if (eventType === EVENTS.STEP_BEFORE) {
-      onStepChange?.(index);
+    // Ignore terminal statuses triggered by non-user navigation edge cases.
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      return;
     }
 
-    if (eventType === EVENTS.STEP_AFTER) {
-      const isLastStep = index === tutorialSteps.length - 1;
+    if (eventType === EVENTS.STEP_BEFORE) {
+      if (typeof index === "number") {
+        onStepChange?.(index);
+      }
+    }
 
-      if (isLastStep && action !== ACTIONS.PREV) {
-        finishTutorial();
+    if (
+      eventType === EVENTS.STEP_AFTER ||
+      eventType === EVENTS.TARGET_NOT_FOUND
+    ) {
+      if (action !== ACTIONS.NEXT && action !== ACTIONS.PREV) {
         return;
       }
 
-      const nextIndex = action === ACTIONS.PREV ? index - 1 : index + 1;
+      const nextIndex =
+        action === ACTIONS.PREV ? currentIndex - 1 : currentIndex + 1;
       const safeNextIndex = Math.max(
         0,
         Math.min(nextIndex, tutorialSteps.length - 1)
@@ -129,6 +151,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
       floaterProps={{
         hideArrow: true,
       }}
+      disableOverlayClose={false}
       continuous
       steps={tutorialSteps}
       run={run}
