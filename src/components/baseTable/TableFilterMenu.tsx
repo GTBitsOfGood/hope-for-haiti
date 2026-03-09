@@ -330,7 +330,7 @@ export default function TableFilterMenu<T extends object>({
       ref={formRef}
       data-tutorial="filter-expanded"
       onSubmit={updateFilters}
-      className="absolute -left-[320px] top-full z-40 mt-2 flex w-[min(26rem,calc(100vw-2rem))] max-h-[70vh] flex-col overflow-hidden rounded-xl border border-gray-primary/20 bg-white text-gray-primary shadow-xl focus:outline-none"
+      className="absolute right-0 top-full z-40 mt-2 flex w-[min(26rem,calc(100vw-2rem))] max-h-[70vh] flex-col overflow-hidden rounded-xl border border-gray-primary/20 bg-white text-gray-primary shadow-xl focus:outline-none"
     >
       <div className="border-b border-gray-primary/10 bg-white px-4 py-3">
         <div className="flex flex-col gap-3">

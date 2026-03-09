@@ -60,6 +60,17 @@ export default function AddToWishlistModal({
   const [searching, setSearching] = useState<boolean>(false);
   const [hardMatch, setHardMatch] = useState<boolean>(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tutorialSuggestions = tutorialState?.suggestions;
+  const displaySuggestions = tutorialSuggestions ?? suggestions;
+  const isTutorialSuggestions =
+    (tutorialSuggestions?.length ?? 0) > 0;
+  const effectiveHardMatch =
+    tutorialState?.hardMatch ??
+    (tutorialSuggestions
+      ? tutorialSuggestions.some((hit) => hit.strength === "hard")
+      : hardMatch);
+  const showSuggestions =
+    displaySuggestions.length > 0 && (!searching || Boolean(tutorialSuggestions));
 
   const suggestionColumns: ColumnDefinition<AddToWishlistSuggestion>[] = [
     {
@@ -229,14 +240,14 @@ export default function AddToWishlistModal({
                 </ModalFormRow>
 
                 {/* Suggestions block (red highlighted) */}
-                {!searching && suggestions.length > 0 && (
+                {showSuggestions && (
                   <>
                     <div
                       className="rounded-lg border border-red-primary bg-red-50/50 p-3 md:p-4"
                       data-tutorial="wishlist-suggestions"
                     >
                       <div className="mb-3">
-                        {hardMatch ? (
+                        {effectiveHardMatch ? (
                           <h3 className="text-red-primary font-semibold text-lg">
                             This item already exists in our inventory. <br />{" "}
                             Please request that item instead.
@@ -249,26 +260,46 @@ export default function AddToWishlistModal({
                         )}
                       </div>
 
-                      <AdvancedBaseTable<AddToWishlistSuggestion>
-                        columns={suggestionColumns}
-                        fetchFn={suggestionFetchFn}
-                        rowId="id"
-                        headerClassName="bg-red-primary/80 text-white"
-                        rowCellStyles="border border-transparent bg-white"
-                        emptyState={
-                          <div className="py-3 text-sm text-red-700">
-                            No similar items found.
+                      {isTutorialSuggestions ? (
+                        <div className="overflow-hidden rounded border border-red-primary/25 bg-white">
+                          <div className="grid grid-cols-2 bg-red-primary/80 px-4 py-2 text-sm font-medium text-white">
+                            <span>Title</span>
+                            <span>Quantity</span>
                           </div>
-                        }
-                        toolBar={null}
-                        disablePagination
-                        disableFilters
-                      />
+                          {displaySuggestions.map((suggestion) => (
+                            <div
+                              key={suggestion.id}
+                              className="grid grid-cols-2 border-t border-gray-100 px-4 py-2 text-sm text-gray-900"
+                            >
+                              <span>{suggestion.title}</span>
+                              <span>{suggestion.quantity ?? "-"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <AdvancedBaseTable<AddToWishlistSuggestion>
+                          columns={suggestionColumns}
+                          fetchFn={suggestionFetchFn}
+                          rowId="id"
+                          headerClassName="bg-red-primary/80 text-white"
+                          rowCellStyles="border border-transparent bg-white"
+                          emptyState={
+                            <div className="py-3 text-sm text-red-700">
+                              No similar items found.
+                            </div>
+                          }
+                          toolBar={null}
+                          disablePagination
+                          disableFilters
+                        />
+                      )}
                     </div>
 
                     <div className="mt-6 flex gap-4">
                       <Link
-                        href={`/items?initialItems=${encodeURIComponent(JSON.stringify(suggestions.map((s) => s.id)))}`}
+                        href={`/items?initialItems=${encodeURIComponent(
+                          JSON.stringify(displaySuggestions.map((s) => s.id))
+                        )}`}
                         className="inline-block w-1/2 rounded-lg border border-red-primary px-4 py-2 font-medium text-red-primary hover:bg-red-50 active:translate-y-px text-center"
                       >
                         Go to Items Page
@@ -278,9 +309,9 @@ export default function AddToWishlistModal({
                       <button
                         type="button"
                         onClick={goToStep2}
-                        disabled={hardMatch || !form.name.trim()}
+                        disabled={effectiveHardMatch || !form.name.trim()}
                         className={`w-1/2 rounded-lg px-4 py-2 font-medium text-white active:translate-y-px ${
-                          hardMatch || !form.name.trim()
+                          effectiveHardMatch || !form.name.trim()
                             ? "bg-red-300 cursor-not-allowed"
                             : "bg-red-primary hover:brightness-95"
                         }`}
@@ -292,7 +323,7 @@ export default function AddToWishlistModal({
                 )}
 
                 {/* No suggestions but non-empty title */}
-                {!searching && suggestions.length === 0 && form.name !== "" && (
+                {!searching && displaySuggestions.length === 0 && form.name !== "" && (
                   <button
                     type="button"
                     onClick={goToStep2}

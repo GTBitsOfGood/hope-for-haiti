@@ -144,7 +144,7 @@ const tutorialSteps: Step[] = [
     content:
       <div>
         <p className="mb-2">Let&apos;s practice requesting an item.</p>
-        <strong className="space-y-3">To start the request creation process, you would click the <span className="text-red-primary">Request Item</span> button.</strong>
+        <strong className="space-y-3">To start the request creation process, you would click the <span className="text-red-primary">Add Request</span> button.</strong>
       </div>,
       placement: "right",
   },
