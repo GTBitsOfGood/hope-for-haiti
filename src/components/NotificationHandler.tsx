@@ -8,8 +8,8 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
 } from "react";
-import FloatingNotification from "./dashboard/FloatingNotification";
 import { useUser } from "./context/UserContext";
 import { Notification } from "@prisma/client";
 import toast, { Toast } from "react-hot-toast";
@@ -43,9 +43,11 @@ function getRealtimeClient() {
 const NotificationContext = createContext<{
   notifications: UnifiedNotification[];
   refreshNotifications: () => Promise<void>;
+  dismissNotification: (id: string | number) => Promise<void>;
 }>({
   notifications: [],
   refreshNotifications: async () => {},
+  dismissNotification: async () => {},
 });
 
 export function useNotifications() {
@@ -63,12 +65,80 @@ export default function NotificationHandler({
   const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
 
+  // Ensure that mirroring doesn't overwrite sessionStorage before loading
+  const isHydrated = useRef(false);
+
   useEffect(() => {
     const realtime = getRealtimeClient();
     if (!realtime) return;
     setClient(realtime);
     if (realtime.connection.state === "initialized") realtime.connect();
   }, []);
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("chat_notifications");
+      if (stored) {
+        const parsed: UnifiedNotification[] = JSON.parse(stored);
+        // Re-instantiate dateCreated using new Date() as JSON serialization turns dates into strings
+        const hydrated = parsed.map((n) => ({
+          ...n,
+          dateCreated: new Date(n.dateCreated),
+        }));
+        setNotifications((prev) => [...hydrated, ...prev]);
+      }
+    } catch (error) {
+      console.error("Failed to hydrate chat notifications:", error);
+    } finally {
+      isHydrated.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated.current) return;
+    const chatNotifications = notifications.filter((n) => n.isChat);
+    try {
+      sessionStorage.setItem(
+        "chat_notifications",
+        JSON.stringify(chatNotifications)
+      );
+    } catch (e) {
+      console.error(
+        "Failed to mirror chat notifications to sessionStorage:",
+        e
+      );
+    }
+  }, [notifications]);
+
+  const dismissNotification = useCallback(
+    async (id: string | number) => {
+      const notification = notifications.find((n) => n.id === id);
+      if (!notification?.isChat && Number(id) > 0) {
+        try {
+          await apiClient.delete(`/api/notifications/${id}`);
+        } catch (error) {
+          console.error(`Failed to delete notification ${id}: ${error}`);
+        }
+      }
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    },
+    [apiClient, notifications]
+  );
+
+  useEffect(() => {
+    if (!user) {
+      sessionStorage.removeItem("chat_notifications");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const currentUrl = `${pathname}${
+      searchParams.toString() ? `?${searchParams.toString()}` : ""
+    }`;
+    setNotifications((prev) =>
+      prev.filter((n) => !n.isChat || n.action !== currentUrl)
+    );
+  }, [pathname, searchParams]);
 
   const refreshNotifications = useCallback(async () => {
     if (!user?.id) return;
@@ -85,7 +155,11 @@ export default function NotificationHandler({
         dateCreated: new Date(n.dateCreated),
         isChat: false,
       }));
-      setNotifications(mapped);
+
+      setNotifications((prev) => {
+        const chatNotifs = prev.filter((n) => n.isChat);
+        return [...chatNotifs, ...mapped];
+      });
     } catch (error) {
       console.error(`Failed to fetch notifications: ${error}`);
     }
@@ -261,13 +335,12 @@ export default function NotificationHandler({
   ]);
 
   const value = useMemo(
-    () => ({ notifications, refreshNotifications }),
-    [notifications, refreshNotifications]
+    () => ({ notifications, refreshNotifications, dismissNotification }),
+    [notifications, refreshNotifications, dismissNotification]
   );
 
   return (
     <NotificationContext.Provider value={value}>
-      <FloatingNotification notifications={notifications} />
       {children}
     </NotificationContext.Provider>
   );

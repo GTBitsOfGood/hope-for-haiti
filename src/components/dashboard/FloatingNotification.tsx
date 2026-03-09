@@ -3,15 +3,10 @@
 import { useState } from "react";
 import { Bell } from "@phosphor-icons/react";
 import NotificationsPanel from "./NotificationsPanel";
-import { UnifiedNotification } from "../NotificationHandler";
+import { useNotifications } from "../NotificationHandler";
 
-interface FloatingNotificationProps {
-  notifications: UnifiedNotification[];
-}
-
-export default function FloatingNotification({
-  notifications,
-}: FloatingNotificationProps) {
+export default function FloatingNotification() {
+  const { notifications } = useNotifications();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const unreadCount = notifications.length;
 
