@@ -2,7 +2,6 @@
 
 import { useStreamClient } from "@/hooks/useStreamClient";
 import { useEffect, useState, useRef } from "react";
-import ReactMarkdown from "react-markdown";
 
 export default function WishlistSummary() {
   const [fullText, setFullText] = useState<string>("");
@@ -11,6 +10,7 @@ export default function WishlistSummary() {
   const { isStreaming, streamClient } = useStreamClient<string>();
   const hasStreamed = useRef(false);
   const typewriterInterval = useRef<NodeJS.Timeout | null>(null);
+  const [isRequested, setIsRequested] = useState(false);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -60,10 +60,11 @@ export default function WishlistSummary() {
   }, [fullText, isLoading, displayedText]);
 
   useEffect(() => {
-    if (hasStreamed.current) return;
-    hasStreamed.current = true;
+    if (!isRequested || hasStreamed.current) return;
 
     const startStream = async () => {
+      hasStreamed.current = true; 
+
       try {
         await streamClient.stream("/api/wishlists/summary", {
           onChunk: (chunk) => {
@@ -76,12 +77,14 @@ export default function WishlistSummary() {
             console.error("Streaming error:", error);
             setFullText("Unable to load summary.");
             setIsLoading(false);
+            hasStreamed.current = false; 
           },
         });
       } catch (error) {
         console.error("Failed to start stream:", error);
         setFullText("Unable to load summary.");
         setIsLoading(false);
+        hasStreamed.current = false;
       }
     };
 
@@ -90,29 +93,35 @@ export default function WishlistSummary() {
     return () => {
       streamClient.cancel();
     };
-  }, [streamClient]);
+    
+  }, [streamClient, isRequested]);
 
   const showContainer = displayedText.length > 0;
   const showCursor = isLoading || isStreaming || displayedText.length < fullText.length;
 
   return (
-    <div
-      className={`mt-8 mb-5 ${
-        showContainer 
-          ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" 
-          : "h-0"
-      } transition-all duration-200 text-md text-black`}
-    >
-      {displayedText.split("\n").map((line, index, array) => (
-        <div key={index} className={line.trim() === "" ? "h-4" : "mb-2 last:mb-0 inline-block w-full"}>
-          <ReactMarkdown components={{ p: "span" }}>
-            {line}
-          </ReactMarkdown>
-          {showCursor && index === array.length - 1 && (
-            <span className="animate-pulse">|</span>
-          )}
+    <div className="w-full">
+      {!isRequested && (
+        <div className="flex justify-start mb-4">
+          <button
+            onClick={() => setIsRequested(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#2D5DA1] text-white rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            Generate AI Summary
+          </button>
         </div>
-      ))}
+      )}
+
+      <div
+        className={`mt-4 mb-5 ${
+          isRequested && showContainer 
+            ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" 
+            : "hidden"
+        } transition-all duration-200`}
+      >
+        {displayedText}
+        {showCursor && <span className="animate-pulse">|</span>}
+      </div>
     </div>
   );
 }
