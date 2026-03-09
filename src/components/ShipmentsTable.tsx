@@ -7,7 +7,7 @@ import AdvancedBaseTable, {
 } from "./baseTable/AdvancedBaseTable";
 import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./chips/Chip";
-import { DotsThree, Clock } from "@phosphor-icons/react";
+import { DotsThree, Clock, Pencil } from "@phosphor-icons/react";
 import Portal from "./baseTable/Portal";
 import ChangeShippingStatusMenu from "./ChangeShippingStatusMenu";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
@@ -205,6 +205,7 @@ function OptionsButton({
           }}
           className="flex items-center w-full px-4 py-2 text-sm text-left transition-colors duration-150 hover:bg-gray-50 text-gray-900 cursor-pointer"
         >
+          <Pencil size={16} className="mr-3 flex-shrink-0" />
           <p>Edit HFH Shipping #</p>
         </button>
       </Portal>
