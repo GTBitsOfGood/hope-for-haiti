@@ -63,6 +63,9 @@ export default function WishlistSummary() {
   useEffect(() => {
     if (!isRequested || hasStreamed.current) return;
 
+  useEffect(() => {
+    if (!isRequested || hasStreamed.current) return;
+
     const startStream = async () => {
       hasStreamed.current = true; 
 
@@ -79,6 +82,7 @@ export default function WishlistSummary() {
             setFullText("Unable to load summary.");
             setIsLoading(false);
             hasStreamed.current = false; 
+            setIsRequested(false);
           },
         });
       } catch (error) {
@@ -86,6 +90,7 @@ export default function WishlistSummary() {
         setFullText("Unable to load summary.");
         setIsLoading(false);
         hasStreamed.current = false;
+        setIsRequested(false);
       }
     };
 
