@@ -63,9 +63,6 @@ export default function WishlistSummary() {
   useEffect(() => {
     if (!isRequested || hasStreamed.current) return;
 
-  useEffect(() => {
-    if (!isRequested || hasStreamed.current) return;
-
     const startStream = async () => {
       hasStreamed.current = true; 
 
