@@ -16,7 +16,7 @@ import toast, { Toast } from "react-hot-toast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { NotificationCard } from "./dashboard";
-import { StreamChat, Event } from "stream-chat";
+import { StreamChat, Event as StreamEvent } from "stream-chat";
 
 let realtimeInstance: Ably.Realtime | null = null;
 
@@ -245,7 +245,7 @@ export default function NotificationHandler({
     );
     let didInterrupt = false;
 
-    const handleTicketMessage = (event: Event) => {
+    const handleTicketMessage = (event: StreamEvent) => {
       if (event.channel_type !== "ticket") {
         return;
       }
