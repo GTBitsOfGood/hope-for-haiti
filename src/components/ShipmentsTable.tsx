@@ -7,7 +7,7 @@ import AdvancedBaseTable, {
 } from "./baseTable/AdvancedBaseTable";
 import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./chips/Chip";
-import { DotsThree, Clock } from "@phosphor-icons/react";
+import { DotsThree, Clock, Pencil } from "@phosphor-icons/react";
 import Portal from "./baseTable/Portal";
 import ChangeShippingStatusMenu from "./ChangeShippingStatusMenu";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
@@ -16,6 +16,7 @@ import { useUser } from "@/components/context/UserContext";
 import { hasPermission } from "@/lib/userUtils";
 import SignOffModal from "./SignOffModal";
 import { shippingStatusToText } from "@/util/util";
+import EditHfhShippingNumberModal from "./EditHfhShippingNumberModal";
 
 export default function ShipmentsTable() {
   const { apiClient } = useApiClient();
@@ -162,6 +163,8 @@ function OptionsButton({
 }) {
   const [isBaseDropdownOpen, setIsBaseDropdownOpen] = useState(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [isHfhModalOpen, setIsHfhModalOpen] = useState(false); 
+
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -194,6 +197,17 @@ function OptionsButton({
           <Clock size={16} className="mr-3 flex-shrink-0" />
           <p>Change Status</p>
         </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsHfhModalOpen(true); 
+            setIsBaseDropdownOpen(false); 
+          }}
+          className="flex items-center w-full px-4 py-2 text-sm text-left transition-colors duration-150 hover:bg-gray-50 text-gray-900 cursor-pointer"
+        >
+          <Pencil size={16} className="mr-3 flex-shrink-0" />
+          <p>Edit HFH Shipping #</p>
+        </button>
       </Portal>
       <Portal
         isOpen={isStatusDropdownOpen}
@@ -213,6 +227,14 @@ function OptionsButton({
           />
         </div>
       </Portal>
+
+      <EditHfhShippingNumberModal
+        isOpen={isHfhModalOpen}
+        onClose={() => setIsHfhModalOpen(false)}
+        onSuccess={() => fetchTableData()}
+        shipmentId={shipment.id}
+        currentHfhShippingNumber={shipment.hfhShippingNumber}
+      />
     </div>
   );
 }

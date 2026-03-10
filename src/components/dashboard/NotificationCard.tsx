@@ -1,4 +1,3 @@
-import { useApiClient } from "@/hooks/useApiClient";
 import { Warning, ChatsTeardrop, X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { Toast } from "react-hot-toast";
@@ -49,50 +48,19 @@ export default function NotificationCard({
     return "now";
   };
 
-  const { apiClient } = useApiClient();
   const router = useRouter();
-  const { refreshNotifications } = useNotifications();
+  const { dismissNotification } = useNotifications();
 
   const handleClick = async (redirect: boolean) => {
     if (!actionUrl) return;
-
     if (t) toast.dismiss(t.id);
-
-    if (!isChat && Number(id) > 0) {
-      try {
-        await apiClient.delete(`/api/notifications/${id}`);
-      } catch (error) {
-        console.error(`Failed to delete notification ${id}: ${error}`);
-      }
-
-      try {
-        await refreshNotifications();
-      } catch (error) {
-        console.error("Failed to refresh notifications", error);
-      }
-    }
-
+    await dismissNotification(id);
     if (redirect) router.push(actionUrl);
   };
 
   const handleClose = async () => {
-    // If toast, then dismiss
-    // If stored in db, then delete
     if (t) toast.dismiss(t.id);
-
-    if (!isChat && Number(id) > 0) {
-      try {
-        await apiClient.delete(`/api/notifications/${id}`);
-      } catch (error) {
-        console.error(`Failed to delete notification ${id}: ${error}`);
-      }
-
-      try {
-        await refreshNotifications();
-      } catch (error) {
-        console.error("Failed to refresh notifications", error);
-      }
-    }
+    await dismissNotification(id);
   };
 
   const styles = isChat

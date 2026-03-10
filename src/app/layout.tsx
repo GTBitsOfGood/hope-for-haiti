@@ -4,6 +4,7 @@ import "react-tooltip/dist/react-tooltip.css";
 
 import AuthenticationProvider from "@/components/AuthenticationProvider";
 import NotificationHandler from "@/components/NotificationHandler";
+import FloatingNotification from "@/components/dashboard/FloatingNotification";
 import { Toaster } from "react-hot-toast";
 import NavbarLayout from "@/components/NavBarLayout";
 
@@ -28,7 +29,7 @@ export default function RootLayout({
               containerClassName="general-toaster"
               containerStyle={{
                 top: 20,
-                right: 80
+                right: 80,
               }}
               toastOptions={{
                 duration: 4000,
@@ -49,6 +50,7 @@ export default function RootLayout({
                 },
               }}
             />
+            <FloatingNotification />
           </NotificationHandler>
         </AuthenticationProvider>
       </body>
