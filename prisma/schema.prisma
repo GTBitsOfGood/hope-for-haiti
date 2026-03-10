@@ -135,6 +135,11 @@ model User {
 
   streamUserId    String? @unique
   streamUserToken String? @unique
+
+  dashboardTutorial Boolean @default(false)
+  itemsTutorial Boolean @default(false)
+  requestsTutorial Boolean @default(false)
+  wishlistsTutorial Boolean @default(false)
 }
 
 model UserInvite {

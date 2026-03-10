@@ -41,6 +41,7 @@ const patchBodySchema = z.object({
   role: z.nativeEnum(UserType).optional(),
   enabled: z.boolean().optional(),
   permissions: permissionsSchema.optional(),
+  tutorialFinished: z.string().optional(),
 });
 
 export async function GET(
@@ -80,10 +81,14 @@ export async function PATCH(
     if (!session?.user) {
       throw new AuthenticationError("Session required");
     }
-
-    UserService.checkPermission(session.user, "userWrite");
+    if (session.user.type === UserType.STAFF) {
+      UserService.checkPermission(session.user, "userWrite");
+    }
 
     const { userId } = await params;
+    if (session.user.type === UserType.PARTNER && userId !== session.user.id) {
+      throw new AuthorizationError("Partners can only modify their own user");
+    }
     const parsed = paramSchema.safeParse({ userId });
 
     if (!parsed.success) {
@@ -95,7 +100,7 @@ export async function PATCH(
     if (!bodyParsed.success) {
       throw new ArgumentError(bodyParsed.error.message);
     }
-    
+
     // These checks relate to the session user - the ones in userService relate to the target user
     const isSelf = session.user.id === parsed.data.userId.toString();
 
@@ -108,8 +113,13 @@ export async function PATCH(
       }
     }
 
-    if (bodyParsed.data.permissions?.userWrite !== undefined && !session.user.isSuper) {
-      throw new AuthorizationError("You must have isSuper to edit userWrite permission");
+    if (
+      bodyParsed.data.permissions?.userWrite !== undefined &&
+      !session.user.isSuper
+    ) {
+      throw new AuthorizationError(
+        "You must have isSuper to edit userWrite permission"
+      );
     }
 
     await UserService.updateUser({
@@ -120,6 +130,13 @@ export async function PATCH(
       tag: bodyParsed.data.tag,
       enabled: bodyParsed.data.enabled,
       permissions: bodyParsed.data.permissions,
+      dashboardTutorial:
+        bodyParsed.data.tutorialFinished === "dashboard" || undefined,
+      itemsTutorial: bodyParsed.data.tutorialFinished === "items" || undefined,
+      requestsTutorial:
+        bodyParsed.data.tutorialFinished === "requests" || undefined,
+      wishlistsTutorial:
+        bodyParsed.data.tutorialFinished === "wishlists" || undefined,
     });
 
     return ok();

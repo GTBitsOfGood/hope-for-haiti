@@ -15,7 +15,7 @@ import { $Enums, Wishlist } from "@prisma/client";
 import ModalDropDown from "./ModalDropDown";
 import { titleCase } from "@/util/util";
 
-type Suggestion = {
+export type AddToWishlistSuggestion = {
   id: number;
   title: string;
   donorOfferId: number | null;
@@ -35,12 +35,19 @@ interface AddToWishlistModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: Wishlist) => void;
+  tutorialState?: {
+    step?: 1 | 2;
+    form?: Partial<AddToWishlistForm>;
+    suggestions?: AddToWishlistSuggestion[];
+    hardMatch?: boolean;
+  } | null;
 }
 
 export default function AddToWishlistModal({
   isOpen,
   onClose,
   onSave,
+  tutorialState = null,
 }: AddToWishlistModalProps) {
   const { apiClient } = useApiClient();
 
@@ -49,12 +56,23 @@ export default function AddToWishlistModal({
     name: "",
   });
 
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<AddToWishlistSuggestion[]>([]);
   const [searching, setSearching] = useState<boolean>(false);
   const [hardMatch, setHardMatch] = useState<boolean>(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tutorialSuggestions = tutorialState?.suggestions;
+  const displaySuggestions = tutorialSuggestions ?? suggestions;
+  const isTutorialSuggestions =
+    (tutorialSuggestions?.length ?? 0) > 0;
+  const effectiveHardMatch =
+    tutorialState?.hardMatch ??
+    (tutorialSuggestions
+      ? tutorialSuggestions.some((hit) => hit.strength === "hard")
+      : hardMatch);
+  const showSuggestions =
+    displaySuggestions.length > 0 && (!searching || Boolean(tutorialSuggestions));
 
-  const suggestionColumns: ColumnDefinition<Suggestion>[] = [
+  const suggestionColumns: ColumnDefinition<AddToWishlistSuggestion>[] = [
     {
       id: "title",
       header: "Title",
@@ -71,6 +89,7 @@ export default function AddToWishlistModal({
 
   useEffect(() => {
     if (!isOpen || step !== 1) return;
+    if (tutorialState?.suggestions) return;
 
     const q = form.name.trim();
     if (!q) {
@@ -83,7 +102,9 @@ export default function AddToWishlistModal({
     debounceTimer.current = setTimeout(async () => {
       try {
         const url = `/api/generalItems/compare?${new URLSearchParams({ title: q }).toString()}`;
-        const resp = await apiClient.get<{ results?: Suggestion[] }>(url);
+        const resp = await apiClient.get<{
+          results?: AddToWishlistSuggestion[];
+        }>(url);
         const hits = resp?.results ?? [];
         setSuggestions(hits);
         setHardMatch(hits.some((h) => h.strength === "hard"));
@@ -96,11 +117,42 @@ export default function AddToWishlistModal({
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [form.name, apiClient, isOpen, step]);
+  }, [form.name, apiClient, isOpen, step, tutorialState]);
 
   useEffect(() => {
     if (isOpen) setStep(1);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !tutorialState) return;
+
+    if (tutorialState.step) {
+      setStep(tutorialState.step);
+    }
+
+    if (tutorialState.form) {
+      setForm((currentForm) => ({
+        ...currentForm,
+        ...tutorialState.form,
+      }));
+    }
+
+    if (tutorialState.suggestions) {
+      setSuggestions(tutorialState.suggestions);
+      setHardMatch(
+        tutorialState.hardMatch ??
+          tutorialState.suggestions.some((hit) => hit.strength === "hard")
+      );
+      setSearching(false);
+      return;
+    }
+
+    if (tutorialState.step === 2) {
+      setSuggestions([]);
+      setHardMatch(false);
+      setSearching(false);
+    }
+  }, [isOpen, tutorialState]);
 
   if (!isOpen) return null;
 
@@ -133,7 +185,7 @@ export default function AddToWishlistModal({
   const suggestionFetchFn = async (
     pageSize: number,
     page: number
-  ): Promise<TableQuery<Suggestion>> => {
+  ): Promise<TableQuery<AddToWishlistSuggestion>> => {
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return { data: suggestions.slice(start, end), total: suggestions.length };
@@ -149,7 +201,10 @@ export default function AddToWishlistModal({
 
       {/* Centered card */}
       <div className="relative min-h-full flex items-center justify-center p-4">
-        <div className="relative w-full max-w-[720px] rounded-2xl bg-white p-6 md:p-8 shadow-xl">
+        <div
+          className="relative w-full max-w-[720px] rounded-2xl bg-white p-6 md:p-8 shadow-xl"
+          data-tutorial="wishlist-modal"
+        >
           {/* Header */}
           <div className="flex items-start justify-between mb-6 md:mb-8">
             <h2 className="text-2xl font-semibold text-gray-900">
@@ -175,7 +230,8 @@ export default function AddToWishlistModal({
                     name="name"
                     placeholder="Placeholder name"
                     required
-                    defaultValue={form.name}
+                    value={form.name}
+                    inputProps={{ "data-tutorial": "wishlist-title-input" }}
                     onChange={(e) => {
                       setForm((f) => ({ ...f, name: e.target.value }));
                       setSuggestions([]);
@@ -184,11 +240,14 @@ export default function AddToWishlistModal({
                 </ModalFormRow>
 
                 {/* Suggestions block (red highlighted) */}
-                {!searching && suggestions.length > 0 && (
+                {showSuggestions && (
                   <>
-                    <div className="rounded-lg border border-red-primary bg-red-50/50 p-3 md:p-4">
+                    <div
+                      className="rounded-lg border border-red-primary bg-red-50/50 p-3 md:p-4"
+                      data-tutorial="wishlist-suggestions"
+                    >
                       <div className="mb-3">
-                        {hardMatch ? (
+                        {effectiveHardMatch ? (
                           <h3 className="text-red-primary font-semibold text-lg">
                             This item already exists in our inventory. <br />{" "}
                             Please request that item instead.
@@ -201,26 +260,46 @@ export default function AddToWishlistModal({
                         )}
                       </div>
 
-                      <AdvancedBaseTable<Suggestion>
-                        columns={suggestionColumns}
-                        fetchFn={suggestionFetchFn}
-                        rowId="id"
-                        headerClassName="bg-red-primary/80 text-white"
-                        rowCellStyles="border border-transparent bg-white"
-                        emptyState={
-                          <div className="py-3 text-sm text-red-700">
-                            No similar items found.
+                      {isTutorialSuggestions ? (
+                        <div className="overflow-hidden rounded border border-red-primary/25 bg-white">
+                          <div className="grid grid-cols-2 bg-red-primary/80 px-4 py-2 text-sm font-medium text-white">
+                            <span>Title</span>
+                            <span>Quantity</span>
                           </div>
-                        }
-                        toolBar={null}
-                        disablePagination
-                        disableFilters
-                      />
+                          {displaySuggestions.map((suggestion) => (
+                            <div
+                              key={suggestion.id}
+                              className="grid grid-cols-2 border-t border-gray-100 px-4 py-2 text-sm text-gray-900"
+                            >
+                              <span>{suggestion.title}</span>
+                              <span>{suggestion.quantity ?? "-"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <AdvancedBaseTable<AddToWishlistSuggestion>
+                          columns={suggestionColumns}
+                          fetchFn={suggestionFetchFn}
+                          rowId="id"
+                          headerClassName="bg-red-primary/80 text-white"
+                          rowCellStyles="border border-transparent bg-white"
+                          emptyState={
+                            <div className="py-3 text-sm text-red-700">
+                              No similar items found.
+                            </div>
+                          }
+                          toolBar={null}
+                          disablePagination
+                          disableFilters
+                        />
+                      )}
                     </div>
 
                     <div className="mt-6 flex gap-4">
                       <Link
-                        href={`/items?initialItems=${encodeURIComponent(JSON.stringify(suggestions.map((s) => s.id)))}`}
+                        href={`/items?initialItems=${encodeURIComponent(
+                          JSON.stringify(displaySuggestions.map((s) => s.id))
+                        )}`}
                         className="inline-block w-1/2 rounded-lg border border-red-primary px-4 py-2 font-medium text-red-primary hover:bg-red-50 active:translate-y-px text-center"
                       >
                         Go to Items Page
@@ -230,9 +309,9 @@ export default function AddToWishlistModal({
                       <button
                         type="button"
                         onClick={goToStep2}
-                        disabled={hardMatch || !form.name.trim()}
+                        disabled={effectiveHardMatch || !form.name.trim()}
                         className={`w-1/2 rounded-lg px-4 py-2 font-medium text-white active:translate-y-px ${
-                          hardMatch || !form.name.trim()
+                          effectiveHardMatch || !form.name.trim()
                             ? "bg-red-300 cursor-not-allowed"
                             : "bg-red-primary hover:brightness-95"
                         }`}
@@ -244,7 +323,7 @@ export default function AddToWishlistModal({
                 )}
 
                 {/* No suggestions but non-empty title */}
-                {!searching && suggestions.length === 0 && form.name !== "" && (
+                {!searching && displaySuggestions.length === 0 && form.name !== "" && (
                   <button
                     type="button"
                     onClick={goToStep2}
@@ -262,7 +341,7 @@ export default function AddToWishlistModal({
                   label="Title"
                   name="name"
                   required
-                  defaultValue={form.name}
+                  value={form.name}
                   className="bg-gray-100 cursor-not-allowed"
                   inputProps={{ readOnly: true }}
                 />

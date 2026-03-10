@@ -10,8 +10,11 @@ interface ModalTextFieldProps {
   type?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement> & {
+    [K in `data-${string}`]?: string | number | boolean;
+  };
 }
+
 export default function ModalTextField({
   className = "",
   label,
