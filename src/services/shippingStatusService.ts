@@ -599,6 +599,27 @@ export class ShippingStatusService {
     };
   }
 
+  static async updateHfhShippingNumber(id: number, hfhShippingNumber: string) {
+    const existing = await db.shippingStatus.findUnique({ where: { id } });
+    if (!existing) throw new Error("Shipment not found");
+
+    await db.$transaction(async (tx) => {
+      await tx.shippingStatus.update({
+        where: { id },
+        data: { hfhShippingNumber },
+      });
+
+      if (hasShippingIdentifier(existing)) {
+        await tx.lineItem.updateMany({
+          where: buildShippingWhereInput(existing), 
+          data: { hfhShippingNumber }, 
+        })
+      }
+    })
+    
+  }
+
+
   static async updateShippingStatus(data: UpdateShippingStatusData) {
     const existingStatus = await db.shippingStatus.findUnique({
       where: { id: data.id },

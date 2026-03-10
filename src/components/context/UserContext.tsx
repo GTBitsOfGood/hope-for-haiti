@@ -11,6 +11,7 @@ export type SessionUser = PermissionFlags & {
   streamUserToken: string | null;
   streamUserId: string | null;
   tag?: string;
+  siteName?: string;
 }
 
 interface UseUserType {
