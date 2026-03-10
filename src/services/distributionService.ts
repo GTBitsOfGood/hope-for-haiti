@@ -31,11 +31,21 @@ export default class DistributionService {
       const pendingValues = filters.pending.values;
       if (pendingValues.length === 1) {
         // Convert string "true"/"false" to boolean
-        const pendingBool = pendingValues[0] === "true";
+        const pendingBool = pendingValues[0] === "Pending";
         (whereClause as Record<string, unknown>).pending = {
           equals: pendingBool,
         };
       }
+    }
+
+    // similarly handle custmo filter logic for partner name 
+    if (filters?.partnerName && filters.partnerName.type === "string") {
+      (whereClause as Record<string, unknown>).partner = {
+        name: {
+          contains: filters.partnerName.value,
+          mode: "insensitive",
+        },
+      };
     }
 
     const [distributions, totalCount] = await Promise.all([

@@ -94,7 +94,7 @@ export default function DistributionActions({
       )}
 
       <div className="flex justify-end">
-        <Menu as="div" className="float-right relative">
+        <Menu as="div" className="flex justify-end relative">
           <MenuButton>
             <DotsThree weight="bold" />
           </MenuButton>

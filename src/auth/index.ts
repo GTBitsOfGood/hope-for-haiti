@@ -31,6 +31,7 @@ declare module "next-auth" {
     itemsTutorial: boolean;
     requestsTutorial: boolean;
     wishlistsTutorial: boolean;
+    siteName?: string;
   }
 
   interface Session {
@@ -47,6 +48,7 @@ declare module "next-auth" {
       requestsTutorial: boolean;
       wishlistsTutorial: boolean;
       pending: boolean;
+      siteName?: string;
     } & DefaultSession["user"] &
       PermissionFlags;
   }
@@ -66,6 +68,7 @@ declare module "next-auth/jwt" {
     itemsTutorial: boolean;
     requestsTutorial: boolean;
     wishlistsTutorial: boolean;
+    siteName?: string;
   }
 }
 
@@ -92,6 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             tag: true,
             streamUserId: true,
             streamUserToken: true,
+            partnerDetails: true, 
             ...PERMISSION_SELECT,
             dashboardTutorial: true,
             itemsTutorial: true,
@@ -121,6 +125,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           itemsTutorial: user.itemsTutorial,
           requestsTutorial: user.requestsTutorial,
           wishlistsTutorial: user.wishlistsTutorial,
+          siteName: 
+            user.type === "PARTNER" && user.partnerDetails
+              ? (user.partnerDetails as { siteName?: string })?.siteName
+              : undefined, 
         };
       },
     }),
@@ -136,6 +144,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.streamUserId = user.streamUserId;
         token.streamUserToken = user.streamUserToken;
         token.tag = user.tag;
+        token.siteName = user.siteName;
         PERMISSION_FIELDS.forEach((field) => {
           token[field] = user[field];
         });
@@ -156,6 +165,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.streamUserId = token.streamUserId;
       session.user.streamUserToken = token.streamUserToken;
       session.user.tag = token.tag;
+      session.user.siteName = token.siteName; 
       PERMISSION_FIELDS.forEach((field) => {
         session.user[field] = Boolean(token[field]);
       });

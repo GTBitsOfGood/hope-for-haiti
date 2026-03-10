@@ -399,6 +399,58 @@ export default class DonorOfferService {
       filters
     );
 
+    if (filters?.state && filters.state.type === "enum") {
+      (where as Record<string, unknown>).state = {
+        in: filters.state.values.map((v) => v.toUpperCase()),
+      };
+    }
+
+    if (filters?.responseDeadline && filters.responseDeadline.type === "date") {
+      const dateCondition: Record<string, string> = {};
+      if (filters.responseDeadline.gte) dateCondition.gte = filters.responseDeadline.gte; 
+      if (filters.responseDeadline.lte) dateCondition.lte = filters.responseDeadline.lte; 
+      (where as Record<string, unknown>).partnerResponseDeadline = dateCondition; 
+    }
+
+    if (filters?.partnerInvolved && filters.partnerInvolved.type === "string") {
+      (where as Record<string, unknown>).partnerVisibilities = {
+        some: {
+          name: {
+            contains: filters.partnerInvolved.value, 
+            mode: "insensitive",
+          },
+        },
+      };
+    }
+
+    if (filters?.allPartnersResponded && filters.allPartnersResponded.type === "enum") {
+      const needEverything = filters.allPartnersResponded.values.includes("Yes");
+
+      const nonRespondedIds = await db.$queryRaw<{ id: number }[]>(Prisma.sql`
+        SELECT DISTINCT jt."A" AS id
+        FROM "_DonorOfferToUser" jt
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "GeneralItemRequest" gir
+          JOIN "GeneralItem" gi ON gi.id = gir."generalItemId"
+          WHERE gi."donorOfferId" = jt."A"
+          AND gir."partnerId" = jt."B"
+        )  
+        UNION
+        SELECT d.id FROM "DonorOffer" d
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "_DonorOfferToUser" jt WHERE jt."A" = d.id
+        )
+      `);
+
+      const ids = nonRespondedIds.map((r) => r.id);
+
+      if (needEverything) {
+        (where as Record<string, unknown>).id = {notIn: ids };
+      } else {
+        (where as Record<string, unknown>).id = {in: ids};
+      }
+    }
+
     const query = Prisma.validator<Prisma.DonorOfferFindManyArgs>()({
       where,
       include: {
@@ -433,6 +485,7 @@ export default class DonorOfferService {
         offerName: offer.offerName,
         donorName: offer.donorName,
         responseDeadline: offer.partnerResponseDeadline,
+        donorResponseDeadline: offer.donorResponseDeadline,
         state: offer.state,
         invitedPartners: offer.partnerVisibilities.map((pv) => ({
           name: pv.name,
@@ -443,7 +496,7 @@ export default class DonorOfferService {
       })
     );
 
-    return { donorOffers: mappedOffers, total };
+    return {donorOffers: mappedOffers, total}
   }
 
   static async getItemRequests(

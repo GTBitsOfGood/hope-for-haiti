@@ -24,6 +24,7 @@ export interface ColumnConfig<T> {
   filterType?: FilterValue["type"];
   filterOptions?: string[];
   filterable?: boolean;
+  hidden?:boolean; 
 }
 
 export type ColumnDefinition<T> = keyof T | ColumnConfig<T>;
@@ -38,6 +39,7 @@ export interface ResolvedColumn<T> {
   filterType?: FilterValue["type"];
   filterOptions?: string[];
   filterable?: boolean;
+  hidden?:boolean; 
 }
 
 export interface FilterableColumnMeta<T> {

@@ -388,7 +388,7 @@ function AdvancedBaseTableInner<T extends object>(
                 headerClassName ? headerClassName : ""
               }`}
             >
-              {normalizedColumns.map((column) => (
+              {normalizedColumns.filter((column) => !column.hidden).map((column) => (
                 <th
                   key={column.id}
                   className={`px-4 py-4 first:rounded-tl-lg last:rounded-tr-lg ${
@@ -477,7 +477,7 @@ function AdvancedBaseTableInner<T extends object>(
                       }
                     }}
                   >
-                    {normalizedColumns.map((column) => {
+                    {normalizedColumns.filter((column) => !column.hidden).map((column) => {
                       const rawContent = column.render(
                         item,
                         rowIndex,

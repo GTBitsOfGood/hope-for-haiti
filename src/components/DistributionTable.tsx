@@ -48,11 +48,14 @@ export default function DistributionTable() {
         {
           id: "partnerName",
           header: "Partner Name",
+          filterType: "string",
           cell: (row) => row.partner.name,
         },
         {
           id: "pending",
           header: "Status",
+          filterType: "enum",
+          filterOptions: ["Pending", "Approved"],
           cell: (row) => (
             <span
               className={`px-3 py-1 rounded ${row.pending ? "bg-yellow-primary/60 text-orange-primary" : "bg-green-primary/60 text-green-dark"}`}
@@ -106,12 +109,15 @@ export default function DistributionTable() {
   if (canManageDistributions) {
     columns.push({
       id: "Manage",
+      headerClassName: "text-right",
       header: "",
       cell: (distribution) => (
-        <OptionsButton
-          distribution={distribution}
-          fetchTableData={tableRef.current!.reload}
-        />
+        <div className="flex justify-end">
+          <OptionsButton
+            distribution={distribution}
+            fetchTableData={tableRef.current!.reload}
+          />
+        </div>
       ),
     });
   }

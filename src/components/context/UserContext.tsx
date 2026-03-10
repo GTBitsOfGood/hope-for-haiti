@@ -16,6 +16,8 @@ export type SessionUser = PermissionFlags & {
   requestsTutorial: boolean;
   wishlistsTutorial: boolean;
 };
+  siteName?: string;
+}
 
 interface UseUserType {
   loading: boolean;
