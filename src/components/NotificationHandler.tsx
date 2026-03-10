@@ -247,7 +247,8 @@ export default function NotificationHandler({
             type: "ticket",
             members: { $in: [user.streamUserId!] },
           },
-          {}
+          {},
+          { limit: 30 }
         );
         const total = channels.reduce(
           (sum, ch) => sum + (ch.state.unreadCount ?? 0),
