@@ -25,7 +25,7 @@ export default function AdminDashboardScreen() {
     <div className="w-full">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
-      <AnalyticsSection />
+      <AnalyticsSection hasUserRead={Boolean(user.userRead)} />
 
       <MapSectionWithData />
     </div>
