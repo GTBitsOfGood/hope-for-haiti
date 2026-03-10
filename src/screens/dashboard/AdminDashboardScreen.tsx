@@ -23,9 +23,7 @@ export default function AdminDashboardScreen() {
 
   return (
     <div className="w-full">
-      <h1 className="text-3xl font-bold mb-8">
-        Dashboar {/* Unrelated, but issues otherwise  */}
-      </h1>
+      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
       <AnalyticsSection />
 
