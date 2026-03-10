@@ -12,6 +12,8 @@ import { Shipment } from "@/types/api/shippingStatus.types";
 import Chip from "./chips/Chip";
 import ShippingStatusTag from "./tags/ShippingStatusTag";
 import DetailedChip from "./chips/DetailedChip";
+import { shippingStatusToText } from "@/util/util";
+import SignatureImageTooltip from "./SignatureImageTooltip";
 
 function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
   const [showSignOffs] = useState(true);
@@ -34,6 +36,21 @@ function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
                     ? format(new Date(signOff.date), "M/d/yyyy 'at' h:mm a")
                     : "N/A"}
                 </span>
+                {signOff.signatureUrl && (
+                  <>
+                    <span className="mx-2">•</span>
+                    <span
+                      data-tooltip-id={`signature-tooltip-${signOff.id}`}
+                      className="underline decoration-dotted cursor-pointer text-gray-500"
+                    >
+                      View signature
+                    </span>
+                    <SignatureImageTooltip
+                      signOffId={signOff.id}
+                      signatureUrl={signOff.signatureUrl}
+                    />
+                  </>
+                )}
               </div>
 
               <div className="flex flex-wrap">
@@ -91,6 +108,7 @@ export default function SignOffsTable() {
     {
       id: "donorShippingNumber",
       header: "Donor Shipping #",
+      filterType: "string", 
       cell: (s) => s.donorShippingNumber,
     },
     {
@@ -99,8 +117,10 @@ export default function SignOffsTable() {
       cell: (s) => s.hfhShippingNumber,
     },
     {
-      id: "status",
+      id: "value",
       header: "Status",
+      filterType: "enum", 
+      filterOptions: Object.values(shippingStatusToText),
       cell: (s) => <ShippingStatusTag status={s.value} />,
     },
     {

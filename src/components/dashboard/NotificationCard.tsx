@@ -1,5 +1,4 @@
-import { useApiClient } from "@/hooks/useApiClient";
-import { Warning, ChatsTeardrop } from "@phosphor-icons/react";
+import { Warning, ChatsTeardrop, X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { Toast } from "react-hot-toast";
 import toast from "react-hot-toast";
@@ -49,29 +48,19 @@ export default function NotificationCard({
     return "now";
   };
 
-  const { apiClient } = useApiClient();
   const router = useRouter();
-  const { refreshNotifications } = useNotifications();
+  const { dismissNotification } = useNotifications();
 
   const handleClick = async (redirect: boolean) => {
     if (!actionUrl) return;
-
-    if (Number(id) > 0) {
-      try {
-        await apiClient.patch(`/api/notifications/${id}?view=true`);
-      } catch (error) {
-        console.error(`Failed to PATCH notification ${id}: ${error}`)
-      }
-    }
-
-    try {
-      await refreshNotifications();
-    } catch (error) {
-      console.error("Failed to refresh notifications", error);
-    }
-
     if (t) toast.dismiss(t.id);
+    await dismissNotification(id);
     if (redirect) router.push(actionUrl);
+  };
+
+  const handleClose = async () => {
+    if (t) toast.dismiss(t.id);
+    await dismissNotification(id);
   };
 
   const styles = isChat
@@ -83,6 +72,7 @@ export default function NotificationCard({
         action:
           "text-blue-primary/80 border-blue-primary/80 hover:text-blue-primary/80",
         IconComponent: ChatsTeardrop,
+        dismiss: "text-blue-primary/60 hover:text-blue-primary",
       }
     : {
         container: "border-red-primary/20 bg-red-primary/5",
@@ -92,13 +82,17 @@ export default function NotificationCard({
         action:
           "text-red-primary/80 border-red-primary/80 hover:text-red-primary/80",
         IconComponent: Warning,
+        dismiss: "text-red-primary/60 hover:text-red-primary",
       };
 
   const { IconComponent } = styles;
 
   return (
     <div
-      className={`rounded-[7.25px] px-4 py-3 flex items-start gap-3 border ${styles.container}`}
+      className={`rounded-[0.46875rem] px-4 py-3 flex items-start gap-3 border relative ${styles.container}`}
+      style={{
+        animation: t ? "slideGrow 0.2s ease-out forwards" : undefined,
+      }}
     >
       <IconComponent
         className={`flex-shrink-0 ${styles.icon}`}
@@ -111,7 +105,7 @@ export default function NotificationCard({
             {message}
           </p>
           <span
-            className={`text-[10px] whitespace-nowrap font-medium mt-0.5 ${styles.time}`}
+            className={`text-[10px] whitespace-nowrap font-medium mr-4 ${styles.time}`}
           >
             {formatTimeAgo(dateCreated)}
           </span>
@@ -125,6 +119,13 @@ export default function NotificationCard({
           </button>
         )}
       </div>
+      <button
+        onClick={handleClose}
+        className={`absolute top-0 right-0 w-6 h-6 rounded-full flex items-center justify-center ${styles.dismiss}`}
+        aria-label="Close"
+      >
+        <X size={12} weight="bold" />
+      </button>
     </div>
   );
 }
