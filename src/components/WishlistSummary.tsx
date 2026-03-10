@@ -102,12 +102,12 @@ export default function WishlistSummary() {
   return (
     <div className="w-full">
       {!isRequested && (
-        <div className="flex justify-start mb-4">
+        <div className="flex justify-end -mb-12 mt-8 mr-28">
           <button
             onClick={() => setIsRequested(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2D5DA1] text-white rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center px-4 py-2 bg-blue-primary text-white rounded-md font-medium hover:bg-blue-600 transition-colors shadow-sm"
           >
-            Generate AI Summary
+            Generate Summary
           </button>
         </div>
       )}
