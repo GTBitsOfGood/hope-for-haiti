@@ -50,70 +50,48 @@ export class WishlistService {
    * If an entry with the same name already exists for the partner, the
    * unfulfilled quantity is added to it.
    */
-  static async createUnfulfilledWishlistEntries(
-    requests: Array<{
-      requestId: number;
-      finalQuantity: number;
-    }>
-  ): Promise<void> {
-    if (requests.length === 0) return;
+  static async createUnfulfilledWishlistEntries(requests: { requestId: number; finalQuantity: number }[]) {
+  const fullRequests = await db.generalItemRequest.findMany({
+    where: { id: { in: requests.map(r => r.requestId) } },
+    include: { partner: true, generalItem: true }
+  });
 
-    const requestIds = requests.map((r) => r.requestId);
+  // PRE-FETCH: Get all existing auto-generated wishlist items for these partners in ONE query
+  const partnerIds = [...new Set(fullRequests.map(r => r.partnerId))];
+  const existingWishlistItems = await db.wishlist.findMany({
+    where: {
+      partnerId: { in: partnerIds },
+      generalItemId: null, // Only targeting auto-generated ones
+    }
+  });
 
-    const fullRequests = await db.generalItemRequest.findMany({
-      where: { id: { in: requestIds } },
-      include: {
-        generalItem: {
-          select: { title: true },
-        },
-        partner: {
-          select: { id: true, enabled: true, pending: true },
-        },
-      },
-    });
+  for (const update of requests) {
+    const request = fullRequests.find((r) => r.id === update.requestId);
+    if (!request || !request.partner.enabled || request.partner.pending) continue;
 
-    for (const update of requests) {
-      const request = fullRequests.find((r) => r.id === update.requestId);
-      if (!request) continue;
+    const unfulfilledQuantity = request.quantity - update.finalQuantity;
+    if (unfulfilledQuantity <= 0) continue;
 
-      // Skip inactive partners
-      if (!request.partner.enabled || request.partner.pending) continue;
+    const itemName = request.generalItem.title;
+    const existing = existingWishlistItems.find(
+      (w) => w.partnerId === request.partnerId && w.name === itemName
+    );
 
-      const unfulfilledQuantity = request.quantity - update.finalQuantity;
-      if (unfulfilledQuantity <= 0) continue;
-
-      const itemName = request.generalItem.title;
-      const partnerId = request.partner.id;
-      const priority = request.priority ?? "LOW";
-
-      // Check if a wishlist entry with the same name already exists
-      const existing = await db.wishlist.findFirst({
-        where: {
-          partnerId,
+    if (existing) {
+      await db.wishlist.update({
+        where: { id: existing.id },
+        data: { quantity: unfulfilledQuantity },
+      });
+    } else {
+      const wishlist = await db.wishlist.create({
+        data: {
           name: itemName,
-          generalItemId: null, // only unfulfilled wishlist entries
+          quantity: unfulfilledQuantity,
+          priority: request.priority ?? "LOW",
+          comments: AUTO_GENERATED_COMMENT,
+          partnerId: request.partnerId,
         },
       });
-
-      if (existing) {
-        // Add quantities together
-        await db.wishlist.update({
-          where: { id: existing.id },
-          data: {
-            quantity: (existing.quantity ?? 0) + unfulfilledQuantity,
-          },
-        });
-      } else {
-        // Create a new wishlist entry
-        const wishlist = await db.wishlist.create({
-          data: {
-            name: itemName,
-            quantity: unfulfilledQuantity,
-            priority,
-            comments: AUTO_GENERATED_COMMENT,
-            partnerId,
-          },
-        });
 
         try {
           await MatchingService.add({

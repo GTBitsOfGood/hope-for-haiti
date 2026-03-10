@@ -261,9 +261,8 @@ export class GeneralItemRequestService {
     if (unfulfilledUpdates.length > 0) {
       try {
         await WishlistService.createUnfulfilledWishlistEntries(unfulfilledUpdates);
-      } catch (error) {
-        // Log but don't fail the bulk update if wishlist creation errors
-        console.error("Failed to create unfulfilled wishlist entries:", error);
+      } catch {
+        // silent catch
       }
     }
 
@@ -296,7 +295,7 @@ export class GeneralItemRequestService {
 
       const previousGeneralItemId = existingRequest.generalItem.id;
 
-      const targetGeneralItem = await tx.generalItem.findFirst({
+      const targetGeneralItem = await tx.generalItem.findUnique({
         where: { id: targetGeneralItemId },
         select: {
           id: true,
@@ -328,10 +327,10 @@ export class GeneralItemRequestService {
         );
       }
 
-      const duplicateRequest = await tx.generalItemRequest.findFirst({
+      const duplicateRequest = await tx.generalItemRequest.findUnique({
         where: {
-          generalItemId: targetGeneralItemId,
-          partnerId: existingRequest.partnerId,
+          generalItemId_partnerId: {generalItemId: targetGeneralItemId,
+          partnerId: existingRequest.partnerId,}
         },
       });
 
