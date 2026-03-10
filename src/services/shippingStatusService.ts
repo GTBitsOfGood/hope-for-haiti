@@ -18,7 +18,6 @@ import FileService from "@/services/fileService";
 import {
   hasShippingIdentifier,
   normalizeShippingTuple,
-  shippingTupleEquals,
   shippingTupleKey,
 } from "@/util/shipping";
 
@@ -42,21 +41,146 @@ export class ShippingStatusService {
   static async getShipments(
     page?: number,
     pageSize?: number,
-    filters?: Filters
+    filters?: Filters,
+    isCompleted?: boolean
   ): Promise<{ data: Shipment[]; total: number }> {
     const where = buildWhereFromFilters<Prisma.ShippingStatusWhereInput>(
       Object.keys(Prisma.ShippingStatusScalarFieldEnum),
       filters
     );
 
-    const [statuses, totalCount] = await Promise.all([
-      db.shippingStatus.findMany({
-        where,
-        skip: page && pageSize ? (page - 1) * pageSize : undefined,
-        take: pageSize,
-      }),
-      db.shippingStatus.count({ where }),
-    ]);
+    if (filters?.value && filters?.value.type === "enum") {
+      const displayNames = filters.value.values; 
+      const enumValueArr = Object.entries(shippingStatusToText);
+      const enumValues = displayNames
+        .map((name) => enumValueArr.find(([,text]) => text === name)?.[0])
+        .filter(Boolean);
+      (where as Record<string, unknown>).value = {
+        in: enumValues
+      };
+    }
+
+    const pageNum = page ?? 1;
+    const size = pageSize ?? 20;
+    const offset = (pageNum - 1) * size;
+
+    let statuses: ShippingStatus[] = [];
+    let totalCount = 0;
+
+    let donorShippingFilter = Prisma.sql`TRUE`;
+    const donorShippingNumberFilter = filters?.donorShippingNumber
+    if (donorShippingNumberFilter && donorShippingNumberFilter.type === "string") {
+      const search = `%${donorShippingNumberFilter.value}%`;
+      donorShippingFilter = Prisma.sql`ss."donorShippingNumber" ILIKE ${search}`;
+    } 
+
+    let statusFilter = Prisma.sql`TRUE`;
+    const valueFilter = filters?.value; 
+    if (valueFilter && valueFilter.type === "enum") {
+      const enumValueArr = Object.entries(shippingStatusToText);
+      const enumValues = valueFilter.values
+        .map((name) => enumValueArr.find(([,text]) => text === name)?.[0])
+        .filter(Boolean) as string[];
+
+      if (enumValues.length > 0) {
+        statusFilter = Prisma.sql`ss."value"::text IN (${Prisma.join(enumValues)})`;
+      }
+    }
+
+
+    if (typeof isCompleted === "boolean") {
+      const completionPredicate = isCompleted
+        ? Prisma.sql`
+        EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NOT NULL
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NULL
+        )
+      `
+        : Prisma.sql`
+        EXISTS (
+          SELECT 1
+          FROM "LineItem" li
+          LEFT JOIN "Allocation" a ON a."lineItemId" = li.id
+          WHERE
+            (ss."donorShippingNumber" IS NULL OR li."donorShippingNumber" = ss."donorShippingNumber")
+            AND (ss."hfhShippingNumber" IS NULL OR li."hfhShippingNumber" = ss."hfhShippingNumber")
+            AND a."signOffId" IS NULL
+        )
+      `;
+
+
+
+
+      const idRows = await db.$queryRaw<{ id: number }[]>(
+        Prisma.sql`
+      SELECT ss.id
+      FROM "ShippingStatus" ss
+      WHERE
+        (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
+        AND ${completionPredicate}
+        AND ${donorShippingFilter}
+        AND ${statusFilter}
+      ORDER BY ss.id DESC
+      LIMIT ${size} OFFSET ${offset}
+    `
+      );
+
+      const countRows = await db.$queryRaw<{ count: bigint }[]>(
+        Prisma.sql`
+      SELECT COUNT(*)::bigint AS count
+      FROM "ShippingStatus" ss
+      WHERE
+        (ss."donorShippingNumber" IS NOT NULL OR ss."hfhShippingNumber" IS NOT NULL)
+        AND ${completionPredicate}
+        AND ${donorShippingFilter} 
+        AND ${statusFilter}
+    `
+      );
+
+      totalCount = Number(countRows[0]?.count ?? 0);
+
+      const ids = idRows.map((r) => r.id);
+      if (ids.length) {
+        const fetched = await db.shippingStatus.findMany({
+          where: { id: { in: ids } },
+        });
+
+        const byId = new Map(fetched.map((s) => [s.id, s]));
+        statuses = ids
+          .map((id) => byId.get(id))
+          .filter(Boolean) as ShippingStatus[];
+      } else {
+        statuses = [];
+      }
+    } else {
+      const [paged, count] = await Promise.all([
+        db.shippingStatus.findMany({
+          where,
+          skip: page && pageSize ? offset : undefined,
+          take: page && pageSize ? size : undefined,
+        }),
+        db.shippingStatus.count({ where }),
+      ]);
+
+      statuses = paged;
+      totalCount = count;
+    }
+
+
 
     const validStatuses = statuses.filter((status) =>
       hasShippingIdentifier(status)
@@ -96,20 +220,26 @@ export class ShippingStatusService {
       },
     });
 
-    const shipments: Shipment[] = validStatuses.map((status) => ({
-      ...convertShippingStatusForResponse(status),
-      signOffs: [],
-      lineItems: [],
-    }));
+    const shipments: Shipment[] = [];
+    const shipmentMap = new Map<string, Shipment>();
+
+    for (const status of validStatuses) {
+      const shipment: Shipment = {
+        ...convertShippingStatusForResponse(status),
+        signOffs: [],
+        lineItems: [],
+      };
+
+      shipments.push(shipment);
+      shipmentMap.set(shippingTupleKey(status), shipment);
+    }
 
     for (const lineItem of lineItems) {
       if (!lineItem.generalItemId || !lineItem.allocation?.partner) {
         continue;
       }
 
-      const shipment = shipments.find((s) =>
-        shippingTupleEquals(s, lineItem)
-      );
+      const shipment = shipmentMap.get(shippingTupleKey(lineItem));
 
       if (!shipment) {
         continue;
@@ -187,6 +317,7 @@ export class ShippingStatusService {
       data: shipments,
       total: totalCount,
     };
+
   }
 
   static async getShippingStatuses(
@@ -270,7 +401,7 @@ export class ShippingStatusService {
       clauses,
       statusFilters,
       page,
-      pageSize
+      pageSize,
     );
   }
 
@@ -467,6 +598,27 @@ export class ShippingStatusService {
       total,
     };
   }
+
+  static async updateHfhShippingNumber(id: number, hfhShippingNumber: string) {
+    const existing = await db.shippingStatus.findUnique({ where: { id } });
+    if (!existing) throw new Error("Shipment not found");
+
+    await db.$transaction(async (tx) => {
+      await tx.shippingStatus.update({
+        where: { id },
+        data: { hfhShippingNumber },
+      });
+
+      if (hasShippingIdentifier(existing)) {
+        await tx.lineItem.updateMany({
+          where: buildShippingWhereInput(existing), 
+          data: { hfhShippingNumber }, 
+        })
+      }
+    })
+    
+  }
+
 
   static async updateShippingStatus(data: UpdateShippingStatusData) {
     const existingStatus = await db.shippingStatus.findUnique({

@@ -1,5 +1,3 @@
-
-
 export interface DistributionRecord {
   allocationType: "unallocated" | "donorOffer";
   allocationId: number;
@@ -24,5 +22,3 @@ export interface DistributionRecordWithActualQuantity
   extends DistributionRecord {
   actualQuantity?: number;
 }
-
-

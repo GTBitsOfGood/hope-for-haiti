@@ -17,7 +17,8 @@ const patchParamSchema = z.object({
 });
 
 const patchBodySchema = z.object({
-  status: z.nativeEnum($Enums.ShipmentStatus),
+  status: z.nativeEnum($Enums.ShipmentStatus).optional(),
+  hfhShippingNumber: z.string().optional(), 
 });
 
 export async function GET(request: Request) {
@@ -30,6 +31,9 @@ export async function GET(request: Request) {
     UserService.checkPermission(session.user, "shipmentRead");
 
     const url = new URL(request.url);
+    const isCompletedParam = url.searchParams.get("isCompleted");
+    const isCompleted = isCompletedParam === "true"  ? true  : isCompletedParam === "false" ? false : undefined;
+
     const parsed = tableParamsSchema.safeParse({
       pageSize: Number(url.searchParams.get("pageSize")),
       page: Number(url.searchParams.get("page")),
@@ -47,7 +51,8 @@ export async function GET(request: Request) {
     const result = await ShippingStatusService.getShipments(
       page,
       pageSize,
-      filters
+      filters,
+      isCompleted
     );
     return NextResponse.json(result);
   } catch (error) {
@@ -78,10 +83,23 @@ export async function PATCH(request: Request) {
       throw new ArgumentError(parsedBody.error.message);
     }
 
-    await ShippingStatusService.updateShippingStatus({
-      id: parsedParams.data.id,
-      value: parsedBody.data.status,
-    });
+    if (!parsedBody.data.status && parsedBody.data.hfhShippingNumber === undefined) {
+      throw new ArgumentError("The status or hfhShippingNumber must be provided");
+    }
+    
+    if (parsedBody.data.status) {
+      await ShippingStatusService.updateShippingStatus({
+        id: parsedParams.data.id,
+        value: parsedBody.data.status, 
+      });
+    }
+
+    if (parsedBody.data.hfhShippingNumber !== undefined) {
+      await ShippingStatusService.updateHfhShippingNumber(
+        parsedParams.data.id,
+        parsedBody.data.hfhShippingNumber
+      );
+    }
 
     return ok();
   } catch (error) {

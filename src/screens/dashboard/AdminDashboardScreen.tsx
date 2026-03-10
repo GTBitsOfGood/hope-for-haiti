@@ -1,17 +1,13 @@
 "use client";
 
-import { useNotifications } from "@/components/NotificationHandler";
 import { useUser } from "@/components/context/UserContext";
-import { isStaff, hasPermission } from "@/lib/userUtils";
-import NotificationsSection from "@/components/dashboard/NotificationsSection";
+import { isStaff } from "@/lib/userUtils";
 import AnalyticsSection from "@/components/dashboard/AnalyticsSection";
 import MapSectionWithData from "@/components/dashboard/MapSectionWithData";
 import LoadingScreen from "@/screens/LoadingScreen";
 
 export default function AdminDashboardScreen() {
   const { user, loading: userLoading } = useUser();
-  const { notifications } = useNotifications();
-  const hasUserRead = hasPermission(user, "userRead");
 
   if (userLoading) {
     return <LoadingScreen />;
@@ -28,12 +24,10 @@ export default function AdminDashboardScreen() {
   return (
     <div className="w-full">
       <h1 className="text-3xl font-bold mb-8">
-        {hasUserRead ? "Admin Dashboard" : "Dashboard"}
+        Dashboar {/* Unrelated, but issues otherwise  */}
       </h1>
 
-      <NotificationsSection notifications={notifications} />
-
-      <AnalyticsSection hasUserRead={hasUserRead} />
+      <AnalyticsSection />
 
       <MapSectionWithData />
     </div>

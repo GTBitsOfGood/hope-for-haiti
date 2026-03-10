@@ -157,6 +157,13 @@ function NavLinks() {
       )}
       {/* Spacer to push the profile and sign out buttons to the bottom */}
       <li className="flex-grow" />
+      <li>
+        <p className="px-2 mb-1 text-sm font-medium line-clamp-3 hidden md:block">
+          <span className="font-normal text-xs text-gray-500">Logged in as</span>
+          <br />
+          {isPartnerUser ? (user?.siteName ?? user?.name) : user?.name }
+        </p>
+      </li>
       <ul className="flex gap-2">
         <li className="flex-1 mt-auto">
           <NavLink
@@ -230,6 +237,13 @@ function ResetButton() {
   );
 }
 
+function getPortalLabel(isPartnerUser: boolean, isSuper?: boolean) {
+  if (isPartnerUser) return "Partner Portal";
+  if (isSuper) return "Admin Portal";
+
+  return "Staff Portal"; 
+}
+
 function DesktopNavbar() {
   const { user } = useUser();
   const isPartnerUser = isPartner(user?.type);
@@ -243,7 +257,7 @@ function DesktopNavbar() {
       <img src="/logo.svg" alt="Hope for Haiti Logo" className="mt-6 mb-2" />
 
       <h1 className="mt-2 font-bold hidden md:block">
-        {isPartnerUser ? "Partner Portal" : "Staff Portal"}
+        {getPortalLabel(isPartnerUser, user?.isSuper)}
       </h1>
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
@@ -275,7 +289,7 @@ function MobileNavbar() {
         className={`w-full h-full flex flex-col items-start transition-all ${open ? "opacity-100" : "opacity-0"}`}
       >
         <h1 className="m-1.5 mb-1 font-semibold whitespace-nowrap">
-          {isPartnerUser ? "Partner Portal" : "Staff Portal"}
+          {getPortalLabel(isPartnerUser, user?.isSuper)}
         </h1>
 
         <hr className="mt-4 mb-3 h-0.5 bg-blue-dark border-t-0 w-full" />

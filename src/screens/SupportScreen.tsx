@@ -10,6 +10,7 @@ import {
   Window,
   useChatContext,
 } from "stream-chat-react";
+import type { Channel as ChannelType } from "stream-chat";
 import ChannelPreview from "@/components/tickets/ChannelPreview";
 import TicketChannelHeader from "@/components/tickets/TicketChannelHeader";
 import TicketMessageInput from "@/components/tickets/TicketMessageInput";
@@ -133,6 +134,17 @@ export default function SupportScreen({
     filters.name = { $autocomplete: searchQuery };
   }
 
+  const channelRenderFilterFn = (channels: ChannelType[]) => {
+    return channels.filter((channel) => {
+      const channelData = channel.data as ExtraChannelData;
+      if (activeTab === "Unresolved") {
+        return channelData?.closed !== true; 
+      } else {
+        return channelData?.closed === true; 
+      }
+    });
+  };
+
   return (
     <>
       <div className="str-chat__channel-list-wrapper flex flex-col h-full">
@@ -149,6 +161,7 @@ export default function SupportScreen({
         <div className="flex-1 overflow-y-auto">
           <ChannelList
             filters={filters}
+            channelRenderFilterFn={channelRenderFilterFn}
             sort={[
               {
                 last_message_at: -1,
