@@ -2,6 +2,7 @@
 
 import { useStreamClient } from "@/hooks/useStreamClient";
 import { useEffect, useState, useRef } from "react";
+import ReactMarkdown from 'react-markdown';
 
 export default function WishlistSummary() {
   const [fullText, setFullText] = useState<string>("");
@@ -119,7 +120,11 @@ export default function WishlistSummary() {
             : "hidden"
         } transition-all duration-200`}
       >
-        {displayedText}
+        <div className="prose inline-block align-top-markdown-content">
+          <ReactMarkdown>
+            {displayedText}
+          </ReactMarkdown>
+        </div>
         {showCursor && <span className="animate-pulse">|</span>}
       </div>
     </div>
