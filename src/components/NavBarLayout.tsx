@@ -60,7 +60,7 @@ function NavLink({
         </p>
       )}
       {badge != null && badge > 0 && (
-        <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs text-white sm:hidden md:flex">
+        <span className="ml-auto rounded-full bg-red-primary px-2 py-0.5 text-xs text-white sm:hidden md:flex">
           {badge}
         </span>
       )}

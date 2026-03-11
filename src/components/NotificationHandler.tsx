@@ -235,12 +235,9 @@ export default function NotificationHandler({
       return;
     }
 
-    const streamClient = new StreamChat(
-      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
-    );
     let didInterrupt = false;
 
-    const refreshChatUnreadCount = async () => {
+    const fetchUnreadCount = async (sc: StreamChat) => {
       try {
         const channels = await streamClient.queryChannels(
           {
@@ -260,26 +257,32 @@ export default function NotificationHandler({
       }
     };
 
+    const countClient = new StreamChat(
+      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
+    );
+    countClient
+      .connectUser(
+        { id: user.streamUserId, name: user.name ?? undefined },
+        user.streamUserToken
+      )
+      .then(() => fetchUnreadCount(countClient))
+      .catch(console.error)
+      .finally(() => countClient.disconnectUser().catch(console.error));
+
+    const streamClient = new StreamChat(
+      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
+    );
+
     const handleTicketMessage = (event: Event) => {
-      if (event.channel_type !== "ticket") {
-        return;
-      }
+      if (event.channel_type !== "ticket") return;
 
       const senderId = event.user?.id ?? event.message?.user?.id;
-      if (senderId === user.streamUserId) {
-        return;
-      }
+      if (senderId === user.streamUserId) return;
 
       const channelId = event.channel?.id ?? event.cid?.split(":")[1];
+      if (!channelId) return;
 
-      if (!channelId) {
-        return;
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (searchParams.get("activeTab") === "Unresolved") {
-        return;
-      }
+      if (searchParams.get("activeTab") === "Unresolved") return;
 
       const text = event.message?.text?.trim();
       const channelName =
@@ -321,20 +324,16 @@ export default function NotificationHandler({
 
     const handleMarkRead = (event: Event) => {
       if (event.channel_type !== "ticket") return;
-      refreshChatUnreadCount();
+      fetchUnreadCount(streamClient);
     };
 
     streamClient
       .connectUser(
-        {
-          id: user.streamUserId,
-          name: user.name ?? undefined,
-        },
+        { id: user.streamUserId, name: user.name ?? undefined },
         user.streamUserToken
       )
-      .then(async () => {
+      .then(() => {
         if (didInterrupt) return;
-        await refreshChatUnreadCount();
         streamClient.on("notification.message_new", handleTicketMessage);
         streamClient.on("notification.mark_read", handleMarkRead);
       })
@@ -358,14 +357,7 @@ export default function NotificationHandler({
           )
         );
     };
-  }, [
-    pathname,
-    router,
-    searchParams,
-    user?.name,
-    user?.streamUserId,
-    user?.streamUserToken,
-  ]);
+  }, [user?.name, user?.streamUserId, user?.streamUserToken]);
 
   const value = useMemo(
     () => ({
