@@ -246,7 +246,7 @@ export default function NotificationHandler({
 
     let didInterrupt = false;
 
-    const fetchUnreadCount = async (sc: StreamChat) => {
+    const fetchUnreadCount = async () => {
       try {
         const channels = await streamClient.queryChannels(
           {
@@ -274,7 +274,7 @@ export default function NotificationHandler({
         { id: user.streamUserId, name: user.name ?? undefined },
         user.streamUserToken
       )
-      .then(() => fetchUnreadCount(countClient))
+      .then(() => fetchUnreadCount())
       .catch(console.error)
       .finally(() => countClient.disconnectUser().catch(console.error));
 
@@ -333,9 +333,9 @@ export default function NotificationHandler({
       );
     };
 
-    const handleMarkRead = (event: Event) => {
+    const handleMarkRead = (event: StreamEvent) => {
       if (event.channel_type !== "ticket") return;
-      fetchUnreadCount(streamClient);
+      fetchUnreadCount();
     };
 
     streamClient
@@ -345,7 +345,7 @@ export default function NotificationHandler({
       )
       .then(() => {
         if (didInterrupt) return;
-        streamClient.on("notification.message_new", handleTicketMessage);
+        streamClient.on("message.new", handleTicketMessage);
         streamClient.on("notification.mark_read", handleMarkRead);
       })
       .catch((error) => {
