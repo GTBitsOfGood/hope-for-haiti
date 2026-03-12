@@ -29,7 +29,7 @@ export default function AdminDashboardScreen() {
         {hasUserRead ? "Admin Dashboard" : "Dashboard"}
       </h1>
 
-      <AnalyticsSection />
+      {hasUserRead && <AnalyticsSection/>}
 
       <MapSectionWithData />
     </div>
