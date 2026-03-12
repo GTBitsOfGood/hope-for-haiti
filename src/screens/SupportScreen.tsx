@@ -53,7 +53,7 @@ export default function SupportScreen({
 
   useEffect(() => {
     if (channelIdFromQuery) return;
-    router.replace(`${pathname}?activeTab=${activeTab}`)
+    router.replace(`${pathname}?activeTab=${activeTab}`);
   }, [activeTab, channelIdFromQuery, pathname, router]);
 
   useEffect(() => {
@@ -76,11 +76,19 @@ export default function SupportScreen({
     };
 
     setChannelFromQuery();
-  }, [client, channelIdFromQuery, activeChannel, setActiveChannel, setActiveTab, router, pathname]);
+  }, [
+    client,
+    channelIdFromQuery,
+    activeChannel,
+    setActiveChannel,
+    setActiveTab,
+    router,
+    pathname,
+  ]);
 
   useEffect(() => {
     if (!activeChannel) return;
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleChannelUpdate = (event: any) => {
       console.log("Channel updated event:", event);
@@ -138,9 +146,9 @@ export default function SupportScreen({
     return channels.filter((channel) => {
       const channelData = channel.data as ExtraChannelData;
       if (activeTab === "Unresolved") {
-        return channelData?.closed !== true; 
+        return channelData?.closed !== true;
       } else {
-        return channelData?.closed === true; 
+        return channelData?.closed === true;
       }
     });
   };
@@ -171,7 +179,10 @@ export default function SupportScreen({
             Paginator={InfiniteScroll}
             EmptyStateIndicator={() => (
               <div className="w-full flex flex-col justify-center gap-2 my-8">
-                <ChatCircleSlash size={48} className="mx-auto text-gray-primary/40" />
+                <ChatCircleSlash
+                  size={48}
+                  className="mx-auto text-gray-primary/40"
+                />
                 <p className="text-center">No tickets found.</p>
               </div>
             )}

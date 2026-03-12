@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 import { hasAnyPermission, hasPermission, isPartner } from "@/lib/userUtils";
 import { signOut } from "next-auth/react";
 import { useApiClient } from "@/hooks/useApiClient";
+import { useNotifications } from "./NotificationHandler";
 
 function NavLink({
   href,
@@ -31,6 +32,7 @@ function NavLink({
   className: customClassName,
   liClassName,
   noWrapper = false,
+  badge,
 }: {
   href?: string;
   onClick?: () => void;
@@ -40,6 +42,7 @@ function NavLink({
   className?: string;
   liClassName?: string;
   noWrapper?: boolean;
+  badge?: number;
 }) {
   const path = usePathname();
   let className =
@@ -56,13 +59,17 @@ function NavLink({
           {label}
         </p>
       )}
+      {badge != null && badge > 0 && (
+        <span className="ml-auto rounded-full bg-red-primary px-2 py-0.5 text-xs text-white sm:hidden md:flex">
+          {badge}
+        </span>
+      )}
     </>
   );
 
-  const liClass = [
-    placeLast ? "mt-auto" : "",
-    liClassName || "",
-  ].filter(Boolean).join(" ");
+  const liClass = [placeLast ? "mt-auto" : "", liClassName || ""]
+    .filter(Boolean)
+    .join(" ");
 
   const content = href ? (
     <Link href={href} className={className} onClick={onClick}>
@@ -78,15 +85,13 @@ function NavLink({
     return content;
   }
 
-  return (
-    <li className={liClass || undefined}>
-      {content}
-    </li>
-  );
+  return <li className={liClass || undefined}>{content}</li>;
 }
 
 function NavLinks() {
   const { user } = useUser();
+  const { chatUnreadCount } = useNotifications();
+
   const isPartnerUser = isPartner(user?.type);
   const canViewSupport = isPartnerUser || hasPermission(user, "supportRead");
   const canViewAccounts = hasPermission(user, "userRead");
@@ -108,7 +113,12 @@ function NavLinks() {
     <>
       <NavLink href="/" label="Home" icon={<House size={22} />} />
       {canViewSupport && (
-        <NavLink href="/support" label="Support" icon={<Chat size={22} />} />
+        <NavLink
+          href="/support"
+          label="Support"
+          icon={<Chat size={22} />}
+          badge={chatUnreadCount}
+        />
       )}
       {canViewAccounts && (
         <NavLink
