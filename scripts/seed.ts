@@ -167,65 +167,6 @@ async function buildSeedData() {
     supportNotify: true,
   });
 
-  // Second Super Admin (To test if Super Admins can deactivate each other)
-  const superAdmin2 = await createUser({
-    email: "superadmin2@test.com",
-    name: "Super Admin Two",
-    passwordHash,
-    type: UserType.STAFF,
-    enabled: true,
-    pending: false,
-    isSuper: true,
-    userRead: true,
-    userWrite: true,
-    itemNotify: true,
-    offerWrite: true,
-    requestRead: true,
-    requestWrite: true,
-    allocationRead: true,
-    allocationWrite: true,
-    archivedRead: true,
-    distributionRead: true,
-    distributionWrite: true,
-    shipmentRead: true,
-    shipmentWrite: true,
-    signoffWrite: true,
-    wishlistRead: true,
-    supportRead: true,
-    supportWrite: true,
-    supportNotify: true,
-  });
-
-  // Standard Admin (Has userWrite, but NOT isSuper)
-  // Use this account to see if it can deactivate partners but NOT Super Admins
-  const standardAdmin = await createUser({
-    email: "standardadmin@test.com",
-    name: "Standard Admin",
-    passwordHash,
-    type: UserType.STAFF,
-    enabled: true,
-    pending: false,
-    isSuper: false,
-    userRead: true,
-    userWrite: true,
-    itemNotify: true,
-    offerWrite: true,
-    requestRead: true,
-    requestWrite: true,
-    allocationRead: true,
-    allocationWrite: true,
-    archivedRead: true,
-    distributionRead: true,
-    distributionWrite: true,
-    shipmentRead: true,
-    shipmentWrite: true,
-    signoffWrite: true,
-    wishlistRead: true,
-    supportRead: true,
-    supportWrite: true,
-    supportNotify: true,
-  });
-
   // Standard Admin (Has userWrite, but NOT isSuper)
   // Use this account to see if it can deactivate partners but NOT Super Admins
   const staffAdmin = await createUser({
