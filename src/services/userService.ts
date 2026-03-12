@@ -394,10 +394,10 @@ export default class UserService {
 
     if (
       data.enabled === false &&
-      (existingUser.userWrite || existingUser.isSuper)
+      (existingUser.userWrite && existingUser.isSuper)
     ) {
       throw new AuthorizationError(
-        "Cannot deactivate users with userWrite or isSuper permissions"
+        "Cannot deactivate users with userWrite and isSuper permissions"
       );
     }
 

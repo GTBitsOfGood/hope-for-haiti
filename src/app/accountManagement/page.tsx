@@ -147,8 +147,8 @@ export default function AccountManagementPage() {
       toast.error("You cannot deactivate your own account.");
       return;
     }
-    if (Boolean(user.isSuper && user.userWrite)) {
-      toast.error("You cannot deactivate accounts with super admin permissions.");
+    if (user.id === Number(currentUser?.id) || isProtectedUser(user)) {
+      toast.error("You do not have permission to modify this account's status.");
       return;
     }
     setSelectedUser(user);
@@ -358,8 +358,18 @@ export default function AccountManagementPage() {
     },
   ];
 
-  const isProtectedUser = (user: AccountRow) =>
-    Boolean(user.isSuper && user.userWrite);
+  const isProtectedUser = (item: AccountRow) => {
+  if (!currentUser) return true;
+
+  // Super Admins are protected from everyone
+  if (item.isSuper) return true;
+
+  // If the current user is NOT a Super Admin, then anyone with userWrite 
+  // is protected (prevents horizontal deactivations)
+  if (!currentUser.isSuper && item.userWrite) return true;
+
+  return false;
+};
 
   if (canManageAccounts) {
     baseColumns.push({
@@ -378,6 +388,7 @@ export default function AccountManagementPage() {
             onDeactivateAccount={() => handleDeactivateAccount(item)}
             onSendReminder={() => handleSendReminder(item)}
             canManage={canManageAccounts}
+            hideDeactivateOption={item.id === Number(currentUser?.id) || isProtectedUser(item)}
           />
         </div>
       ),

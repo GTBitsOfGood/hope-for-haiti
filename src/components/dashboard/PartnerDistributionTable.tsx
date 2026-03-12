@@ -4,7 +4,7 @@ import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
 } from "../baseTable/AdvancedBaseTable";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import { PartnerAllocation } from "@/types/api/allocation.types";
 import { format } from "date-fns";
@@ -22,6 +22,18 @@ export default function PartnerDistributionTable({
 }: PartnerDistributionTableProps) {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<PartnerAllocation>>(null);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const onShipmentUpdate = () => {
+      setRefreshKey((k) => k + 1);
+    };
+
+    window.addEventListener("shipment-status-updated", onShipmentUpdate);
+    return () =>
+      window.removeEventListener("shipment-status-updated", onShipmentUpdate);
+  }, []);
 
   const fetchTableData = useCallback(
     async (
@@ -152,6 +164,7 @@ export default function PartnerDistributionTable({
 
   return (
     <AdvancedBaseTable
+      key={refreshKey}
       ref={tableRef}
       columns={pending ? inProgressColumns : completedColumns}
       fetchFn={fetchTableData}

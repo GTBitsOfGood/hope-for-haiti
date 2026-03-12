@@ -167,7 +167,8 @@ async function buildSeedData() {
     supportNotify: true,
   });
 
-  // Create staff admin (userWrite but not isSuper - for testing account management rules)
+  // Standard Admin (Has userWrite, but NOT isSuper)
+  // Use this account to see if it can deactivate partners but NOT Super Admins
   const staffAdmin = await createUser({
     email: "staffadmin@test.com",
     name: "Staff Admin",
