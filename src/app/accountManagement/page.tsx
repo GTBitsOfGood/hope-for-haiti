@@ -378,6 +378,7 @@ export default function AccountManagementPage() {
             onDeactivateAccount={() => handleDeactivateAccount(item)}
             onSendReminder={() => handleSendReminder(item)}
             canManage={canManageAccounts}
+            hideDeactivateOption={item.id === Number(currentUser?.id) || isProtectedUser(item)}
           />
         </div>
       ),
