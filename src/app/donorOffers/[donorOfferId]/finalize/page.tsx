@@ -69,7 +69,7 @@ export default function FinalizeDonorOfferPage() {
   const {
     fileName,
     fileSize,
-    fileError,
+    fileErrorMessage,
     fileUploaded,
     fileLoading,
     errors,
@@ -87,7 +87,7 @@ export default function FinalizeDonorOfferPage() {
   const { isLoading: isSubmitting, apiClient } = useApiClient();
 
   const showPreview = () => {
-    if (!fileUploaded || fileError) return;
+    if (!fileUploaded || fileErrorMessage) return;
     setPreview(true);
   };
 
@@ -207,7 +207,7 @@ export default function FinalizeDonorOfferPage() {
       <FileInfoDisplay
         fileName={fileName}
         fileSize={fileSize}
-        fileError={fileError}
+        fileErrorMessage={fileErrorMessage}
         onReset={resetUpload}
       />
 
@@ -233,12 +233,12 @@ export default function FinalizeDonorOfferPage() {
           <button
             disabled={
               !fileUploaded ||
-              fileError
+              !!fileErrorMessage
             }
             onClick={showPreview}
             className={
               fileUploaded &&
-              !fileError
+              !fileErrorMessage
                 ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
                 : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
             }

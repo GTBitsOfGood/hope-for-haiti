@@ -36,6 +36,8 @@ interface AccountUserResponse {
   tag: string | null;
   enabled: boolean;
   pending: boolean;
+  isSuper?: boolean;
+  userWrite?: boolean;
   invite?: {
     token: string;
     expiration: string;
@@ -141,6 +143,14 @@ export default function AccountManagementPage() {
   const handleDeactivateAccount = (user: AccountRow) => {
     if (!canManageAccounts) return;
     if (user.pending) return;
+    if (currentUser && user.id === Number(currentUser.id)) {
+      toast.error("You cannot deactivate your own account.");
+      return;
+    }
+    if (user.id === Number(currentUser?.id) || isProtectedUser(user)) {
+      toast.error("You do not have permission to modify this account's status.");
+      return;
+    }
     setSelectedUser(user);
     setDeactivateModalOpen(true);
   };
@@ -216,6 +226,18 @@ export default function AccountManagementPage() {
   const confirmDeactivateAccount = async () => {
     if (!canManageAccounts) return;
     if (!selectedUser || selectedUser.pending) return;
+    if (currentUser && selectedUser.id === Number(currentUser.id)) {
+      toast.error("You cannot deactivate your own account.");
+      setDeactivateModalOpen(false);
+      setSelectedUser(null);
+      return;
+    }
+    if (Boolean(selectedUser.isSuper && selectedUser.userWrite)) {
+      toast.error("You cannot deactivate accounts with super admin permissions.");
+      setDeactivateModalOpen(false);
+      setSelectedUser(null);
+      return;
+    }
 
     try {
       const isCurrentlyEnabled = selectedUser.enabled;
@@ -336,6 +358,19 @@ export default function AccountManagementPage() {
     },
   ];
 
+  const isProtectedUser = (item: AccountRow) => {
+  if (!currentUser) return true;
+
+  // Super Admins are protected from everyone
+  if (item.isSuper) return true;
+
+  // If the current user is NOT a Super Admin, then anyone with userWrite 
+  // is protected (prevents horizontal deactivations)
+  if (!currentUser.isSuper && item.userWrite) return true;
+
+  return false;
+};
+
   if (canManageAccounts) {
     baseColumns.push({
       id: "manage",
@@ -353,6 +388,7 @@ export default function AccountManagementPage() {
             onDeactivateAccount={() => handleDeactivateAccount(item)}
             onSendReminder={() => handleSendReminder(item)}
             canManage={canManageAccounts}
+            hideDeactivateOption={item.id === Number(currentUser?.id) || isProtectedUser(item)}
           />
         </div>
       ),
@@ -466,7 +502,10 @@ This will restore the user's access to the system.`
           isStaffAccount={selectedUser ? isStaff(selectedUser.type) : true}
           existingTags={tags ?? []}
           onManagePermissions={
-            selectedUser && !selectedUser.pending && isStaff(selectedUser.type)
+            selectedUser &&
+            !selectedUser.pending &&
+            isStaff(selectedUser.type) &&
+            !isProtectedUser(selectedUser)
               ? () => handleManagePermissions(selectedUser)
               : undefined
           }

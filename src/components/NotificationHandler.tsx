@@ -16,7 +16,7 @@ import toast, { Toast } from "react-hot-toast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { NotificationCard } from "./dashboard";
-import { StreamChat, Event } from "stream-chat";
+import { StreamChat, Event as StreamEvent } from "stream-chat";
 
 let realtimeInstance: Ably.Realtime | null = null;
 
@@ -200,14 +200,23 @@ export default function NotificationHandler({
         ...prev,
       ]);
 
-      if (pathname === "/") return;
+      const isShipmentStatusUpdate =
+        payload.title?.toLowerCase().includes("shipment status") ||
+        payload.actionText?.toLowerCase().includes("shipment") ||
+        payload.action?.includes("distributions");
+
+      if (isShipmentStatusUpdate) {
+        window.dispatchEvent(new Event("shipment-status-updated"));
+      }
+
+      if (pathname === "/login") return;
 
       toast.custom(
         (t: Toast) => (
           <NotificationCard
             id={payload.id}
             message={payload.title}
-            dateCreated={payload.dateCreated}
+            dateCreated={new Date(payload.dateCreated)}
             actionText={payload.actionText ?? undefined}
             actionUrl={payload.action ?? undefined}
             t={t}
@@ -273,8 +282,10 @@ export default function NotificationHandler({
       process.env.NEXT_PUBLIC_STREAMIO_API_KEY
     );
 
-    const handleTicketMessage = (event: Event) => {
-      if (event.channel_type !== "ticket") return;
+    const handleTicketMessage = (event: StreamEvent) => {
+      if (event.channel_type !== "ticket") {
+        return;
+      }
 
       const senderId = event.user?.id ?? event.message?.user?.id;
       if (senderId === user.streamUserId) return;
