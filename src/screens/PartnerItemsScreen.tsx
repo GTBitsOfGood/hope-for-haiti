@@ -107,7 +107,7 @@ const tutorialSteps: Step[] = [
     title: "Filter",
     content: 
     <div>
-      <p>Items cam be filtered by:</p>
+      <p>Items can be filtered by:</p>
       <ul className="list-disc pl-5 mt-2 space-y-1">
         <li>Name</li>
         <li>Pallet Number</li>
