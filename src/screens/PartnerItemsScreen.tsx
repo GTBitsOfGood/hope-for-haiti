@@ -20,6 +20,11 @@ import Tutorial from "@/components/Tutorial";
 import { useSearchParams } from "next/navigation";
 import Chip from "@/components/chips/Chip";
 
+type TutorialStep = Step & {
+  mobilePlacement?: Step["placement"];
+  mobilePlacementBreakpoint?: number;
+};
+
 interface ActionButtonProps {
   item: AvailableItemDTO;
   onOpenPopover: (item: AvailableItemDTO) => void;
@@ -31,6 +36,7 @@ interface ActionButtonProps {
     comments: string;
   }) => void;
   selectedItem: AvailableItemDTO | null;
+  isTutorialTarget?: boolean;
 }
 
 function ActionButton({
@@ -40,6 +46,7 @@ function ActionButton({
   onPopoverClose,
   onRequestSave,
   selectedItem,
+  isTutorialTarget = false,
 }: ActionButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const hasRequest = item.requestId != null;
@@ -48,7 +55,7 @@ function ActionButton({
     <div className="relative">
       <button
         ref={buttonRef}
-        data-tutorial={item.id === -999999 ? "request-button" : undefined}
+        data-tutorial={isTutorialTarget ? "request-button" : undefined}
         onClick={() => onOpenPopover(item)}
         className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
           hasRequest
@@ -81,7 +88,7 @@ function ActionButton({
   );
 }
 
-const tutorialSteps: Step[] = [
+const tutorialSteps: TutorialStep[] = [
   {
     target: "body",
     title: 
@@ -116,6 +123,7 @@ const tutorialSteps: Step[] = [
       </ul>
     </div>,
     placement: "left",
+    mobilePlacement: "center",
     spotlightPadding: 0,
   },
   {
@@ -155,7 +163,7 @@ const tutorialSteps: Step[] = [
     placement: "right",
   },
   {
-    target: '[data-tutorial="request-example"]',
+    target: '[data-tutorial="request-expanded"] [data-tutorial="request-example"]',
     title: "Requesting an Item",
     content:
     <div>
@@ -245,9 +253,8 @@ export default function PartnerItemsScreen() {
     }
 
     if (stepIndex === 3) {
-      const currentItems = tableRef.current?.getAllItems() ?? [];
-
-      if (currentItems.length === 0) {
+      if (!tutorialRowInsertedRef.current) {
+        const currentItems = tableRef.current?.getAllItems() ?? [];
         originalItemsRef.current = currentItems;
         tutorialRowInsertedRef.current = true;
 
@@ -277,7 +284,8 @@ export default function PartnerItemsScreen() {
 
     if (shouldKeepRequestPopoverOpen) {
       const currentItems = tableRef.current?.getAllItems() ?? [];
-      const tutorialItem = currentItems.find((item) => item.id === -999999);
+      const tutorialItem =
+        currentItems.find((item) => item.id === -999999) ?? currentItems[0];
 
       if (tutorialItem) {
         setSelectedItem(tutorialItem);
@@ -476,7 +484,7 @@ export default function PartnerItemsScreen() {
     {
       id: "actions",
       header: "Actions",
-      cell: (item) => {
+      cell: (item, rowIndex) => {
         return (
           <div className="flex flex-col">
             <ActionButton
@@ -486,6 +494,7 @@ export default function PartnerItemsScreen() {
               onPopoverClose={handlePopoverClose}
               onRequestSave={(data) => handleRequestSave(item, data)}
               selectedItem={selectedItem}
+              isTutorialTarget={item.id === -999999 || rowIndex === 0}
             />
             <div className="text-xs mt-1 text-red-primary">
               Deadline:{" "}

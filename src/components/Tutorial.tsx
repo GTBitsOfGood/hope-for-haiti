@@ -18,28 +18,75 @@ interface TutorialProps {
   onTutorialEnd?: () => void;
 }
 
+type ResponsiveTutorialStep = Step & {
+  mobilePlacement?: Step["placement"];
+  mobilePlacementBreakpoint?: number;
+};
+
+const DEFAULT_MOBILE_PLACEMENT_BREAKPOINT = 1024;
+
 export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorialEnd, }: TutorialProps) {
   const { user } = useUser();
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState<number | null>(null);
   const hasFinishedRef = useRef(false);
   const joyrideHelpersRef = useRef<StoreHelpers | null>(null);
   const refreshRafRef = useRef<number | null>(null);
 
+  useEffect(() => {
+    const updateViewportWidth = () => {
+      const width = window.visualViewport?.width ?? window.innerWidth;
+      setViewportWidth(Math.round(width));
+    };
+
+    updateViewportWidth();
+    window.addEventListener("resize", updateViewportWidth, { passive: true });
+    window.addEventListener("orientationchange", updateViewportWidth, {
+      passive: true,
+    });
+    window.visualViewport?.addEventListener("resize", updateViewportWidth);
+
+    return () => {
+      window.removeEventListener("resize", updateViewportWidth);
+      window.removeEventListener("orientationchange", updateViewportWidth);
+      window.visualViewport?.removeEventListener("resize", updateViewportWidth);
+    };
+  }, []);
+
   const responsiveTutorialSteps = useMemo(
     () =>
-      tutorialSteps.map((step) => {
+      tutorialSteps.map((rawStep) => {
+        const step = rawStep as ResponsiveTutorialStep;
+        const {
+          mobilePlacement,
+          mobilePlacementBreakpoint,
+          ...joyrideStep
+        } = step;
         const isBodyTarget = step.target === "body";
+        const shouldUseMobilePlacement =
+          Boolean(mobilePlacement) &&
+          viewportWidth !== null &&
+          viewportWidth <
+            (mobilePlacementBreakpoint ?? DEFAULT_MOBILE_PLACEMENT_BREAKPOINT);
+        const shouldPreserveCenterPlacement =
+          isBodyTarget || joyrideStep.placement === "center";
         const fallbackPadding =
           typeof step.spotlightPadding === "number" ? step.spotlightPadding : 8;
 
         return {
-          ...step,
-          placement: (isBodyTarget ? step.placement ?? "center" : "auto") as Step["placement"],
+          ...joyrideStep,
+          placement: (
+            shouldUseMobilePlacement
+              ? mobilePlacement
+              : shouldPreserveCenterPlacement
+                ? joyrideStep.placement ?? "center"
+                : "auto"
+          ) as Step["placement"],
           spotlightPadding: Math.min(fallbackPadding, 8),
         };
       }),
-    [tutorialSteps]
+    [tutorialSteps, viewportWidth]
   );
 
   const finishTutorial = () => {
@@ -270,7 +317,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
           },
         },
       }}
-      disableOverlayClose={false}
+      disableOverlayClose
       scrollToFirstStep
       continuous
       steps={responsiveTutorialSteps}

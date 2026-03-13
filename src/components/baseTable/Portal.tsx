@@ -115,10 +115,9 @@ export default function Portal({
       setPortalPosition({ top, left });
     };
 
-    // Initial position calculation with a slight delay to ensure DOM is ready
-    requestAnimationFrame(() => {
-      updatePosition();
-    });
+    // Position immediately, then refresh on next frame after layout settles.
+    updatePosition();
+    requestAnimationFrame(updatePosition);
 
     // Add event listeners for dynamic updates
     window.addEventListener("scroll", updatePosition, true);

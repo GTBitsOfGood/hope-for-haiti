@@ -21,6 +21,10 @@ import { Step } from "react-joyride";
 import Tutorial from "@/components/Tutorial";
 
 type WishlistItem = Wishlist;
+type TutorialStep = Step & {
+  mobilePlacement?: Step["placement"];
+  mobilePlacementBreakpoint?: number;
+};
 
 type WishlistEditable = {
   id: number;
@@ -42,7 +46,7 @@ type WishlistTutorialModalState = {
   hardMatch?: boolean;
 } | null;
 
-const tutorialSteps: Step[] = [
+const tutorialSteps: TutorialStep[] = [
   {
     target: "body",
     title: (
@@ -144,6 +148,7 @@ const tutorialSteps: Step[] = [
       </div>
     ),
     placement: "left",
+    mobilePlacement: "center",
   },
   {
     target: '[data-tutorial="individual-item"]',
