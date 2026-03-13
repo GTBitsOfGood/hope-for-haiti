@@ -41,7 +41,9 @@ const patchBodySchema = z.object({
   role: z.nativeEnum(UserType).optional(),
   enabled: z.boolean().optional(),
   permissions: permissionsSchema.optional(),
-  tutorialFinished: z.string().optional(),
+  tutorialFinished: z
+    .enum(["dashboard", "items", "requests", "wishlists"])
+    .optional(),
 });
 
 export async function GET(
@@ -101,6 +103,23 @@ export async function PATCH(
       throw new ArgumentError(bodyParsed.error.message);
     }
 
+    if (session.user.type === UserType.PARTNER) {
+      const partnerWritableFields: Array<keyof typeof bodyParsed.data> = [
+        "tutorialFinished",
+      ];
+      const disallowedPartnerFields = Object.keys(bodyParsed.data).filter(
+        (key) =>
+          !partnerWritableFields.includes(key as keyof typeof bodyParsed.data) &&
+          bodyParsed.data[key as keyof typeof bodyParsed.data] !== undefined
+      );
+
+      if (disallowedPartnerFields.length > 0) {
+        throw new AuthorizationError(
+          "Partners can only update tutorial status"
+        );
+      }
+    }
+
     // These checks relate to the session user - the ones in userService relate to the target user
     const isSelf = session.user.id === parsed.data.userId.toString();
 
@@ -131,12 +150,13 @@ export async function PATCH(
       enabled: bodyParsed.data.enabled,
       permissions: bodyParsed.data.permissions,
       dashboardTutorial:
-        bodyParsed.data.tutorialFinished === "dashboard" || undefined,
-      itemsTutorial: bodyParsed.data.tutorialFinished === "items" || undefined,
+        bodyParsed.data.tutorialFinished === "dashboard" ? true : undefined,
+      itemsTutorial:
+        bodyParsed.data.tutorialFinished === "items" ? true : undefined,
       requestsTutorial:
-        bodyParsed.data.tutorialFinished === "requests" || undefined,
+        bodyParsed.data.tutorialFinished === "requests" ? true : undefined,
       wishlistsTutorial:
-        bodyParsed.data.tutorialFinished === "wishlists" || undefined,
+        bodyParsed.data.tutorialFinished === "wishlists" ? true : undefined,
     });
 
     return ok();

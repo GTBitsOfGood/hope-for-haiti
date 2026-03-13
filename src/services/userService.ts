@@ -110,6 +110,10 @@ export default class UserService {
         partnerDetails: true,
         streamUserId: true,
         streamUserToken: true,
+        dashboardTutorial: true,
+        itemsTutorial: true,
+        requestsTutorial: true,
+        wishlistsTutorial: true,
         ...PERMISSION_SELECT,
         invite: {
           select: {

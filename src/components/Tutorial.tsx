@@ -32,9 +32,17 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
+  const [serverTutorialCompleted, setServerTutorialCompleted] = useState<
+    boolean | null
+  >(null);
   const hasFinishedRef = useRef(false);
+  const hasFetchedCompletionRef = useRef(false);
   const joyrideHelpersRef = useRef<StoreHelpers | null>(null);
   const refreshRafRef = useRef<number | null>(null);
+  const tutorialField = nameMap[type];
+  const sessionTutorialCompleted = Boolean(user?.[tutorialField]);
+  const isTutorialCompleted =
+    serverTutorialCompleted ?? sessionTutorialCompleted;
 
   useEffect(() => {
     const updateViewportWidth = () => {
@@ -100,8 +108,6 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     const userId = user?.id;
     if (!userId) return;
 
-    const tutorialField = nameMap[type];
-
     void (async () => {
       try {
         const response = await fetch(`/api/users/${userId}`, {
@@ -121,6 +127,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
           return;
         }
 
+        setServerTutorialCompleted(true);
         await updateSession({
           [tutorialField]: true,
         });
@@ -131,14 +138,67 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
   };
 
   useEffect(() => {
-    if (!user || user[nameMap[type]] || tutorialSteps.length === 0) {
+    hasFetchedCompletionRef.current = false;
+    setServerTutorialCompleted(null);
+  }, [type, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || hasFetchedCompletionRef.current) {
+      return;
+    }
+
+    hasFetchedCompletionRef.current = true;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch(`/api/users/${user.id}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          if (!cancelled) {
+            setServerTutorialCompleted(sessionTutorialCompleted);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          user?: Partial<SessionUser>;
+        };
+        const latestValue = payload.user?.[tutorialField];
+
+        if (!cancelled && typeof latestValue === "boolean") {
+          setServerTutorialCompleted(latestValue);
+          if (latestValue !== sessionTutorialCompleted) {
+            await updateSession({
+              [tutorialField]: latestValue,
+            });
+          }
+          return;
+        }
+      } catch (error) {
+        console.error("Error syncing tutorial status:", error);
+      }
+
+      if (!cancelled) {
+        setServerTutorialCompleted(sessionTutorialCompleted);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionTutorialCompleted, tutorialField, updateSession, user?.id]);
+
+  useEffect(() => {
+    if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
       return;
     }
     hasFinishedRef.current = false;
     setStepIndex(0);
     setRun(true);
     onStepChange?.(0);
-  }, [user, type, tutorialSteps, onStepChange]);
+  }, [isTutorialCompleted, onStepChange, tutorialSteps, user]);
 
   useEffect(() => {
     if (!run) return;
@@ -207,7 +267,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     };
   }, [run, stepIndex]);
 
-  if (!user || user[nameMap[type]] || tutorialSteps.length === 0) {
+  if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
     return null;
   }
 
@@ -367,8 +427,8 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
       }}
       locale={{
         back: "Back",
-        close: "Done", // used in non-continuous mode or some configs
-        last: "Done", // 👈 this is the one you care about
+        close: "Done",
+        last: "Done",
         next: "Next",
         skip: "Skip",
       }}
