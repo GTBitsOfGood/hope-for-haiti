@@ -11,6 +11,8 @@ import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { MatchingService } from "./matchingService";
 
+const AUTO_GENERATED_COMMENT = "Automatically generated due to unfulfilled request";
+
 export class WishlistService {
   static async createWishlist(data: CreateWishlistData) {
     const partner = await db.user.findUnique({
@@ -40,6 +42,92 @@ export class WishlistService {
     });
 
     return wishlist;
+  }
+
+  /**
+   * For each request where finalQuantity < quantity, automatically creates or
+   * updates a wishlist entry for the partner with the unfulfilled quantity.
+   * If an entry with the same name already exists for the partner, the
+   * unfulfilled quantity is added to it.
+   */
+  static async createUnfulfilledWishlistEntries(
+    requests: Array<{
+      requestId: number;
+      finalQuantity: number;
+    }>
+  ): Promise<void> {
+    if (requests.length === 0) return;
+
+    const requestIds = requests.map((r) => r.requestId);
+
+    const fullRequests = await db.generalItemRequest.findMany({
+      where: { id: { in: requestIds } },
+      include: {
+        generalItem: {
+          select: { title: true },
+        },
+        partner: {
+          select: { id: true, enabled: true, pending: true },
+        },
+      },
+    });
+
+    for (const update of requests) {
+      const request = fullRequests.find((r) => r.id === update.requestId);
+      if (!request) continue;
+
+      // Skip inactive partners
+      if (!request.partner.enabled || request.partner.pending) continue;
+
+      const unfulfilledQuantity = request.quantity - update.finalQuantity;
+      if (unfulfilledQuantity <= 0) continue;
+
+      const itemName = request.generalItem.title;
+      const partnerId = request.partner.id;
+      const priority = request.priority ?? "LOW";
+
+      // Check if a wishlist entry with the same name already exists
+      const existing = await db.wishlist.findFirst({
+        where: {
+          partnerId,
+          name: itemName,
+          generalItemId: null, // only unfulfilled wishlist entries
+        },
+      });
+
+      if (existing) {
+        // Add quantities together
+        await db.wishlist.update({
+          where: { id: existing.id },
+          data: {
+            quantity: (existing.quantity ?? 0) + unfulfilledQuantity,
+          },
+        });
+      } else {
+        // Create a new wishlist entry
+        const wishlist = await db.wishlist.create({
+          data: {
+            name: itemName,
+            quantity: unfulfilledQuantity,
+            priority,
+            comments: AUTO_GENERATED_COMMENT,
+            partnerId,
+          },
+        });
+
+        try {
+          await MatchingService.add({
+            wishlistId: wishlist.id,
+            title: wishlist.name,
+          });
+        } catch (error) {
+          console.warn(
+            "Failed to generate embedding for auto-created wishlist entry:",
+            error
+          );
+        }
+      }
+    }
   }
 
   /**
