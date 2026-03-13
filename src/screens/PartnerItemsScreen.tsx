@@ -345,6 +345,27 @@ export default function PartnerItemsScreen() {
     }
   ) => {
     try {
+      if (item.id === -999999) {
+        const isExistingTutorialRequest = Boolean(item.requestId);
+
+        tableRef.current?.updateItemById(item.id, {
+          requestId: item.requestId ?? -999998,
+          quantityRequested: requestData.quantity,
+          priority: requestData.priority,
+          comments: requestData.comments,
+          wishlistMatch: null,
+        });
+
+        toast.success(
+          isExistingTutorialRequest
+            ? "Request updated successfully!"
+            : "Request created successfully!"
+        );
+        setIsPopoverOpen(false);
+        setSelectedItem(null);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("quantity", requestData.quantity.toString());
       formData.append("priority", requestData.priority);
