@@ -3,6 +3,7 @@ import Joyride, { Step, CallBackProps, STATUS, EVENTS, ACTIONS } from "react-joy
 import type { StoreHelpers } from "react-joyride";
 import JoyrideStep from "@/components/JoyrideStep";
 import { SessionUser, useUser } from "./context/UserContext";
+import { useSession } from "next-auth/react";
 
 const nameMap = {
   dashboard: "dashboardTutorial" as keyof SessionUser,
@@ -27,6 +28,7 @@ const DEFAULT_MOBILE_PLACEMENT_BREAKPOINT = 1024;
 
 export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorialEnd, }: TutorialProps) {
   const { user } = useUser();
+  const { update: updateSession } = useSession();
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
@@ -98,15 +100,34 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     const userId = user?.id;
     if (!userId) return;
 
-    fetch(`/api/users/${userId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ tutorialFinished: type }),
-    }).catch((error) => {
-      console.error("Error updating tutorial status:", error);
-    });
+    const tutorialField = nameMap[type];
+
+    void (async () => {
+      try {
+        const response = await fetch(`/api/users/${userId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ tutorialFinished: type }),
+        });
+
+        if (!response.ok) {
+          console.error(
+            "Error updating tutorial status:",
+            response.status,
+            response.statusText
+          );
+          return;
+        }
+
+        await updateSession({
+          [tutorialField]: true,
+        });
+      } catch (error) {
+        console.error("Error updating tutorial status:", error);
+      }
+    })();
   };
 
   useEffect(() => {

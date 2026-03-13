@@ -134,7 +134,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id || "";
         token.type = user.type;
@@ -152,6 +152,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.itemsTutorial = user.itemsTutorial;
         token.requestsTutorial = user.requestsTutorial;
         token.wishlistsTutorial = user.wishlistsTutorial;
+      }
+
+      // Keep tutorial flags in sync when useSession().update(...) is called client-side.
+      if (trigger === "update" && session) {
+        const tutorialFields = [
+          "dashboardTutorial",
+          "itemsTutorial",
+          "requestsTutorial",
+          "wishlistsTutorial",
+        ] as const;
+
+        tutorialFields.forEach((field) => {
+          const value = session[field];
+          if (typeof value === "boolean") {
+            token[field] = value;
+          }
+        });
       }
 
       return token;
