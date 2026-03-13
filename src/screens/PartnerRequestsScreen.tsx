@@ -17,6 +17,7 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 import { Step } from "react-joyride";
 import Tutorial from "@/components/Tutorial";
+import { autoFillRequestExample } from "@/util/tutorialUtils";
 
 interface ActionButtonProps {
   request: PartnerRequestDTO;
@@ -300,53 +301,6 @@ export default function PartnerRequestsScreen() {
       if (stepIndex !== 6) {
         return;
       }
-
-      const autoFillRequestExample = (attempt = 0) => {
-        const requestExample = document.querySelector(
-          '[data-tutorial="request-example"]'
-        );
-
-        if (!requestExample) {
-          if (attempt < 12) {
-            requestAnimationFrame(() => autoFillRequestExample(attempt + 1));
-          }
-          return;
-        }
-
-        const quantityInput = requestExample.querySelector(
-          'input[type="number"]'
-        ) as HTMLInputElement | null;
-        const prioritySelect = requestExample.querySelector(
-          "select"
-        ) as HTMLSelectElement | null;
-
-        const setNativeValue = (
-          element: HTMLInputElement | HTMLSelectElement,
-          value: string
-        ) => {
-          const prototype =
-            element instanceof HTMLInputElement
-              ? window.HTMLInputElement.prototype
-              : window.HTMLSelectElement.prototype;
-          const valueSetter = Object.getOwnPropertyDescriptor(
-            prototype,
-            "value"
-          )?.set;
-
-          valueSetter?.call(element, value);
-        };
-
-        if (quantityInput) {
-          setNativeValue(quantityInput, "12");
-          quantityInput.dispatchEvent(new Event("input", { bubbles: true }));
-          quantityInput.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-
-        if (prioritySelect) {
-          setNativeValue(prioritySelect, "HIGH");
-          prioritySelect.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      };
 
       requestAnimationFrame(() => autoFillRequestExample());
     }
