@@ -92,7 +92,7 @@ const tutorialSteps: Step[] = [
   },
 ];
 
-const tutorialInProgressRowId = -999999;
+const tutorialInProgressRowId = -999998;
 const tutorialCompletedRowId = -999999;
 
 export default function PartnerDistributionsSection() {
