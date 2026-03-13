@@ -19,7 +19,7 @@ interface TutorialProps {
   onTutorialEnd?: () => void;
 }
 
-type ResponsiveTutorialStep = Step & {
+export type TutorialStep = Step & {
   mobilePlacement?: Step["placement"];
   mobilePlacementBreakpoint?: number;
 };
@@ -67,7 +67,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
   const responsiveTutorialSteps = useMemo(
     () =>
       tutorialSteps.map((rawStep) => {
-        const step = rawStep as ResponsiveTutorialStep;
+        const step = rawStep as TutorialStep;
         const {
           mobilePlacement,
           mobilePlacementBreakpoint,

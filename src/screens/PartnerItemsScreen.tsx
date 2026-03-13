@@ -15,16 +15,10 @@ import AdvancedBaseTable, {
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
-import { Step } from "react-joyride";
-import Tutorial from "@/components/Tutorial";
+import Tutorial, { type TutorialStep } from "@/components/Tutorial";
 import { useSearchParams } from "next/navigation";
 import Chip from "@/components/chips/Chip";
 import { autoFillRequestExample } from "@/util/tutorialUtils";
-
-type TutorialStep = Step & {
-  mobilePlacement?: Step["placement"];
-  mobilePlacementBreakpoint?: number;
-};
 
 interface ActionButtonProps {
   item: AvailableItemDTO;
@@ -294,7 +288,7 @@ export default function PartnerItemsScreen() {
       }
 
       if (stepIndex === 6) {
-        requestAnimationFrame(() => autoFillRequestExample());
+        autoFillRequestExample();
         return;
       }
 

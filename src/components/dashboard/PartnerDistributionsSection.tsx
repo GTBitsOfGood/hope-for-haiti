@@ -214,7 +214,7 @@ export default function PartnerDistributionsSection() {
           }
         };
 
-        requestAnimationFrame(() => ensureCompletedTutorialRow());
+        ensureCompletedTutorialRow();
       }
     },
     [

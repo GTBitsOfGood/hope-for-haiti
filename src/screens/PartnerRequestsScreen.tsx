@@ -302,7 +302,7 @@ export default function PartnerRequestsScreen() {
         return;
       }
 
-      requestAnimationFrame(() => autoFillRequestExample());
+      autoFillRequestExample();
     }
   }, []);
 

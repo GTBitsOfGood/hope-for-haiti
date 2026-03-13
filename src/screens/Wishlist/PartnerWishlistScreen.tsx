@@ -17,14 +17,9 @@ import AddToWishlistModal, {
 import EditWishlistModal from "@/components/EditWishlistModal";
 import DeleteWishlistModal from "@/components/DeleteWishlistModal";
 import PriorityTag from "@/components/tags/PriorityTag";
-import { Step } from "react-joyride";
-import Tutorial from "@/components/Tutorial";
+import Tutorial, { type TutorialStep } from "@/components/Tutorial";
 
 type WishlistItem = Wishlist;
-type TutorialStep = Step & {
-  mobilePlacement?: Step["placement"];
-  mobilePlacementBreakpoint?: number;
-};
 
 type WishlistEditable = {
   id: number;
