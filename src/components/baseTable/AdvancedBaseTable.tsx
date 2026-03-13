@@ -428,89 +428,96 @@ function AdvancedBaseTableInner<T extends object>(
                 </td>
               </tr>
             ) : (
-              items.map((item, rowIndex) => (
-                <React.Fragment key={String(resolveRowId(item))}>
-                  <tr
-                    data-tutorial={
-                      String(resolveRowId(item)) === "-999999"
-                        ? "individual-item"
-                        : rowIndex === 0
-                          ? "advanced-table-row"
-                          : undefined
-                    }
-                    key={String(resolveRowId(item))}
-                    data-row-id={resolveRowId(item)}
-                    data-odd={rowIndex % 2 !== 0}
-                    className={`${
-                        String(resolveRowId(item)) === "-999999"
+              items.map((item, rowIndex) => {
+                const resolvedRowId = resolveRowId(item);
+                const rowIdString = String(resolvedRowId);
+                const isTutorialRow =
+                  rowIdString === "-999999" || rowIdString === "-999998";
+
+                return (
+                  <React.Fragment key={rowIdString}>
+                    <tr
+                      data-tutorial={
+                        isTutorialRow
+                          ? "individual-item"
+                          : rowIndex === 0
+                            ? "advanced-table-row"
+                            : undefined
+                      }
+                      key={rowIdString}
+                      data-row-id={resolvedRowId}
+                      data-odd={rowIndex % 2 !== 0}
+                      className={`${
+                        isTutorialRow
                           ? "!bg-white"
                           : "bg-white data-[odd=false]:bg-blue-light/35"
                       } border-b rounded-lg border-blue-primary/10 text-gray-primary ${
                         onRowClick || rowBody ? "cursor-pointer" : ""
                       } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
-                    onClick={(e) => {
-                      onRowClick?.(item);
+                      onClick={(e) => {
+                        onRowClick?.(item);
 
-                      const target = e.target as HTMLElement;
-                      if (
-                        target.closest("button") ||
-                        target.closest("a") ||
-                        target.closest("input") ||
-                        target.closest("select") ||
-                        target.closest("textarea") ||
-                        target.closest("[role='button']")
-                      ) {
-                        return;
-                      }
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest("button") ||
+                          target.closest("a") ||
+                          target.closest("input") ||
+                          target.closest("select") ||
+                          target.closest("textarea") ||
+                          target.closest("[role='button']")
+                        ) {
+                          return;
+                        }
 
-                      if (rowBody) {
-                        const id = resolveRowId(item);
-                        setOpenRowIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(id)) {
-                            next.delete(id);
-                          } else {
-                            next.add(id);
-                          }
-                          return next;
-                        });
-                      }
-                    }}
-                  >
-                    {normalizedColumns.filter((column) => !column.hidden).map((column) => {
-                      const rawContent = column.render(
-                        item,
-                        rowIndex,
-                        openRowIds.has(resolveRowId(item))
-                      );
-                      return (
+                        if (rowBody) {
+                          const id = resolveRowId(item);
+                          setOpenRowIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(id)) {
+                              next.delete(id);
+                            } else {
+                              next.add(id);
+                            }
+                            return next;
+                          });
+                        }
+                      }}
+                    >
+                      {normalizedColumns.filter((column) => !column.hidden).map((column) => {
+                        const rawContent = column.render(
+                          item,
+                          rowIndex,
+                          openRowIds.has(resolveRowId(item))
+                        );
+                        return (
+                          <td
+                            key={column.id}
+                            className={`px-4 py-4 whitespace-nowrap overflow-visible ${
+                              rowCellStyles ? rowCellStyles : ""
+                            } ${column.cellClassName ? column.cellClassName : ""}`}
+                          ><div className="w-full rounded-lg">
+                              {getDisplayContent(rawContent)}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {rowBody && openRowIds.has(resolveRowId(item)) && (
+                      <tr>
                         <td
-                          key={column.id}
-                          className={`px-4 py-4 whitespace-nowrap overflow-visible ${
-                            rowCellStyles ? rowCellStyles : ""
-                          } ${column.cellClassName ? column.cellClassName : ""}`}
-                        ><div className="w-full rounded-lg">
-                            {getDisplayContent(rawContent)}
+                          colSpan={normalizedColumns.length}
+                          className="p-0"
+                          style={{ width: 0 }}
+                        >
+                          <div style={{ width: "100%", maxWidth: "100%" }}>
+                            {rowBody(item)}
                           </div>
                         </td>
-                      );
-                    })}
-                  </tr>
-                  {rowBody && openRowIds.has(resolveRowId(item)) && (
-                    <tr>
-                      <td
-                        colSpan={normalizedColumns.length}
-                        className="p-0"
-                        style={{ width: 0 }}
-                      >
-                        <div style={{ width: "100%", maxWidth: "100%" }}>
-                          {rowBody(item)}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>

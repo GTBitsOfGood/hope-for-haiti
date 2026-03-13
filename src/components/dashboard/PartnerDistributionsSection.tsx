@@ -172,7 +172,7 @@ export default function PartnerDistributionsSection() {
           }
         };
 
-        requestAnimationFrame(() => ensureInProgressTutorialRow());
+        ensureInProgressTutorialRow();
         return;
       }
 

@@ -149,6 +149,7 @@ const tutorialSteps: TutorialStep[] = [
     ),
     placement: "left",
     mobilePlacement: "center",
+    mobilePlacementBreakpoint: 1200,
   },
   {
     target: '[data-tutorial="individual-item"]',
