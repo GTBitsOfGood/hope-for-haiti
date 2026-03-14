@@ -101,6 +101,9 @@ export default function PartnerDistributionsSection() {
   const activeTabRef = useRef<TabType>("in-progress");
   const inProgressTutorialRowInsertedRef = useRef(false);
   const completedTutorialRowInsertedRef = useRef(false);
+  const activeTutorialStepRef = useRef<number | null>(null);
+  const inProgressTutorialRowRafRef = useRef<number | null>(null);
+  const completedTutorialRowRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -118,10 +121,38 @@ export default function PartnerDistributionsSection() {
     completedTutorialRowInsertedRef.current = false;
   }, []);
 
+  const cancelInProgressTutorialRowPolling = useCallback(() => {
+    if (inProgressTutorialRowRafRef.current == null) return;
+    cancelAnimationFrame(inProgressTutorialRowRafRef.current);
+    inProgressTutorialRowRafRef.current = null;
+  }, []);
+
+  const cancelCompletedTutorialRowPolling = useCallback(() => {
+    if (completedTutorialRowRafRef.current == null) return;
+    cancelAnimationFrame(completedTutorialRowRafRef.current);
+    completedTutorialRowRafRef.current = null;
+  }, []);
+
   const handleTutorialEnd = useCallback(() => {
+    activeTutorialStepRef.current = null;
+    cancelInProgressTutorialRowPolling();
+    cancelCompletedTutorialRowPolling();
     removeInProgressTutorialRow();
     removeCompletedTutorialRow();
-  }, [removeCompletedTutorialRow, removeInProgressTutorialRow]);
+  }, [
+    cancelCompletedTutorialRowPolling,
+    cancelInProgressTutorialRowPolling,
+    removeCompletedTutorialRow,
+    removeInProgressTutorialRow,
+  ]);
+
+  useEffect(
+    () => () => {
+      cancelInProgressTutorialRowPolling();
+      cancelCompletedTutorialRowPolling();
+    },
+    [cancelCompletedTutorialRowPolling, cancelInProgressTutorialRowPolling]
+  );
 
   const getTutorialRowAttributes = useCallback(
     (item: PartnerAllocation) =>
@@ -157,11 +188,15 @@ export default function PartnerDistributionsSection() {
 
   const handleTutorialStepChange = useCallback(
     (stepIndex: number) => {
+      activeTutorialStepRef.current = stepIndex;
+
       if (stepIndex !== 2) {
+        cancelInProgressTutorialRowPolling();
         removeInProgressTutorialRow();
       }
 
       if (stepIndex !== 4) {
+        cancelCompletedTutorialRowPolling();
         removeCompletedTutorialRow();
       }
 
@@ -169,7 +204,17 @@ export default function PartnerDistributionsSection() {
       setTutorialTab(nextTab);
 
       if (stepIndex === 2) {
+        cancelInProgressTutorialRowPolling();
+
         const ensureInProgressTutorialRow = (attempt = 0) => {
+          if (
+            activeTutorialStepRef.current !== 2 ||
+            activeTabRef.current !== "in-progress"
+          ) {
+            inProgressTutorialRowRafRef.current = null;
+            return;
+          }
+
           const currentItems = tableRef.current?.getAllItems() ?? [];
           const hasTutorialRow = currentItems.some(
             (item) => item.id === tutorialInProgressRowId
@@ -177,6 +222,7 @@ export default function PartnerDistributionsSection() {
 
           if (hasTutorialRow) {
             inProgressTutorialRowInsertedRef.current = true;
+            inProgressTutorialRowRafRef.current = null;
             return;
           }
 
@@ -198,9 +244,11 @@ export default function PartnerDistributionsSection() {
           inProgressTutorialRowInsertedRef.current = true;
 
           if (attempt < 150) {
-            requestAnimationFrame(() =>
+            inProgressTutorialRowRafRef.current = requestAnimationFrame(() =>
               ensureInProgressTutorialRow(attempt + 1)
             );
+          } else {
+            inProgressTutorialRowRafRef.current = null;
           }
         };
 
@@ -209,7 +257,17 @@ export default function PartnerDistributionsSection() {
       }
 
       if (stepIndex === 4) {
+        cancelCompletedTutorialRowPolling();
+
         const ensureCompletedTutorialRow = (attempt = 0) => {
+          if (
+            activeTutorialStepRef.current !== 4 ||
+            activeTabRef.current !== "completed"
+          ) {
+            completedTutorialRowRafRef.current = null;
+            return;
+          }
+
           const currentItems = tableRef.current?.getAllItems() ?? [];
           const hasTutorialRow = currentItems.some(
             (item) => item.id === tutorialCompletedRowId
@@ -217,6 +275,7 @@ export default function PartnerDistributionsSection() {
 
           if (hasTutorialRow) {
             completedTutorialRowInsertedRef.current = true;
+            completedTutorialRowRafRef.current = null;
             return;
           }
 
@@ -240,9 +299,11 @@ export default function PartnerDistributionsSection() {
           completedTutorialRowInsertedRef.current = true;
 
           if (attempt < 150) {
-            requestAnimationFrame(() =>
+            completedTutorialRowRafRef.current = requestAnimationFrame(() =>
               ensureCompletedTutorialRow(attempt + 1)
             );
+          } else {
+            completedTutorialRowRafRef.current = null;
           }
         };
 
@@ -250,6 +311,8 @@ export default function PartnerDistributionsSection() {
       }
     },
     [
+      cancelCompletedTutorialRowPolling,
+      cancelInProgressTutorialRowPolling,
       removeCompletedTutorialRow,
       removeInProgressTutorialRow,
       setTutorialTab,

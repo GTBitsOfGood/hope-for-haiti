@@ -455,7 +455,7 @@ export default function PartnerItemsScreen() {
     {
       id: "actions",
       header: "Actions",
-      cell: (item, rowIndex) => {
+      cell: (item) => {
         return (
           <div className="flex flex-col">
             <ActionButton
@@ -465,7 +465,7 @@ export default function PartnerItemsScreen() {
               onPopoverClose={handlePopoverClose}
               onRequestSave={(data) => handleRequestSave(item, data)}
               selectedItem={selectedItem}
-              isTutorialTarget={item.id === -999999 || rowIndex === 0}
+              isTutorialTarget={item.id === -999999}
             />
             <div className="text-xs mt-1 text-red-primary">
               Deadline:{" "}

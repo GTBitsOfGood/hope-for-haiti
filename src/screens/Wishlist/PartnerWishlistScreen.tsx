@@ -131,7 +131,7 @@ const tutorialSteps: TutorialStep[] = [
     placement: "left",
   },
   {
-    target: '[data-tutorial="wishlist-modal"]',
+    target: "body",
     title: "Wish details",
     content: (
       <div>
@@ -146,9 +146,8 @@ const tutorialSteps: TutorialStep[] = [
           </ul>
       </div>
     ),
-    placement: "left",
-    mobilePlacement: "center",
-    mobilePlacementBreakpoint: 1200,
+    placement: "center",
+    isFixed: true,
   },
   {
     target: '[data-tutorial="individual-item"]',

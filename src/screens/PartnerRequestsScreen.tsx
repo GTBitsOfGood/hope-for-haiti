@@ -432,7 +432,7 @@ export default function PartnerRequestsScreen() {
     {
       id: "actions",
       header: "Actions",
-      cell: (request, rowIndex) => {
+      cell: (request) => {
         return (
           <ActionButton
             request={request}
@@ -441,7 +441,7 @@ export default function PartnerRequestsScreen() {
             onPopoverClose={handlePopoverClose}
             onRequestUpdate={(data) => handleRequestUpdate(request, data)}
             selectedRequest={selectedRequest}
-            isTutorialTarget={request.id === -999999 || rowIndex === 0}
+            isTutorialTarget={request.id === -999999}
           />
         );
       },
