@@ -89,6 +89,7 @@ export default function Tutorial({
   const refreshRafRef = useRef<number | null>(null);
   const stepIndexRef = useRef(0);
   const originalStepIndexRef = useRef(0);
+  const lastNotifiedStepIndexRef = useRef<number | null>(null);
   const tutorialField = nameMap[type];
   const sessionTutorialCompleted = Boolean(user?.[tutorialField]);
   const isTutorialCompleted =
@@ -167,6 +168,7 @@ export default function Tutorial({
   const responsiveTutorialEntriesRef =
     useRef<ResponsiveTutorialEntry[]>(responsiveTutorialEntries);
   const onStepChangeRef = useRef(onStepChange);
+  const onTutorialEndRef = useRef(onTutorialEnd);
 
   const getVisibleIndexForOriginalIndex = useCallback(
     (originalIndex: number) => {
@@ -205,11 +207,25 @@ export default function Tutorial({
     onStepChangeRef.current = onStepChange;
   }, [onStepChange]);
 
+  useEffect(() => {
+    onTutorialEndRef.current = onTutorialEnd;
+  }, [onTutorialEnd]);
+
+  const notifyStepChange = useCallback((originalIndex: number) => {
+    if (lastNotifiedStepIndexRef.current === originalIndex) {
+      return;
+    }
+
+    lastNotifiedStepIndexRef.current = originalIndex;
+    onStepChangeRef.current?.(originalIndex);
+  }, []);
+
   const finishTutorial = useCallback(() => {
     if (hasFinishedRef.current) return;
     hasFinishedRef.current = true;
+    lastNotifiedStepIndexRef.current = null;
     setRun(false);
-    onTutorialEnd?.();
+    onTutorialEndRef.current?.();
 
     const userId = user?.id;
     if (!userId) return;
@@ -243,10 +259,11 @@ export default function Tutorial({
         console.error("Error updating tutorial status:", error);
       }
     })();
-  }, [onTutorialEnd, tutorialField, type, updateSession, user?.id]);
+  }, [tutorialField, type, updateSession, user?.id]);
 
   useEffect(() => {
     hasFetchedCompletionRef.current = false;
+    lastNotifiedStepIndexRef.current = null;
     setServerTutorialCompleted(null);
   }, [type, user?.id]);
 
@@ -309,10 +326,11 @@ export default function Tutorial({
     hasFinishedRef.current = false;
     stepIndexRef.current = 0;
     originalStepIndexRef.current = initialOriginalIndex;
+    lastNotifiedStepIndexRef.current = null;
     setStepIndex(0);
     setRun(true);
-    onStepChangeRef.current?.(initialOriginalIndex);
-  }, [isTutorialCompleted, tutorialSteps, user]);
+    notifyStepChange(initialOriginalIndex);
+  }, [isTutorialCompleted, notifyStepChange, tutorialSteps, user]);
 
   useEffect(() => {
     if (!run || responsiveTutorialEntries.length === 0) {
@@ -334,8 +352,13 @@ export default function Tutorial({
     stepIndexRef.current = nextVisibleIndex;
     originalStepIndexRef.current = nextOriginalIndex;
     setStepIndex(nextVisibleIndex);
-    onStepChangeRef.current?.(nextOriginalIndex);
-  }, [getVisibleIndexForOriginalIndex, responsiveTutorialEntries, run]);
+    notifyStepChange(nextOriginalIndex);
+  }, [
+    getVisibleIndexForOriginalIndex,
+    notifyStepChange,
+    responsiveTutorialEntries,
+    run,
+  ]);
 
   useEffect(() => {
     if (!run) return;
@@ -435,7 +458,7 @@ export default function Tutorial({
         const currentOriginalIndex =
           currentEntries[index]?.originalIndex ?? index;
         originalStepIndexRef.current = currentOriginalIndex;
-        onStepChangeRef.current?.(currentOriginalIndex);
+        notifyStepChange(currentOriginalIndex);
       }
       return;
     }
@@ -457,7 +480,7 @@ export default function Tutorial({
       const nextOriginalIndex =
         currentEntries[safeNextIndex]?.originalIndex ?? safeNextIndex;
 
-      onStepChangeRef.current?.(nextOriginalIndex);
+      notifyStepChange(nextOriginalIndex);
 
       const nextTarget = currentSteps[safeNextIndex]?.target;
       const selector =
@@ -476,7 +499,7 @@ export default function Tutorial({
       originalStepIndexRef.current = nextOriginalIndex;
       setStepIndex(safeNextIndex);
     }
-  }, [finishTutorial]);
+  }, [finishTutorial, notifyStepChange]);
 
   if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
     return null;

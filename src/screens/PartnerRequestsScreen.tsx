@@ -17,6 +17,11 @@ import AdvancedBaseTable, {
 } from "@/components/baseTable/AdvancedBaseTable";
 import Tutorial, { type TutorialStep } from "@/components/Tutorial";
 import { autoFillRequestExample } from "@/util/tutorialUtils";
+import {
+  TUTORIAL_REQUEST_DONOR_OFFER_ID,
+  TUTORIAL_REQUEST_GENERAL_ITEM_ID,
+  TUTORIAL_REQUEST_ROW_ID,
+} from "@/util/tutorialIds";
 
 interface ActionButtonProps {
   request: PartnerRequestDTO;
@@ -263,7 +268,7 @@ export default function PartnerRequestsScreen() {
   const tutorialRowInsertedRef = useRef(false);
   const originalRequestsRef = useRef<PartnerRequestDTO[] | null>(null);
 
-  const handleTutorialEnd = () => {
+  const handleTutorialEnd = useCallback(() => {
     if (tutorialRowInsertedRef.current) {
       tableRef.current?.setItems(originalRequestsRef.current ?? []);
       tutorialRowInsertedRef.current = false;
@@ -273,7 +278,7 @@ export default function PartnerRequestsScreen() {
     tableRef.current?.setFilterMenuOpen(false);
     setIsPopoverOpen(false);
     setSelectedRequest(null);
-  };
+  }, []);
 
   const handleTutorialStepChange = useCallback((stepIndex: number) => {
     tableRef.current?.setFilterMenuOpen(stepIndex === 2);
@@ -293,21 +298,21 @@ export default function PartnerRequestsScreen() {
         tutorialRowInsertedRef.current = true;
 
         const tutorialRequest: PartnerRequestDTO = {
-          id: -999999,
+          id: TUTORIAL_REQUEST_ROW_ID,
           quantity: 6,
           finalQuantity: 0,
           comments: null,
           priority: null,
           createdAt: new Date(),
           generalItem: {
-            id: -999999,
+            id: TUTORIAL_REQUEST_GENERAL_ITEM_ID,
             title: "Canned Vegetables",
             description: "Tutorial example request",
             expirationDate: new Date(),
             unitType: "Case",
             initialQuantity: 24,
             donorOffer: {
-              id: -999997,
+              id: TUTORIAL_REQUEST_DONOR_OFFER_ID,
               offerName: "Tutorial Offer",
               donorName: "Tutorial Donor",
               state: "ACTIVE",
@@ -324,7 +329,7 @@ export default function PartnerRequestsScreen() {
     if (shouldKeepRequestPopoverOpen) {
       const currentRequests = tableRef.current?.getAllItems() ?? [];
       const tutorialRequest = currentRequests.find(
-        (request) => request.id === -999999
+        (request) => request.id === TUTORIAL_REQUEST_ROW_ID
       );
 
       if (tutorialRequest) {
@@ -379,7 +384,7 @@ export default function PartnerRequestsScreen() {
     }
   ) => {
     try {
-      if (request.id === -999999) {
+      if (request.id === TUTORIAL_REQUEST_ROW_ID) {
         tableRef.current?.updateItemById(request.id, {
           quantity: requestData.quantity,
           priority: requestData.priority,
@@ -441,7 +446,7 @@ export default function PartnerRequestsScreen() {
             onPopoverClose={handlePopoverClose}
             onRequestUpdate={(data) => handleRequestUpdate(request, data)}
             selectedRequest={selectedRequest}
-            isTutorialTarget={request.id === -999999}
+            isTutorialTarget={request.id === TUTORIAL_REQUEST_ROW_ID}
           />
         );
       },
@@ -504,11 +509,11 @@ export default function PartnerRequestsScreen() {
         pageSize={25}
         emptyState="No requests found."
         rowClassName={(request) =>
-          request.id === -999999 ? "!bg-white" : undefined
+          request.id === TUTORIAL_REQUEST_ROW_ID ? "!bg-white" : undefined
         }
         filterButtonAttributes={{ "data-tutorial": "filter-button" }}
         getRowAttributes={(request) =>
-          request.id === -999999
+          request.id === TUTORIAL_REQUEST_ROW_ID
             ? { "data-tutorial": "individual-item" }
             : undefined
         }

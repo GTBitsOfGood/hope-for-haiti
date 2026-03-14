@@ -18,6 +18,7 @@ import EditWishlistModal from "@/components/EditWishlistModal";
 import DeleteWishlistModal from "@/components/DeleteWishlistModal";
 import PriorityTag from "@/components/tags/PriorityTag";
 import Tutorial, { type TutorialStep } from "@/components/Tutorial";
+import { TUTORIAL_WISHLIST_ROW_ID } from "@/util/tutorialIds";
 
 type WishlistItem = Wishlist;
 
@@ -253,7 +254,7 @@ export default function PartnerWishlistScreen({
     [apiClient, endpoint]
   );
 
-  const handleTutorialEnd = () => {
+  const handleTutorialEnd = useCallback(() => {
     tableRef.current?.setFilterMenuOpen(false);
     setIsCreateOpen(false);
     setTutorialModalState(null);
@@ -265,7 +266,7 @@ export default function PartnerWishlistScreen({
       tutorialRowInsertedRef.current = false;
       tutorialRowIdRef.current = null;
     }
-  };
+  }, []);
 
   const handleTutorialStepChange = useCallback((stepIndex: number) => {
     if (readOnly) return;
@@ -337,11 +338,13 @@ export default function PartnerWishlistScreen({
 
     if (stepIndex === 8) {
       const currentItems = tableRef.current?.getAllItems() ?? [];
-      const hasTutorialRow = currentItems.some((item) => item.id === -999999);
+      const hasTutorialRow = currentItems.some(
+        (item) => item.id === TUTORIAL_WISHLIST_ROW_ID
+      );
 
       if (!hasTutorialRow) {
         const tutorialWishlist: WishlistItem = {
-          id: -999999,
+          id: TUTORIAL_WISHLIST_ROW_ID,
           name: "Bottled Water Cases",
           quantity: 12,
           priority: $Enums.RequestPriority.HIGH,

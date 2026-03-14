@@ -19,6 +19,10 @@ import Tutorial, { type TutorialStep } from "@/components/Tutorial";
 import { useSearchParams } from "next/navigation";
 import Chip from "@/components/chips/Chip";
 import { autoFillRequestExample } from "@/util/tutorialUtils";
+import {
+  TUTORIAL_ITEM_REQUEST_ID,
+  TUTORIAL_ITEM_ROW_ID,
+} from "@/util/tutorialIds";
 
 interface ActionButtonProps {
   item: AvailableItemDTO;
@@ -226,7 +230,7 @@ export default function PartnerItemsScreen() {
   const tutorialRowInsertedRef = useRef(false);
   const originalItemsRef = useRef<AvailableItemDTO[] | null>(null);
 
-  const handleTutorialEnd = () => {
+  const handleTutorialEnd = useCallback(() => {
     if (tutorialRowInsertedRef.current) {
       tableRef.current?.setItems(originalItemsRef.current ?? []);
       tutorialRowInsertedRef.current = false;
@@ -236,7 +240,7 @@ export default function PartnerItemsScreen() {
     tableRef.current?.setFilterMenuOpen(false);
     setIsPopoverOpen(false);
     setSelectedItem(null);
-  };
+  }, []);
 
   const handleTutorialStepChange = useCallback((stepIndex: number) => {
     tableRef.current?.setFilterMenuOpen(stepIndex === 2);
@@ -256,7 +260,7 @@ export default function PartnerItemsScreen() {
         tutorialRowInsertedRef.current = true;
 
         const tutorialItem: AvailableItemDTO = {
-          id: -999999,
+          id: TUTORIAL_ITEM_ROW_ID,
           title: "Canned Vegetables",
           description: "Tutorial example item",
           expirationDate: new Date(),
@@ -282,7 +286,8 @@ export default function PartnerItemsScreen() {
     if (shouldKeepRequestPopoverOpen) {
       const currentItems = tableRef.current?.getAllItems() ?? [];
       const tutorialItem =
-        currentItems.find((item) => item.id === -999999) ?? currentItems[0];
+        currentItems.find((item) => item.id === TUTORIAL_ITEM_ROW_ID) ??
+        currentItems[0];
 
       if (tutorialItem) {
         setSelectedItem(tutorialItem);
@@ -347,11 +352,11 @@ export default function PartnerItemsScreen() {
     }
   ) => {
     try {
-      if (item.id === -999999) {
+      if (item.id === TUTORIAL_ITEM_ROW_ID) {
         const isExistingTutorialRequest = Boolean(item.requestId);
 
         tableRef.current?.updateItemById(item.id, {
-          requestId: item.requestId ?? -999998,
+          requestId: item.requestId ?? TUTORIAL_ITEM_REQUEST_ID,
           quantityRequested: requestData.quantity,
           priority: requestData.priority,
           comments: requestData.comments,
@@ -465,7 +470,7 @@ export default function PartnerItemsScreen() {
               onPopoverClose={handlePopoverClose}
               onRequestSave={(data) => handleRequestSave(item, data)}
               selectedItem={selectedItem}
-              isTutorialTarget={item.id === -999999}
+              isTutorialTarget={item.id === TUTORIAL_ITEM_ROW_ID}
             />
             <div className="text-xs mt-1 text-red-primary">
               Deadline:{" "}
@@ -520,7 +525,7 @@ export default function PartnerItemsScreen() {
   ];
 
   const getRowClassName = (item: AvailableItemDTO) => {
-    if (item.id === -999999) {
+    if (item.id === TUTORIAL_ITEM_ROW_ID) {
       return "!bg-white";
     }
     if (!item.wishlistMatch) return undefined;
@@ -549,7 +554,7 @@ export default function PartnerItemsScreen() {
         rowClassName={getRowClassName}
         filterButtonAttributes={{ "data-tutorial": "filter-button" }}
         getRowAttributes={(item) =>
-          item.id === -999999
+          item.id === TUTORIAL_ITEM_ROW_ID
             ? { "data-tutorial": "individual-item" }
             : undefined
         }

@@ -8,6 +8,10 @@ import { PartnerAllocation } from "@/types/api/allocation.types";
 import PartnerDistributionTable, {
   PartnerDistributionTableHandle,
 } from "./PartnerDistributionTable";
+import {
+  TUTORIAL_DASHBOARD_COMPLETED_ROW_ID,
+  TUTORIAL_DASHBOARD_IN_PROGRESS_ROW_ID,
+} from "@/util/tutorialIds";
 
 type TabType = "in-progress" | "completed";
 
@@ -92,8 +96,8 @@ const tutorialSteps: Step[] = [
   },
 ];
 
-const tutorialInProgressRowId = -999998;
-const tutorialCompletedRowId = -999999;
+const tutorialInProgressRowId = TUTORIAL_DASHBOARD_IN_PROGRESS_ROW_ID;
+const tutorialCompletedRowId = TUTORIAL_DASHBOARD_COMPLETED_ROW_ID;
 
 export default function PartnerDistributionsSection() {
   const [activeTab, setActiveTab] = useState<TabType>("in-progress");
