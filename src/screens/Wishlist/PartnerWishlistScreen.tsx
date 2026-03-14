@@ -66,6 +66,7 @@ const tutorialSteps: TutorialStep[] = [
     title: "Filter",
     content: "Click here to filter your wishlists.",
     placement: "left",
+    hideOnMobile: true,
   },
   {
     target: '[data-tutorial="filter-expanded"]',
@@ -82,7 +83,9 @@ const tutorialSteps: TutorialStep[] = [
       </div>
     ),
     placement: "left",
+    mobilePlacement: "center",
     spotlightPadding: 0,
+    hideOnMobile: true,
   },
   {
     target: '[data-tutorial="wishlist-add-button"]',
@@ -90,6 +93,7 @@ const tutorialSteps: TutorialStep[] = [
     content:
       "This button lets you add a new wish when you cannot find an item you need.",
     placement: "left",
+    mobilePlacement: "center",
   },
   {
     target: '[data-tutorial="wishlist-modal"]',

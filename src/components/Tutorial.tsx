@@ -20,7 +20,7 @@ const nameMap = {
 };
 
 interface TutorialProps {
-  tutorialSteps: Step[];
+  tutorialSteps: TutorialStep[];
   type: keyof typeof nameMap;
   onStepChange?: (stepIndex: number) => void;
   onTutorialEnd?: () => void;
@@ -29,6 +29,12 @@ interface TutorialProps {
 export type TutorialStep = Step & {
   mobilePlacement?: Step["placement"];
   mobilePlacementBreakpoint?: number;
+  hideOnMobile?: boolean;
+};
+
+type ResponsiveTutorialEntry = {
+  originalIndex: number;
+  step: Step;
 };
 
 const DEFAULT_MOBILE_PLACEMENT_BREAKPOINT = 1024;
@@ -82,6 +88,7 @@ export default function Tutorial({
   const joyrideHelpersRef = useRef<StoreHelpers | null>(null);
   const refreshRafRef = useRef<number | null>(null);
   const stepIndexRef = useRef(0);
+  const originalStepIndexRef = useRef(0);
   const tutorialField = nameMap[type];
   const sessionTutorialCompleted = Boolean(user?.[tutorialField]);
   const isTutorialCompleted =
@@ -107,50 +114,92 @@ export default function Tutorial({
     };
   }, []);
 
-  const responsiveTutorialSteps = useMemo(
+  const responsiveTutorialEntries = useMemo(
     () =>
-      tutorialSteps.map((rawStep) => {
+      tutorialSteps.flatMap((rawStep, originalIndex) => {
         const step = rawStep as TutorialStep;
         const {
           mobilePlacement,
           mobilePlacementBreakpoint,
+          hideOnMobile,
           ...joyrideStep
         } = step;
-        const isBodyTarget = step.target === "body";
-        const shouldUseMobilePlacement =
-          Boolean(mobilePlacement) &&
+        const shouldUseMobileOverrides =
           viewportWidth !== null &&
           viewportWidth <
             (mobilePlacementBreakpoint ?? DEFAULT_MOBILE_PLACEMENT_BREAKPOINT);
+
+        if (shouldUseMobileOverrides && hideOnMobile) {
+          return [];
+        }
+
+        const isBodyTarget = joyrideStep.target === "body";
+        const shouldUseMobilePlacement =
+          shouldUseMobileOverrides && Boolean(mobilePlacement);
         const shouldPreserveCenterPlacement =
           isBodyTarget || joyrideStep.placement === "center";
         const fallbackPadding =
           typeof step.spotlightPadding === "number" ? step.spotlightPadding : 8;
 
-        return {
-          ...joyrideStep,
-          placement: (
-            shouldUseMobilePlacement
-              ? mobilePlacement
-              : shouldPreserveCenterPlacement
-                ? joyrideStep.placement ?? "center"
-                : "auto"
-          ) as Step["placement"],
-          spotlightPadding: Math.min(fallbackPadding, 8),
-        };
+        return [
+          {
+            originalIndex,
+            step: {
+              ...joyrideStep,
+              placement: (
+                shouldUseMobilePlacement
+                  ? mobilePlacement
+                  : shouldPreserveCenterPlacement
+                    ? joyrideStep.placement ?? "center"
+                    : "auto"
+              ) as Step["placement"],
+              spotlightPadding: Math.min(fallbackPadding, 8),
+            },
+          },
+        ];
       }),
     [tutorialSteps, viewportWidth]
   );
-  const responsiveTutorialStepsRef = useRef<Step[]>(responsiveTutorialSteps);
+  const responsiveTutorialSteps = useMemo(
+    () => responsiveTutorialEntries.map((entry) => entry.step),
+    [responsiveTutorialEntries]
+  );
+  const responsiveTutorialEntriesRef =
+    useRef<ResponsiveTutorialEntry[]>(responsiveTutorialEntries);
   const onStepChangeRef = useRef(onStepChange);
+
+  const getVisibleIndexForOriginalIndex = useCallback(
+    (originalIndex: number) => {
+      const entries = responsiveTutorialEntriesRef.current;
+
+      if (!entries.length) {
+        return 0;
+      }
+
+      const exactIndex = entries.findIndex(
+        (entry) => entry.originalIndex === originalIndex
+      );
+
+      if (exactIndex >= 0) {
+        return exactIndex;
+      }
+
+      const nextIndex = entries.findIndex(
+        (entry) => entry.originalIndex > originalIndex
+      );
+
+      return nextIndex >= 0 ? nextIndex : entries.length - 1;
+    },
+    []
+  );
 
   useEffect(() => {
     stepIndexRef.current = stepIndex;
   }, [stepIndex]);
 
   useEffect(() => {
-    responsiveTutorialStepsRef.current = responsiveTutorialSteps;
-  }, [responsiveTutorialSteps]);
+    responsiveTutorialEntriesRef.current = responsiveTutorialEntries;
+  }, [responsiveTutorialEntries]);
 
   useEffect(() => {
     onStepChangeRef.current = onStepChange;
@@ -253,12 +302,40 @@ export default function Tutorial({
     if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
       return;
     }
+
+    const initialOriginalIndex =
+      responsiveTutorialEntriesRef.current[0]?.originalIndex ?? 0;
+
     hasFinishedRef.current = false;
     stepIndexRef.current = 0;
+    originalStepIndexRef.current = initialOriginalIndex;
     setStepIndex(0);
     setRun(true);
-    onStepChangeRef.current?.(0);
+    onStepChangeRef.current?.(initialOriginalIndex);
   }, [isTutorialCompleted, tutorialSteps, user]);
+
+  useEffect(() => {
+    if (!run || responsiveTutorialEntries.length === 0) {
+      return;
+    }
+
+    const nextVisibleIndex = getVisibleIndexForOriginalIndex(
+      originalStepIndexRef.current
+    );
+
+    if (nextVisibleIndex === stepIndexRef.current) {
+      return;
+    }
+
+    const nextOriginalIndex =
+      responsiveTutorialEntries[nextVisibleIndex]?.originalIndex ??
+      originalStepIndexRef.current;
+
+    stepIndexRef.current = nextVisibleIndex;
+    originalStepIndexRef.current = nextOriginalIndex;
+    setStepIndex(nextVisibleIndex);
+    onStepChangeRef.current?.(nextOriginalIndex);
+  }, [getVisibleIndexForOriginalIndex, responsiveTutorialEntries, run]);
 
   useEffect(() => {
     if (!run) return;
@@ -328,7 +405,8 @@ export default function Tutorial({
   }, [run, stepIndex]);
 
   const handleJoyrideCallback = useCallback(async (data: CallBackProps) => {
-    const currentSteps = responsiveTutorialStepsRef.current;
+    const currentEntries = responsiveTutorialEntriesRef.current;
+    const currentSteps = currentEntries.map((entry) => entry.step);
     const { type: eventType, index, action, status } = data;
     const currentIndex =
       typeof index === "number" ? index : stepIndexRef.current;
@@ -354,7 +432,10 @@ export default function Tutorial({
 
     if (eventType === EVENTS.STEP_BEFORE) {
       if (typeof index === "number") {
-        onStepChangeRef.current?.(index);
+        const currentOriginalIndex =
+          currentEntries[index]?.originalIndex ?? index;
+        originalStepIndexRef.current = currentOriginalIndex;
+        onStepChangeRef.current?.(currentOriginalIndex);
       }
       return;
     }
@@ -373,7 +454,10 @@ export default function Tutorial({
         Math.min(nextIndex, currentSteps.length - 1)
       );
 
-      onStepChangeRef.current?.(safeNextIndex);
+      const nextOriginalIndex =
+        currentEntries[safeNextIndex]?.originalIndex ?? safeNextIndex;
+
+      onStepChangeRef.current?.(nextOriginalIndex);
 
       const nextTarget = currentSteps[safeNextIndex]?.target;
       const selector =
@@ -389,6 +473,7 @@ export default function Tutorial({
       }
 
       stepIndexRef.current = safeNextIndex;
+      originalStepIndexRef.current = nextOriginalIndex;
       setStepIndex(safeNextIndex);
     }
   }, [finishTutorial]);

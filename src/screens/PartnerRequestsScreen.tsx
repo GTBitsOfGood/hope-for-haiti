@@ -15,8 +15,7 @@ import AdvancedBaseTable, {
   ColumnDefinition,
   FilterList,
 } from "@/components/baseTable/AdvancedBaseTable";
-import { Step } from "react-joyride";
-import Tutorial from "@/components/Tutorial";
+import Tutorial, { type TutorialStep } from "@/components/Tutorial";
 import { autoFillRequestExample } from "@/util/tutorialUtils";
 
 interface ActionButtonProps {
@@ -76,7 +75,37 @@ function ActionButton({
   );
 }
 
-const tutorialSteps: Step[] = [
+const fullscreenTutorialOverlayStyles = {
+  overlay: {
+    position: "fixed" as const,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    width: "100dvw",
+    height: "100dvh",
+  },
+  overlayLegacy: {
+    position: "fixed" as const,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    width: "100dvw",
+    height: "100dvh",
+  },
+  overlayLegacyCenter: {
+    position: "fixed" as const,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    width: "100dvw",
+    height: "100dvh",
+  },
+};
+
+const tutorialSteps: TutorialStep[] = [
   {
     target: "body",
     title: (
@@ -101,6 +130,8 @@ const tutorialSteps: Step[] = [
     title: "Filter",
     content: "Click here to filter your requests.",
     placement: "left",
+    styles: fullscreenTutorialOverlayStyles,
+    hideOnMobile: true,
   },
   {
     target: '[data-tutorial="filter-expanded"]',
@@ -117,7 +148,10 @@ const tutorialSteps: Step[] = [
       </div>
     ),
     placement: "left",
+    mobilePlacement: "center",
     spotlightPadding: 0,
+    styles: fullscreenTutorialOverlayStyles,
+    hideOnMobile: true,
   },
   {
     target: '[data-tutorial="individual-item"]',

@@ -103,6 +103,7 @@ const tutorialSteps: TutorialStep[] = [
     title: "Filter",
     content: "Click here to filter your items.",
     placement: "left",
+    hideOnMobile: true,
   },
   {
     target: '[data-tutorial="filter-expanded"]',
@@ -120,6 +121,7 @@ const tutorialSteps: TutorialStep[] = [
     placement: "left",
     mobilePlacement: "center",
     spotlightPadding: 0,
+    hideOnMobile: true,
   },
   {
     target: '[data-tutorial="individual-item"]',
