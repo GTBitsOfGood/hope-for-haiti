@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import Joyride, { Step, CallBackProps, STATUS, EVENTS, ACTIONS } from "react-joyride";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Joyride, {
+  Step,
+  CallBackProps,
+  STATUS,
+  EVENTS,
+  ACTIONS,
+} from "react-joyride";
 import type { StoreHelpers } from "react-joyride";
+import toast from "react-hot-toast";
 import JoyrideStep from "@/components/JoyrideStep";
 import { SessionUser, useUser } from "./context/UserContext";
 import { useSession } from "next-auth/react";
@@ -25,8 +32,43 @@ export type TutorialStep = Step & {
 };
 
 const DEFAULT_MOBILE_PLACEMENT_BREAKPOINT = 1024;
+const DEFAULT_TUTORIAL_TARGET_TIMEOUT = 2500;
+const COMPLETION_ERROR_MESSAGE =
+  "Couldn't save tutorial progress. It may appear again next time.";
 
-export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorialEnd, }: TutorialProps) {
+const waitForTutorialTarget = async (
+  selector: string,
+  timeout = DEFAULT_TUTORIAL_TARGET_TIMEOUT
+): Promise<boolean> => {
+  const start = Date.now();
+
+  return new Promise((resolve) => {
+    const check = () => {
+      const element = document.querySelector(selector);
+
+      if (element) {
+        resolve(true);
+        return;
+      }
+
+      if (Date.now() - start >= timeout) {
+        resolve(false);
+        return;
+      }
+
+      requestAnimationFrame(check);
+    };
+
+    check();
+  });
+};
+
+export default function Tutorial({
+  tutorialSteps,
+  type,
+  onStepChange,
+  onTutorialEnd,
+}: TutorialProps) {
   const { user } = useUser();
   const { update: updateSession } = useSession();
   const [stepIndex, setStepIndex] = useState(0);
@@ -39,6 +81,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
   const hasFetchedCompletionRef = useRef(false);
   const joyrideHelpersRef = useRef<StoreHelpers | null>(null);
   const refreshRafRef = useRef<number | null>(null);
+  const stepIndexRef = useRef(0);
   const tutorialField = nameMap[type];
   const sessionTutorialCompleted = Boolean(user?.[tutorialField]);
   const isTutorialCompleted =
@@ -98,8 +141,22 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
       }),
     [tutorialSteps, viewportWidth]
   );
+  const responsiveTutorialStepsRef = useRef<Step[]>(responsiveTutorialSteps);
+  const onStepChangeRef = useRef(onStepChange);
 
-  const finishTutorial = () => {
+  useEffect(() => {
+    stepIndexRef.current = stepIndex;
+  }, [stepIndex]);
+
+  useEffect(() => {
+    responsiveTutorialStepsRef.current = responsiveTutorialSteps;
+  }, [responsiveTutorialSteps]);
+
+  useEffect(() => {
+    onStepChangeRef.current = onStepChange;
+  }, [onStepChange]);
+
+  const finishTutorial = useCallback(() => {
     if (hasFinishedRef.current) return;
     hasFinishedRef.current = true;
     setRun(false);
@@ -119,6 +176,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
         });
 
         if (!response.ok) {
+          toast.error(COMPLETION_ERROR_MESSAGE);
           console.error(
             "Error updating tutorial status:",
             response.status,
@@ -132,10 +190,11 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
           [tutorialField]: true,
         });
       } catch (error) {
+        toast.error(COMPLETION_ERROR_MESSAGE);
         console.error("Error updating tutorial status:", error);
       }
     })();
-  };
+  }, [onTutorialEnd, tutorialField, type, updateSession, user?.id]);
 
   useEffect(() => {
     hasFetchedCompletionRef.current = false;
@@ -195,10 +254,11 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
       return;
     }
     hasFinishedRef.current = false;
+    stepIndexRef.current = 0;
     setStepIndex(0);
     setRun(true);
-    onStepChange?.(0);
-  }, [isTutorialCompleted, onStepChange, tutorialSteps, user]);
+    onStepChangeRef.current?.(0);
+  }, [isTutorialCompleted, tutorialSteps, user]);
 
   useEffect(() => {
     if (!run) return;
@@ -267,41 +327,12 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
     };
   }, [run, stepIndex]);
 
-  if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
-    return null;
-  }
-
-  const waitForTutorialTarget = async (
-    selector: string,
-    timeout = 2000
-  ): Promise<boolean> => {
-    const start = Date.now();
-
-    return new Promise((resolve) => {
-      const check = () => {
-        const element = document.querySelector(selector);
-
-        if (element) {
-          resolve(true);
-          return;
-        }
-
-        if (Date.now() - start >= timeout) {
-          resolve(false);
-          return;
-        }
-
-        requestAnimationFrame(check);
-      };
-
-      check();
-    });
-};
-
-  const handleJoyrideCallback = async (data: CallBackProps) => {
+  const handleJoyrideCallback = useCallback(async (data: CallBackProps) => {
+    const currentSteps = responsiveTutorialStepsRef.current;
     const { type: eventType, index, action, status } = data;
-    const currentIndex = typeof index === "number" ? index : stepIndex;
-    const lastIndex = responsiveTutorialSteps.length - 1;
+    const currentIndex =
+      typeof index === "number" ? index : stepIndexRef.current;
+    const lastIndex = currentSteps.length - 1;
     const isOnLastStep = currentIndex === lastIndex;
     const endedByClose = action === ACTIONS.CLOSE;
     const endedBySkip = action === ACTIONS.SKIP;
@@ -323,7 +354,7 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
 
     if (eventType === EVENTS.STEP_BEFORE) {
       if (typeof index === "number") {
-        onStepChange?.(index);
+        onStepChangeRef.current?.(index);
       }
       return;
     }
@@ -339,12 +370,12 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
       const nextIndex = action === ACTIONS.PREV ? currentIndex - 1 : currentIndex + 1;
       const safeNextIndex = Math.max(
         0,
-        Math.min(nextIndex, responsiveTutorialSteps.length - 1)
+        Math.min(nextIndex, currentSteps.length - 1)
       );
 
-      onStepChange?.(safeNextIndex);
+      onStepChangeRef.current?.(safeNextIndex);
 
-      const nextTarget = responsiveTutorialSteps[safeNextIndex]?.target;
+      const nextTarget = currentSteps[safeNextIndex]?.target;
       const selector =
         typeof nextTarget === "string" && nextTarget !== "body"
           ? nextTarget
@@ -353,13 +384,18 @@ export default function Tutorial({ tutorialSteps, type, onStepChange, onTutorial
       if (selector) {
         const targetFoundNow = !!document.querySelector(selector);
         if (!targetFoundNow) {
-          await waitForTutorialTarget(selector, 2500);
+          await waitForTutorialTarget(selector);
         }
       }
 
+      stepIndexRef.current = safeNextIndex;
       setStepIndex(safeNextIndex);
     }
-  };
+  }, [finishTutorial]);
+
+  if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
+    return null;
+  }
 
   return (
     <Joyride

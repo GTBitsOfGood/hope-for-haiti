@@ -36,6 +36,10 @@ import {
   normalizeColumns,
 } from "./TableUtils";
 
+type DataAttributes = Partial<
+  Record<`data-${string}`, string | number | boolean>
+>;
+
 interface AdvancedBaseTableProps<T extends object> {
   columns: ColumnDefinition<T>[];
   fetchFn: (
@@ -55,6 +59,8 @@ interface AdvancedBaseTableProps<T extends object> {
   rowBody?: (item: T) => React.ReactNode | undefined;
   disablePagination?: boolean;
   disableFilters?: boolean;
+  filterButtonAttributes?: DataAttributes;
+  getRowAttributes?: (item: T, index: number) => DataAttributes | undefined;
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -73,6 +79,8 @@ function AdvancedBaseTableInner<T extends object>(
     rowBody,
     disablePagination = false,
     disableFilters = false,
+    filterButtonAttributes,
+    getRowAttributes,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -362,7 +370,7 @@ function AdvancedBaseTableInner<T extends object>(
         {!disableFilters && filterableColumns.length > 0 && (
           <div className="relative" ref={filterMenuRef}>
             <button
-              data-tutorial="filter-button"
+              {...filterButtonAttributes}
               type="button"
               onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
               className="flex items-center gap-2 rounded-lg border border-red-500 bg-white px-4 py-2 font-medium text-red-500 transition hover:bg-red-50"
@@ -431,27 +439,16 @@ function AdvancedBaseTableInner<T extends object>(
               items.map((item, rowIndex) => {
                 const resolvedRowId = resolveRowId(item);
                 const rowIdString = String(resolvedRowId);
-                const isTutorialRow =
-                  rowIdString === "-999999" || rowIdString === "-999998";
+                const rowAttributes = getRowAttributes?.(item, rowIndex);
 
                 return (
                   <React.Fragment key={rowIdString}>
                     <tr
-                      data-tutorial={
-                        isTutorialRow
-                          ? "individual-item"
-                          : rowIndex === 0
-                            ? "advanced-table-row"
-                            : undefined
-                      }
+                      {...rowAttributes}
                       key={rowIdString}
                       data-row-id={resolvedRowId}
                       data-odd={rowIndex % 2 !== 0}
-                      className={`${
-                        isTutorialRow
-                          ? "!bg-white"
-                          : "bg-white data-[odd=false]:bg-blue-light/35"
-                      } border-b rounded-lg border-blue-primary/10 text-gray-primary ${
+                      className={`bg-white data-[odd=false]:bg-blue-light/35 border-b rounded-lg border-blue-primary/10 text-gray-primary ${
                         onRowClick || rowBody ? "cursor-pointer" : ""
                       } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
                       onClick={(e) => {

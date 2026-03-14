@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Step } from "react-joyride";
 import { $Enums } from "@prisma/client";
 import Tutorial from "@/components/Tutorial";
@@ -98,8 +98,13 @@ const tutorialCompletedRowId = -999999;
 export default function PartnerDistributionsSection() {
   const [activeTab, setActiveTab] = useState<TabType>("in-progress");
   const tableRef = useRef<PartnerDistributionTableHandle>(null);
+  const activeTabRef = useRef<TabType>("in-progress");
   const inProgressTutorialRowInsertedRef = useRef(false);
   const completedTutorialRowInsertedRef = useRef(false);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   const removeInProgressTutorialRow = useCallback(() => {
     if (!inProgressTutorialRowInsertedRef.current) return;
@@ -118,6 +123,38 @@ export default function PartnerDistributionsSection() {
     removeCompletedTutorialRow();
   }, [removeCompletedTutorialRow, removeInProgressTutorialRow]);
 
+  const getTutorialRowAttributes = useCallback(
+    (item: PartnerAllocation) =>
+      item.id === tutorialInProgressRowId || item.id === tutorialCompletedRowId
+        ? { "data-tutorial": "individual-item" }
+        : undefined,
+    []
+  );
+
+  const getTutorialRowClassName = useCallback(
+    (item: PartnerAllocation) =>
+      item.id === tutorialInProgressRowId || item.id === tutorialCompletedRowId
+        ? "!bg-white"
+        : undefined,
+    []
+  );
+
+  const setCurrentTab = useCallback((nextTab: TabType) => {
+    activeTabRef.current = nextTab;
+    setActiveTab(nextTab);
+  }, []);
+
+  const setTutorialTab = useCallback(
+    (nextTab: TabType) => {
+      if (activeTabRef.current !== nextTab) {
+        tableRef.current?.setItems([]);
+      }
+
+      setCurrentTab(nextTab);
+    },
+    [setCurrentTab]
+  );
+
   const handleTutorialStepChange = useCallback(
     (stepIndex: number) => {
       if (stepIndex !== 2) {
@@ -129,12 +166,7 @@ export default function PartnerDistributionsSection() {
       }
 
       const nextTab: TabType = stepIndex <= 2 ? "in-progress" : "completed";
-      setActiveTab((currentTab) => {
-        if (currentTab !== nextTab) {
-          tableRef.current?.setItems([]);
-        }
-        return nextTab;
-      });
+      setTutorialTab(nextTab);
 
       if (stepIndex === 2) {
         const ensureInProgressTutorialRow = (attempt = 0) => {
@@ -220,8 +252,7 @@ export default function PartnerDistributionsSection() {
     [
       removeCompletedTutorialRow,
       removeInProgressTutorialRow,
-      setActiveTab,
-      tableRef,
+      setTutorialTab,
     ]
   );
 
@@ -247,7 +278,7 @@ export default function PartnerDistributionsSection() {
           className="inline-flex rounded-md bg-white"
         >
           <button
-            onClick={() => setActiveTab("in-progress")}
+            onClick={() => setCurrentTab("in-progress")}
             className={`px-4 py-2 font-medium transition-colors rounded-md ${
               activeTab === "in-progress"
                 ? "text-blue-primary border-b-2 border-blue-primary"
@@ -262,7 +293,7 @@ export default function PartnerDistributionsSection() {
           className="inline-flex rounded-md bg-white"
         >
           <button
-            onClick={() => setActiveTab("completed")}
+            onClick={() => setCurrentTab("completed")}
             className={`px-4 py-2 font-medium transition-colors rounded-md ${
               activeTab === "completed"
                 ? "text-blue-primary border-b-2 border-blue-primary"
@@ -278,6 +309,8 @@ export default function PartnerDistributionsSection() {
       <PartnerDistributionTable
         ref={tableRef}
         pending={activeTab === "in-progress"}
+        rowClassName={getTutorialRowClassName}
+        getRowAttributes={getTutorialRowAttributes}
       />
     </div>
   );

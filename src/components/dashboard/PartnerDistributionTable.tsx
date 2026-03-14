@@ -13,8 +13,20 @@ import ShippingStatusTag from "../tags/ShippingStatusTag";
 import SignatureImageTooltip from "../SignatureImageTooltip";
 import { $Enums } from "@prisma/client";
 
+type DataAttributes = Partial<
+  Record<`data-${string}`, string | number | boolean>
+>;
+
 interface PartnerDistributionTableProps {
   pending: boolean; // true = in progress, false = completed
+  rowClassName?: (
+    item: PartnerAllocation,
+    index: number
+  ) => string | undefined;
+  getRowAttributes?: (
+    item: PartnerAllocation,
+    index: number
+  ) => DataAttributes | undefined;
 }
 
 export interface PartnerDistributionTableHandle {
@@ -31,7 +43,10 @@ export interface PartnerDistributionTableHandle {
 const PartnerDistributionTable = forwardRef<
   PartnerDistributionTableHandle,
   PartnerDistributionTableProps
->(function PartnerDistributionTable({ pending }, ref) {
+>(function PartnerDistributionTable(
+  { pending, rowClassName, getRowAttributes },
+  ref
+) {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<PartnerAllocation>>(null);
 
@@ -180,6 +195,8 @@ const PartnerDistributionTable = forwardRef<
       fetchFn={fetchTableData}
       rowId={"id"}
       disableFilters={false}
+      rowClassName={rowClassName}
+      getRowAttributes={getRowAttributes}
     />
   );
 });

@@ -516,6 +516,15 @@ export default function PartnerWishlistScreen({
         pageSize={25}
         emptyState="No wishlist items found."
         toolBar={toolbar}
+        rowClassName={(item) =>
+          item.id === tutorialRowIdRef.current ? "!bg-white" : undefined
+        }
+        filterButtonAttributes={{ "data-tutorial": "filter-button" }}
+        getRowAttributes={(item) =>
+          item.id === tutorialRowIdRef.current
+            ? { "data-tutorial": "individual-item" }
+            : undefined
+        }
       />
 
       <AddToWishlistModal

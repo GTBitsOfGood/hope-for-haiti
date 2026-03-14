@@ -469,6 +469,15 @@ export default function PartnerRequestsScreen() {
         rowId="id"
         pageSize={25}
         emptyState="No requests found."
+        rowClassName={(request) =>
+          request.id === -999999 ? "!bg-white" : undefined
+        }
+        filterButtonAttributes={{ "data-tutorial": "filter-button" }}
+        getRowAttributes={(request) =>
+          request.id === -999999
+            ? { "data-tutorial": "individual-item" }
+            : undefined
+        }
       />
     </div>
   );

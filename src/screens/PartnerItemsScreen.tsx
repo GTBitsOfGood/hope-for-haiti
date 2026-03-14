@@ -518,6 +518,9 @@ export default function PartnerItemsScreen() {
   ];
 
   const getRowClassName = (item: AvailableItemDTO) => {
+    if (item.id === -999999) {
+      return "!bg-white";
+    }
     if (!item.wishlistMatch) return undefined;
     if (item.wishlistMatch.strength === "hard") {
       return "!bg-red-primary/25 !border-2 !border-red-primary/75";
@@ -542,6 +545,12 @@ export default function PartnerItemsScreen() {
         pageSize={25}
         emptyState="No available items found."
         rowClassName={getRowClassName}
+        filterButtonAttributes={{ "data-tutorial": "filter-button" }}
+        getRowAttributes={(item) =>
+          item.id === -999999
+            ? { "data-tutorial": "individual-item" }
+            : undefined
+        }
       />
     </div>
   );
