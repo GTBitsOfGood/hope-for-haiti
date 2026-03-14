@@ -336,27 +336,25 @@ export default function PartnerWishlistScreen({
     }
 
     if (stepIndex === 8) {
-      requestAnimationFrame(() => {
-        const currentItems = tableRef.current?.getAllItems() ?? [];
-        const hasTutorialRow = currentItems.some((item) => item.id === -999999);
+      const currentItems = tableRef.current?.getAllItems() ?? [];
+      const hasTutorialRow = currentItems.some((item) => item.id === -999999);
 
-        if (!hasTutorialRow) {
-          const tutorialWishlist: WishlistItem = {
-            id: -999999,
-            name: "Bottled Water Cases",
-            quantity: 12,
-            priority: $Enums.RequestPriority.HIGH,
-            comments: "Needed for community pantry distribution.",
-            lastUpdated: new Date(),
-            partnerId: 0,
-            generalItemId: null,
-          } as WishlistItem;
+      if (!hasTutorialRow) {
+        const tutorialWishlist: WishlistItem = {
+          id: -999999,
+          name: "Bottled Water Cases",
+          quantity: 12,
+          priority: $Enums.RequestPriority.HIGH,
+          comments: "Needed for community pantry distribution.",
+          lastUpdated: new Date(),
+          partnerId: 0,
+          generalItemId: null,
+        } as WishlistItem;
 
-          tableRef.current?.setItems((items) => [tutorialWishlist, ...items]);
-          tutorialRowInsertedRef.current = true;
-          tutorialRowIdRef.current = tutorialWishlist.id;
-        }
-      });
+        tableRef.current?.setItems((items) => [tutorialWishlist, ...items]);
+        tutorialRowInsertedRef.current = true;
+        tutorialRowIdRef.current = tutorialWishlist.id;
+      }
       return;
     }
   }, [readOnly]);

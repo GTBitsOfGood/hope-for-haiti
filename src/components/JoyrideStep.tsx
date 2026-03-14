@@ -60,7 +60,7 @@ export default function JoyrideStep({
 
         {/* Body content */}
         {step.content && (
-          <div className="text-[13px] leading-relaxed text-gray-700 sm:text-sm">
+          <div className="text-sm leading-relaxed text-gray-700">
             {step.content}
           </div>
         )}
