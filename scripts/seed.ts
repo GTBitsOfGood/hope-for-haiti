@@ -167,6 +167,36 @@ async function buildSeedData() {
     supportNotify: true,
   });
 
+  // Standard Admin (Has userWrite, but NOT isSuper)
+  // Use this account to see if it can deactivate partners but NOT Super Admins
+  const staffAdmin = await createUser({
+    email: "staffadmin@test.com",
+    name: "Staff Admin",
+    passwordHash,
+    type: UserType.STAFF,
+    enabled: true,
+    pending: false,
+    isSuper: false,
+    userRead: true,
+    userWrite: true,
+    itemNotify: true,
+    offerWrite: true,
+    requestRead: true,
+    requestWrite: true,
+    allocationRead: true,
+    allocationWrite: true,
+    archivedRead: true,
+    distributionRead: true,
+    distributionWrite: true,
+    shipmentRead: true,
+    shipmentWrite: true,
+    signoffWrite: true,
+    wishlistRead: true,
+    supportRead: true,
+    supportWrite: true,
+    supportNotify: true,
+  });
+
   // Create distribution lead staff user
   const distributionLead = await createUser({
     email: "distribution@test.com",
@@ -233,6 +263,7 @@ async function buildSeedData() {
 
   console.log("✓ Created users");
   console.log(`  - Super Admin: ${superAdmin.email}`);
+  console.log(`  - Staff Admin: ${staffAdmin.email}`);
   console.log(`  - Distribution Lead: ${distributionLead.email}`);
   console.log(`  - Partner 1: ${partner1.email}`);
   console.log(`  - Partner 2: ${partner2.email}`);

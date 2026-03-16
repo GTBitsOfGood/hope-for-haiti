@@ -16,7 +16,7 @@ import toast, { Toast } from "react-hot-toast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { NotificationCard } from "./dashboard";
-import { StreamChat, Event } from "stream-chat";
+import { StreamChat, Event as StreamEvent } from "stream-chat";
 
 let realtimeInstance: Ably.Realtime | null = null;
 
@@ -44,10 +44,12 @@ const NotificationContext = createContext<{
   notifications: UnifiedNotification[];
   refreshNotifications: () => Promise<void>;
   dismissNotification: (id: string | number) => Promise<void>;
+  chatUnreadCount: number;
 }>({
   notifications: [],
   refreshNotifications: async () => {},
   dismissNotification: async () => {},
+  chatUnreadCount: 0,
 });
 
 export function useNotifications() {
@@ -64,6 +66,8 @@ export default function NotificationHandler({
   const router = useRouter();
   const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
+
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   // Ensure that mirroring doesn't overwrite sessionStorage before loading
   const isHydrated = useRef(false);
@@ -196,14 +200,23 @@ export default function NotificationHandler({
         ...prev,
       ]);
 
-      if (pathname === "/") return;
+      const isShipmentStatusUpdate =
+        payload.title?.toLowerCase().includes("shipment status") ||
+        payload.actionText?.toLowerCase().includes("shipment") ||
+        payload.action?.includes("distributions");
+
+      if (isShipmentStatusUpdate) {
+        window.dispatchEvent(new Event("shipment-status-updated"));
+      }
+
+      if (pathname === "/login") return;
 
       toast.custom(
         (t: Toast) => (
           <NotificationCard
             id={payload.id}
             message={payload.title}
-            dateCreated={payload.dateCreated}
+            dateCreated={new Date(payload.dateCreated)}
             actionText={payload.actionText ?? undefined}
             actionUrl={payload.action ?? undefined}
             t={t}
@@ -231,31 +244,56 @@ export default function NotificationHandler({
       return;
     }
 
+    let didInterrupt = false;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const channels = await streamClient.queryChannels(
+          {
+            type: "ticket",
+            members: { $in: [user.streamUserId!] },
+          },
+          {},
+          { limit: 30 }
+        );
+        const total = channels.reduce(
+          (sum, ch) => sum + (ch.state.unreadCount ?? 0),
+          0
+        );
+        setChatUnreadCount(total);
+      } catch (error) {
+        console.error("Failed to query chat unread count:", error);
+      }
+    };
+
+    const countClient = new StreamChat(
+      process.env.NEXT_PUBLIC_STREAMIO_API_KEY
+    );
+    countClient
+      .connectUser(
+        { id: user.streamUserId, name: user.name ?? undefined },
+        user.streamUserToken
+      )
+      .then(() => fetchUnreadCount())
+      .catch(console.error)
+      .finally(() => countClient.disconnectUser().catch(console.error));
+
     const streamClient = new StreamChat(
       process.env.NEXT_PUBLIC_STREAMIO_API_KEY
     );
-    let didInterrupt = false;
 
-    const handleTicketMessage = (event: Event) => {
+    const handleTicketMessage = (event: StreamEvent) => {
       if (event.channel_type !== "ticket") {
         return;
       }
 
       const senderId = event.user?.id ?? event.message?.user?.id;
-      if (senderId === user.streamUserId) {
-        return;
-      }
+      if (senderId === user.streamUserId) return;
 
       const channelId = event.channel?.id ?? event.cid?.split(":")[1];
+      if (!channelId) return;
 
-      if (!channelId) {
-        return;
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (searchParams.get("activeTab") === "Unresolved") {
-        return;
-      }
+      if (searchParams.get("activeTab") === "Unresolved") return;
 
       const text = event.message?.text?.trim();
       const channelName =
@@ -277,6 +315,8 @@ export default function NotificationHandler({
         ...prev,
       ]);
 
+      setChatUnreadCount((prev) => prev + 1);
+
       toast.custom(
         (t: Toast) => (
           <NotificationCard
@@ -293,18 +333,20 @@ export default function NotificationHandler({
       );
     };
 
+    const handleMarkRead = (event: StreamEvent) => {
+      if (event.channel_type !== "ticket") return;
+      fetchUnreadCount();
+    };
+
     streamClient
       .connectUser(
-        {
-          id: user.streamUserId,
-          name: user.name ?? undefined,
-        },
+        { id: user.streamUserId, name: user.name ?? undefined },
         user.streamUserToken
       )
       .then(() => {
-        if (!didInterrupt) {
-          streamClient.on("notification.message_new", handleTicketMessage);
-        }
+        if (didInterrupt) return;
+        streamClient.on("message.new", handleTicketMessage);
+        streamClient.on("notification.mark_read", handleMarkRead);
       })
       .catch((error) => {
         console.error(
@@ -316,6 +358,7 @@ export default function NotificationHandler({
     return () => {
       didInterrupt = true;
       streamClient.off("notification.message_new", handleTicketMessage);
+      streamClient.off("notification.mark_read", handleMarkRead);
       streamClient
         .disconnectUser()
         .catch((error) =>
@@ -325,18 +368,16 @@ export default function NotificationHandler({
           )
         );
     };
-  }, [
-    pathname,
-    router,
-    searchParams,
-    user?.name,
-    user?.streamUserId,
-    user?.streamUserToken,
-  ]);
+  }, [user?.name, user?.streamUserId, user?.streamUserToken]);
 
   const value = useMemo(
-    () => ({ notifications, refreshNotifications, dismissNotification }),
-    [notifications, refreshNotifications, dismissNotification]
+    () => ({
+      notifications,
+      refreshNotifications,
+      dismissNotification,
+      chatUnreadCount,
+    }),
+    [notifications, refreshNotifications, dismissNotification, chatUnreadCount]
   );
 
   return (
