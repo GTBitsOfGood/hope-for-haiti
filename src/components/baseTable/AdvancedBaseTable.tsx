@@ -36,6 +36,10 @@ import {
   normalizeColumns,
 } from "./TableUtils";
 
+type DataAttributes = Partial<
+  Record<`data-${string}`, string | number | boolean>
+>;
+
 interface AdvancedBaseTableProps<T extends object> {
   columns: ColumnDefinition<T>[];
   fetchFn: (
@@ -55,6 +59,8 @@ interface AdvancedBaseTableProps<T extends object> {
   rowBody?: (item: T) => React.ReactNode | undefined;
   disablePagination?: boolean;
   disableFilters?: boolean;
+  filterButtonAttributes?: DataAttributes;
+  getRowAttributes?: (item: T, index: number) => DataAttributes | undefined;
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -73,6 +79,8 @@ function AdvancedBaseTableInner<T extends object>(
     rowBody,
     disablePagination = false,
     disableFilters = false,
+    filterButtonAttributes,
+    getRowAttributes,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -334,6 +342,7 @@ function AdvancedBaseTableInner<T extends object>(
       setOpenRowIds,
       getPage: getCurrentPage,
       setPage: setPageExternally,
+      setFilterMenuOpen: setIsFilterMenuOpen,
     }),
     [
       reload,
@@ -361,6 +370,7 @@ function AdvancedBaseTableInner<T extends object>(
         {!disableFilters && filterableColumns.length > 0 && (
           <div className="relative" ref={filterMenuRef}>
             <button
+              {...filterButtonAttributes}
               type="button"
               onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
               className="flex items-center gap-2 rounded-lg border border-red-500 bg-white px-4 py-2 font-medium text-red-500 transition hover:bg-red-50"
@@ -426,77 +436,85 @@ function AdvancedBaseTableInner<T extends object>(
                 </td>
               </tr>
             ) : (
-              items.map((item, rowIndex) => (
-                <React.Fragment key={String(resolveRowId(item))}>
-                  <tr
-                    key={String(resolveRowId(item))}
-                    data-row-id={resolveRowId(item)}
-                    data-odd={rowIndex % 2 !== 0}
-                    className={`bg-white data-[odd=false]:bg-blue-light/35 border-b border-blue-primary/10 text-gray-primary ${
-                      onRowClick || rowBody ? "cursor-pointer" : ""
-                    } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
-                    onClick={(e) => {
-                      onRowClick?.(item);
+              items.map((item, rowIndex) => {
+                const resolvedRowId = resolveRowId(item);
+                const rowIdString = String(resolvedRowId);
+                const rowAttributes = getRowAttributes?.(item, rowIndex);
 
-                      const target = e.target as HTMLElement;
-                      if (
-                        target.closest("button") ||
-                        target.closest("a") ||
-                        target.closest("input") ||
-                        target.closest("select") ||
-                        target.closest("textarea") ||
-                        target.closest("[role='button']")
-                      ) {
-                        return;
-                      }
+                return (
+                  <React.Fragment key={rowIdString}>
+                    <tr
+                      {...rowAttributes}
+                      key={rowIdString}
+                      data-row-id={resolvedRowId}
+                      data-odd={rowIndex % 2 !== 0}
+                      className={`bg-white data-[odd=false]:bg-blue-light/35 border-b rounded-lg border-blue-primary/10 text-gray-primary ${
+                        onRowClick || rowBody ? "cursor-pointer" : ""
+                      } ${rowClassName ? (rowClassName(item, rowIndex) ?? "") : ""}`}
+                      onClick={(e) => {
+                        onRowClick?.(item);
 
-                      if (rowBody) {
-                        const id = resolveRowId(item);
-                        setOpenRowIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(id)) {
-                            next.delete(id);
-                          } else {
-                            next.add(id);
-                          }
-                          return next;
-                        });
-                      }
-                    }}
-                  >
-                    {normalizedColumns.filter((column) => !column.hidden).map((column) => {
-                      const rawContent = column.render(
-                        item,
-                        rowIndex,
-                        openRowIds.has(resolveRowId(item))
-                      );
-                      return (
-                        <td
-                          key={column.id}
-                          className={`px-4 py-4 whitespace-nowrap overflow-visible ${
-                            rowCellStyles ? rowCellStyles : ""
-                          } ${column.cellClassName ? column.cellClassName : ""}`}
-                        >
-                          {getDisplayContent(rawContent)}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  {rowBody && openRowIds.has(resolveRowId(item)) && (
-                    <tr>
-                      <td
-                        colSpan={normalizedColumns.length}
-                        className="p-0"
-                        style={{ width: 0 }}
-                      >
-                        <div style={{ width: "100%", maxWidth: "100%" }}>
-                          {rowBody(item)}
-                        </div>
-                      </td>
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest("button") ||
+                          target.closest("a") ||
+                          target.closest("input") ||
+                          target.closest("select") ||
+                          target.closest("textarea") ||
+                          target.closest("[role='button']")
+                        ) {
+                          return;
+                        }
+
+                        if (rowBody) {
+                          const id = resolveRowId(item);
+                          setOpenRowIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(id)) {
+                              next.delete(id);
+                            } else {
+                              next.add(id);
+                            }
+                            return next;
+                          });
+                        }
+                      }}
+                    >
+                      {normalizedColumns.filter((column) => !column.hidden).map((column) => {
+                        const rawContent = column.render(
+                          item,
+                          rowIndex,
+                          openRowIds.has(resolveRowId(item))
+                        );
+                        return (
+                          <td
+                            key={column.id}
+                            className={`px-4 py-4 whitespace-nowrap overflow-visible ${
+                              rowCellStyles ? rowCellStyles : ""
+                            } ${column.cellClassName ? column.cellClassName : ""}`}
+                          ><div className="w-full rounded-lg">
+                              {getDisplayContent(rawContent)}
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
-                  )}
-                </React.Fragment>
-              ))
+                    {rowBody && openRowIds.has(resolveRowId(item)) && (
+                      <tr>
+                        <td
+                          colSpan={normalizedColumns.length}
+                          className="p-0"
+                          style={{ width: 0 }}
+                        >
+                          <div style={{ width: "100%", maxWidth: "100%" }}>
+                            {rowBody(item)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>

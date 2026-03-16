@@ -4,7 +4,7 @@ import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
 } from "../baseTable/AdvancedBaseTable";
-import { useCallback, useRef, useEffect, useState } from "react";
+import { forwardRef, useCallback, useEffect, useState, useImperativeHandle, useRef } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import { PartnerAllocation } from "@/types/api/allocation.types";
 import { format } from "date-fns";
@@ -13,13 +13,40 @@ import ShippingStatusTag from "../tags/ShippingStatusTag";
 import SignatureImageTooltip from "../SignatureImageTooltip";
 import { $Enums } from "@prisma/client";
 
+type DataAttributes = Partial<
+  Record<`data-${string}`, string | number | boolean>
+>;
+
 interface PartnerDistributionTableProps {
   pending: boolean; // true = in progress, false = completed
+  rowClassName?: (
+    item: PartnerAllocation,
+    index: number
+  ) => string | undefined;
+  getRowAttributes?: (
+    item: PartnerAllocation,
+    index: number
+  ) => DataAttributes | undefined;
 }
 
-export default function PartnerDistributionTable({
-  pending,
-}: PartnerDistributionTableProps) {
+export interface PartnerDistributionTableHandle {
+  reload: () => void;
+  setItems: (
+    value:
+      | PartnerAllocation[]
+      | ((items: PartnerAllocation[]) => PartnerAllocation[])
+  ) => void;
+  removeItemById: (id: string | number) => void;
+  getAllItems: () => PartnerAllocation[];
+}
+
+const PartnerDistributionTable = forwardRef<
+  PartnerDistributionTableHandle,
+  PartnerDistributionTableProps
+>(function PartnerDistributionTable(
+  { pending, rowClassName, getRowAttributes },
+  ref
+) {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<PartnerAllocation>>(null);
 
@@ -58,6 +85,17 @@ export default function PartnerDistributionTable({
       };
     },
     [apiClient, pending]
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      reload: () => tableRef.current?.reload(),
+      setItems: (value) => tableRef.current?.setItems(value),
+      removeItemById: (id) => tableRef.current?.removeItemById(id),
+      getAllItems: () => tableRef.current?.getAllItems() ?? [],
+    }),
+    []
   );
 
   // In Progress columns
@@ -170,6 +208,10 @@ export default function PartnerDistributionTable({
       fetchFn={fetchTableData}
       rowId={"id"}
       disableFilters={false}
+      rowClassName={rowClassName}
+      getRowAttributes={getRowAttributes}
     />
   );
-}
+});
+
+export default PartnerDistributionTable;

@@ -112,6 +112,10 @@ export default class UserService {
         partnerDetails: true,
         streamUserId: true,
         streamUserToken: true,
+        dashboardTutorial: true,
+        itemsTutorial: true,
+        requestsTutorial: true,
+        wishlistsTutorial: true,
         ...PERMISSION_SELECT,
         invite: {
           select: {
@@ -443,6 +447,18 @@ export default class UserService {
 
       const permissionUpdate = sanitizePermissionUpdate(data.permissions);
       Object.assign(updateData, permissionUpdate);
+    }
+    if (data.dashboardTutorial !== undefined) {
+      updateData.dashboardTutorial = data.dashboardTutorial;
+    }
+    if (data.itemsTutorial !== undefined) {
+      updateData.itemsTutorial = data.itemsTutorial;
+    }
+    if (data.requestsTutorial !== undefined) {
+      updateData.requestsTutorial = data.requestsTutorial;
+    }
+    if (data.wishlistsTutorial !== undefined) {
+      updateData.wishlistsTutorial = data.wishlistsTutorial;
     }
 
     try {

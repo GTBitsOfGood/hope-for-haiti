@@ -32,6 +32,7 @@ function NavLink({
   className: customClassName,
   liClassName,
   noWrapper = false,
+  tutorialId,
   badge,
 }: {
   href?: string;
@@ -42,6 +43,7 @@ function NavLink({
   className?: string;
   liClassName?: string;
   noWrapper?: boolean;
+  tutorialId?: string;
   badge?: number;
 }) {
   const path = usePathname();
@@ -72,11 +74,16 @@ function NavLink({
     .join(" ");
 
   const content = href ? (
-    <Link href={href} className={className} onClick={onClick}>
+    <Link
+      href={href}
+      className={className}
+      onClick={onClick}
+      data-tutorial={tutorialId}
+    >
       {children}
     </Link>
   ) : (
-    <button onClick={onClick} className={className}>
+    <button onClick={onClick} className={className} data-tutorial={tutorialId}>
       {children}
     </button>
   );
@@ -88,7 +95,11 @@ function NavLink({
   return <li className={liClass || undefined}>{content}</li>;
 }
 
-function NavLinks() {
+function NavLinks({
+  includeTutorialTargets = false,
+}: {
+  includeTutorialTargets?: boolean;
+}) {
   const { user } = useUser();
   const { chatUnreadCount } = useNotifications();
 
@@ -148,6 +159,7 @@ function NavLinks() {
             href="/requests"
             label="Requests"
             icon={<List size={22} />}
+            tutorialId={includeTutorialTargets ? "requests-tab" : undefined}
           />
         </>
       )}
@@ -156,6 +168,7 @@ function NavLinks() {
           href="/wishlists"
           label="Wishlists"
           icon={<ClipboardText size={22} />}
+          tutorialId={includeTutorialTargets ? "wishlist-tab" : undefined}
         />
       )}
       {canViewDistributions && (
@@ -273,7 +286,7 @@ function DesktopNavbar() {
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
 
       <ul className="p-1 w-full flex flex-col flex-1 flex-grow">
-        <NavLinks />
+        <NavLinks includeTutorialTargets />
       </ul>
     </nav>
   );
