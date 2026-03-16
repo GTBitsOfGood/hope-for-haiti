@@ -122,9 +122,6 @@ const tutorialSteps: TutorialStep[] = [
       <div>
         Your <span className="text-red-primary">Requests</span> page is where
         you will be able to view all of your requests. Here you can view, edit, and filter requests.
-        <p className="py-1">
-          <strong>New here? Take a quick tour of this page.</strong>
-        </p>
       </div>
     ),
     placement: "center",

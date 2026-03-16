@@ -97,7 +97,6 @@ const tutorialSteps: TutorialStep[] = [
     content:
     <div>
       Your <span className="text-red-primary">items</span> page is where you will be able to browse all items available in inventory and make requests depending on your needs.
-      <p className="py-1"><strong>New here? Take a quick tour of this page.</strong></p>
     </div>,
     placement: "center",
     isFixed: true,

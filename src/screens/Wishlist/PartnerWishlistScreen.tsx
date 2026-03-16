@@ -54,9 +54,6 @@ const tutorialSteps: TutorialStep[] = [
       <div>
         Your <span className="text-red-primary">wishlists</span> page is where
         you can view and manage your unfulfilled wishes.
-        <p className="py-1">
-          <strong>New here? Take a quick tour of this page.</strong>
-        </p>
       </div>
     ),
     placement: "center",
