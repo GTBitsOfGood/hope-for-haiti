@@ -8,6 +8,7 @@ import {
 } from "@/types/api/donorOffer.types";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
+import { WishlistService } from "./wishlistService";
 
 export class GeneralItemRequestService {
   static async getById(id: number) {
@@ -250,6 +251,22 @@ export class GeneralItemRequestService {
       )
     );
 
+    // After persisting final quantities, auto-populate wishlists for any
+    // requests that were not fully fulfilled (finalQuantity < quantity).
+    const unfulfilledUpdates = updates.filter(({ requestId, finalQuantity }) => {
+      const request = requests.find(r => r.id === requestId);
+      return request && finalQuantity < request.quantity;
+    });
+
+    if (unfulfilledUpdates.length > 0) {
+      try {
+        await WishlistService.createUnfulfilledWishlistEntries(unfulfilledUpdates);
+      } catch (error) {
+        // Log but don't fail the bulk update if wishlist creation errors
+        console.error("Failed to create unfulfilled wishlist entries:", error);
+      }
+    }
+
     return results;
   }
 
@@ -279,7 +296,7 @@ export class GeneralItemRequestService {
 
       const previousGeneralItemId = existingRequest.generalItem.id;
 
-      const targetGeneralItem = await tx.generalItem.findUnique({
+      const targetGeneralItem = await tx.generalItem.findFirst({
         where: { id: targetGeneralItemId },
         select: {
           id: true,
