@@ -168,10 +168,13 @@ function OptionsButton({
       error: "Failed to approve distribution.",
     });
 
-    await promise;
+    try {
+      await promise;
+      fetchTableData();
+    } finally {
+      setIsDropdownOpen(false);
+    }
 
-    setIsDropdownOpen(false);
-    fetchTableData();
   }
   
   async function unapproveDistribution() {
@@ -188,10 +191,12 @@ function OptionsButton({
       error: "Failed to unapprove distribution.",
     });
 
-    await promise; 
-
-    setIsDropdownOpen(false); 
-    fetchTableData(); 
+    try {
+      await promise;
+      fetchTableData();
+    } finally {
+      setIsDropdownOpen(false);
+    }
   }
 
   return (
