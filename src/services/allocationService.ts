@@ -317,6 +317,11 @@ export default class AllocationService {
             "Cannot transfer items from an approved distribution. Approved distributions are locked."
           );
         }
+        if (allocation.signOffId !== null) {
+          throw new ArgumentError(
+            "Cannot transfer items that have been signed off."
+          );
+        }
       }
 
       if (update.distributionId) {

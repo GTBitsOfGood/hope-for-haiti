@@ -7,7 +7,7 @@ import { useCallback, useRef, useState } from "react";
 import { useApiClient } from "@/hooks/useApiClient";
 import Portal from "./baseTable/Portal";
 import toast from "react-hot-toast";
-import { CheckCircle, DotsThree } from "@phosphor-icons/react";
+import { CheckCircle, DotsThree, XCircle } from "@phosphor-icons/react";
 import DistributionsGeneralItemChipGroup from "./chips/DistributionsGeneralItemChipGroup";
 import { TableDistribution } from "@/types/api/distribution.types";
 import { useUser } from "@/components/context/UserContext";
@@ -168,10 +168,35 @@ function OptionsButton({
       error: "Failed to approve distribution.",
     });
 
-    await promise;
+    try {
+      await promise;
+      fetchTableData();
+    } finally {
+      setIsDropdownOpen(false);
+    }
 
-    setIsDropdownOpen(false);
-    fetchTableData();
+  }
+  
+  async function unapproveDistribution() {
+    const formData = new FormData(); 
+    formData.append("pending", "true");
+
+    const promise = apiClient.patch(`/api/distributions/${distribution.id}`, {
+      body: formData,
+    });
+
+    toast.promise(promise, {
+      loading: "Unapproving distribution...", 
+      success: "Distribution unapproved!", 
+      error: "Failed to unapprove distribution.",
+    });
+
+    try {
+      await promise;
+      fetchTableData();
+    } finally {
+      setIsDropdownOpen(false);
+    }
   }
 
   return (
@@ -190,13 +215,24 @@ function OptionsButton({
         position="bottom-right"
         className="w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5 py-1"
       >
-        <button
-          onClick={approveDistribution}
-          className="flex items-center w-full px-4 py-2 text-sm text-left transition-colors duration-150 hover:bg-gray-50 text-gray-900 cursor-pointer"
-        >
-          <CheckCircle size={16} className="mr-3 flex-shrink-0" />
-          <p>Approve</p>
-        </button>
+        {distribution.pending ? (
+          <button
+            onClick={approveDistribution}
+            className="flex items-center w-full px-4 py-2 text-sm text-left transition-colors duration-150 hover:bg-gray-50 text-gray-900 cursor-pointer"
+          >
+            <CheckCircle size={16} className="mr-3 flex-shrink-0" />
+            <p>Approve</p>
+          </button>
+        ) : (
+          <button
+            onClick={unapproveDistribution}
+            className="flex items-center w-full px-4 py-2 text-sm text-left transition-colors duration-150 hover:bg-gray-50 text-gray-900 cursor-pointer"
+          >
+            <XCircle size={16} className="mr-3 flex-shrink-0" />
+            <p>Unapprove</p>
+          </button>
+
+        )}
       </Portal>
     </div>
   );
