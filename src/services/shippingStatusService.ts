@@ -513,19 +513,12 @@ export class ShippingStatusService {
       return { shippingStatuses: [], items: [], total: 0 };
     }
 
-    const lookupPairs = validPairs.filter(
-      (
-        pair
-      ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
-        Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
-    );
-
-    const statusRecords = lookupPairs.length
+    const statusRecords = validPairs.length
       ? await db.shippingStatus.findMany({
           where: {
-            OR: lookupPairs.map((pair) => ({
-              donorShippingNumber: pair.donorShippingNumber,
-              hfhShippingNumber: pair.hfhShippingNumber,
+            OR: validPairs.map((pair) => ({
+              donorShippingNumber: pair.donorShippingNumber ?? null,
+              hfhShippingNumber: pair.hfhShippingNumber ?? null,
             })),
           },
         })
