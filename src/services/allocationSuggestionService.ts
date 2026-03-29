@@ -6,9 +6,49 @@ type NormalizedItem = {
   id: number;
   lineItems: { lineItemId: number; quantity: number }[];
   requests: { partnerId: number; quantity: number }[];
+  wishlistMatches: Map<number, Map<number, boolean>>;
 };
 
 export class AllocationSuggestionService {
+  private static async buildWishlistMatches(
+    generalItemId: number,
+    lineItemIds: number[],
+    partnerIds: number[]
+  ): Promise<Map<number, Map<number, boolean>>> {
+    const wishlistMatches = new Map<number, Map<number, boolean>>();
+
+    if (!partnerIds.length) {
+      return wishlistMatches;
+    }
+
+    const wishlists = await db.wishlist.findMany({
+      where: {
+        partnerId: { in: partnerIds },
+      },
+      select: {
+        partnerId: true,
+        generalItemId: true,
+      },
+    });
+
+    const partnersWithWishlist = new Set<number>();
+    for (const wishlist of wishlists) {
+      if (wishlist.generalItemId === generalItemId) {
+        partnersWithWishlist.add(wishlist.partnerId);
+      }
+    }
+
+    for (const lineItemId of lineItemIds) {
+      const partnerMatches = new Map<number, boolean>();
+      for (const partnerId of partnerIds) {
+        partnerMatches.set(partnerId, partnersWithWishlist.has(partnerId));
+      }
+      wishlistMatches.set(lineItemId, partnerMatches);
+    }
+
+    return wishlistMatches;
+  }
+
   static async suggestForDonorOffer(
     donorOfferId: number
   ): Promise<AllocationSuggestionProgram[]> {
@@ -90,32 +130,41 @@ export class AllocationSuggestionService {
       lineItemsByGeneralItemId.set(lineItem.generalItemId, list);
     }
 
-    return itemsWithRequests.reduce<NormalizedItem[]>((acc, item) => {
-      const lineItemsForItem =
-        lineItemsByGeneralItemId.get(item.id) ?? [];
-      if (!lineItemsForItem.length) {
-        return acc;
-      }
+    return Promise.all(
+      itemsWithRequests.map(async (item) => {
+        const lineItemsForItem =
+          lineItemsByGeneralItemId.get(item.id) ?? [];
+        if (!lineItemsForItem.length) {
+          return null;
+        }
 
-      const requests = (item.requests ?? [])
-        .filter((request) => request.quantity > 0)
-        .map((request) => ({
-          partnerId: request.partnerId,
-          quantity: request.quantity,
-        }));
+        const requests = (item.requests ?? [])
+          .filter((request) => request.quantity > 0)
+          .map((request) => ({
+            partnerId: request.partnerId,
+            quantity: request.quantity,
+          }));
 
-      if (!requests.length) {
-        return acc;
-      }
+        if (!requests.length) {
+          return null;
+        }
 
-      acc.push({
-        id: item.id,
-        lineItems: lineItemsForItem,
-        requests,
-      });
+        const lineItemIds = lineItemsForItem.map((li) => li.lineItemId);
+        const partnerIds = requests.map((r) => r.partnerId);
+        const wishlistMatches = await this.buildWishlistMatches(
+          item.id,
+          lineItemIds,
+          partnerIds
+        );
 
-      return acc;
-    }, []);
+        return {
+          id: item.id,
+          lineItems: lineItemsForItem,
+          requests,
+          wishlistMatches,
+        };
+      })
+    ).then((items) => items.filter((item) => item !== null) as NormalizedItem[]);
   }
 
   private static async fetchItemsForGeneralItems(
@@ -146,43 +195,57 @@ export class AllocationSuggestionService {
       },
     });
 
-    return generalItems.reduce<NormalizedItem[]>((acc, item) => {
-      if (!item.items.length) {
-        return acc;
-      }
+    return Promise.all(
+      generalItems.map(async (item) => {
+        if (!item.items.length) {
+          return null;
+        }
 
-      const requests = item.requests
-        .filter((request) => request.quantity > 0)
-        .map((request) => ({
-          partnerId: request.partnerId,
-          quantity: request.quantity,
-        }));
+        const requests = item.requests
+          .filter((request) => request.quantity > 0)
+          .map((request) => ({
+            partnerId: request.partnerId,
+            quantity: request.quantity,
+          }));
 
-      if (!requests.length) {
-        return acc;
-      }
+        if (!requests.length) {
+          return null;
+        }
 
-      acc.push({
-        id: item.id,
-        lineItems: item.items.map((lineItem) => ({
+        const lineItems = item.items.map((lineItem) => ({
           lineItemId: lineItem.id,
           quantity: lineItem.quantity,
-        })),
-        requests,
-      });
+        }));
 
-      return acc;
-    }, []);
+        const lineItemIds = lineItems.map((li) => li.lineItemId);
+        const partnerIds = requests.map((r) => r.partnerId);
+        const wishlistMatches = await this.buildWishlistMatches(
+          item.id,
+          lineItemIds,
+          partnerIds
+        );
+
+        return {
+          id: item.id,
+          lineItems,
+          requests,
+          wishlistMatches,
+        };
+      })
+    ).then((items) => items.filter((item) => item !== null) as NormalizedItem[]);
   }
 
   private static buildLinearProgram(
     lineItems: { lineItemId: number; quantity: number }[],
-    targets: { partnerId: number; target: number }[]
+    targets: { partnerId: number; target: number }[],
+    wishlistMatches: Map<number, Map<number, boolean>>
   ): string {
     const itemCount = lineItems.length;
     const partnerCount = targets.length;
+    const WISHLIST_WEIGHT = 0.001;
 
     const variableX = (iIdx: number, pIdx: number) => `x_i${iIdx}_p${pIdx}`;
+    const variableW = (iIdx: number, pIdx: number) => `w_i${iIdx}_p${pIdx}`;
     const variableDevPos = (pIdx: number) => `dpos_p${pIdx}`;
     const variableDevNeg = (pIdx: number) => `dneg_p${pIdx}`;
 
@@ -195,6 +258,19 @@ export class AllocationSuggestionService {
       objectiveTerms.push(variableDevPos(p));
       objectiveTerms.push(variableDevNeg(p));
     }
+
+    // wishlist incentive terms
+    for (let i = 0; i < itemCount; i++) {
+      const lineItemId = lineItems[i].lineItemId;
+      const matches = wishlistMatches.get(lineItemId);
+      for (let p = 0; p < partnerCount; p++) {
+        const targetPartnerId = targets[p].partnerId;
+        if (matches?.get(targetPartnerId)) {
+          objectiveTerms.push(`- ${WISHLIST_WEIGHT} ${variableW(i, p)}`);
+        }
+      }
+    }
+
     lines.push("    " + objectiveTerms.join(" + "));
 
     lines.push("Subject To");
@@ -229,6 +305,14 @@ export class AllocationSuggestionService {
     for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
       for (let partnerIdx = 0; partnerIdx < partnerCount; partnerIdx++) {
         binaries.push(variableX(itemIdx, partnerIdx));
+
+        // wishlist indicator variables for wishlist matches
+        const lineItemId = lineItems[itemIdx].lineItemId;
+        const matches = wishlistMatches.get(lineItemId);
+        const targetPartnerId = targets[partnerIdx].partnerId;
+        if (matches?.get(targetPartnerId)) {
+          binaries.push(variableW(itemIdx, partnerIdx));
+        }
       }
     }
     lines.push(" " + binaries.join("\n "));
@@ -276,7 +360,7 @@ export class AllocationSuggestionService {
       return null;
     }
 
-    const lp = this.buildLinearProgram(usableLineItems, targets);
+    const lp = this.buildLinearProgram(usableLineItems, targets, item.wishlistMatches);
 
     return {
       itemId: item.id,
