@@ -25,8 +25,10 @@ export type Shipment = {
     id: number;
     staffMemberName: string;
     partnerName: string;
+    partnerSignerName?: string | null;
     date: Date;
     signatureUrl: string | null;
+    partnerSignatureUrl?: string | null;
     lineItems: {
       id: number;
       quantity: number;

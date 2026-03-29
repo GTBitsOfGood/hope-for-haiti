@@ -189,7 +189,7 @@ const PartnerDistributionTable = forwardRef<
             </span>
             {row.signOffSignatureUrl && row.signOffId && (
               <SignatureImageTooltip
-                signOffId={row.signOffId}
+                tooltipId={`signature-tooltip-${row.signOffId}`}
                 signatureUrl={row.signOffSignatureUrl}
               />
             )}

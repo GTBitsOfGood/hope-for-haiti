@@ -17,19 +17,22 @@ async function resetDatabase() {
   const signOffs = await db.signOff.findMany({
     select: {
       signatureUrl: true,
+      partnerSignatureUrl: true,
     },
   });
 
   // Delete signatures from Azure Storage
   for (const signOff of signOffs) {
-    if (signOff.signatureUrl) {
+    const signatureUrls = [
+      signOff.signatureUrl,
+      signOff.partnerSignatureUrl,
+    ].filter(Boolean);
+
+    for (const signatureUrl of signatureUrls) {
       try {
-        await FileService.deleteSignature(signOff.signatureUrl);
+        await FileService.deleteSignature(signatureUrl!);
       } catch (error) {
-        console.warn(
-          `Failed to delete signature: ${signOff.signatureUrl}`,
-          error
-        );
+        console.warn(`Failed to delete signature: ${signatureUrl}`, error);
       }
     }
   }
@@ -75,4 +78,3 @@ export async function POST() {
     return errorResponse(error);
   }
 }
-

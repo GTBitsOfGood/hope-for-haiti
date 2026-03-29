@@ -14,6 +14,25 @@ import FileService from "@/services/fileService";
 import { hasShippingIdentifier } from "@/util/shipping";
 
 export class SignOffService {
+  private static async uploadSignatureIfNeeded(
+    signatureUrl: string | null | undefined,
+    staffUserId?: number
+  ) {
+    if (
+      signatureUrl &&
+      (signatureUrl.startsWith("data:image") ||
+        !signatureUrl.startsWith("http"))
+    ) {
+      if (!staffUserId) {
+        throw new ArgumentError("staffUserId is required to upload signature");
+      }
+
+      return FileService.uploadSignature(signatureUrl, staffUserId);
+    }
+
+    return signatureUrl;
+  }
+
   static async createSignOff(data: CreateSignOffData) {
     const partner = await db.user.findUnique({
       where: { id: data.partnerId },
@@ -32,28 +51,25 @@ export class SignOffService {
       throw new ArgumentError("Cannot create sign-off for pending partner");
     }
 
-    let signatureUrl = data.signatureUrl;
-    if (
-      signatureUrl &&
-      (signatureUrl.startsWith("data:image") ||
-        !signatureUrl.startsWith("http"))
-    ) {
-      if (!data.staffUserId) {
-        throw new ArgumentError("staffUserId is required to upload signature");
-      }
-      signatureUrl = await FileService.uploadSignature(
-        signatureUrl,
-        data.staffUserId
-      );
-    }
+    const signatureUrl = await SignOffService.uploadSignatureIfNeeded(
+      data.signatureUrl,
+      data.staffUserId
+    );
+    const partnerSignatureUrl = await SignOffService.uploadSignatureIfNeeded(
+      data.partnerSignatureUrl,
+      data.staffUserId
+    );
+
 
     return db.signOff.create({
       data: {
         staffMemberName: data.staffName,
         partnerName: data.partnerName,
+        partnerSignerName: data.partnerSignerName,
         date: data.date,
         partnerId: data.partnerId,
         signatureUrl: signatureUrl,
+        partnerSignatureUrl: partnerSignatureUrl,
         allocations: {
           connect: data.allocations.map((id) => ({ id })),
         },
@@ -65,10 +81,21 @@ export class SignOffService {
     signOffId: number,
     data: Partial<CreateSignOffData>
   ) {
+    const signatureUrl = await SignOffService.uploadSignatureIfNeeded(
+      data.signatureUrl,
+      data.staffUserId
+    );
+    const partnerSignatureUrl = await SignOffService.uploadSignatureIfNeeded(
+      data.partnerSignatureUrl,
+      data.staffUserId
+    );
+
     return db.signOff.update({
       where: { id: signOffId },
       data: {
         ...data,
+        signatureUrl,
+        partnerSignatureUrl,
         allocations: data.allocations
           ? {
               connect: data.allocations.map((id) => ({ id })),
@@ -222,12 +249,22 @@ export class SignOffService {
       })
     );
 
+    const signatureUrl = signOff.signatureUrl
+      ? await FileService.generateSignatureReadUrl(signOff.signatureUrl)
+      : null;
+    const partnerSignatureUrl = signOff.partnerSignatureUrl
+      ? await FileService.generateSignatureReadUrl(signOff.partnerSignatureUrl)
+      : null;
+
     return {
       id: signOff.id,
       date: signOff.date,
       staffMemberName: signOff.staffMemberName,
       partnerName: signOff.partnerName,
+      partnerSignerName: signOff.partnerSignerName,
       partnerId: signOff.partnerId,
+      signatureUrl,
+      partnerSignatureUrl,
       distributions,
     };
   }

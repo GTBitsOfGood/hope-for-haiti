@@ -4,8 +4,10 @@ export interface CreateSignOffData {
   partnerId: number;
   staffName: string;
   partnerName: string;
+  partnerSignerName: string;
   date: Date;
   signatureUrl: string;
+  partnerSignatureUrl: string;
   allocations: number[];
   staffUserId?: number;
 }
@@ -28,6 +30,9 @@ export interface SignOffDetails {
   date: Date;
   staffMemberName: string;
   partnerName: string;
+  partnerSignerName?: string | null;
   partnerId: number;
+  signatureUrl?: string | null;
+  partnerSignatureUrl?: string | null;
   distributions: DistributionItem[];
 }

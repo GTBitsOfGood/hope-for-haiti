@@ -258,13 +258,20 @@ export class ShippingStatusService {
             signatureUrl =
               await FileService.generateSignatureReadUrl(signatureUrl);
           }
+          let partnerSignatureUrl = signOff.partnerSignatureUrl;
+          if (partnerSignatureUrl) {
+            partnerSignatureUrl =
+              await FileService.generateSignatureReadUrl(partnerSignatureUrl);
+          }
 
           existingSignOff = {
             id: signOff.id,
             staffMemberName: signOff.staffMemberName,
             partnerName: signOff.partnerName,
+            partnerSignerName: signOff.partnerSignerName,
             date: signOff.date,
             signatureUrl: signatureUrl,
+            partnerSignatureUrl,
             lineItems: [],
           };
           shipment.signOffs.push(existingSignOff);

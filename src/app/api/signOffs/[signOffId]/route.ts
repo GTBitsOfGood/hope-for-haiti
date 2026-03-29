@@ -24,12 +24,15 @@ const patchSchema = z.object({
   staffName: z.string().optional(),
   partnerId: z.number().int().positive().optional(),
   partnerName: z.string().optional(),
+  partnerSignerName: z.string().optional(),
   date: z
     .string()
     .transform((str) => new Date(str))
     .optional(),
   signatureUrl: z.string().optional(),
+  partnerSignatureUrl: z.string().optional(),
   allocations: z.array(z.number().int().positive()).optional(),
+  staffUserId: z.number().int().positive().optional(),
 });
 
 export async function GET(
@@ -85,6 +88,7 @@ export async function PATCH(
     }
 
     const form = await request.formData();
+    const userId = parseInt(session.user.id!);
     const formObj = {
       staffName:
         form.get("staffName") !== null
@@ -98,15 +102,24 @@ export async function PATCH(
         form.get("partnerName") !== null
           ? String(form.get("partnerName"))
           : undefined,
+      partnerSignerName:
+        form.get("partnerSignerName") !== null
+          ? String(form.get("partnerSignerName"))
+          : undefined,
       date: form.get("date") !== null ? String(form.get("date")) : undefined,
       signatureUrl:
         form.get("signatureUrl") !== null
           ? String(form.get("signatureUrl"))
           : undefined,
+      partnerSignatureUrl:
+        form.get("partnerSignatureUrl") !== null
+          ? String(form.get("partnerSignatureUrl"))
+          : undefined,
       allocations:
         form.getAll("allocation").length > 0
           ? form.getAll("allocation").map((val) => Number(val))
           : undefined,
+      staffUserId: userId,
     };
     const parsed = patchSchema.safeParse(formObj);
 
