@@ -7,6 +7,7 @@ import {
   PencilSimple,
   Upload,
   Archive,
+  FileCsv
 } from "@phosphor-icons/react";
 import { DonorOfferState } from "@prisma/client";
 import React from "react";
@@ -167,12 +168,17 @@ export default function AdminDonorOffersScreen() {
             <MenuButton>
               <DotsThree weight="bold" />
             </MenuButton>
-            <MenuItems anchor="bottom end" className="z-10 rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max">
+            <MenuItems
+              anchor="bottom end"
+              className="z-10 rounded-md bg-white ring-1 shadow-lg ring-black/5 w-max"
+            >
               {offer.state !== DonorOfferState.ARCHIVED && (
                 <MenuItem
                   as="button"
                   className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  onClick={() => router.push(`/donorOffers/${offer.donorOfferId}/edit`)}
+                  onClick={() =>
+                    router.push(`/donorOffers/${offer.donorOfferId}/edit`)
+                  }
                 >
                   <PencilSimple className="inline-block mr-2" size={22} />
                   Edit Offer Details
@@ -182,10 +188,24 @@ export default function AdminDonorOffersScreen() {
                 <MenuItem
                   as="button"
                   className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  onClick={() => router.push(`/donorOffers/${offer.donorOfferId}/finalize`)}
+                  onClick={() =>
+                    router.push(`/donorOffers/${offer.donorOfferId}/finalize`)
+                  }
                 >
                   <Upload className="inline-block mr-2" size={22} />
                   Upload Final Offer
+                </MenuItem>
+              )}
+              {offer.state === DonorOfferState.UNFINALIZED && (
+                <MenuItem
+                  as="button"
+                  className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() =>
+                    window.location.href = `/api/donorOffers/${offer.donorOfferId}/csv`
+                  }
+                >
+                  <FileCsv className="inline-block mr-2" size={22} />
+                  Convert to CSV
                 </MenuItem>
               )}
               {offer.state === DonorOfferState.FINALIZED && (
