@@ -925,10 +925,22 @@ export default class DonorOfferService {
       );
     }
 
-    const orderedPartners = [...partners].sort((a, b) =>
+    const itemsWithRequests = items as GeneralItemWithRequests[];
+    const partnerMap = new Map<number, { id: number; name: string }>();
+
+    for (const partner of partners) {
+      partnerMap.set(partner.id, { id: partner.id, name: partner.name });
+    }
+
+    for (const item of itemsWithRequests) {
+      for (const request of item.requests) {
+        partnerMap.set(request.partner.id, request.partner);
+      }
+    }
+
+    const orderedPartners = [...partnerMap.values()].sort((a, b) =>
       a.name.localeCompare(b.name)
     );
-    const itemsWithRequests = items as GeneralItemWithRequests[];
 
     const rows = itemsWithRequests.map((item) => {
       const requestTotal = item.requests.reduce(
@@ -948,7 +960,7 @@ export default class DonorOfferService {
 
       for (const partner of orderedPartners) {
         const request = item.requests.find((r) => r.partner.id === partner.id);
-        row[partner.name] = request?.finalQuantity ?? 0;
+        row[partner.name] = request?.finalQuantity ?? request?.quantity ?? 0;
       }
 
       return row;

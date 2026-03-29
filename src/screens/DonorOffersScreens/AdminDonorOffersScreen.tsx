@@ -91,6 +91,55 @@ export default function AdminDonorOffersScreen() {
     })();
   };
 
+  const handleConvertToCsv = useCallback(async (donorOfferId: number) => {
+    const loadingToastId = toast.loading("Generating CSV...");
+
+    try {
+      const response = await fetch(`/api/donorOffers/${donorOfferId}/csv`);
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type") ?? "";
+        let errorMessage = "Failed to generate CSV";
+
+        if (contentType.includes("application/json")) {
+          const body = (await response.json()) as { error?: string; message?: string };
+          errorMessage = body.error ?? body.message ?? errorMessage;
+        } else {
+          const body = (await response.text()).trim();
+          if (body) {
+            errorMessage = body;
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const contentDisposition = response.headers.get("content-disposition");
+      const fileName =
+        contentDisposition?.match(/filename="([^"]+)"/)?.[1] ??
+        `donor-offer-${donorOfferId}.csv`;
+
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+
+      toast.dismiss(loadingToastId);
+      toast.success("CSV downloaded");
+    } catch (error) {
+      console.error("CSV download error:", error);
+      toast.dismiss(loadingToastId);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to generate CSV"
+      );
+    }
+  }, []);
+
   const columns: ColumnDefinition<AdminDonorOffer>[] = [
     {
       id: "offerName",
@@ -200,9 +249,7 @@ export default function AdminDonorOffersScreen() {
                 <MenuItem
                   as="button"
                   className="flex w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  onClick={() =>
-                    window.location.href = `/api/donorOffers/${offer.donorOfferId}/csv`
-                  }
+                  onClick={() => void handleConvertToCsv(offer.donorOfferId)}
                 >
                   <FileCsv className="inline-block mr-2" size={22} />
                   Convert to CSV
