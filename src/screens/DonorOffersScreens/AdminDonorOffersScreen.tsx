@@ -132,7 +132,6 @@ export default function AdminDonorOffersScreen() {
       toast.dismiss(loadingToastId);
       toast.success("CSV downloaded");
     } catch (error) {
-      console.error("CSV download error:", error);
       toast.dismiss(loadingToastId);
       toast.error(
         error instanceof Error ? error.message : "Failed to generate CSV"
