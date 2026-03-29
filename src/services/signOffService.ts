@@ -81,24 +81,44 @@ export class SignOffService {
     signOffId: number,
     data: Partial<CreateSignOffData>
   ) {
+    const {
+      allocations,
+      staffName,
+      staffUserId,
+      partnerId,
+      partnerName,
+      partnerSignerName,
+      date,
+    } = data;
+
     const signatureUrl = await SignOffService.uploadSignatureIfNeeded(
       data.signatureUrl,
-      data.staffUserId
+      staffUserId
     );
     const partnerSignatureUrl = await SignOffService.uploadSignatureIfNeeded(
       data.partnerSignatureUrl,
-      data.staffUserId
+      staffUserId
     );
 
     return db.signOff.update({
       where: { id: signOffId },
       data: {
-        ...data,
-        signatureUrl,
-        partnerSignatureUrl,
-        allocations: data.allocations
+        ...(staffName !== undefined
+          ? { staffMemberName: staffName }
+          : {}),
+        ...(partnerId !== undefined ? { partnerId } : {}),
+        ...(partnerName !== undefined ? { partnerName } : {}),
+        ...(partnerSignerName !== undefined
+          ? { partnerSignerName }
+          : {}),
+        ...(date !== undefined ? { date } : {}),
+        ...(signatureUrl !== undefined ? { signatureUrl } : {}),
+        ...(partnerSignatureUrl !== undefined
+          ? { partnerSignatureUrl }
+          : {}),
+        allocations: allocations
           ? {
-              connect: data.allocations.map((id) => ({ id })),
+              connect: allocations.map((id) => ({ id })),
             }
           : undefined,
       },

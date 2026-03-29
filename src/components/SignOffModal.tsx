@@ -112,7 +112,7 @@ export default function SignOffModal({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 px-4 py-6">
-      <div className="relative mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-[#22070B] shadow-lg">
+      <div className="relative mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-gray-primary shadow-lg">
         <button
           onClick={onClose}
           aria-label="Close"
@@ -121,7 +121,7 @@ export default function SignOffModal({
           <X className="size-6" />
         </button>
         <div className="shrink-0 border-b border-gray-200 px-6 py-5 pr-14">
-          <h2 className="text-[20px] font-semibold leading-[28px]">
+          <h2 className="text-xl font-semibold leading-7">
             Sign Off Items
           </h2>
         </div>
@@ -136,7 +136,7 @@ export default function SignOffModal({
                 type="text"
                 value={staffName}
                 readOnly
-                className="w-full rounded-[4px] border border-[rgba(34,7,11,0.05)] bg-[rgba(34,7,11,0.05)] p-3 text-[16px] cursor-not-allowed"
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary cursor-not-allowed"
               />
             </div>
 
@@ -148,7 +148,7 @@ export default function SignOffModal({
                 type="text"
                 value={format(currentDate, "MMM d, yyyy 'at' h:mm a")}
                 readOnly
-                className="w-full rounded-[4px] border border-[rgba(34,7,11,0.05)] bg-[rgba(34,7,11,0.05)] p-3 text-[16px] cursor-not-allowed"
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary cursor-not-allowed"
               />
             </div>
 
@@ -156,7 +156,7 @@ export default function SignOffModal({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Signature
               </label>
-              <div className="rounded-[4px] border-2 border-gray-300 bg-white">
+              <div className="rounded-sm border-2 border-gray-primary/20 bg-white">
                 <SignatureCanvas
                   ref={staffSignatureCanvasRef}
                   canvasProps={{
@@ -184,7 +184,7 @@ export default function SignOffModal({
                 type="text"
                 value={partnerSignerName}
                 onChange={(e) => setPartnerSignerName(e.target.value)}
-                className="w-full rounded-[4px] border border-[rgba(34,7,11,0.05)] bg-[rgba(34,7,11,0.05)] p-3 text-[16px]"
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary"
               />
             </div>
 
@@ -196,7 +196,7 @@ export default function SignOffModal({
                 type="text"
                 value={format(currentDate, "MMM d, yyyy 'at' h:mm a")}
                 readOnly
-                className="w-full rounded-[4px] border border-[rgba(34,7,11,0.05)] bg-[rgba(34,7,11,0.05)] p-3 text-[16px] cursor-not-allowed"
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary cursor-not-allowed"
               />
             </div>
 
@@ -204,7 +204,7 @@ export default function SignOffModal({
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Signature
               </label>
-              <div className="rounded-[4px] border-2 border-gray-300 bg-white">
+              <div className="rounded-sm border-2 border-gray-primary/20 bg-white">
                 <SignatureCanvas
                   ref={partnerSignatureCanvasRef}
                   canvasProps={{
@@ -228,14 +228,14 @@ export default function SignOffModal({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="bg-white hover:bg-gray-100 text-[#EF3340] border-2 border-[#EF3340] font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md border-2 border-red-primary bg-white px-4 py-2 font-semibold text-red-primary hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="bg-[#EF3340] hover:bg-[#a32027] text-white font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md bg-red-primary px-4 py-2 font-semibold text-white hover:bg-red-primary/80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? "Submitting..." : "Submit"}
           </button>
