@@ -66,11 +66,13 @@ export default function NotificationHandler({
   const router = useRouter();
   const [client, setClient] = useState<Ably.Realtime | null>(null);
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
+  const activeSupportTab = searchParams.get("activeTab");
 
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   // Ensure that mirroring doesn't overwrite sessionStorage before loading
   const isHydrated = useRef(false);
+  const activeSupportTabRef = useRef(activeSupportTab);
 
   useEffect(() => {
     const realtime = getRealtimeClient();
@@ -128,6 +130,10 @@ export default function NotificationHandler({
     },
     [apiClient, notifications]
   );
+
+  useEffect(() => {
+    activeSupportTabRef.current = activeSupportTab;
+  }, [activeSupportTab]);
 
   useEffect(() => {
     if (!user) {
@@ -293,7 +299,7 @@ export default function NotificationHandler({
       const channelId = event.channel?.id ?? event.cid?.split(":")[1];
       if (!channelId) return;
 
-      if (searchParams.get("activeTab") === "Unresolved") return;
+      if (activeSupportTabRef.current === "Unresolved") return;
 
       const text = event.message?.text?.trim();
       const channelName =
@@ -357,7 +363,7 @@ export default function NotificationHandler({
 
     return () => {
       didInterrupt = true;
-      streamClient.off("notification.message_new", handleTicketMessage);
+      streamClient.off("message.new", handleTicketMessage);
       streamClient.off("notification.mark_read", handleMarkRead);
       streamClient
         .disconnectUser()
