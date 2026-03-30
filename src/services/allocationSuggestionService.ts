@@ -11,43 +11,44 @@ type NormalizedItem = {
 
 export class AllocationSuggestionService {
   private static async buildWishlistMatches(
-    generalItemId: number,
-    lineItemIds: number[],
-    partnerIds: number[]
-  ): Promise<Map<number, Map<number, boolean>>> {
-    const wishlistMatches = new Map<number, Map<number, boolean>>();
+  generalItemId: number,
+  lineItemIds: number[],
+  partnerIds: number[]
+): Promise<Map<number, Map<number, boolean>>> {
+  const wishlistMatches = new Map<number, Map<number, boolean>>();
 
-    if (!partnerIds.length) {
-      return wishlistMatches;
+  if (!partnerIds.length) return wishlistMatches;
+
+  const generalItem = await db.generalItem.findUnique({
+    where: { id: generalItemId },
+    select: { title: true },
+  });
+
+  if (!generalItem) return wishlistMatches;
+
+  const wishlists = await db.wishlist.findMany({
+    where: {
+      partnerId: { in: partnerIds },
+      generalItemId: null, // only unfulfilled/unlinked wishlists
+      name: generalItem.title,
+    },
+    select: {
+      partnerId: true,
+    },
+  });
+
+  const partnersWithWishlist = new Set(wishlists.map((w) => w.partnerId));
+
+  for (const lineItemId of lineItemIds) {
+    const partnerMatches = new Map<number, boolean>();
+    for (const partnerId of partnerIds) {
+      partnerMatches.set(partnerId, partnersWithWishlist.has(partnerId));
     }
-
-    const wishlists = await db.wishlist.findMany({
-      where: {
-        partnerId: { in: partnerIds },
-      },
-      select: {
-        partnerId: true,
-        generalItemId: true,
-      },
-    });
-
-    const partnersWithWishlist = new Set<number>();
-    for (const wishlist of wishlists) {
-      if (wishlist.generalItemId === generalItemId) {
-        partnersWithWishlist.add(wishlist.partnerId);
-      }
-    }
-
-    for (const lineItemId of lineItemIds) {
-      const partnerMatches = new Map<number, boolean>();
-      for (const partnerId of partnerIds) {
-        partnerMatches.set(partnerId, partnersWithWishlist.has(partnerId));
-      }
-      wishlistMatches.set(lineItemId, partnerMatches);
-    }
-
-    return wishlistMatches;
+    wishlistMatches.set(lineItemId, partnerMatches);
   }
+
+  return wishlistMatches;
+}
 
   static async suggestForDonorOffer(
     donorOfferId: number
@@ -259,19 +260,22 @@ export class AllocationSuggestionService {
       objectiveTerms.push(variableDevNeg(p));
     }
 
-    // wishlist incentive terms
+    // wishlist incentive terms (negative, so subtract from objective to incentivize)
+    const negativTerms: string[] = [];
     for (let i = 0; i < itemCount; i++) {
       const lineItemId = lineItems[i].lineItemId;
       const matches = wishlistMatches.get(lineItemId);
       for (let p = 0; p < partnerCount; p++) {
         const targetPartnerId = targets[p].partnerId;
         if (matches?.get(targetPartnerId)) {
-          objectiveTerms.push(`- ${WISHLIST_WEIGHT} ${variableW(i, p)}`);
+          negativTerms.push(`- ${WISHLIST_WEIGHT} ${variableW(i, p)}`);
         }
       }
     }
 
-    lines.push("    " + objectiveTerms.join(" + "));
+    const allTerms = objectiveTerms.join(" + ");
+    const finalObjective = allTerms + (negativTerms.length > 0 ? " " + negativTerms.join(" ") : "");
+    lines.push("    " + finalObjective);
 
     lines.push("Subject To");
     for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
@@ -292,6 +296,19 @@ export class AllocationSuggestionService {
       terms.push(`- ${variableDevPos(partnerIdx)}`);
       terms.push(`+ ${variableDevNeg(partnerIdx)}`);
       lines.push(` balance_p${partnerIdx}: ` + terms.join(" ") + ` = ${t.target}`);
+    }
+
+    // Link wishlist indicator variables to allocation variables
+    // w_i_p can only be 1 if x_i_p is 1
+    for (let i = 0; i < itemCount; i++) {
+      const lineItemId = lineItems[i].lineItemId;
+      const matches = wishlistMatches.get(lineItemId);
+      for (let p = 0; p < partnerCount; p++) {
+        const targetPartnerId = targets[p].partnerId;
+        if (matches?.get(targetPartnerId)) {
+          lines.push(` wishlist_link_i${i}_p${p}: ${variableW(i, p)} - ${variableX(i, p)} <= 0`);
+        }
+      }
     }
 
     lines.push("Bounds");
@@ -319,7 +336,12 @@ export class AllocationSuggestionService {
 
     lines.push("End");
 
-    return lines.join("\n");
+    const lpProgram = lines.join("\n");
+    console.log("=== LP PROGRAM ===");
+    console.log(lpProgram);
+    console.log("=== END LP PROGRAM ===");
+
+    return lpProgram;
   }
 
   private static buildProgramForItem(
