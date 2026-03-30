@@ -268,13 +268,13 @@ export class AllocationSuggestionService {
       for (let p = 0; p < partnerCount; p++) {
         const targetPartnerId = targets[p].partnerId;
         if (matches?.get(targetPartnerId)) {
-          negativTerms.push(`- ${WISHLIST_WEIGHT} ${variableW(i, p)}`);
+          negativeTerms.push(`- ${WISHLIST_WEIGHT} ${variableW(i, p)}`);
         }
       }
     }
 
     const allTerms = objectiveTerms.join(" + ");
-    const finalObjective = allTerms + (negativTerms.length > 0 ? " " + negativTerms.join(" ") : "");
+    const finalObjective = allTerms + (negativeTerms.length > 0 ? " " + negativeTerms.join(" ") : "");
     lines.push("    " + finalObjective);
 
     lines.push("Subject To");
@@ -336,8 +336,7 @@ export class AllocationSuggestionService {
 
     lines.push("End");
 
-    return lpProgram;
-  }
+    return lines.join("\n");
   }
 
   private static buildProgramForItem(
