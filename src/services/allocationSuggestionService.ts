@@ -261,7 +261,7 @@ export class AllocationSuggestionService {
     }
 
     // wishlist incentive terms (negative, so subtract from objective to incentivize)
-    const negativTerms: string[] = [];
+    const negativeTerms: string[] = [];
     for (let i = 0; i < itemCount; i++) {
       const lineItemId = lineItems[i].lineItemId;
       const matches = wishlistMatches.get(lineItemId);
