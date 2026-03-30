@@ -11,44 +11,37 @@ type NormalizedItem = {
 
 export class AllocationSuggestionService {
   private static async buildWishlistMatches(
-  generalItemId: number,
-  lineItemIds: number[],
-  partnerIds: number[]
-): Promise<Map<number, Map<number, boolean>>> {
-  const wishlistMatches = new Map<number, Map<number, boolean>>();
+    generalItemTitle: string,
+    lineItemIds: number[],
+    partnerIds: number[]
+  ): Promise<Map<number, Map<number, boolean>>> {
+    const wishlistMatches = new Map<number, Map<number, boolean>>();
 
-  if (!partnerIds.length) return wishlistMatches;
+    if (!partnerIds.length) return wishlistMatches;
 
-  const generalItem = await db.generalItem.findUnique({
-    where: { id: generalItemId },
-    select: { title: true },
-  });
+    const wishlists = await db.wishlist.findMany({
+      where: {
+        partnerId: { in: partnerIds },
+        generalItemId: null, // only unfulfilled/unlinked wishlists
+        name: generalItemTitle,
+      },
+      select: {
+        partnerId: true,
+      },
+    });
 
-  if (!generalItem) return wishlistMatches;
+    const partnersWithWishlist = new Set(wishlists.map((w) => w.partnerId));
 
-  const wishlists = await db.wishlist.findMany({
-    where: {
-      partnerId: { in: partnerIds },
-      generalItemId: null, // only unfulfilled/unlinked wishlists
-      name: generalItem.title,
-    },
-    select: {
-      partnerId: true,
-    },
-  });
-
-  const partnersWithWishlist = new Set(wishlists.map((w) => w.partnerId));
-
-  for (const lineItemId of lineItemIds) {
-    const partnerMatches = new Map<number, boolean>();
-    for (const partnerId of partnerIds) {
-      partnerMatches.set(partnerId, partnersWithWishlist.has(partnerId));
+    for (const lineItemId of lineItemIds) {
+      const partnerMatches = new Map<number, boolean>();
+      for (const partnerId of partnerIds) {
+        partnerMatches.set(partnerId, partnersWithWishlist.has(partnerId));
+      }
+      wishlistMatches.set(lineItemId, partnerMatches);
     }
-    wishlistMatches.set(lineItemId, partnerMatches);
-  }
 
-  return wishlistMatches;
-}
+    return wishlistMatches;
+  }
 
   static async suggestForDonorOffer(
     donorOfferId: number
@@ -153,7 +146,7 @@ export class AllocationSuggestionService {
         const lineItemIds = lineItemsForItem.map((li) => li.lineItemId);
         const partnerIds = requests.map((r) => r.partnerId);
         const wishlistMatches = await this.buildWishlistMatches(
-          item.id,
+          item.title,
           lineItemIds,
           partnerIds
         );
@@ -221,7 +214,7 @@ export class AllocationSuggestionService {
         const lineItemIds = lineItems.map((li) => li.lineItemId);
         const partnerIds = requests.map((r) => r.partnerId);
         const wishlistMatches = await this.buildWishlistMatches(
-          item.id,
+          item.title,
           lineItemIds,
           partnerIds
         );
