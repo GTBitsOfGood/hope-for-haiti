@@ -336,12 +336,8 @@ export class AllocationSuggestionService {
 
     lines.push("End");
 
-    const lpProgram = lines.join("\n");
-    console.log("=== LP PROGRAM ===");
-    console.log(lpProgram);
-    console.log("=== END LP PROGRAM ===");
-
     return lpProgram;
+  }
   }
 
   private static buildProgramForItem(
