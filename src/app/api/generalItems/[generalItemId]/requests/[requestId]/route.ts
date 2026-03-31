@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import DonorOfferService from "@/services/donorOfferService";
 import { GeneralItemRequestService } from "@/services/generalItemRequestService";
 import UserService from "@/services/userService";
 import {
@@ -95,10 +94,11 @@ export async function PATCH(
         throw new ArgumentError(updateParsed.error.message);
       }
 
-      await DonorOfferService.updateRequestFinalQuantity(
+      await GeneralItemRequestService.updateWishlist(
         parsed.data.requestId,
         updateParsed.data.finalQuantity
       );
+      console.log(updateParsed.data.finalQuantity)
 
       return NextResponse.json(ok());
     }

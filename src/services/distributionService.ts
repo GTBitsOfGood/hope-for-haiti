@@ -367,9 +367,6 @@ export default class DistributionService {
 
     for (const distribution of distributions) {
       for (const allocation of distribution.allocations) {
-        // const item = await db.item.findUnique({
-        //   where: { id: allocation.itemId },
-        // });
         const item = await db.lineItem.findUnique({
           where: { id: allocation.lineItemId },
         });
@@ -672,10 +669,7 @@ export default class DistributionService {
       data,
     });
 
-    if (
-      data.pending === false &&
-      currentDistribution.pending === true
-    ) {
+    if (data.pending === false && currentDistribution.pending === true) {
       await this.createShipmentsForDistribution(distributionId);
     }
 

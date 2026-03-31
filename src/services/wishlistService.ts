@@ -11,6 +11,8 @@ import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { MatchingService } from "./matchingService";
 
+const AUTO_GENERATED_COMMENT = "Automatically generated due to unfulfilled request";
+
 export class WishlistService {
   static async createWishlist(data: CreateWishlistData) {
     const partner = await db.user.findUnique({
@@ -40,6 +42,70 @@ export class WishlistService {
     });
 
     return wishlist;
+  }
+
+  /**
+   * For each request where finalQuantity < quantity, automatically creates or
+   * updates a wishlist entry for the partner with the unfulfilled quantity.
+   * If an entry with the same name already exists for the partner, the
+   * unfulfilled quantity is added to it.
+   */
+  static async createUnfulfilledWishlistEntries(updates: { requestId: number; unfulfilledQuantity: number }[]) {
+  const fullRequests = await db.generalItemRequest.findMany({
+    where: { id: { in: updates.map(u => u.requestId) } },
+    include: { partner: true, generalItem: true }
+  });
+
+  for (const update of updates) {
+    const request = fullRequests.find((r) => r.id === update.requestId);
+    if (!request || !request.partner.enabled || request.partner.pending) continue;
+
+    // Use the delta (unfulfilledQuantity) passed from the service
+    const delta = update.unfulfilledQuantity;
+
+    // IMPORTANT: Search by generalItemId to avoid duplicates
+    const existing = await db.wishlist.findFirst({
+      where: {
+        partnerId: request.partnerId,
+        generalItemId: request.generalItemId,
+      }
+    });
+
+    if (existing) {
+      const newQty = (existing.quantity ?? 0) + delta;
+      if (newQty <= 0) {
+        await db.wishlist.delete({ where: { id: existing.id } });
+      } else {
+        await db.wishlist.update({
+          where: { id: existing.id },
+          data: { quantity: newQty },
+        });
+      }
+    } else if (delta > 0) {
+      const wishlist = await db.wishlist.create({
+        data: {
+          name: request.generalItem.title,
+          quantity: delta,
+          priority: request.priority ?? "LOW",
+          comments: AUTO_GENERATED_COMMENT,
+          partnerId: request.partnerId,
+          generalItemId: request.generalItemId, // KEY: Link it!
+        },
+      });
+
+        try {
+          await MatchingService.add({
+            wishlistId: wishlist.id,
+            title: wishlist.name,
+          });
+        } catch (error) {
+          console.warn(
+            "Failed to generate embedding for auto-created wishlist entry:",
+            error
+          );
+        }
+      }
+    }
   }
 
   /**
