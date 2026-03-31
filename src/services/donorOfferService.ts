@@ -34,6 +34,7 @@ import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { Partner } from "@/components/DonorOffers";
 import { NotificationService } from "./notificationService";
 import { MatchingService } from "./matchingService";
+import Papa from "papaparse";
 
 const DonorOfferItemSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -169,6 +170,11 @@ const FinalizeDonorOfferItemSchema = z.object({
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
+type GeneralItemWithRequests = GeneralItem & {
+  requests: (GeneralItemRequest & {
+    partner: { id: number; name: string };
+  })[];
+};
 
 export default class DonorOfferService {
   private static normalizeExpirationDate(value: unknown): Date | null {
@@ -904,6 +910,80 @@ export default class DonorOfferService {
           partner: { id: number; name: string };
         })[];
       })[],
+    };
+  }
+
+  static async getUnfinalizedDonorOfferCsv(donorOfferId: number) {
+    const { donorOffer, partners, items } = await this.getAdminDonorOfferDetails(
+      donorOfferId,
+      true
+    );
+
+    if (donorOffer.state !== DonorOfferState.UNFINALIZED) {
+      throw new ArgumentError(
+        "Only unfinalized donor offers can be converted to CSV"
+      );
+    }
+
+    const itemsWithRequests = items as GeneralItemWithRequests[];
+    const partnerMap = new Map<number, { id: number; name: string }>();
+
+    for (const partner of partners) {
+      partnerMap.set(partner.id, { id: partner.id, name: partner.name });
+    }
+
+    for (const item of itemsWithRequests) {
+      for (const request of item.requests) {
+        partnerMap.set(request.partner.id, request.partner);
+      }
+    }
+
+    const orderedPartners = [...partnerMap.values()].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+
+    const rows = itemsWithRequests.map((item) => {
+      const requestTotal = item.requests.reduce(
+        (sum, request) => sum + (request.finalQuantity ?? request.quantity ?? 0),
+        0
+      );
+
+      const row: Record<string, string | number> = {
+        "Item Name": item.title,
+        Expiration: item.expirationDate
+          ? format(new Date(item.expirationDate), "M/d/yyyy")
+          : "None",
+        "Unit Type": item.unitType,
+        Quantity: item.initialQuantity,
+        "Request Total": requestTotal,
+      };
+
+      for (const partner of orderedPartners) {
+        const request = item.requests.find((r) => r.partner.id === partner.id);
+        row[partner.name] = request?.finalQuantity ?? request?.quantity ?? 0;
+      }
+
+      return row;
+    });
+
+    const columns = [
+      "Item Name",
+      "Expiration",
+      "Unit Type",
+      "Quantity",
+      "Request Total",
+      ...orderedPartners.map((partner) => partner.name),
+    ];
+
+    const csv = `\uFEFF${Papa.unparse(rows, { columns })}`;
+    const safeOfferName = donorOffer.offerName
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+
+    return {
+      csv,
+      fileName: `${safeOfferName || "donor-offer"}-requests.csv`,
     };
   }
 
