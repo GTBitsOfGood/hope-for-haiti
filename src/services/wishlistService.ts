@@ -50,46 +50,46 @@ export class WishlistService {
    * If an entry with the same name already exists for the partner, the
    * unfulfilled quantity is added to it.
    */
-  static async createUnfulfilledWishlistEntries(requests: { requestId: number; finalQuantity: number }[]) {
+  static async createUnfulfilledWishlistEntries(updates: { requestId: number; unfulfilledQuantity: number }[]) {
   const fullRequests = await db.generalItemRequest.findMany({
-    where: { id: { in: requests.map(r => r.requestId) } },
+    where: { id: { in: updates.map(u => u.requestId) } },
     include: { partner: true, generalItem: true }
   });
 
-  // PRE-FETCH: Get all existing auto-generated wishlist items for these partners in ONE query
-  const partnerIds = [...new Set(fullRequests.map(r => r.partnerId))];
-  const existingWishlistItems = await db.wishlist.findMany({
-    where: {
-      partnerId: { in: partnerIds },
-      generalItemId: null, // Only targeting auto-generated ones
-    }
-  });
-
-  for (const update of requests) {
+  for (const update of updates) {
     const request = fullRequests.find((r) => r.id === update.requestId);
     if (!request || !request.partner.enabled || request.partner.pending) continue;
 
-    const unfulfilledQuantity = request.quantity - update.finalQuantity;
-    if (unfulfilledQuantity <= 0) continue;
+    // Use the delta (unfulfilledQuantity) passed from the service
+    const delta = update.unfulfilledQuantity;
 
-    const itemName = request.generalItem.title;
-    const existing = existingWishlistItems.find(
-      (w) => w.partnerId === request.partnerId && w.name === itemName
-    );
+    // IMPORTANT: Search by generalItemId to avoid duplicates
+    const existing = await db.wishlist.findFirst({
+      where: {
+        partnerId: request.partnerId,
+        generalItemId: request.generalItemId,
+      }
+    });
 
     if (existing) {
-      await db.wishlist.update({
-        where: { id: existing.id },
-        data: { quantity: unfulfilledQuantity },
-      });
-    } else {
+      const newQty = (existing.quantity ?? 0) + delta;
+      if (newQty <= 0) {
+        await db.wishlist.delete({ where: { id: existing.id } });
+      } else {
+        await db.wishlist.update({
+          where: { id: existing.id },
+          data: { quantity: newQty },
+        });
+      }
+    } else if (delta > 0) {
       const wishlist = await db.wishlist.create({
         data: {
-          name: itemName,
-          quantity: unfulfilledQuantity,
+          name: request.generalItem.title,
+          quantity: delta,
           priority: request.priority ?? "LOW",
           comments: AUTO_GENERATED_COMMENT,
           partnerId: request.partnerId,
+          generalItemId: request.generalItemId, // KEY: Link it!
         },
       });
 

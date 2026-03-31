@@ -199,6 +199,36 @@ export class GeneralItemRequestService {
     }
   }
 
+  static async updateWishlist(requestId: number, newFinalQuantity: number) {
+    const existingRequest = await db.generalItemRequest.findUnique({
+      where: { id: requestId },
+      select: { finalQuantity: true, id: true }
+    });
+
+    if (!existingRequest) throw new NotFoundError("Request not found");
+
+    const oldFinalQuantity = existingRequest.finalQuantity ?? 0;
+    const unfulfilledDelta = oldFinalQuantity - newFinalQuantity;
+
+    return await db.$transaction(async (tx) => {
+      const updated = await tx.generalItemRequest.update({
+        where: { id: requestId },
+        data: { finalQuantity: newFinalQuantity }
+      });
+
+      if (unfulfilledDelta !== 0) {
+        await WishlistService.createUnfulfilledWishlistEntries([
+          {
+            requestId: requestId,
+            unfulfilledQuantity: unfulfilledDelta,
+          },
+        ]);
+      }
+
+      return updated;
+    });
+  }
+
   static async bulkUpdateRequests(
     updates: Array<{ requestId: number; finalQuantity: number }>
   ) {
@@ -242,29 +272,35 @@ export class GeneralItemRequestService {
       throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
     }
 
-    const results = await db.$transaction(
-      updates.map(({ requestId, finalQuantity }) =>
-        db.generalItemRequest.update({
-          where: { id: requestId },
-          data: { finalQuantity },
-        })
-      )
-    );
+    const wishlistDeltas = updates.map(u => {
+      const existingRequest = requests.find(r => r.id === u.requestId);
+      if (!existingRequest) return null;
 
-    // After persisting final quantities, auto-populate wishlists for any
-    // requests that were not fully fulfilled (finalQuantity < quantity).
-    const unfulfilledUpdates = updates.filter(({ requestId, finalQuantity }) => {
-      const request = requests.find(r => r.id === requestId);
-      return request && finalQuantity < request.quantity;
-    });
+      const delta = (existingRequest.finalQuantity ?? 0) - u.finalQuantity;
+      
+      return delta !== 0 
+        ? { requestId: u.requestId, unfulfilledQuantity: delta } 
+        : null;
+    }).filter((update): update is { requestId: number; unfulfilledQuantity: number } => update !== null);
 
-    if (unfulfilledUpdates.length > 0) {
-      try {
-        await WishlistService.createUnfulfilledWishlistEntries(unfulfilledUpdates);
-      } catch {
-        // silent catch
+    const results = await db.$transaction(async (tx) => {
+      // Execute the request updates
+      const updateResults = await Promise.all(
+        updates.map(({ requestId, finalQuantity }) =>
+          tx.generalItemRequest.update({
+            where: { id: requestId },
+            data: { finalQuantity },
+          })
+        )
+      );
+
+      // 3. Sync the wishlists using the deltas
+      if (wishlistDeltas.length > 0) {
+        await WishlistService.createUnfulfilledWishlistEntries(wishlistDeltas);
       }
-    }
+
+      return updateResults;
+    });
 
     return results;
   }

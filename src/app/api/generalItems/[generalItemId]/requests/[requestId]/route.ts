@@ -95,10 +95,11 @@ export async function PATCH(
         throw new ArgumentError(updateParsed.error.message);
       }
 
-      await DonorOfferService.updateRequestFinalQuantity(
+      await GeneralItemRequestService.updateWishlist(
         parsed.data.requestId,
         updateParsed.data.finalQuantity
       );
+      console.log(updateParsed.data.finalQuantity)
 
       return NextResponse.json(ok());
     }
