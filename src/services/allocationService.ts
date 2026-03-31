@@ -569,20 +569,13 @@ export default class AllocationService {
       }))
       .filter((pair) => hasShippingIdentifier(pair));
 
-    const lookupPairs = shippingNumberPairs.filter(
-      (
-        pair
-      ): pair is { donorShippingNumber: string; hfhShippingNumber: string } =>
-        Boolean(pair.donorShippingNumber && pair.hfhShippingNumber)
-    );
-
     const statusMap = new Map<string, ShipmentStatus>();
-    if (lookupPairs.length > 0) {
+    if (shippingNumberPairs.length > 0) {
       const statusRecords = await db.shippingStatus.findMany({
         where: {
-          OR: lookupPairs.map((pair) => ({
-            donorShippingNumber: pair.donorShippingNumber,
-            hfhShippingNumber: pair.hfhShippingNumber,
+          OR: shippingNumberPairs.map((pair) => ({
+            donorShippingNumber: pair.donorShippingNumber ?? null,
+            hfhShippingNumber: pair.hfhShippingNumber ?? null,
           })),
         },
       });

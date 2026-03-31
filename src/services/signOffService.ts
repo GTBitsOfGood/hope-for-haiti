@@ -201,11 +201,11 @@ export class SignOffService {
           hfhShippingNumber: allocation.lineItem.hfhShippingNumber,
         };
 
-        if (hasShippingIdentifier(tuple) && tuple.donorShippingNumber && tuple.hfhShippingNumber) {
+        if (hasShippingIdentifier(tuple)) {
           const status = await db.shippingStatus.findFirst({
             where: {
-              donorShippingNumber: tuple.donorShippingNumber,
-              hfhShippingNumber: tuple.hfhShippingNumber,
+              donorShippingNumber: tuple.donorShippingNumber ?? null,
+              hfhShippingNumber: tuple.hfhShippingNumber ?? null,
             },
           });
 

@@ -13,7 +13,7 @@ import {
 import { Prisma, ShipmentStatus } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
-import { hasShippingIdentifier } from "@/util/shipping";
+import { hasShippingIdentifier, normalizeShippingTuple } from "@/util/shipping";
 
 export default class DistributionService {
   static async getAllDistributions(
@@ -386,17 +386,17 @@ export default class DistributionService {
         let shipmentStatus: ShipmentStatus =
           ShipmentStatus.WAITING_ARRIVAL_FROM_DONOR;
 
-        if (tuple.donorShippingNumber && tuple.hfhShippingNumber) {
-          const shippingStatus = await db.shippingStatus.findFirst({
-            where: {
-              hfhShippingNumber: tuple.hfhShippingNumber,
-              donorShippingNumber: tuple.donorShippingNumber,
-            },
-          });
+        const normalizedTuple = normalizeShippingTuple(tuple); 
 
-          if (shippingStatus) {
-            shipmentStatus = shippingStatus.value;
-          }
+        const shippingStatus = await db.shippingStatus.findFirst({
+          where: {
+            hfhShippingNumber: normalizedTuple.hfhShippingNumber,
+            donorShippingNumber: normalizedTuple.donorShippingNumber,
+          },
+        });
+
+        if (shippingStatus) {
+          shipmentStatus = shippingStatus.value;
         }
 
         items.push({
