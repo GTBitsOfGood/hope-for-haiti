@@ -672,92 +672,92 @@ export default class DistributionService {
 
     if (data.pending === false && currentDistribution.pending === true) {
       await this.createShipmentsForDistribution(distributionId);
-      await this.populateUnfulfilledWishlists(distributionId);
+      // await this.populateUnfulfilledWishlists(distributionId);
     }
 
     return updatedDistribution;
   }
 
-private static async populateUnfulfilledWishlists(
-    distributionId: number
-  ): Promise<void> {
-    try {
-      const distribution = await db.distribution.findUnique({
-        where: { id: distributionId },
-        include: {
-          allocations: {
-            include: {
-              lineItem: {
-                include: {
-                  generalItem: true,
-                },
-              },
-            },
-          },
-        },
-      });
+// private static async populateUnfulfilledWishlists(
+//     distributionId: number
+//   ): Promise<void> {
+//     try {
+//       const distribution = await db.distribution.findUnique({
+//         where: { id: distributionId },
+//         include: {
+//           allocations: {
+//             include: {
+//               lineItem: {
+//                 include: {
+//                   generalItem: true,
+//                 },
+//               },
+//             },
+//           },
+//         },
+//       });
 
-      if (!distribution || !distribution.partnerId) return;
+//       if (!distribution || !distribution.partnerId) return;
 
-      const partnerId = distribution.partnerId;
+//       const partnerId = distribution.partnerId;
 
-      const allocatedByGeneralItemId = new Map<number, number>();
-      for (const allocation of distribution.allocations) {
-        const generalItem = allocation.lineItem.generalItem;
-        if (!generalItem) continue;
-        const current = allocatedByGeneralItemId.get(generalItem.id) ?? 0;
-        allocatedByGeneralItemId.set(
-          generalItem.id,
-          current + allocation.lineItem.quantity
-        );
-      }
+//       const allocatedByGeneralItemId = new Map<number, number>();
+//       for (const allocation of distribution.allocations) {
+//         const generalItem = allocation.lineItem.generalItem;
+//         if (!generalItem) continue;
+//         const current = allocatedByGeneralItemId.get(generalItem.id) ?? 0;
+//         allocatedByGeneralItemId.set(
+//           generalItem.id,
+//           current + allocation.lineItem.quantity
+//         );
+//       }
 
-      if (allocatedByGeneralItemId.size === 0) return;
+//       if (allocatedByGeneralItemId.size === 0) return;
 
-      // Fetch all partner requests for the general items in this distribution
-      const generalItemIds = Array.from(allocatedByGeneralItemId.keys());
-      const requests = await db.generalItemRequest.findMany({
-        where: {
-          partnerId,
-          generalItemId: { in: generalItemIds },
-        },
-      });
+//       // Fetch all partner requests for the general items in this distribution
+//       const generalItemIds = Array.from(allocatedByGeneralItemId.keys());
+//       const requests = await db.generalItemRequest.findMany({
+//         where: {
+//           partnerId,
+//           generalItemId: { in: generalItemIds },
+//         },
+//       });
 
-      if (requests.length === 0) return;
+//       if (requests.length === 0) return;
 
-      const unfulfilledEntries: Array<{
-        requestId: number;
-        finalQuantity: number;
-      }> = [];
+//       const unfulfilledEntries: Array<{
+//         requestId: number;
+//         finalQuantity: number;
+//       }> = [];
 
-      for (const request of requests) {
-        const allocated =
-          allocatedByGeneralItemId.get(request.generalItemId) ?? 0;
-        if (allocated < request.quantity) {
-          await db.generalItemRequest.update({
-            where: { id: request.id },
-            data: { finalQuantity: allocated },
-          });
-          unfulfilledEntries.push({
-            requestId: request.id,
-            finalQuantity: allocated,
-          });
-        }
-      }
+//       for (const request of requests) {
+//         const allocated =
+//           allocatedByGeneralItemId.get(request.generalItemId) ?? 0;
+//         if (allocated < request.quantity) {
+//           await db.generalItemRequest.update({
+//             where: { id: request.id },
+//             data: { finalQuantity: allocated },
+//           });
+//           unfulfilledEntries.push({
+//             requestId: request.id,
+//             finalQuantity: allocated,
+//           });
+//         }
+//       }
 
-      if (unfulfilledEntries.length > 0) {
-        await WishlistService.createUnfulfilledWishlistEntries(
-          unfulfilledEntries
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Failed to populate unfulfilled wishlists for distribution:",
-        distributionId,
-        error
-      );
-    }
-  }
+//       if (unfulfilledEntries.length > 0) {
+//         await WishlistService.createUnfulfilledWishlistEntries(
+//           unfulfilledEntries
+//         );
+//       }
+//     } catch (error) {
+//       console.error(
+//         "Failed to populate unfulfilled wishlists for distribution:",
+//         distributionId,
+//         error
+//       );
+//     }
+//   }
 
   private static async createShipmentsForDistribution(distributionId: number) {
     const allocations = await db.allocation.findMany({
