@@ -28,12 +28,17 @@ import {
 } from "@/types/api/user.types";
 import { createEmptyStaffPermissionState } from "@/constants/staffPermissions";
 
+interface TagOption {
+  value: number;
+  label: string;
+}
+
 interface AccountUserResponse {
   id: number;
   email: string;
   type: UserType;
   name: string;
-  tag: string | null;
+  tags: { id: number; name: string }[];
   enabled: boolean;
   pending: boolean;
   isSuper?: boolean;
@@ -69,7 +74,12 @@ export default function AccountManagementPage() {
   const tableRef = useRef<AdvancedBaseTableHandle<AccountRow>>(null);
   const { apiClient } = useApiClient();
   const { data: tags, refetch: refetchTags } =
-    useFetch<string[]>("/api/users/tags");
+    useFetch<{ id: number; name: string }[]>("/api/tags");
+
+  const tagOptions: TagOption[] = (tags ?? []).map((t) => ({
+    value: t.id,
+    label: t.name,
+  }));
 
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
 
@@ -148,7 +158,9 @@ export default function AccountManagementPage() {
       return;
     }
     if (user.id === Number(currentUser?.id) || isProtectedUser(user)) {
-      toast.error("You do not have permission to modify this account's status.");
+      toast.error(
+        "You do not have permission to modify this account's status."
+      );
       return;
     }
     setSelectedUser(user);
@@ -177,14 +189,14 @@ export default function AccountManagementPage() {
   const confirmEditAccount = async (data: {
     name: string;
     email: string;
-    tag: string;
+    tags: TagOption[];
   }) => {
     if (!canManageAccounts) return;
     if (!selectedUser) return;
 
     try {
       const payload: Record<string, unknown> = {
-        tag: data.tag,
+        tags: data.tags.map((t) => t.value),
       };
       const canEditName = selectedUser.pending || isStaff(selectedUser.type);
       if (canEditName) {
@@ -206,7 +218,7 @@ export default function AccountManagementPage() {
       const nextUser: AccountRow = {
         ...selectedUser,
         ...(canEditName && { name: data.name }),
-        tag: data.tag || null,
+        tags: data.tags.map((t) => ({ id: t.value, name: t.label })),
       };
 
       tableRef.current?.upsertItem(nextUser);
@@ -233,7 +245,9 @@ export default function AccountManagementPage() {
       return;
     }
     if (Boolean(selectedUser.isSuper && selectedUser.userWrite)) {
-      toast.error("You cannot deactivate accounts with super admin permissions.");
+      toast.error(
+        "You cannot deactivate accounts with super admin permissions."
+      );
       setDeactivateModalOpen(false);
       setSelectedUser(null);
       return;
@@ -342,14 +356,28 @@ export default function AccountManagementPage() {
     {
       id: "tag",
       filterType: "enum",
-      filterOptions: tags ?? [],
+      filterOptions: tags?.map((t) => t.name) ?? [],
       cell: (item) =>
-        item.tag ? (
-          <span className="px-3 py-1 bg-red-primary/70 text-white rounded-md text-sm">
-            {item.tag}
-          </span>
+        item.tags.length > 0 ? (
+          <div className="group relative inline-block">
+            <span className="text-sm text-red-500 cursor-pointer hover:underline">
+              View Tags
+            </span>
+            <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 z-50 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 min-w-40">
+              <div className="flex flex-wrap gap-1">
+                {item.tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="px-2 py-0.5 bg-red-primary/70 text-white rounded-md text-xs"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : (
-          <span className="italic text-gray-400">No tag</span>
+          <span className="italic text-gray-400">No tags</span>
         ),
     },
     {
@@ -359,27 +387,24 @@ export default function AccountManagementPage() {
   ];
 
   const isProtectedUser = (item: AccountRow) => {
-  if (!currentUser) return true;
+    if (!currentUser) return true;
 
-  // Super Admins are protected from everyone
-  if (item.isSuper) return true;
+    // Super Admins are protected from everyone
+    if (item.isSuper) return true;
 
-  // If the current user is NOT a Super Admin, then anyone with userWrite 
-  // is protected (prevents horizontal deactivations)
-  if (!currentUser.isSuper && item.userWrite) return true;
+    // If the current user is NOT a Super Admin, then anyone with userWrite
+    // is protected (prevents horizontal deactivations)
+    if (!currentUser.isSuper && item.userWrite) return true;
 
-  return false;
-};
+    return false;
+  };
 
   if (canManageAccounts) {
     baseColumns.push({
       id: "manage",
       headerClassName: "text-right",
       cell: (item) => (
-        <div
-          className="flex justify-end"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
           <AccountDropdown
             isPending={item.pending}
             user={{ enabled: item.enabled }}
@@ -388,7 +413,9 @@ export default function AccountManagementPage() {
             onDeactivateAccount={() => handleDeactivateAccount(item)}
             onSendReminder={() => handleSendReminder(item)}
             canManage={canManageAccounts}
-            hideDeactivateOption={item.id === Number(currentUser?.id) || isProtectedUser(item)}
+            hideDeactivateOption={
+              item.id === Number(currentUser?.id) || isProtectedUser(item)
+            }
           />
         </div>
       ),
@@ -495,12 +522,15 @@ This will restore the user's access to the system.`
                   name: selectedUser.name,
                   email: selectedUser.email,
                   role: selectedUser.type,
-                  tag: selectedUser.tag || "",
+                  tags: selectedUser.tags.map((t) => ({
+                    value: t.id,
+                    label: t.name,
+                  })),
                 }
               : undefined
           }
           isStaffAccount={selectedUser ? isStaff(selectedUser.type) : true}
-          existingTags={tags ?? []}
+          existingTags={tagOptions}
           onManagePermissions={
             selectedUser &&
             !selectedUser.pending &&

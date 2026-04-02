@@ -1,24 +1,31 @@
 import { useState, useEffect } from "react";
 import { UserType } from "@prisma/client";
 import GeneralModal from "./GeneralModal";
-import ConfiguredSelect from "@/components/ConfiguredSelect";
+import CreatableConfiguredSelect from "@/components/CreatableConfiguredSelect";
+import { useApiClient } from "@/hooks/useApiClient";
+import toast from "react-hot-toast";
+
+interface TagOption {
+  value: number;
+  label: string;
+}
 
 interface EditModalProps {
   title: string;
   isOpen: boolean;
   onClose: () => void;
   onCancel: () => void;
-  onConfirm: (data: { name: string; email: string; tag: string }) => void;
+  onConfirm: (data: { name: string; email: string; tags: TagOption[] }) => void;
   initialData?: {
     name: string;
     email: string;
     role: UserType;
-    tag?: string;
+    tags?: TagOption[];
   };
   confirmText?: string;
   cancelText?: string;
   isStaffAccount?: boolean;
-  existingTags?: string[];
+  existingTags?: TagOption[];
   onManagePermissions?: () => void;
   isPending?: boolean;
   onEditPartnerDetails?: () => void;
@@ -46,24 +53,52 @@ export default function EditModal({
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    tag: "",
+    tags: [] as TagOption[],
   });
+
+  const [tagOptions, setTagOptions] = useState<TagOption[]>(existingTags);
+  const { apiClient } = useApiClient();
+
+  useEffect(() => {
+    setTagOptions(existingTags);
+  }, [existingTags]);
 
   useEffect(() => {
     if (initialData) {
       setFormData({
         name: initialData.name,
         email: initialData.email,
-        tag: initialData.tag || "",
+        tags: initialData.tags || [],
       });
     }
   }, [initialData]);
 
-  const handleInputChange = (field: string, value: string | UserType) => {
+  const handleInputChange = (
+    field: string,
+    value: string | UserType | TagOption[]
+  ) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleCreateTag = async (inputValue: string) => {
+    try {
+      const newTag = await apiClient.post<{ id: number; name: string }>(
+        "/api/tags",
+        {
+          body: JSON.stringify({ name: inputValue }),
+        }
+      );
+      const newOption: TagOption = { value: newTag.id, label: newTag.name };
+      setTagOptions((prev) => [...prev, newOption]);
+      return newOption;
+    } catch (error) {
+      console.error("Error creating tag:", error);
+      toast.error("Failed to create tag");
+      return null;
+    }
   };
 
   const handleConfirm = () => {
@@ -75,7 +110,7 @@ export default function EditModal({
       setFormData({
         name: initialData.name,
         email: initialData.email,
-        tag: initialData.tag || "",
+        tags: initialData.tags || [],
       });
     }
     onCancel();
@@ -142,21 +177,18 @@ export default function EditModal({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tag
+            Tags
           </label>
-          <ConfiguredSelect
-            value={
-              formData.tag ? { value: formData.tag, label: formData.tag } : null
+          <CreatableConfiguredSelect<TagOption, true>
+            value={formData.tags}
+            onChange={(selected) =>
+              handleInputChange("tags", selected ? [...selected] : [])
             }
-            onChange={(selectedOption) =>
-              handleInputChange("tag", selectedOption?.value || "")
-            }
-            options={existingTags.map((tag) => ({
-              value: tag,
-              label: tag,
-            }))}
+            onCreateOption={handleCreateTag}
+            options={tagOptions}
+            isMulti
             isClearable
-            placeholder="Select or create a tag..."
+            placeholder="Select or create tags..."
           />
         </div>
 

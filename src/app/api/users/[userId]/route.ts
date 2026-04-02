@@ -37,7 +37,7 @@ const permissionsSchema = z
 const patchBodySchema = z.object({
   name: z.string().optional(),
   email: z.string().email().optional(),
-  tag: z.string().optional(),
+  tags: z.array(z.number()).optional(),
   role: z.nativeEnum(UserType).optional(),
   enabled: z.boolean().optional(),
   permissions: permissionsSchema.optional(),
@@ -109,7 +109,9 @@ export async function PATCH(
       ];
       const disallowedPartnerFields = Object.keys(bodyParsed.data).filter(
         (key) =>
-          !partnerWritableFields.includes(key as keyof typeof bodyParsed.data) &&
+          !partnerWritableFields.includes(
+            key as keyof typeof bodyParsed.data
+          ) &&
           bodyParsed.data[key as keyof typeof bodyParsed.data] !== undefined
       );
 
@@ -146,7 +148,7 @@ export async function PATCH(
       name: bodyParsed.data.name,
       email: bodyParsed.data.email,
       type: bodyParsed.data.role,
-      tag: bodyParsed.data.tag,
+      tags: bodyParsed.data.tags,
       enabled: bodyParsed.data.enabled,
       permissions: bodyParsed.data.permissions,
       dashboardTutorial:

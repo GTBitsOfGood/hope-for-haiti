@@ -19,7 +19,7 @@ export interface UpdateUserData {
   name?: string;
   email?: string;
   type?: UserType;
-  tag?: string;
+  tags?: number[];
   enabled?: boolean;
   permissions?: Partial<PermissionFlags>;
   dashboardTutorial?: boolean;

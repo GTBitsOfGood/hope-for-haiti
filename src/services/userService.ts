@@ -71,7 +71,12 @@ export default class UserService {
         email: true,
         type: true,
         name: true,
-        tag: true,
+        tags: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         enabled: true,
         pending: true,
         partnerDetails: true,
@@ -106,7 +111,12 @@ export default class UserService {
         email: true,
         type: true,
         name: true,
-        tag: true,
+        tags: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         enabled: true,
         pending: true,
         partnerDetails: true,
@@ -250,7 +260,6 @@ export default class UserService {
           email: data.email,
           name: data.name,
           type: data.userType,
-          tag: null,
           enabled: false,
           pending: true,
           passwordHash: placeholderPassword,
@@ -398,7 +407,8 @@ export default class UserService {
 
     if (
       data.enabled === false &&
-      (existingUser.userWrite && existingUser.isSuper)
+      existingUser.userWrite &&
+      existingUser.isSuper
     ) {
       throw new AuthorizationError(
         "Cannot deactivate users with userWrite and isSuper permissions"
@@ -434,11 +444,13 @@ export default class UserService {
       }
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.type !== undefined) updateData.type = data.type;
-    if (data.tag !== undefined) updateData.tag = data.tag;
+    if (data.tags !== undefined) {
+      updateData.tags = { set: data.tags.map((id) => ({ id })) };
+    }
     if (data.enabled !== undefined) updateData.enabled = data.enabled;
     if (data.permissions) {
       if (existingUser.type !== UserType.STAFF) {
@@ -497,14 +509,27 @@ export default class UserService {
     });
   }
 
+  static async getAllTags() {
+    return db.tag.findMany({
+      orderBy: { name: "asc" },
+    });
+  }
+
+  static async createTag(name: string) {
+    return db.tag.upsert({
+      where: { name },
+      create: { name },
+      update: {},
+    });
+  }
+
   static async getDistinctUserTags(): Promise<string[]> {
-    const results = await db.user.findMany({
-      where: { tag: { not: null } },
-      select: { tag: true },
-      distinct: ["tag"],
+    const results = await db.tag.findMany({
+      select: { name: true },
+      orderBy: { name: "asc" },
     });
 
-    return results.map((r) => r.tag as string);
+    return results.map((r) => r.name);
   }
 
   static async getPartnerLocations() {
@@ -545,7 +570,11 @@ export default class UserService {
     const whereClause: Prisma.UserWhereInput = { type: UserType.PARTNER };
 
     if (excludePartnerTags && excludePartnerTags.length > 0) {
-      whereClause.tag = { notIn: excludePartnerTags };
+      whereClause.tags = {
+        some: {
+          name: { notIn: excludePartnerTags },
+        },
+      };
     }
 
     return db.user.count({
