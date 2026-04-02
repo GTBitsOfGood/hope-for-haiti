@@ -14,8 +14,10 @@ const createSignOffSchema = z.object({
   partnerId: z.number().int().positive(),
   staffName: z.string(),
   partnerName: z.string(),
+  partnerSignerName: z.string(),
   date: z.string().transform((str) => new Date(str)),
   signatureUrl: z.string(),
+  partnerSignatureUrl: z.string(),
   allocations: z.array(z.number()),
   staffUserId: z.number().int().positive().optional(),
 });
@@ -85,6 +87,15 @@ export async function POST(req: NextRequest) {
           ? String(form.get("partnerName"))
           : undefined,
       date: form.get("date") != null ? String(form.get("date")) : undefined,
+      partnerSignerName:
+        form.get("partnerSignerName") != null
+          ? String(form.get("partnerSignerName"))
+          : undefined,
+      partnerSignatureUrl:
+        form.get("partnerSignatureUrl") != null
+          ? String(form.get("partnerSignatureUrl"))
+          : undefined,
+
       signatureUrl:
         form.get("signatureUrl") != null
           ? String(form.get("signatureUrl"))

@@ -189,8 +189,39 @@ const PartnerDistributionTable = forwardRef<
             </span>
             {row.signOffSignatureUrl && row.signOffId && (
               <SignatureImageTooltip
-                signOffId={row.signOffId}
+                tooltipId={`signature-tooltip-${row.signOffId}`}
                 signatureUrl={row.signOffSignatureUrl}
+              />
+            )}
+          </>
+        ) : (
+          "-"
+        ),
+    },
+    {
+      id: "partnerSignerName" as const,
+      header: "Received By",
+      cell: (row: PartnerAllocation) =>
+        row.partnerSignerName ? (
+          <>
+            <span
+              data-tooltip-id={
+                row.partnerSignatureUrl
+                  ? `signature-tooltip-partner-${row.id}`
+                  : undefined
+              }
+              className={`${
+                row.partnerSignatureUrl
+                  ? "border-b-2 border-dotted border-gray-400 hover:border-gray-600 transition-colors cursor-pointer"
+                  : ""
+              }`}
+            >
+              {row.partnerSignerName}
+            </span>
+            {row.partnerSignatureUrl && (
+              <SignatureImageTooltip
+                tooltipId={`signature-tooltip-partner-${row.id}`}
+                signatureUrl={row.partnerSignatureUrl}
               />
             )}
           </>

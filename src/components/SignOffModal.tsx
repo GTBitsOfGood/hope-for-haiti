@@ -28,7 +28,6 @@ export default function SignOffModal({
 }: SignOffModalProps) {
   const { user } = useUser();
   const { apiClient } = useApiClient();
-  const signatureCanvasRef = useRef<SignatureCanvas>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: userData } = useFetch<{
@@ -37,37 +36,56 @@ export default function SignOffModal({
 
   const staffName = userData?.user?.name || userData?.user?.email || "";
   const currentDate = new Date();
+  const staffSignatureCanvasRef = useRef<SignatureCanvas>(null);
+  const partnerSignatureCanvasRef = useRef<SignatureCanvas>(null);
+  const [partnerSignerName, setPartnerSignerName] = useState("");
 
   useEffect(() => {
-    if (isOpen && signatureCanvasRef.current) {
-      signatureCanvasRef.current.clear();
-    }
+    if (!isOpen) return;
+
+    staffSignatureCanvasRef.current?.clear();
+    partnerSignatureCanvasRef.current?.clear();
+    setPartnerSignerName("");
   }, [isOpen]);
 
   const handleSubmit = async () => {
-    if (!signatureCanvasRef.current) {
-      toast.error("Please provide a signature");
+    if (!partnerSignerName.trim()) {
+      toast.error("Please enter the partner name");
       return;
     }
 
-    if (signatureCanvasRef.current.isEmpty()) {
-      toast.error("Please provide a signature");
+    if (!staffSignatureCanvasRef.current || !partnerSignatureCanvasRef.current) {
+      toast.error("Please provide both signatures");
+      return;
+    }
+
+    if (
+      staffSignatureCanvasRef.current.isEmpty() ||
+      partnerSignatureCanvasRef.current.isEmpty()
+    ) {
+      toast.error("Please provide both signatures");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const base64Data = signatureCanvasRef.current
+      const signatureUrl = staffSignatureCanvasRef.current
+        .getCanvas()
+        .toDataURL("image/png");
+      const partnerSignatureUrl = partnerSignatureCanvasRef.current
         .getCanvas()
         .toDataURL("image/png");
 
       const formData = new FormData();
       formData.append("partnerId", partnerId.toString());
-      formData.append("staffName", staffName);
       formData.append("partnerName", partnerName);
+      formData.append("partnerSignerName", partnerSignerName);
+      formData.append("staffName", staffName);
       formData.append("date", currentDate.toISOString());
-      formData.append("signatureUrl", base64Data);
+      formData.append("signatureUrl", signatureUrl);
+      formData.append("partnerSignatureUrl", partnerSignatureUrl);
+
       selectedAllocationIds.forEach((id) => {
         formData.append("allocation", id.toString());
       });
@@ -87,17 +105,14 @@ export default function SignOffModal({
     }
   };
 
-  const handleClear = () => {
-    if (signatureCanvasRef.current) {
-      signatureCanvasRef.current.clear();
-    }
-  };
+  const clearStaffSignature = () => staffSignatureCanvasRef.current?.clear();
+  const clearPartnerSignature = () => partnerSignatureCanvasRef.current?.clear();
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-lg text-[#22070B]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 px-4 py-6">
+      <div className="relative mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-gray-primary shadow-lg">
         <button
           onClick={onClose}
           aria-label="Close"
@@ -105,70 +120,122 @@ export default function SignOffModal({
         >
           <X className="size-6" />
         </button>
-        <h2 className="text-[20px] font-semibold leading-[28px] mb-4">
-          Sign Off Items
-        </h2>
+        <div className="shrink-0 border-b border-gray-200 px-6 py-5 pr-14">
+          <h2 className="text-xl font-semibold leading-7">
+            Sign Off Items
+          </h2>
+        </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Staff Name
-            </label>
-            <input
-              type="text"
-              value={staffName}
-              readOnly
-              className="w-full rounded-[4px] border border-[rgba(34,7,11,0.05)] bg-[rgba(34,7,11,0.05)] text-[16px] p-3 cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date and Time
-            </label>
-            <input
-              type="text"
-              value={format(currentDate, "MMM d, yyyy 'at' h:mm a")}
-              readOnly
-              className="w-full rounded-[4px] border border-[rgba(34,7,11,0.05)] bg-[rgba(34,7,11,0.05)] text-[16px] p-3 cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Signature
-            </label>
-            <div className="border-2 border-gray-300 rounded-[4px] bg-white">
-              <SignatureCanvas
-                ref={signatureCanvasRef}
-                canvasProps={{
-                  className: "w-full h-48",
-                }}
-                backgroundColor="white"
+        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Staff Name
+              </label>
+              <input
+                type="text"
+                value={staffName}
+                readOnly
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary cursor-not-allowed"
               />
             </div>
-            <button
-              type="button"
-              onClick={handleClear}
-              className="mt-2 text-sm text-blue-primary hover:text-blue-primary/80"
-            >
-              Clear Signature
-            </button>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Date and Time
+              </label>
+              <input
+                type="text"
+                value={format(currentDate, "MMM d, yyyy 'at' h:mm a")}
+                readOnly
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Signature
+              </label>
+              <div className="rounded-sm border-2 border-gray-primary/20 bg-white">
+                <SignatureCanvas
+                  ref={staffSignatureCanvasRef}
+                  canvasProps={{
+                    className: "h-40 w-full sm:h-48",
+                  }}
+                  backgroundColor="white"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={clearStaffSignature}
+                className="mt-2 text-sm text-blue-primary hover:text-blue-primary/80"
+              >
+                Clear Signature
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t border-gray-200 pt-6">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Partner Name
+              </label>
+              <input
+                type="text"
+                value={partnerSignerName}
+                onChange={(e) => setPartnerSignerName(e.target.value)}
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Date and Time
+              </label>
+              <input
+                type="text"
+                value={format(currentDate, "MMM d, yyyy 'at' h:mm a")}
+                readOnly
+                className="w-full rounded-sm border border-gray-primary/10 bg-sunken p-3 text-base text-gray-primary cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Signature
+              </label>
+              <div className="rounded-sm border-2 border-gray-primary/20 bg-white">
+                <SignatureCanvas
+                  ref={partnerSignatureCanvasRef}
+                  canvasProps={{
+                    className: "h-40 w-full sm:h-48",
+                  }}
+                  backgroundColor="white"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={clearPartnerSignature}
+                className="mt-2 text-sm text-blue-primary hover:text-blue-primary/80"
+              >
+                Clear Signature
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-4">
+        <div className="mt-auto flex shrink-0 justify-end gap-4 border-t border-gray-200 bg-white px-6 py-4">
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="bg-white hover:bg-gray-100 text-[#EF3340] border-2 border-[#EF3340] font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md border-2 border-red-primary bg-white px-4 py-2 font-semibold text-red-primary hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="bg-[#EF3340] hover:bg-[#a32027] text-white font-semibold py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md bg-red-primary px-4 py-2 font-semibold text-white hover:bg-red-primary/80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? "Submitting..." : "Submit"}
           </button>

@@ -76,7 +76,8 @@ const tutorialSteps: Step[] = [
           <li>Quantity</li>
           <li>Sign off date</li>
           <li>Signed off by</li>
-          <li>Donor offer</li>
+          <li>Recieved by</li>
+          <li>Donor</li>
         </ul>
       </div>
     ),
@@ -294,6 +295,7 @@ export default function PartnerDistributionsSection() {
             shipmentStatus: $Enums.ShipmentStatus.READY_FOR_DISTRIBUTION,
             signOffDate: new Date(),
             signOffStaffMemberName: "Tutorial Staff",
+            partnerSignerName: "Tutorial Partner",
           };
 
           tableRef.current?.setItems((items) => [

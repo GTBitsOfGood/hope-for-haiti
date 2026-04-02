@@ -28,30 +28,67 @@ function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
         <div className=" border-gray-200 pt-4">
           {shipment.signOffs.map((signOff) => (
             <div key={signOff.id} className="space-y-2">
-              <div className="text-sm text-gray-500 font-light">
-                <span>{signOff.staffMemberName || "Unknown"}</span>
-                <span className="mx-2">•</span>
-                <span>
-                  {signOff.date
-                    ? format(new Date(signOff.date), "M/d/yyyy 'at' h:mm a")
-                    : "N/A"}
-                </span>
-                {signOff.signatureUrl && (
+              {(() => {
+                const staffTooltipId = `staff-signature-tooltip-${signOff.id}`;
+                const partnerTooltipId = `partner-signature-tooltip-${signOff.id}`;
+                const partnerDisplayName =
+                  signOff.partnerSignerName || signOff.partnerName;
+
+                return (
                   <>
-                    <span className="mx-2">•</span>
-                    <span
-                      data-tooltip-id={`signature-tooltip-${signOff.id}`}
-                      className="underline decoration-dotted cursor-pointer text-gray-500"
-                    >
-                      View signature
-                    </span>
-                    <SignatureImageTooltip
-                      signOffId={signOff.id}
-                      signatureUrl={signOff.signatureUrl}
-                    />
+                    <div className="text-sm text-gray-500 font-light">
+                      <span>{signOff.staffMemberName || "Unknown"}</span>
+                      <span className="mx-2">•</span>
+                      <span>
+                        {signOff.date
+                          ? format(new Date(signOff.date), "M/d/yyyy 'at' h:mm a")
+                          : "N/A"}
+                      </span>
+                      {signOff.signatureUrl && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span
+                            data-tooltip-id={staffTooltipId}
+                            className="underline decoration-dotted cursor-pointer text-gray-500"
+                          >
+                            View staff signature
+                          </span>
+                          <SignatureImageTooltip
+                            tooltipId={staffTooltipId}
+                            signatureUrl={signOff.signatureUrl}
+                          />
+                        </>
+                      )}
+                    </div>
+                    {(partnerDisplayName || signOff.partnerSignatureUrl) && (
+                      <div className="text-sm text-gray-500 font-light">
+                        <span>{partnerDisplayName || "Partner signer"}</span>
+                        <span className="mx-2">•</span>
+                        <span>
+                          {signOff.date
+                            ? format(new Date(signOff.date), "M/d/yyyy 'at' h:mm a")
+                            : "N/A"}
+                        </span>
+                        {signOff.partnerSignatureUrl && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span
+                              data-tooltip-id={partnerTooltipId}
+                              className="underline decoration-dotted cursor-pointer text-gray-500"
+                            >
+                              View partner signature
+                            </span>
+                            <SignatureImageTooltip
+                              tooltipId={partnerTooltipId}
+                              signatureUrl={signOff.partnerSignatureUrl}
+                            />
+                          </>
+                        )}
+                      </div>
+                    )}
                   </>
-                )}
-              </div>
+                );
+              })()}
 
               <div className="flex flex-wrap">
                 {signOff.lineItems.map((lineItem) => (

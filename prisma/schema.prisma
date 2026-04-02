@@ -310,8 +310,10 @@ model SignOff {
   staffMemberName String
   partnerId       Int
   partnerName     String
+  partnerSignerName String?
   date            DateTime
   signatureUrl    String?
+  partnerSignatureUrl String?
 
   createdAt DateTime @default(now())
 

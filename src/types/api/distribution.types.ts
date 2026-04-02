@@ -65,8 +65,10 @@ export interface PartnerAllocationSummaryResponse {
 export interface SignOff {
   staffMemberName: string;
   partnerName: string;
+  partnerSignerName?: string | null;
   date: Date;
   signatureUrl: string;
+  partnerSignatureUrl?: string | null;
   partnerId: number;
 }
 
