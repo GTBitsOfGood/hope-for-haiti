@@ -618,6 +618,8 @@ export default class AllocationService {
         signOffStaffMemberName: allocation.signOff?.staffMemberName,
         signOffId: allocation.signOff?.id,
         signOffSignatureUrl: allocation.signOff?.signatureUrl || undefined,
+        partnerSignerName: allocation.signOff?.partnerSignerName || undefined,
+        partnerSignatureUrl: allocation.signOff?.partnerSignatureUrl || undefined,
       };
     });
 

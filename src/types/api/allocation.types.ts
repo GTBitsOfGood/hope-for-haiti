@@ -54,6 +54,8 @@ export interface PartnerAllocation {
   signOffStaffMemberName?: string;
   signOffId?: number;
   signOffSignatureUrl?: string;
+  partnerSignerName?: string;
+  partnerSignatureUrl?: string;
 }
 
 export interface PartnerAllocationsResponse {
