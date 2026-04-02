@@ -664,6 +664,18 @@ export default class DistributionService {
       throw new NotFoundError("Distribution not found");
     }
 
+    if (data.pending === true && currentDistribution.pending === false) {
+      const signedOffCount = await db.allocation.count({
+        where: {distributionId, signOffId: { not: null} },
+      });
+
+      if (signedOffCount > 0) {
+        throw new ArgumentError(
+          "Cannot unapprove a distribution that has signed-off allocations."
+        );
+      }
+    }
+
     const updatedDistribution = await db.distribution.update({
       where: { id: distributionId },
       data,
