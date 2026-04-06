@@ -60,9 +60,13 @@ export default function AnalyticsSection() {
         setLoading(true);
         setError(null);
 
-        const tagsResponse = await apiClient.get<string[]>("/api/users/tags");
+        const tagsResponse =
+          await apiClient.get<{ id: number; name: string }[]>("/api/tags");
         setAvailableTags(
-          tagsResponse.map((tag: string) => ({ value: tag, label: tag }))
+          tagsResponse.map((tag: { id: number; name: string }) => ({
+            value: tag.name,
+            label: tag.name,
+          }))
         );
 
         const excludeTagValues = excludedTags.map((t) => t.value);

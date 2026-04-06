@@ -10,7 +10,7 @@ export type SessionUser = PermissionFlags & {
   name: string | null | undefined;
   streamUserToken: string | null;
   streamUserId: string | null;
-  tag?: string;
+  tags?: { id: number; name: string }[];
   dashboardTutorial: boolean;
   itemsTutorial: boolean;
   requestsTutorial: boolean;

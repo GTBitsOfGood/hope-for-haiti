@@ -57,6 +57,7 @@ export class PartnerService {
         name: true,
         tags: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -69,7 +70,7 @@ export class PartnerService {
     return partners.map((partner) => ({
       id: partner.id,
       name: partner.name,
-      tag: partner.tags.map((t) => t.name).join(", ") || null,
+      tags: partner.tags,
     }));
   }
 

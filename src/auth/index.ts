@@ -26,7 +26,7 @@ declare module "next-auth" {
     streamUserToken: string | null;
     enabled: boolean;
     pending: boolean;
-    tag?: string;
+    tags?: { id: number; name: string }[];
     dashboardTutorial: boolean;
     itemsTutorial: boolean;
     requestsTutorial: boolean;
@@ -41,7 +41,7 @@ declare module "next-auth" {
       name: string | null | undefined;
       streamUserId: string | null;
       streamUserToken: string | null;
-      tag?: string;
+      tags?: { id: number; name: string }[];
       enabled: boolean;
       dashboardTutorial: boolean;
       itemsTutorial: boolean;
@@ -63,7 +63,7 @@ declare module "next-auth/jwt" {
     name: string | null | undefined;
     streamUserId: string | null;
     streamUserToken: string | null;
-    tag?: string;
+    tags?: { id: number; name: string }[];
     dashboardTutorial: boolean;
     itemsTutorial: boolean;
     requestsTutorial: boolean;
@@ -92,10 +92,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             type: true,
             enabled: true,
             pending: true,
-            tag: true,
+            tags: true,
             streamUserId: true,
             streamUserToken: true,
-            partnerDetails: true, 
+            partnerDetails: true,
             ...PERMISSION_SELECT,
             dashboardTutorial: true,
             itemsTutorial: true,
@@ -120,15 +120,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           streamUserId: user.streamUserId,
           streamUserToken: user.streamUserToken,
-          tag: user.tag ?? undefined,
+          tags: user.tags,
           dashboardTutorial: user.dashboardTutorial,
           itemsTutorial: user.itemsTutorial,
           requestsTutorial: user.requestsTutorial,
           wishlistsTutorial: user.wishlistsTutorial,
-          siteName: 
+          siteName:
             user.type === "PARTNER" && user.partnerDetails
               ? (user.partnerDetails as { siteName?: string })?.siteName
-              : undefined, 
+              : undefined,
         };
       },
     }),
@@ -143,7 +143,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.name = user.name ?? user.email ?? `User ${user.id}`;
         token.streamUserId = user.streamUserId;
         token.streamUserToken = user.streamUserToken;
-        token.tag = user.tag;
+        token.tags = user.tags;
         token.siteName = user.siteName;
         PERMISSION_FIELDS.forEach((field) => {
           token[field] = user[field];
@@ -181,8 +181,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.name = token.name;
       session.user.streamUserId = token.streamUserId;
       session.user.streamUserToken = token.streamUserToken;
-      session.user.tag = token.tag;
-      session.user.siteName = token.siteName; 
+      session.user.tags = token.tags;
+      session.user.siteName = token.siteName;
       PERMISSION_FIELDS.forEach((field) => {
         session.user[field] = Boolean(token[field]);
       });
