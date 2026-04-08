@@ -102,10 +102,9 @@ export function searchByNameOrTag(
 ): boolean {
   const inputLower = input.toLowerCase();
   const user = candidate.data?.value;
-  const tagNames = user.tags?.map((t) => t.name.toLowerCase()) || [];
+  const tagNames = user?.tags?.map((t) => t.name.toLowerCase()) || [];
   return (
-    user.name.toLowerCase().includes(inputLower) ||
-    tagNames.some((t) => t.includes(inputLower)) ||
-    false
+    (user?.name.toLowerCase().includes(inputLower) ?? false) ||
+    tagNames.some((t) => t.includes(inputLower))
   );
 }

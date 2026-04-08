@@ -571,8 +571,8 @@ export default class UserService {
 
     if (excludePartnerTags && excludePartnerTags.length > 0) {
       whereClause.tags = {
-        some: {
-          name: { notIn: excludePartnerTags },
+        none: {
+          name: { in: excludePartnerTags },
         },
       };
     }

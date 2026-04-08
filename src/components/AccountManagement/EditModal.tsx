@@ -56,11 +56,12 @@ export default function EditModal({
     tags: [] as TagOption[],
   });
 
-  const [tagOptions, setTagOptions] = useState<TagOption[]>(existingTags);
+  const [tagOptions, setTagOptions] = useState<TagOption[]>(existingTags ?? []);
+
   const { apiClient } = useApiClient();
 
   useEffect(() => {
-    setTagOptions(existingTags);
+    setTagOptions(existingTags ?? []);
   }, [existingTags]);
 
   useEffect(() => {
@@ -94,8 +95,7 @@ export default function EditModal({
       const newOption: TagOption = { value: newTag.id, label: newTag.name };
       setTagOptions((prev) => [...prev, newOption]);
       return newOption;
-    } catch (error) {
-      console.error("Error creating tag:", error);
+    } catch {
       toast.error("Failed to create tag");
       return null;
     }

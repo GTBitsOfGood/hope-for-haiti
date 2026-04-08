@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const tag = await UserService.createTag(parsed.data.name);
-    return NextResponse.json(tag, { status: 200 });
+    return NextResponse.json(tag, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }
