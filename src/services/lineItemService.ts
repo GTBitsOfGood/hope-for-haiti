@@ -201,6 +201,60 @@ export class LineItemService {
     }
   }
 
+  static async splitLineItem(lineItemId: number, generalItemId: number, splitQuantity: number) {
+    return await db.$transaction(async (tx) => {
+      const lineItem = await tx.lineItem.findUnique({
+        where: {id: lineItemId },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          },
+          allocation: true
+        }
+      });
+
+      if (!lineItem) {
+        throw new Error(`Line item with ID ${lineItemId} does not exist.`);
+      }
+      if (lineItem.generalItemId !== generalItemId) {
+        throw new Error("Line item does not belong to this general item.");
+      }
+      if (lineItem.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new Error("Cannot split line items for archived donor offers.");
+      }
+      if (lineItem.allocation) {
+        throw new Error("Cannot split an already allocated line item.");
+      }
+      if (splitQuantity <= 0 || splitQuantity >= lineItem.quantity) {
+        throw new Error(`Split quantity must be between 1 and ${lineItem.quantity - 1}`);
+      }
+      
+      const original = await tx.lineItem.update({
+        where: { id: lineItemId },
+        data: { quantity: lineItem.quantity - splitQuantity }
+      });
+      
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, allocation, generalItem, generalItemId: _gId , ...itemData } = lineItem; 
+
+      const newItem = await tx.lineItem.create({
+        data: {
+          ...itemData, 
+          quantity: splitQuantity, 
+          generalItem: {
+            connect: { id: generalItemId },
+          },
+        },
+      });
+
+      return { original, newItem };
+    })
+  }
+
   static async getAllItems(
     filters?: Filters,
     page?: number,
