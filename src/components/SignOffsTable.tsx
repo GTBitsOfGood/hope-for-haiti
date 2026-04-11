@@ -150,7 +150,6 @@ export default function SignOffsTable() {
     _reportType: string,
     filters: ReportFilters
   ) => {
-  ) => {
     const loadingToastId = toast.loading("Generating report...");
 
     try {
