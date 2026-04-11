@@ -182,9 +182,11 @@ function NavLinks({
       <li className="flex-grow" />
       <li>
         <p className="px-2 mb-1 text-sm font-medium line-clamp-3 hidden md:block">
-          <span className="font-normal text-xs text-gray-500">Logged in as</span>
+          <span className="font-normal text-xs text-gray-500">
+            Logged in as
+          </span>
           <br />
-          {isPartnerUser ? (user?.siteName ?? user?.name) : user?.name }
+          {isPartnerUser ? (user?.siteName ?? user?.name) : user?.name}
         </p>
       </li>
       <ul className="flex gap-2">
@@ -203,7 +205,11 @@ function NavLinks({
         )}
         <li className="flex-shrink-0 mt-auto">
           <NavLink
-            onClick={signOut}
+            onClick={() => {
+              // Clear cached chat notifications from sessionStorage on logout
+              sessionStorage.removeItem("chat_notifications");
+              signOut();
+            }}
             icon={<SignOut size={22} />}
             className="border-red-primary border rounded text-red-primary hover:bg-red-primary/10 transition-all duration-100 !w-auto"
             noWrapper
@@ -264,7 +270,7 @@ function getPortalLabel(isPartnerUser: boolean, isSuper?: boolean) {
   if (isPartnerUser) return "Partner Portal";
   if (isSuper) return "Admin Portal";
 
-  return "Staff Portal"; 
+  return "Staff Portal";
 }
 
 function DesktopNavbar() {

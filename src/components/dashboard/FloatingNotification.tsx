@@ -4,10 +4,15 @@ import { useState } from "react";
 import { Bell } from "@phosphor-icons/react";
 import NotificationsPanel from "./NotificationsPanel";
 import { useNotifications } from "../NotificationHandler";
+import { useUser } from "../context/UserContext";
 
 export default function FloatingNotification() {
+  const { user } = useUser();
   const { notifications } = useNotifications();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  // Don't show notification bell on login page or when not authenticated
+  if (!user) return null;
+
   const unreadCount = notifications.length;
 
   return (
