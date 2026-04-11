@@ -939,6 +939,11 @@ export default class DistributionService {
     endDate?: string;
     donorName?: string;
   }) {
+    console.log(
+      "[DistributionService] getDonorCategorySummaryReport payload:",
+      payload
+    );
+
     const signOffs = await db.signOff.findMany({
       where: {
         ...(payload.startDate || payload.endDate
@@ -966,6 +971,10 @@ export default class DistributionService {
         },
       },
     });
+
+    console.log(
+      `[DistributionService] Found ${signOffs.length} sign-offs`
+    );
 
     // Map to track donor -> category -> aggregated data
     const reportData = new Map<
@@ -998,6 +1007,10 @@ export default class DistributionService {
 
         const category = generalItem?.category || null;
         const itemValue = Number(lineItem.unitPrice) * lineItem.quantity;
+
+        console.log(
+          `[DistributionService] Processing: donor=${donor}, category=${category}, quantity=${lineItem.quantity}, value=${itemValue}`
+        );
 
         // Initialize nested maps
         if (!reportData.has(donor)) {
@@ -1037,6 +1050,10 @@ export default class DistributionService {
       }
       return (a.category || "").localeCompare(b.category || "");
     });
+
+    console.log(
+      `[DistributionService] Generated report with ${report.length} rows`
+    );
 
     return {
       rows: report,

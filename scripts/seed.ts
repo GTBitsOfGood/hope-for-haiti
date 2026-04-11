@@ -1,12 +1,13 @@
 import { exit } from "process";
 import { hash } from "argon2";
-import { UserType } from "@prisma/client";
+import { UserType, DonorOfferState, ItemType, ItemCategory, ShipmentStatus } from "@prisma/client";
 
 import { db } from "@/db";
 import type { Prisma } from "@prisma/client";
 import StreamIoService from "@/services/streamIoService";
 import FileService from "@/services/fileService";
 import UserService from "@/services/userService";
+import { addDays, subDays } from "date-fns";
 
 const existingStreamTokens: { [email: string]: string } = {};
 
@@ -280,6 +281,219 @@ async function buildSeedData() {
   console.log(`  - Distribution Lead: ${distributionLead.email}`);
   console.log(`  - Partner 1: ${partner1.email}`);
   console.log(`  - Partner 2: ${partner2.email}`);
+
+  // ============================================
+  // Create mock data for reports testing
+  // ============================================
+
+  // Create donor offers
+  const donorOffer1 = await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.FINALIZED,
+      offerName: "Direct Relief Medical Donation",
+      donorName: "Direct Relief",
+      partnerResponseDeadline: addDays(new Date(), 30),
+      donorResponseDeadline: addDays(new Date(), 60),
+    },
+  });
+
+  const donorOffer2 = await db.donorOffer.create({
+    data: {
+      state: DonorOfferState.FINALIZED,
+      offerName: "Medication Supplies",
+      donorName: "Global Health Initiative",
+      partnerResponseDeadline: addDays(new Date(), 30),
+      donorResponseDeadline: addDays(new Date(), 60),
+    },
+  });
+
+  // Create general items
+  const generalItem1 = await db.generalItem.create({
+    data: {
+      donorOfferId: donorOffer1.id,
+      title: "Antibiotics (500 units)",
+      expirationDate: addDays(new Date(), 365),
+      unitType: "Box",
+      initialQuantity: 500,
+      type: ItemType.MEDICATION,
+      category: ItemCategory.ANTIBIOTIC,
+      weight: 5.0,
+    },
+  });
+
+  const generalItem2 = await db.generalItem.create({
+    data: {
+      donorOfferId: donorOffer1.id,
+      title: "Surgical Supplies (200 units)",
+      expirationDate: addDays(new Date(), 365),
+      unitType: "Box",
+      initialQuantity: 200,
+      type: ItemType.NON_MEDICATION,
+      category: ItemCategory.SURGICAL,
+      weight: 8.0,
+    },
+  });
+
+  const generalItem3 = await db.generalItem.create({
+    data: {
+      donorOfferId: donorOffer2.id,
+      title: "Pain Relievers (300 units)",
+      expirationDate: addDays(new Date(), 365),
+      unitType: "Box",
+      initialQuantity: 300,
+      type: ItemType.MEDICATION,
+      category: ItemCategory.PAIN_RELIEVERS,
+      weight: 3.5,
+    },
+  });
+
+  // Create line items for shipment 1
+  const lineItem1 = await db.lineItem.create({
+    data: {
+      donorName: "Direct Relief",
+      quantity: 100,
+      lotNumber: "LOT-2026-001",
+      palletNumber: "P-001",
+      boxNumber: "B-001",
+      unitPrice: 50.0,
+      hfhShippingNumber: "SH-001",
+      donorShippingNumber: "DR-2026-001",
+      generalItemId: generalItem1.id,
+      allowAllocations: true,
+      visible: true,
+      gik: false,
+    },
+  });
+
+  const lineItem2 = await db.lineItem.create({
+    data: {
+      donorName: "Direct Relief",
+      quantity: 50,
+      lotNumber: "LOT-2026-002",
+      palletNumber: "P-001",
+      boxNumber: "B-002",
+      unitPrice: 120.0,
+      hfhShippingNumber: "SH-001",
+      donorShippingNumber: "DR-2026-001",
+      generalItemId: generalItem2.id,
+      allowAllocations: true,
+      visible: true,
+      gik: false,
+    },
+  });
+
+  // Create line items for shipment 2
+  const lineItem3 = await db.lineItem.create({
+    data: {
+      donorName: "Global Health Initiative",
+      quantity: 75,
+      lotNumber: "LOT-2026-003",
+      palletNumber: "P-002",
+      boxNumber: "B-003",
+      unitPrice: 35.0,
+      hfhShippingNumber: "SH-002",
+      donorShippingNumber: "GHI-2026-001",
+      generalItemId: generalItem3.id,
+      allowAllocations: true,
+      visible: true,
+      gik: false,
+    },
+  });
+
+  // Create distributions
+  const distribution1 = await db.distribution.create({
+    data: {
+      partnerId: partner1.id,
+      pending: false,
+    },
+  });
+
+  const distribution2 = await db.distribution.create({
+    data: {
+      partnerId: partner2.id,
+      pending: false,
+    },
+  });
+
+  // Create allocations
+  const allocation1 = await db.allocation.create({
+    data: {
+      partnerId: partner1.id,
+      lineItemId: lineItem1.id,
+      distributionId: distribution1.id,
+    },
+  });
+
+  const allocation2 = await db.allocation.create({
+    data: {
+      partnerId: partner1.id,
+      lineItemId: lineItem2.id,
+      distributionId: distribution1.id,
+    },
+  });
+
+  const allocation3 = await db.allocation.create({
+    data: {
+      partnerId: partner2.id,
+      lineItemId: lineItem3.id,
+      distributionId: distribution2.id,
+    },
+  });
+
+  // Create sign-offs (completed shipments)
+  const signOff1 = await db.signOff.create({
+    data: {
+      staffMemberName: distributionLead.name,
+      partnerId: partner1.id,
+      partnerName: partner1.name,
+      partnerSignerName: "Dr. Jean Baptiste",
+      date: subDays(new Date(), 10),
+      signatureUrl: null,
+      partnerSignatureUrl: null,
+      allocations: {
+        connect: [{ id: allocation1.id }, { id: allocation2.id }],
+      },
+    },
+  });
+
+  const signOff2 = await db.signOff.create({
+    data: {
+      staffMemberName: distributionLead.name,
+      partnerId: partner2.id,
+      partnerName: partner2.name,
+      partnerSignerName: "Dr. Marie Joseph",
+      date: subDays(new Date(), 5),
+      signatureUrl: null,
+      partnerSignatureUrl: null,
+      allocations: {
+        connect: [{ id: allocation3.id }],
+      },
+    },
+  });
+
+  // Create ShippingStatus records for the shipments
+  // These are needed for the Sign-offs table to display the shipments
+  const shippingStatus1 = await db.shippingStatus.create({
+    data: {
+      hfhShippingNumber: "SH-001",
+      donorShippingNumber: "DR-2026-001",
+      value: ShipmentStatus.READY_FOR_DISTRIBUTION,
+    },
+  });
+
+  const shippingStatus2 = await db.shippingStatus.create({
+    data: {
+      hfhShippingNumber: "SH-002",
+      donorShippingNumber: "GHI-2026-001",
+      value: ShipmentStatus.READY_FOR_DISTRIBUTION,
+    },
+  });
+
+  console.log("✓ Created mock report data");
+  console.log(`  - 2 Donor Offers with 3 General Items`);
+  console.log(`  - 3 Line Items (2 shipments)`);
+  console.log(`  - 2 Sign-Offs for testing reports`);
+  console.log(`  - 2 ShippingStatus records for Sign-offs display`);
 }
 
 buildSeedData()
