@@ -10,10 +10,10 @@ export default function FloatingNotification() {
   const { user } = useUser();
   const { notifications } = useNotifications();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const unreadCount = notifications.length;
-
   // Don't show notification bell on login page or when not authenticated
   if (!user) return null;
+
+  const unreadCount = notifications.length;
 
   return (
     <div className="fixed top-9 right-20 sm:right-9 w-12 h-12 flex justify-center items-center z-[50]">
