@@ -280,6 +280,7 @@ async function buildSeedData() {
   console.log(`  - Distribution Lead: ${distributionLead.email}`);
   console.log(`  - Partner 1: ${partner1.email}`);
   console.log(`  - Partner 2: ${partner2.email}`);
+}
 
 buildSeedData()
   .then(() => {
