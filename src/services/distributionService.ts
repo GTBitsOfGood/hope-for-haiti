@@ -772,4 +772,258 @@ export default class DistributionService {
       where: { id: distributionId },
     });
   }
+
+  /**
+   * Generate Shipment & Partner Summary Report
+   * Groups by shipment → recipient → category
+   * Applies date range and/or shipment ID filters
+   */
+  static async getShipmentPartnerSummaryReport(payload: {
+    startDate?: string;
+    endDate?: string;
+    shipmentId?: string;
+  }) {
+    const signOffs = await db.signOff.findMany({
+      where: {
+        ...(payload.startDate || payload.endDate
+          ? {
+              date: {
+                ...(payload.startDate && {
+                  gte: new Date(payload.startDate),
+                }),
+                ...(payload.endDate && {
+                  lte: new Date(payload.endDate + "T23:59:59.999Z"),
+                }),
+              },
+            }
+          : {}),
+      },
+      include: {
+        allocations: {
+          include: {
+            lineItem: {
+              include: {
+                generalItem: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Map to track shipment -> recipient -> category -> aggregated data
+    const reportData = new Map<
+      string,
+      Map<
+        string,
+        Map<
+          string | null,
+          {
+            shipmentNumber: string;
+            recipient: string;
+            category: string | null;
+            totalItems: number;
+            categoryValue: number;
+          }
+        >
+      >
+    >();
+
+    // Track shipment totals for later
+    const shipmentTotals = new Map<string, number>();
+
+    for (const signOff of signOffs) {
+      for (const allocation of signOff.allocations) {
+        const lineItem = allocation.lineItem;
+        const generalItem = lineItem.generalItem;
+
+        const shipmentNumber = lineItem.hfhShippingNumber || "Unknown";
+
+        // Apply shipment filter if provided
+        if (payload.shipmentId && shipmentNumber !== payload.shipmentId) {
+          continue;
+        }
+
+        const recipient = signOff.partnerName;
+        const category = generalItem?.category || null;
+        const itemValue = Number(lineItem.unitPrice) * lineItem.quantity;
+
+        // Initialize nested maps
+        if (!reportData.has(shipmentNumber)) {
+          reportData.set(shipmentNumber, new Map());
+        }
+        if (!reportData.get(shipmentNumber)!.has(recipient)) {
+          reportData.get(shipmentNumber)!.set(recipient, new Map());
+        }
+
+        const categoryMap = reportData.get(shipmentNumber)!.get(recipient)!;
+        const categoryKey = category || null;
+
+        if (!categoryMap.has(categoryKey)) {
+          categoryMap.set(categoryKey, {
+            shipmentNumber,
+            recipient,
+            category: category || "Uncategorized",
+            totalItems: 0,
+            categoryValue: 0,
+          });
+        }
+
+        const row = categoryMap.get(categoryKey)!;
+        row.totalItems += lineItem.quantity;
+        row.categoryValue += itemValue;
+
+        // Track shipment total
+        shipmentTotals.set(
+          shipmentNumber,
+          (shipmentTotals.get(shipmentNumber) || 0) + itemValue
+        );
+      }
+    }
+
+    // Flatten the nested map into a report array
+    const report = [];
+    for (const [shipmentNumber, recipients] of reportData) {
+      const shipmentTotal = shipmentTotals.get(shipmentNumber) || 0;
+      for (const [, categories] of recipients) {
+        for (const [, row] of categories) {
+          report.push({
+            ...row,
+            shipmentTotal,
+          });
+        }
+      }
+    }
+
+    // Sort by shipment number, then recipient, then category
+    report.sort((a, b) => {
+      if (a.shipmentNumber !== b.shipmentNumber) {
+        return a.shipmentNumber.localeCompare(b.shipmentNumber);
+      }
+      if (a.recipient !== b.recipient) {
+        return a.recipient.localeCompare(b.recipient);
+      }
+      return (a.category || "").localeCompare(b.category || "");
+    });
+
+    return {
+      rows: report,
+      fileName: `shipment-partner-summary-${format(new Date(), "yyyy-MM-dd")}.csv`,
+    };
+  }
+
+  /**
+   * Generate Donor & Category Summary Report
+   * Groups by donor name → category
+   * Applies date range and/or donor name filters
+   */
+  static async getDonorCategorySummaryReport(payload: {
+    startDate?: string;
+    endDate?: string;
+    donorName?: string;
+  }) {
+    const signOffs = await db.signOff.findMany({
+      where: {
+        ...(payload.startDate || payload.endDate
+          ? {
+              date: {
+                ...(payload.startDate && {
+                  gte: new Date(payload.startDate),
+                }),
+                ...(payload.endDate && {
+                  lte: new Date(payload.endDate + "T23:59:59.999Z"),
+                }),
+              },
+            }
+          : {}),
+      },
+      include: {
+        allocations: {
+          include: {
+            lineItem: {
+              include: {
+                generalItem: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Map to track donor -> category -> aggregated data
+    const reportData = new Map<
+      string,
+      Map<
+        string | null,
+        {
+          donorName: string;
+          category: string | null;
+          totalQuantity: number;
+          totalValueSent: number;
+        }
+      >
+    >();
+
+    for (const signOff of signOffs) {
+      for (const allocation of signOff.allocations) {
+        const lineItem = allocation.lineItem;
+        const generalItem = lineItem.generalItem;
+
+        const donor = lineItem.donorName;
+
+        // Apply donor name filter if provided (case-insensitive partial match)
+        if (
+          payload.donorName &&
+          !donor.toLowerCase().includes(payload.donorName.toLowerCase())
+        ) {
+          continue;
+        }
+
+        const category = generalItem?.category || null;
+        const itemValue = Number(lineItem.unitPrice) * lineItem.quantity;
+
+        // Initialize nested maps
+        if (!reportData.has(donor)) {
+          reportData.set(donor, new Map());
+        }
+
+        const categoryMap = reportData.get(donor)!;
+        const categoryKey = category || null;
+
+        if (!categoryMap.has(categoryKey)) {
+          categoryMap.set(categoryKey, {
+            donorName: donor,
+            category: category || "Uncategorized",
+            totalQuantity: 0,
+            totalValueSent: 0,
+          });
+        }
+
+        const row = categoryMap.get(categoryKey)!;
+        row.totalQuantity += lineItem.quantity;
+        row.totalValueSent += itemValue;
+      }
+    }
+
+    // Flatten the nested map into a report array
+    const report = [];
+    for (const [, categories] of reportData) {
+      for (const [, row] of categories) {
+        report.push(row);
+      }
+    }
+
+    // Sort by donor name, then category
+    report.sort((a, b) => {
+      if (a.donorName !== b.donorName) {
+        return a.donorName.localeCompare(b.donorName);
+      }
+      return (a.category || "").localeCompare(b.category || "");
+    });
+
+    return {
+      rows: report,
+      fileName: `donor-category-summary-${format(new Date(), "yyyy-MM-dd")}.csv`,
+    };
+  }
 }

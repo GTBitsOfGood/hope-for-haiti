@@ -1,8 +1,9 @@
 "use client";
 import { format } from "date-fns";
 import { useState, useRef, useCallback } from "react";
-import { Package } from "@phosphor-icons/react";
+import { Package, FileCsv } from "@phosphor-icons/react";
 import { useApiClient } from "@/hooks/useApiClient";
+import toast from "react-hot-toast";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   FilterList,
@@ -14,6 +15,9 @@ import ShippingStatusTag from "./tags/ShippingStatusTag";
 import DetailedChip from "./chips/DetailedChip";
 import { shippingStatusToText } from "@/util/util";
 import SignatureImageTooltip from "./SignatureImageTooltip";
+import ReportGenerationModal, {
+  ReportFilters,
+} from "./ReportGenerationModal";
 
 function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
   const [showSignOffs] = useState(true);
@@ -122,6 +126,7 @@ function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
 export default function SignOffsTable() {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<Shipment>>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchTableData = useCallback(
     async (pageSize: number, page: number, filters: FilterList<Shipment>) => {
@@ -140,6 +145,73 @@ export default function SignOffsTable() {
     },
     [apiClient]
   );
+
+  const handleReportSubmit = async (
+    reportType: string,
+    filters: ReportFilters
+  ) => {
+    const loadingToastId = toast.loading("Generating report...");
+
+    try {
+      const queryParams = new URLSearchParams({
+        reportType: filters.reportType,
+      });
+
+      if (filters.startDate) queryParams.append("startDate", filters.startDate);
+      if (filters.endDate) queryParams.append("endDate", filters.endDate);
+      if (filters.shipmentId)
+        queryParams.append("shipmentId", filters.shipmentId);
+      if (filters.donorName) queryParams.append("donorName", filters.donorName);
+
+      const response = await fetch(
+        `/api/reports/generate?${queryParams.toString()}`
+      );
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type") ?? "";
+        let errorMessage = "Failed to generate report";
+
+        if (contentType.includes("application/json")) {
+          const body = (await response.json()) as {
+            error?: string;
+            message?: string;
+          };
+          errorMessage = body.error ?? body.message ?? errorMessage;
+        } else {
+          const body = (await response.text()).trim();
+          if (body) {
+            errorMessage = body;
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const contentDisposition = response.headers.get("content-disposition");
+      const fileName =
+        contentDisposition?.match(/filename="([^"]+)"/)?.[1] ??
+        `report-${Date.now()}.csv`;
+
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(objectUrl);
+
+      toast.dismiss(loadingToastId);
+      toast.success("Report downloaded successfully");
+    } catch (error) {
+      toast.dismiss(loadingToastId);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to generate report"
+      );
+    }
+  };
 
   const columns: ColumnDefinition<Shipment>[] = [
     {
@@ -181,16 +253,33 @@ export default function SignOffsTable() {
   ];
 
   return (
-    <AdvancedBaseTable
-      ref={tableRef}
-      columns={columns}
-      fetchFn={fetchTableData}
-      rowId="id"
-      rowBody={(shipment) => (
-        <div className="border-t bg-gray-50 px-6">
-          <SignedOffItemsBody shipment={shipment} />
-        </div>
-      )}
-    />
+    <>
+      <AdvancedBaseTable
+        ref={tableRef}
+        columns={columns}
+        fetchFn={fetchTableData}
+        rowId="id"
+        toolBar={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 font-semibold text-white hover:bg-blue-primary/80 transition-colors"
+          >
+            <FileCsv size={20} />
+            Generate Reports
+          </button>
+        }
+        rowBody={(shipment) => (
+          <div className="border-t bg-gray-50 px-6">
+            <SignedOffItemsBody shipment={shipment} />
+          </div>
+        )}
+      />
+
+      <ReportGenerationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleReportSubmit}
+      />
+    </>
   );
 }
