@@ -94,6 +94,8 @@ export default function EditModal({
       );
       const newOption: TagOption = { value: newTag.id, label: newTag.name };
       setTagOptions((prev) => [...prev, newOption]);
+      handleInputChange("tags", [...formData.tags, newOption]);
+      
       return newOption;
     } catch {
       toast.error("Failed to create tag");
