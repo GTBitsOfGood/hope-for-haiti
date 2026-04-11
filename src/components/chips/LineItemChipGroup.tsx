@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 import { AdvancedBaseTableHandle } from "../baseTable/AdvancedBaseTable";
 import { AllocationTableItem } from "../allocationTable/types";
 import Chip from "./Chip";
+import { useState } from "react"; 
 
 export interface PartnerDistributionSummary {
   id: number;
@@ -92,6 +93,8 @@ function LineItemChip({
   isInteractionMode?: boolean;
   readOnly?: boolean;
 }) {
+  const [isSplitting, setIsSplitting] = useState(false); 
+  const [splitQuantity, setSplitQuantity] = useState("");
   const { apiClient } = useApiClient();
 
   function updateLineItemInTable(updatedItem: Partial<typeof item>) {
@@ -101,6 +104,38 @@ function LineItemChip({
         it.id === item.id ? { ...it, ...updatedItem } : it
       ),
     }));
+  }
+
+  async function splitItem() {
+    try {
+      const response = await apiClient.post<{
+        original: {id: number; quantity: number};
+        newItem: typeof item; 
+      }>(
+        `/api/generalItems/${generalItemId}/lineItems/${item.id}`,
+        { body: JSON.stringify({ splitQuantity: Number(splitQuantity) }) }
+      );
+
+      updateItem(generalItemId, (prev) => ({
+        ...prev, 
+        items: prev.items
+          .map((it) => 
+            it.id === item.id
+              ? {...it, quantity: response.original.quantity }
+              : it
+          )
+          .concat([{
+            ...response.newItem,
+            allocation: null, 
+          }])
+      }));
+
+      toast.success("Line item split successfully!");
+      setIsSplitting(false);
+      setSplitQuantity("");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to split line item.");
+    }
   }
 
   async function unallocateItem() {
@@ -275,6 +310,57 @@ function LineItemChip({
                 </button>
               ))}
             </div>
+            {!item.allocation && !isInteractionMode && item.quantity > 1 && (
+              <div className="border-t border-gray-primary/20 mt-2 pt-2">
+                {!isSplitting ? (
+                  <button
+                    onClick={() => setIsSplitting(true)}
+                    className="w-full text-center px-2 py-1 hover:bg-blue-primary/20 border border-blue-primary rounded transition-all duration-200"
+                  >
+                    Split by Quantity
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-gray-primary font-bold mb-1">Split Item</p>
+                    <p className="text-sm text-gray-primary font-normal">
+                      Split Quantity
+                    </p>
+                    <input
+                      type="number"
+                      min={1}
+                      max={item.quantity - 1}
+                      value={splitQuantity}
+                      onChange={(e) => setSplitQuantity(e.target.value)}
+                      placeholder={`1 - ${item.quantity - 1}`}
+                      className="border border-gray-primary/20 rounded px-2 py-1 font-normal"
+                    />
+                    <div className="w-full flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setIsSplitting(false);
+                          setSplitQuantity("");
+                        }}
+                        className="rounded border border-red-500 text-red-500 px-3 py-1 hover:bg-gray-primary/10 transition-all duration-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={splitItem}
+                        disabled={
+                          !splitQuantity ||
+                          Number(splitQuantity) <= 0 ||
+                          Number(splitQuantity) >= item.quantity
+                        }
+                        className="rounded bg-blue-primary text-white px-3 py-1 disabled:opacity-50"
+                      >
+                        Split
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+              </div>
+            )}
           </div>
         )}
       />

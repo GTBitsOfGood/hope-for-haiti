@@ -229,6 +229,9 @@ export class LineItemService {
       if (lineItem.allocation) {
         throw new Error("Cannot split an already allocated line item.");
       }
+      if(!Number.isInteger(splitQuantity)) {
+        throw new Error("Split quantity must be a whole number.");
+      }
       if (splitQuantity <= 0 || splitQuantity >= lineItem.quantity) {
         throw new Error(`Split quantity must be between 1 and ${lineItem.quantity - 1}`);
       }
