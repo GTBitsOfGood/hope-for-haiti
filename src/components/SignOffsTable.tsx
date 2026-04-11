@@ -147,8 +147,9 @@ export default function SignOffsTable() {
   );
 
   const handleReportSubmit = async (
-    reportType: string,
+    _reportType: string,
     filters: ReportFilters
+  ) => {
   ) => {
     const loadingToastId = toast.loading("Generating report...");
 
