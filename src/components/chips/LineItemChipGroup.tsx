@@ -332,6 +332,7 @@ function LineItemChip({
                     </p>
                     <input
                       type="number"
+                      step={1}
                       min={1}
                       max={item.quantity - 1}
                       value={splitQuantity}
@@ -345,7 +346,7 @@ function LineItemChip({
                           setIsSplitting(false);
                           setSplitQuantity("");
                         }}
-                        className="rounded border border-red-500 text-red-500 px-3 py-1 hover:bg-gray-primary/10 transition-all duration-200"
+                        className="rounded border border-red-primary text-red-primary px-3 py-1 hover:bg-gray-primary/10 transition-all duration-200"
                       >
                         Cancel
                       </button>
@@ -354,6 +355,7 @@ function LineItemChip({
                         disabled={
                           isSplitLoading || 
                           !splitQuantity ||
+                          !Number.isInteger(Number(splitQuantity)) || 
                           Number(splitQuantity) <= 0 ||
                           Number(splitQuantity) >= item.quantity
                         }
