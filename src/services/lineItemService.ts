@@ -356,7 +356,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_UserToTag" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     // Group by month and year on the sign off, preserving the total
@@ -401,7 +401,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_UserToTag" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     type QueryResult = { shipmentCount: bigint; palletCount: bigint }[];
@@ -438,7 +438,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_UserToTag" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -475,7 +475,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_UserToTag" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     const result =
@@ -506,7 +506,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_UserToTag" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -543,7 +543,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_UserToTag" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -583,7 +583,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_UserToTag" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
