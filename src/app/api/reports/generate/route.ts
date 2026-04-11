@@ -87,8 +87,8 @@ export async function GET(request: NextRequest) {
         Recipient: row.recipient,
         Category: row.category,
         "Total Items": row.totalItems,
-        "Category Value": row.categoryValue.toFixed(2),
-        "Shipment Total": row.shipmentTotal.toFixed(2),
+        "Category Value": `$${row.categoryValue.toFixed(2)}`,
+        "Shipment Total": `$${row.shipmentTotal.toFixed(2)}`,
       }));
 
       csv = `\uFEFF${Papa.unparse(rows, { columns })}`;
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
         "Donor Name": row.donorName,
         Category: row.category,
         "Total Quantity": row.totalQuantity,
-        "Total Value Sent": row.totalValueSent.toFixed(2),
+        "Total Value Sent": `$${row.totalValueSent.toFixed(2)}`,
       }));
 
       csv = `\uFEFF${Papa.unparse(rows, { columns })}`;
