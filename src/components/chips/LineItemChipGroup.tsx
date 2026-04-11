@@ -94,6 +94,7 @@ function LineItemChip({
   readOnly?: boolean;
 }) {
   const [isSplitting, setIsSplitting] = useState(false); 
+  const [isSplitLoading, setIsSplitLoading] = useState(false);
   const [splitQuantity, setSplitQuantity] = useState("");
   const { apiClient } = useApiClient();
 
@@ -107,6 +108,8 @@ function LineItemChip({
   }
 
   async function splitItem() {
+    if (isSplitLoading) return; 
+    setIsSplitLoading(true);
     try {
       const response = await apiClient.post<{
         original: {id: number; quantity: number};
@@ -135,6 +138,8 @@ function LineItemChip({
       setSplitQuantity("");
     } catch (error) {
       toast.error((error as Error).message || "Failed to split line item.");
+    } finally {
+      setIsSplitLoading(false);
     }
   }
 
@@ -347,6 +352,7 @@ function LineItemChip({
                       <button
                         onClick={splitItem}
                         disabled={
+                          isSplitLoading || 
                           !splitQuantity ||
                           Number(splitQuantity) <= 0 ||
                           Number(splitQuantity) >= item.quantity

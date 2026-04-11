@@ -203,6 +203,7 @@ export class LineItemService {
 
   static async splitLineItem(lineItemId: number, generalItemId: number, splitQuantity: number) {
     return await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "LineItem" WHERE id = ${lineItemId} FOR UPDATE`;
       const lineItem = await tx.lineItem.findUnique({
         where: {id: lineItemId },
         include: {
