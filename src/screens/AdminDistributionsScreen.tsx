@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 enum DistributionTab {
   DISTRIBUTIONS = "Distributions",
   SHIPMENTS = "Shipments",
-  SIGNOFFS = "Sign-offs"
+  SIGNOFFS = "Completed Sign-offs"
 }
 
 export default function AdminDistributionsScreen() {
