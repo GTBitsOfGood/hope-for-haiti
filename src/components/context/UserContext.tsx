@@ -12,6 +12,7 @@ export type SessionUser = PermissionFlags & {
   streamUserId: string | null;
   tag?: string;
   dashboardTutorial: boolean;
+  adminDashboardTutorial: boolean;
   itemsTutorial: boolean;
   requestsTutorial: boolean;
   wishlistsTutorial: boolean;

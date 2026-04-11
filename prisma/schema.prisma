@@ -140,6 +140,14 @@ model User {
   itemsTutorial Boolean @default(false)
   requestsTutorial Boolean @default(false)
   wishlistsTutorial Boolean @default(false)
+
+  adminDashboardTutorial Boolean @default(false)
+  adminSupportTutorial Boolean @default(false)
+  adminAccountManagementTutorial Boolean @default(false)
+  adminUnallocatedTutorial Boolean @default(false)
+  adminDonorOffersTutorial Boolean @default(false)
+  adminWishlistTutorial Boolean @default(false)
+  adminDistributionsTutorial Boolean @default(false)
 }
 
 model UserInvite {

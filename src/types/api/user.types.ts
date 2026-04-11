@@ -23,6 +23,7 @@ export interface UpdateUserData {
   enabled?: boolean;
   permissions?: Partial<PermissionFlags>;
   dashboardTutorial?: boolean;
+  adminDashboardTutorial?: boolean;
   itemsTutorial?: boolean;
   requestsTutorial?: boolean;
   wishlistsTutorial?: boolean;

@@ -30,6 +30,7 @@ export default function JoyrideStep({
   return (
     <div
       {...tooltipProps}
+      data-tutorial-tooltip="true"
       style={{
         width: "min(24rem, calc(100vw - 1rem), calc(100dvw - 1rem))",
         maxWidth: "calc(100vw - 1rem)",

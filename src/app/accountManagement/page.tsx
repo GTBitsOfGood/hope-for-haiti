@@ -14,6 +14,7 @@ import { formatUserType, isStaff, hasPermission } from "@/lib/userUtils";
 import AccountDropdown from "@/components/AccountManagement/AccountDropdown";
 import AccountStatusTag from "@/components/tags/AccountStatusTag";
 import AdvancedBaseTable from "@/components/baseTable/AdvancedBaseTable";
+import Tutorial, { type TutorialStep } from "@/components/Tutorial";
 import {
   AdvancedBaseTableHandle,
   ColumnDefinition,
@@ -46,6 +47,97 @@ interface AccountUserResponse {
 
 type AccountRow = AccountUserResponse;
 type AccountUserDetail = AccountUserResponse & PermissionFlags;
+
+const tutorialSteps: TutorialStep[] = [
+  {
+    target: "body",
+    title: <div>Manage Your Team!</div>,
+    content: <div>View, edit, and add staff or partners to the platform.</div>,
+    placement: "center",
+    isFixed: true,
+  },
+  {
+    target: '[data-tutorial=\"acc-management-partner-example\"]',
+    title: <div>Understanding an Account Entry</div>,
+    content: (
+      <div>
+        Each row represents a unique user or facility. Hope Medical Center is a
+        Partner with an Internal tag.
+      </div>
+    ),
+    placement: "left",
+    isFixed: true,
+    disableBeacon: true,
+    spotlightPadding: 2,
+  },
+  {
+    target: '[data-tutorial=\"acc-management-update-details\"]',
+    title: <div>Update User Details</div>,
+    content: (
+      <div>
+        Select this button to modify the user's name or assign a new tag. Note
+        that the email address is fixed to maintain account security and cannot
+        be changed.
+      </div>
+    ),
+    placement: "left",
+    isFixed: true,
+    disableBeacon: true,
+    spotlightPadding: 2,
+  },
+  {
+    target: '[data-tutorial=\"acc-management-filter\"]',
+    title: <div>Narrow Your View</div>,
+    content: (
+      <div>
+        Use the filter tool to sort accounts by name, email, role, or tags. This
+        is especially helpful as your list of partners grows.
+      </div>
+    ),
+    placement: "left",
+    isFixed: true,
+    disableBeacon: true,
+    spotlightPadding: 2,
+  },
+  {
+    target: '[data-tutorial=\"acc-management-new-users\"]',
+    title: <div>Create New Users</div>,
+    content: (
+      <div>
+        Click here to invite a new staff member or partner to the portal. You'll
+        be able to set their login credentials and initial role.
+      </div>
+    ),
+    placement: "left",
+    isFixed: true,
+    disableBeacon: true,
+    spotlightPadding: 2,
+  },
+  {
+    target: '[data-tutorial=\"acc-management-deactivate\"]',
+    title: <div>Deactivate Accounts</div>,
+    content: (
+      <div>Click here to deactivate any accounts you no longer need!</div>
+    ),
+    placement: "left",
+    isFixed: true,
+    disableBeacon: true,
+    spotlightPadding: 2,
+  },
+  {
+    target: "body",
+    title: <div>Tutorial Completed: Account Management</div>,
+    content: (
+      <div>
+        You are now ready to view, edit, and add staff/partners to the platform!
+      </div>
+    ),
+    placement: "left",
+    isFixed: true,
+    disableBeacon: true,
+    spotlightPadding: 2,
+  },
+];
 
 function getStatusLabel(user: AccountUserResponse) {
   if (user.pending) {
@@ -404,7 +496,13 @@ export default function AccountManagementPage() {
       <h1 className="text-2xl font-semibold text-gray-primary">
         Account Management
       </h1>
-
+      <Tutorial
+              tutorialSteps={tutorialSteps}
+              type="adminDashboard"
+              repeatOnRefresh
+              //onStepChange={handleTutorialStepChange}
+              //onTutorialEnd={handleTutorialEnd}
+            />
       <AdvancedBaseTable
         ref={tableRef}
         columns={baseColumns}

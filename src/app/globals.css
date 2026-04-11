@@ -307,3 +307,21 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Keep the notification bell visually bright during admin dashboard tutorial step 2. */
+body.admin-dashboard-tutorial-bell-highlight
+  [data-tutorial="admin-dashboard-notification-bell"] {
+  background-color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  color: #1f2937 !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.98),
+    0 0 0 4px rgba(255, 255, 255, 0.35),
+    0 6px 14px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.admin-dashboard-tutorial-bell-highlight
+  [data-tutorial="admin-dashboard-notification-bell"]
+  svg {
+  color: #1f2937 !important;
+}

@@ -22,7 +22,10 @@ export default function TicketSearchBar({
   }, [inputValue, onSearchChange]);
 
   return (
-    <div className="flex justify-between items-center w-full pt-4 pb-2 gap-4">
+    <div
+      className="flex justify-between items-center w-full pt-4 pb-2 gap-4"
+      data-tutorial="support-search-button"
+    >
       <div className="relative flex-1">
         <MagnifyingGlass
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-primary/50"

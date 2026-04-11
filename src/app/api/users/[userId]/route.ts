@@ -42,7 +42,7 @@ const patchBodySchema = z.object({
   enabled: z.boolean().optional(),
   permissions: permissionsSchema.optional(),
   tutorialFinished: z
-    .enum(["dashboard", "items", "requests", "wishlists"])
+    .enum(["dashboard", "adminDashboard", "items", "requests", "wishlists"])
     .optional(),
 });
 
@@ -151,6 +151,10 @@ export async function PATCH(
       permissions: bodyParsed.data.permissions,
       dashboardTutorial:
         bodyParsed.data.tutorialFinished === "dashboard" ? true : undefined,
+      adminDashboardTutorial:
+        bodyParsed.data.tutorialFinished === "adminDashboard"
+          ? true
+          : undefined,
       itemsTutorial:
         bodyParsed.data.tutorialFinished === "items" ? true : undefined,
       requestsTutorial:

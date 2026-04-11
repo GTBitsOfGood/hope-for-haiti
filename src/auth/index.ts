@@ -28,6 +28,7 @@ declare module "next-auth" {
     pending: boolean;
     tag?: string;
     dashboardTutorial: boolean;
+    adminDashboardTutorial: boolean;
     itemsTutorial: boolean;
     requestsTutorial: boolean;
     wishlistsTutorial: boolean;
@@ -44,6 +45,7 @@ declare module "next-auth" {
       tag?: string;
       enabled: boolean;
       dashboardTutorial: boolean;
+      adminDashboardTutorial: boolean;
       itemsTutorial: boolean;
       requestsTutorial: boolean;
       wishlistsTutorial: boolean;
@@ -65,6 +67,7 @@ declare module "next-auth/jwt" {
     streamUserToken: string | null;
     tag?: string;
     dashboardTutorial: boolean;
+    adminDashboardTutorial: boolean;
     itemsTutorial: boolean;
     requestsTutorial: boolean;
     wishlistsTutorial: boolean;
@@ -98,6 +101,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             partnerDetails: true, 
             ...PERMISSION_SELECT,
             dashboardTutorial: true,
+            adminDashboardTutorial: true,
             itemsTutorial: true,
             requestsTutorial: true,
             wishlistsTutorial: true,
@@ -122,6 +126,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           streamUserToken: user.streamUserToken,
           tag: user.tag ?? undefined,
           dashboardTutorial: user.dashboardTutorial,
+          adminDashboardTutorial: user.adminDashboardTutorial,
           itemsTutorial: user.itemsTutorial,
           requestsTutorial: user.requestsTutorial,
           wishlistsTutorial: user.wishlistsTutorial,
@@ -149,6 +154,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token[field] = user[field];
         });
         token.dashboardTutorial = user.dashboardTutorial;
+        token.adminDashboardTutorial = user.adminDashboardTutorial;
         token.itemsTutorial = user.itemsTutorial;
         token.requestsTutorial = user.requestsTutorial;
         token.wishlistsTutorial = user.wishlistsTutorial;
@@ -158,6 +164,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === "update" && session) {
         const tutorialFields = [
           "dashboardTutorial",
+          "adminDashboardTutorial",
           "itemsTutorial",
           "requestsTutorial",
           "wishlistsTutorial",
@@ -187,6 +194,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user[field] = Boolean(token[field]);
       });
       session.user.dashboardTutorial = Boolean(token.dashboardTutorial);
+      session.user.adminDashboardTutorial = Boolean(token.adminDashboardTutorial);
       session.user.itemsTutorial = Boolean(token.itemsTutorial);
       session.user.requestsTutorial = Boolean(token.requestsTutorial);
       session.user.wishlistsTutorial = Boolean(token.wishlistsTutorial);

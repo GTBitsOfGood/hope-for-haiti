@@ -14,6 +14,7 @@ import { useSession } from "next-auth/react";
 
 const nameMap = {
   dashboard: "dashboardTutorial" as keyof SessionUser,
+  adminDashboard: "adminDashboardTutorial" as keyof SessionUser,
   items: "itemsTutorial" as keyof SessionUser,
   requests: "requestsTutorial" as keyof SessionUser,
   wishlists: "wishlistsTutorial" as keyof SessionUser,
@@ -24,6 +25,7 @@ interface TutorialProps {
   type: keyof typeof nameMap;
   onStepChange?: (stepIndex: number) => void;
   onTutorialEnd?: () => void;
+  repeatOnRefresh?: boolean;
 }
 
 export type TutorialStep = Step & {
@@ -74,6 +76,7 @@ export default function Tutorial({
   type,
   onStepChange,
   onTutorialEnd,
+  repeatOnRefresh = false,
 }: TutorialProps) {
   const { user } = useUser();
   const { update: updateSession } = useSession();
@@ -93,7 +96,7 @@ export default function Tutorial({
   const tutorialField = nameMap[type];
   const sessionTutorialCompleted = Boolean(user?.[tutorialField]);
   const isTutorialCompleted =
-    serverTutorialCompleted ?? sessionTutorialCompleted;
+    repeatOnRefresh ? false : serverTutorialCompleted ?? sessionTutorialCompleted;
 
   useEffect(() => {
     const updateViewportWidth = () => {
@@ -228,7 +231,7 @@ export default function Tutorial({
     onTutorialEndRef.current?.();
 
     const userId = user?.id;
-    if (!userId) return;
+    if (!userId || repeatOnRefresh) return;
 
     void (async () => {
       try {
@@ -259,16 +262,16 @@ export default function Tutorial({
         console.error("Error updating tutorial status:", error);
       }
     })();
-  }, [tutorialField, type, updateSession, user?.id]);
+  }, [repeatOnRefresh, tutorialField, type, updateSession, user?.id]);
 
   useEffect(() => {
     hasFetchedCompletionRef.current = false;
     lastNotifiedStepIndexRef.current = null;
     setServerTutorialCompleted(null);
-  }, [type, user?.id]);
+  }, [repeatOnRefresh, type, user?.id]);
 
   useEffect(() => {
-    if (!user?.id || hasFetchedCompletionRef.current) {
+    if (repeatOnRefresh || !user?.id || hasFetchedCompletionRef.current) {
       return;
     }
 
@@ -313,7 +316,7 @@ export default function Tutorial({
     return () => {
       cancelled = true;
     };
-  }, [sessionTutorialCompleted, tutorialField, updateSession, user?.id]);
+  }, [repeatOnRefresh, sessionTutorialCompleted, tutorialField, updateSession, user?.id]);
 
   useEffect(() => {
     if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
@@ -440,16 +443,20 @@ export default function Tutorial({
     const endedByDone =
       (status === STATUS.FINISHED && isOnLastStep) ||
       (eventType === EVENTS.STEP_AFTER &&
-        action === ACTIONS.NEXT &&
+        (action === ACTIONS.NEXT || action === ACTIONS.COMPLETE) &&
         isOnLastStep);
+    const endedByTerminalStatus =
+      status === STATUS.FINISHED || status === STATUS.SKIPPED;
+    const endedByTourEndEvent = eventType === EVENTS.TOUR_END;
 
-    if (endedByClose || endedBySkip || endedByDone) {
+    if (
+      endedByClose ||
+      endedBySkip ||
+      endedByDone ||
+      endedByTerminalStatus ||
+      endedByTourEndEvent
+    ) {
       finishTutorial();
-      return;
-    }
-
-    // Ignore terminal statuses triggered by non-user navigation edge cases.
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       return;
     }
 
