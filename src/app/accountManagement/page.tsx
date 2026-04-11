@@ -357,26 +357,49 @@ export default function AccountManagementPage() {
       id: "tag",
       filterType: "enum",
       filterOptions: tags?.map((t) => t.name) ?? [],
-      cell: (item) =>
-        item.tags.length > 0 ? (
-          <div className="group relative inline-block">
-            <span className="cursor-pointer">View Tags</span>
-            <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 z-50 bg-white rounded-lg shadow-lg px-3 py-2 min-w-40">
-              <div className="flex flex-wrap gap-1">
-                {item.tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="px-2 py-0.5 bg-[#E6E6E6] text-[#333333] rounded-md text-xs"
-                  >
-                    {tag.name}
-                  </span>
-                ))}
+      cell: (item) => {
+        const displayLimit = 2;
+        const hasTags = item.tags && item.tags.length > 0;
+        const extraCount = item.tags.length - displayLimit;
+
+        return hasTags ? (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {item.tags.slice(0, displayLimit).map((tag) => (
+              <span
+                key={tag.id}
+                className="px-2 py-0.5 bg-[#F0F2F5] text-[#4A5568] border border-[#E2E8F0] rounded-md text-[11px] font-medium whitespace-nowrap"
+              >
+                {tag.name}
+              </span>
+            ))}
+
+            {extraCount > 0 && (
+              <div className="group relative inline-block">
+                <span className="cursor-help text-xs font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors">
+                  +{extraCount}
+                </span>
+                
+                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-3 min-w-[180px]">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2">All Tags</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="px-2 py-0.5 bg-[#E6E6E6] text-[#333333] rounded-md text-xs whitespace-nowrap"
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="absolute -bottom-1 left-3 w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45"></div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
-          <span className="italic text-gray-400">No tags</span>
-        ),
+          <span className="italic text-gray-400 text-sm">No tags</span>
+        );
+      },
     },
     {
       id: "status",
