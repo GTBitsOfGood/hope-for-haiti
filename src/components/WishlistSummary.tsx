@@ -2,7 +2,7 @@
 
 import { useStreamClient } from "@/hooks/useStreamClient";
 import { useEffect, useState, useRef } from "react";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
 
 export default function WishlistSummary() {
   const [fullText, setFullText] = useState<string>("");
@@ -64,7 +64,7 @@ export default function WishlistSummary() {
     if (!isRequested || hasStreamed.current) return;
 
     const startStream = async () => {
-      hasStreamed.current = true; 
+      hasStreamed.current = true;
 
       try {
         await streamClient.stream("/api/wishlists/summary", {
@@ -78,7 +78,7 @@ export default function WishlistSummary() {
             console.error("Streaming error:", error);
             setFullText("Unable to load summary.");
             setIsLoading(false);
-            hasStreamed.current = false; 
+            hasStreamed.current = false;
             setIsRequested(false);
           },
         });
@@ -96,11 +96,11 @@ export default function WishlistSummary() {
     return () => {
       streamClient.cancel();
     };
-    
   }, [streamClient, isRequested]);
 
   const showContainer = displayedText.length > 0;
-  const showCursor = isLoading || isStreaming || displayedText.length < fullText.length;
+  const showCursor =
+    isLoading || isStreaming || displayedText.length < fullText.length;
 
   return (
     <div className="w-full">
@@ -108,7 +108,7 @@ export default function WishlistSummary() {
         <div className="flex justify-end -mb-12 mt-8 mr-28">
           <button
             onClick={() => setIsRequested(true)}
-            className="flex items-center px-4 py-2 bg-blue-primary text-white rounded-md font-medium hover:bg-blue-600 transition-colors shadow-sm"
+            className="flex items-center px-4 py-2 bg-gradient-to-br from-blue-primary to-red-primary text-white rounded-md font-medium hover:from-blue-700 hover:to-red-700 transition-all shadow-sm"
           >
             Generate Summary
           </button>
@@ -117,15 +117,13 @@ export default function WishlistSummary() {
 
       <div
         className={`mt-4 mb-5 ${
-          isRequested && showContainer 
-            ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" 
+          isRequested && showContainer
+            ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light"
             : "hidden"
         } transition-all duration-200`}
       >
         <div className="prose inline-block align-top-markdown-content">
-          <ReactMarkdown>
-            {displayedText}
-          </ReactMarkdown>
+          <ReactMarkdown>{displayedText}</ReactMarkdown>
         </div>
         {showCursor && <span className="animate-pulse">|</span>}
       </div>
