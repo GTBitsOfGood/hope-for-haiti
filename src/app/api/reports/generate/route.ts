@@ -82,7 +82,14 @@ export async function GET(request: NextRequest) {
         "Shipment Total",
       ];
 
-      const rows = result.rows.map((row) => ({
+      const rows = (result.rows as Array<{
+        shipmentNumber: string;
+        recipient: string;
+        category: string | null;
+        totalItems: number;
+        categoryValue: number;
+        shipmentTotal: number;
+      }>).map((row) => ({
         "Shipment Number": row.shipmentNumber,
         Recipient: row.recipient,
         Category: row.category,
@@ -100,7 +107,12 @@ export async function GET(request: NextRequest) {
         "Total Value Sent",
       ];
 
-      const rows = result.rows.map((row) => ({
+      const rows = (result.rows as Array<{
+        donorName: string;
+        category: string | null;
+        totalQuantity: number;
+        totalValueSent: number;
+      }>).map((row) => ({
         "Donor Name": row.donorName,
         Category: row.category,
         "Total Quantity": row.totalQuantity,
