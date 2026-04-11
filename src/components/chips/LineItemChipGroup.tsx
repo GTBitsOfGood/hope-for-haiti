@@ -346,7 +346,7 @@ function LineItemChip({
                           setIsSplitting(false);
                           setSplitQuantity("");
                         }}
-                        className="rounded border border-red-primary text-red-primary px-3 py-1 hover:bg-gray-primary/10 transition-all duration-200"
+                        className="rounded border border-red-primary text-red-primary px-3 py-1 hover:bg-red-primary/10 transition-all duration-200"
                       >
                         Cancel
                       </button>
