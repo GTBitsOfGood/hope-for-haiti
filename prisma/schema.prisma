@@ -94,13 +94,19 @@ enum ItemCategory {
 // User Management
 // ============================================================================
 
+model Tag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
   name         String
   passwordHash String
   type         UserType
-  tag          String?
+  tags         Tag[]
   enabled      Boolean  @default(true)
   pending      Boolean  @default(true)
   

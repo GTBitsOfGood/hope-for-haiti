@@ -38,9 +38,13 @@ export class PartnerService {
           },
         },
         {
-          tag: {
-            contains: params.term.trim(),
-            mode: "insensitive",
+          tags: {
+            some: {
+              name: {
+                contains: params.term.trim(),
+                mode: "insensitive",
+              },
+            },
           },
         },
       ];
@@ -51,7 +55,12 @@ export class PartnerService {
       select: {
         id: true,
         name: true,
-        tag: true,
+        tags: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: {
         name: "asc",
@@ -61,7 +70,7 @@ export class PartnerService {
     return partners.map((partner) => ({
       id: partner.id,
       name: partner.name,
-      tag: partner.tag,
+      tags: partner.tags,
     }));
   }
 

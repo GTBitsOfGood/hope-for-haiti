@@ -28,12 +28,17 @@ import {
 } from "@/types/api/user.types";
 import { createEmptyStaffPermissionState } from "@/constants/staffPermissions";
 
+interface TagOption {
+  value: number;
+  label: string;
+}
+
 interface AccountUserResponse {
   id: number;
   email: string;
   type: UserType;
   name: string;
-  tag: string | null;
+  tags: { id: number; name: string }[];
   enabled: boolean;
   pending: boolean;
   isSuper?: boolean;
@@ -69,7 +74,12 @@ export default function AccountManagementPage() {
   const tableRef = useRef<AdvancedBaseTableHandle<AccountRow>>(null);
   const { apiClient } = useApiClient();
   const { data: tags, refetch: refetchTags } =
-    useFetch<string[]>("/api/users/tags");
+    useFetch<{ id: number; name: string }[]>("/api/tags");
+
+  const tagOptions: TagOption[] = (tags ?? []).map((t) => ({
+    value: t.id,
+    label: t.name,
+  }));
 
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
 
@@ -148,7 +158,9 @@ export default function AccountManagementPage() {
       return;
     }
     if (user.id === Number(currentUser?.id) || isProtectedUser(user)) {
-      toast.error("You do not have permission to modify this account's status.");
+      toast.error(
+        "You do not have permission to modify this account's status."
+      );
       return;
     }
     setSelectedUser(user);
@@ -177,14 +189,14 @@ export default function AccountManagementPage() {
   const confirmEditAccount = async (data: {
     name: string;
     email: string;
-    tag: string;
+    tags: TagOption[];
   }) => {
     if (!canManageAccounts) return;
     if (!selectedUser) return;
 
     try {
       const payload: Record<string, unknown> = {
-        tag: data.tag,
+        tags: data.tags.map((t) => t.value),
       };
       const canEditName = selectedUser.pending || isStaff(selectedUser.type);
       if (canEditName) {
@@ -206,7 +218,7 @@ export default function AccountManagementPage() {
       const nextUser: AccountRow = {
         ...selectedUser,
         ...(canEditName && { name: data.name }),
-        tag: data.tag || null,
+        tags: data.tags.map((t) => ({ id: t.value, name: t.label })),
       };
 
       tableRef.current?.upsertItem(nextUser);
@@ -233,7 +245,9 @@ export default function AccountManagementPage() {
       return;
     }
     if (Boolean(selectedUser.isSuper && selectedUser.userWrite)) {
-      toast.error("You cannot deactivate accounts with super admin permissions.");
+      toast.error(
+        "You cannot deactivate accounts with super admin permissions."
+      );
       setDeactivateModalOpen(false);
       setSelectedUser(null);
       return;
@@ -342,15 +356,50 @@ export default function AccountManagementPage() {
     {
       id: "tag",
       filterType: "enum",
-      filterOptions: tags ?? [],
-      cell: (item) =>
-        item.tag ? (
-          <span className="px-3 py-1 bg-red-primary/70 text-white rounded-md text-sm">
-            {item.tag}
-          </span>
+      filterOptions: tags?.map((t) => t.name) ?? [],
+      cell: (item) => {
+        const displayLimit = 2;
+        const hasTags = item.tags && item.tags.length > 0;
+        const extraCount = item.tags.length - displayLimit;
+
+        return hasTags ? (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {item.tags.slice(0, displayLimit).map((tag) => (
+              <span
+                key={tag.id}
+                className="px-2 py-0.5 bg-[#F0F2F5] text-[#4A5568] border border-[#E2E8F0] rounded-md text-[11px] font-medium whitespace-nowrap"
+              >
+                {tag.name}
+              </span>
+            ))}
+
+            {extraCount > 0 && (
+              <div className="group relative inline-block">
+                <span className="cursor-help text-xs font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors">
+                  +{extraCount}
+                </span>
+                
+                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-3 min-w-[180px]">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2">All Tags</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="px-2 py-0.5 bg-[#E6E6E6] text-[#333333] rounded-md text-xs whitespace-nowrap"
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="absolute -bottom-1 left-3 w-2 h-2 bg-white border-b border-r border-gray-200 rotate-45"></div>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
-          <span className="italic text-gray-400">No tag</span>
-        ),
+          <span className="italic text-gray-400 text-sm">No tags</span>
+        );
+      },
     },
     {
       id: "status",
@@ -359,27 +408,24 @@ export default function AccountManagementPage() {
   ];
 
   const isProtectedUser = (item: AccountRow) => {
-  if (!currentUser) return true;
+    if (!currentUser) return true;
 
-  // Super Admins are protected from everyone
-  if (item.isSuper) return true;
+    // Super Admins are protected from everyone
+    if (item.isSuper) return true;
 
-  // If the current user is NOT a Super Admin, then anyone with userWrite 
-  // is protected (prevents horizontal deactivations)
-  if (!currentUser.isSuper && item.userWrite) return true;
+    // If the current user is NOT a Super Admin, then anyone with userWrite
+    // is protected (prevents horizontal deactivations)
+    if (!currentUser.isSuper && item.userWrite) return true;
 
-  return false;
-};
+    return false;
+  };
 
   if (canManageAccounts) {
     baseColumns.push({
       id: "manage",
       headerClassName: "text-right",
       cell: (item) => (
-        <div
-          className="flex justify-end"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
           <AccountDropdown
             isPending={item.pending}
             user={{ enabled: item.enabled }}
@@ -388,7 +434,9 @@ export default function AccountManagementPage() {
             onDeactivateAccount={() => handleDeactivateAccount(item)}
             onSendReminder={() => handleSendReminder(item)}
             canManage={canManageAccounts}
-            hideDeactivateOption={item.id === Number(currentUser?.id) || isProtectedUser(item)}
+            hideDeactivateOption={
+              item.id === Number(currentUser?.id) || isProtectedUser(item)
+            }
           />
         </div>
       ),
@@ -495,12 +543,15 @@ This will restore the user's access to the system.`
                   name: selectedUser.name,
                   email: selectedUser.email,
                   role: selectedUser.type,
-                  tag: selectedUser.tag || "",
+                  tags: selectedUser.tags.map((t) => ({
+                    value: t.id,
+                    label: t.name,
+                  })),
                 }
               : undefined
           }
           isStaffAccount={selectedUser ? isStaff(selectedUser.type) : true}
-          existingTags={tags ?? []}
+          existingTags={tagOptions}
           onManagePermissions={
             selectedUser &&
             !selectedUser.pending &&

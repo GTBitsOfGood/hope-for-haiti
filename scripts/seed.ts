@@ -99,7 +99,7 @@ async function buildSeedData() {
 
   // Clear all Stream Chat channels before seeding
   await StreamIoService.deleteAllChannels();
-  
+
   // Get all signoffs with signature URLs before deleting
   const signOffs = await db.signOff.findMany({
     select: {
@@ -135,8 +135,21 @@ async function buildSeedData() {
   await db.notification.deleteMany();
   await db.passwordResetToken.deleteMany();
   await db.user.deleteMany();
+  await db.tag.deleteMany();
 
   const passwordHash = await hash("root");
+
+  const internalTag = await db.tag.upsert({
+    where: { name: "internal" },
+    create: { name: "internal" },
+    update: {},
+  });
+
+  const externalTag = await db.tag.upsert({
+    where: { name: "external" },
+    create: { name: "external" },
+    update: {},
+  });
 
   // Create super admin staff user
   const superAdmin = await createUser({
@@ -231,7 +244,7 @@ async function buildSeedData() {
     name: "Hope Medical Center",
     passwordHash,
     type: UserType.PARTNER,
-    tag: "internal",
+    tags: { connect: [{ id: internalTag.id }] },
     enabled: true,
     pending: false,
     partnerDetails: buildPartnerDetails(
@@ -249,7 +262,7 @@ async function buildSeedData() {
     name: "Les Cayes Community Hospital",
     passwordHash,
     type: UserType.PARTNER,
-    tag: "external",
+    tags: { connect: [{ id: externalTag.id }] },
     enabled: true,
     pending: false,
     partnerDetails: buildPartnerDetails(
@@ -269,114 +282,116 @@ async function buildSeedData() {
   console.log(`  - Partner 2: ${partner2.email}`);
 
   // ============================================================================
-// Test: partner has an existing manual wishlist entry for an item,
-// then a distribution only partially fulfills their request for that same item.
-// Expected: existing wishlist entry quantity increases by the unfulfilled amount.
-//
-// Partner 1 manually added "Gauze Pads" to their wishlist (qty: 50) — this
-// simulates a wishlist entry they created themselves before any donor offer.
-// A donor offer comes in for Gauze Pads, Partner 1 requests 200.
-// Distribution only allocates 1 line item (75 units) → unfulfilled = 125.
-// Expected final wishlist qty: 50 + 125 = 175
-// ============================================================================
+  // Test: partner has an existing manual wishlist entry for an item,
+  // then a distribution only partially fulfills their request for that same item.
+  // Expected: existing wishlist entry quantity increases by the unfulfilled amount.
+  //
+  // Partner 1 manually added "Gauze Pads" to their wishlist (qty: 50) — this
+  // simulates a wishlist entry they created themselves before any donor offer.
+  // A donor offer comes in for Gauze Pads, Partner 1 requests 200.
+  // Distribution only allocates 1 line item (75 units) → unfulfilled = 125.
+  // Expected final wishlist qty: 50 + 125 = 175
+  // ============================================================================
 
-// Step 1: Partner 1 manually creates a wishlist entry beforehand
-await db.wishlist.create({
-  data: {
-    name: "Gauze Pads",
-    quantity: 50,
-    priority: "MEDIUM",
-    comments: "We are always in need of these",
-    partnerId: partner1.id,
-  },
-});
-
-console.log("✓ Created manual wishlist entry for Partner 1: Gauze Pads qty 50");
-
-// Step 2: Donor offer comes in with Gauze Pads
-const gauzeOffer = await db.donorOffer.create({
-  data: {
-    offerName: "Gauze Pads Offer",
-    donorName: "Test Donor",
-    state: "FINALIZED",
-    partnerResponseDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    donorResponseDeadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    partnerVisibilities: {
-      connect: [{ id: partner1.id }],
+  // Step 1: Partner 1 manually creates a wishlist entry beforehand
+  await db.wishlist.create({
+    data: {
+      name: "Gauze Pads",
+      quantity: 50,
+      priority: "MEDIUM",
+      comments: "We are always in need of these",
+      partnerId: partner1.id,
     },
-  },
-});
+  });
 
-const gauzeItem = await db.generalItem.create({
-  data: {
-    donorOfferId: gauzeOffer.id,
-    title: "Gauze Pads",
-    unitType: "Box",
-    initialQuantity: 200,
-    weight: 0.3,
-  },
-});
+  console.log(
+    "✓ Created manual wishlist entry for Partner 1: Gauze Pads qty 50"
+  );
 
-// Two line items: 75 units and 125 units
-const gauzeLineItem1 = await db.lineItem.create({
-  data: {
-    generalItemId: gauzeItem.id,
-    donorName: "Test Donor",
-    quantity: 75,
-    lotNumber: "GLOT-1",
-    palletNumber: "GPAL-1",
-    boxNumber: "GBOX-1",
-    unitPrice: 3.0,
-    allowAllocations: true,
-    visible: true,
-    gik: true,
-  },
-});
-
-await db.lineItem.create({
-  data: {
-    generalItemId: gauzeItem.id,
-    donorName: "Test Donor",
-    quantity: 125,
-    lotNumber: "GLOT-2",
-    palletNumber: "GPAL-1",
-    boxNumber: "GBOX-2",
-    unitPrice: 3.0,
-    allowAllocations: true,
-    visible: true,
-    gik: true,
-  },
-});
-
-// Step 3: Partner 1 requests 200 units
-await db.generalItemRequest.create({
-  data: {
-    generalItemId: gauzeItem.id,
-    partnerId: partner1.id,
-    quantity: 200,
-    priority: "MEDIUM",
-    finalQuantity: 200,
-    comments: "Requested from donor offer",
-  },
-});
-
-// Step 4: Distribution created — only allocates the 75 unit line item
-const gauzeDist = await db.distribution.create({
-  data: {
-    partnerId: partner1.id,
-    pending: true,
-    allocations: {
-      create: [{ lineItemId: gauzeLineItem1.id, partnerId: partner1.id }],
+  // Step 2: Donor offer comes in with Gauze Pads
+  const gauzeOffer = await db.donorOffer.create({
+    data: {
+      offerName: "Gauze Pads Offer",
+      donorName: "Test Donor",
+      state: "FINALIZED",
+      partnerResponseDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      donorResponseDeadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      partnerVisibilities: {
+        connect: [{ id: partner1.id }],
+      },
     },
-  },
-});
+  });
 
-console.log("✓ Created Gauze Pads distribution test");
-console.log(`  - Distribution ID: ${gauzeDist.id} (pending)`);
-console.log(`  - Partner 1 wishlist BEFORE approval: Gauze Pads qty 50`);
-console.log(`  - After approving dist ${gauzeDist.id}:`);
-console.log(`    unfulfilled = 200 - 75 = 125`);
-console.log(`    merged wishlist qty = 50 + 125 = 175`);
+  const gauzeItem = await db.generalItem.create({
+    data: {
+      donorOfferId: gauzeOffer.id,
+      title: "Gauze Pads",
+      unitType: "Box",
+      initialQuantity: 200,
+      weight: 0.3,
+    },
+  });
+
+  // Two line items: 75 units and 125 units
+  const gauzeLineItem1 = await db.lineItem.create({
+    data: {
+      generalItemId: gauzeItem.id,
+      donorName: "Test Donor",
+      quantity: 75,
+      lotNumber: "GLOT-1",
+      palletNumber: "GPAL-1",
+      boxNumber: "GBOX-1",
+      unitPrice: 3.0,
+      allowAllocations: true,
+      visible: true,
+      gik: true,
+    },
+  });
+
+  await db.lineItem.create({
+    data: {
+      generalItemId: gauzeItem.id,
+      donorName: "Test Donor",
+      quantity: 125,
+      lotNumber: "GLOT-2",
+      palletNumber: "GPAL-1",
+      boxNumber: "GBOX-2",
+      unitPrice: 3.0,
+      allowAllocations: true,
+      visible: true,
+      gik: true,
+    },
+  });
+
+  // Step 3: Partner 1 requests 200 units
+  await db.generalItemRequest.create({
+    data: {
+      generalItemId: gauzeItem.id,
+      partnerId: partner1.id,
+      quantity: 200,
+      priority: "MEDIUM",
+      finalQuantity: 200,
+      comments: "Requested from donor offer",
+    },
+  });
+
+  // Step 4: Distribution created — only allocates the 75 unit line item
+  const gauzeDist = await db.distribution.create({
+    data: {
+      partnerId: partner1.id,
+      pending: true,
+      allocations: {
+        create: [{ lineItemId: gauzeLineItem1.id, partnerId: partner1.id }],
+      },
+    },
+  });
+
+  console.log("✓ Created Gauze Pads distribution test");
+  console.log(`  - Distribution ID: ${gauzeDist.id} (pending)`);
+  console.log(`  - Partner 1 wishlist BEFORE approval: Gauze Pads qty 50`);
+  console.log(`  - After approving dist ${gauzeDist.id}:`);
+  console.log(`    unfulfilled = 200 - 75 = 125`);
+  console.log(`    merged wishlist qty = 50 + 125 = 175`);
 }
 
 buildSeedData()

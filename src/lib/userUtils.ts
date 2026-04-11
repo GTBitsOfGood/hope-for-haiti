@@ -50,7 +50,7 @@ export function getTagOrder(
 type SelectUser = {
   id: number;
   name: string;
-  tag?: string;
+  tags?: { id: number; name: string }[];
 };
 
 /**
@@ -74,13 +74,15 @@ export function groupUsersByTagForSelect(users: SelectUser[]): {
   > = {};
 
   users.forEach((user) => {
-    const tag = user.tag || "Untagged";
-    if (!grouped[tag]) {
-      grouped[tag] = { label: tag, options: [] };
-    }
-    grouped[tag].options.push({
-      label: user.name,
-      value: user,
+    const tagNames = user.tags?.map((t) => t.name) || ["Untagged"];
+    tagNames.forEach((tagName) => {
+      if (!grouped[tagName]) {
+        grouped[tagName] = { label: tagName, options: [] };
+      }
+      grouped[tagName].options.push({
+        label: user.name,
+        value: user,
+      });
     });
   });
 
@@ -99,9 +101,10 @@ export function searchByNameOrTag(
   input: string
 ): boolean {
   const inputLower = input.toLowerCase();
+  const user = candidate.data?.value;
+  const tagNames = user?.tags?.map((t) => t.name.toLowerCase()) || [];
   return (
-    candidate.data?.value.name.toLowerCase().includes(inputLower) ||
-    candidate.data?.value.tag?.toLowerCase().includes(inputLower) ||
-    false
+    (user?.name.toLowerCase().includes(inputLower) ?? false) ||
+    tagNames.some((t) => t.includes(inputLower))
   );
 }
