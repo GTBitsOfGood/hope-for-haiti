@@ -201,7 +201,7 @@ export class LineItemService {
     }
   }
 
-  static async splitLineItem(lineItemId: number, generalItemId: number, splitQuantity: number) {
+  static async splitLineItem(lineItemId: number, generalItemId: number, quantities: number[]) {
     return await db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "LineItem" WHERE id = ${lineItemId} FOR UPDATE`;
       const lineItem = await tx.lineItem.findUnique({
@@ -230,30 +230,37 @@ export class LineItemService {
       if (lineItem.allocation) {
         throw new Error("Cannot split an already allocated line item.");
       }
-      if(!Number.isInteger(splitQuantity)) {
-        throw new Error("Split quantity must be a whole number.");
+      if (quantities.length < 2 || quantities.length > 7) {
+        throw new Error("Number of splits must be between 2 and 7");
       }
-      if (splitQuantity <= 0 || splitQuantity >= lineItem.quantity) {
-        throw new Error(`Split quantity must be between 1 and ${lineItem.quantity - 1}`);
+      if (quantities.some((q) => !Number.isInteger(q) || q <= 0)) {
+        throw new Error("All quantities must be positive whole numbers.");
+      }
+      if (quantities.reduce((sum, q) => sum + q, 0) !== lineItem.quantity) {
+        throw new Error(`Quantities must add up to ${lineItem.quantity}`);
       }
       
       const original = await tx.lineItem.update({
         where: { id: lineItemId },
-        data: { quantity: lineItem.quantity - splitQuantity }
+        data: { quantity: quantities[0] }
       });
       
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id, allocation, generalItem, generalItemId: _gId , ...itemData } = lineItem; 
 
-      const newItem = await tx.lineItem.create({
-        data: {
-          ...itemData, 
-          quantity: splitQuantity, 
-          generalItem: {
-            connect: { id: generalItemId },
-          },
-        },
-      });
+      const newItem = await Promise.all(
+        quantities.slice(1).map((qty) =>
+          tx.lineItem.create({
+            data: {
+              ...itemData,
+              quantity: qty,
+              generalItem: {
+                connect: { id: generalItemId },
+              },
+            },
+          })
+        )
+      );
 
       return { original, newItem };
     })

@@ -10,6 +10,7 @@ import {
 } from "@/util/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { formDataToObject } from "@/util/formData";
+import { z } from "zod";
 
 const updateSchema = singleLineItemSchema.partial();
 
@@ -83,7 +84,14 @@ export async function POST(
     const { generalItemId, lineItemId} = await params; 
 
     const body = await request.json()
-    const result = await LineItemService.splitLineItem(Number(lineItemId), Number(generalItemId), Number(body.splitQuantity));
+    const splitSchema = z.object({
+      quantities: z.array(z.number().int().positive()).min(2).max(7),
+    });
+    const parsed = splitSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
+    }
+    const result = await LineItemService.splitLineItem(Number(lineItemId), Number(generalItemId), parsed.data.quantities);
 
     return NextResponse.json(result, {status: 200 });
 

@@ -95,7 +95,8 @@ function LineItemChip({
 }) {
   const [isSplitting, setIsSplitting] = useState(false); 
   const [isSplitLoading, setIsSplitLoading] = useState(false);
-  const [splitQuantity, setSplitQuantity] = useState("");
+  const [numSplits, setNumSplits] = useState("");
+  const [splitQuantities, setSplitQuantities] = useState<string[]>([]);
   const { apiClient } = useApiClient();
 
   function updateLineItemInTable(updatedItem: Partial<typeof item>) {
@@ -111,12 +112,13 @@ function LineItemChip({
     if (isSplitLoading) return; 
     setIsSplitLoading(true);
     try {
+      const quantities = splitQuantities.map(Number);
       const response = await apiClient.post<{
         original: {id: number; quantity: number};
-        newItem: typeof item; 
+        newItem: (typeof item)[]; 
       }>(
         `/api/generalItems/${generalItemId}/lineItems/${item.id}`,
-        { body: JSON.stringify({ splitQuantity: Number(splitQuantity) }) }
+        { body: JSON.stringify({ quantities }) }
       );
 
       updateItem(generalItemId, (prev) => ({
@@ -127,15 +129,16 @@ function LineItemChip({
               ? {...it, quantity: response.original.quantity }
               : it
           )
-          .concat([{
-            ...response.newItem,
-            allocation: null, 
-          }])
+          .concat(response.newItem.map((newItem) => ({
+            ...newItem,
+            allocation: null,
+          })))
       }));
 
       toast.success("Line item split successfully!");
       setIsSplitting(false);
-      setSplitQuantity("");
+      setNumSplits("");
+      setSplitQuantities([]);
     } catch (error) {
       toast.error((error as Error).message || "Failed to split line item.");
     } finally {
@@ -326,25 +329,62 @@ function LineItemChip({
                   </button>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <p className="text-gray-primary font-bold mb-1">Split Item</p>
+                    <p className="text-gray-primary font-bold mb-1">Split Item (Total: {item.quantity})</p>
                     <p className="text-sm text-gray-primary font-normal">
-                      Split Quantity
+                      Number of Splits
                     </p>
                     <input
                       type="number"
                       step={1}
-                      min={1}
-                      max={item.quantity - 1}
-                      value={splitQuantity}
-                      onChange={(e) => setSplitQuantity(e.target.value)}
-                      placeholder={`1 - ${item.quantity - 1}`}
+                      min={2}
+                      max={7}
+                      value={numSplits}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNumSplits(val);
+                        const n = Number(val);
+                        if (n >= 2 && n <= 7) {
+                          setSplitQuantities(Array(n).fill(""));
+                        } else {
+                          setSplitQuantities([]);
+                        }
+                      }}
+                      placeholder="2 - 7"
                       className="border border-gray-primary/20 rounded px-2 py-1 font-normal"
                     />
+                    {splitQuantities.length > 0 && (
+                      <div className="flex flex-col gap-1 mt-1">
+                        {splitQuantities.map((qty, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <label className="text-sm text-gray-primary font-normal whitespace-nowrap">
+                              Item {i + 1}:
+                            </label>
+                            <input
+                              type="number"
+                              step={1}
+                              min={1}
+                              value={qty}
+                              onChange={(e) => {
+                                const updated = [...splitQuantities];
+                                updated[i] = e.target.value;
+                                setSplitQuantities(updated);
+                              }}
+                              placeholder="Qty"
+                              className="border border-gray-primary/20 rounded px-2 py-1 font-normal w-full"
+                            />
+                          </div>
+                        ))}
+                        <p className="text-xs text-gray-primary font-normal">
+                          Sum: {splitQuantities.reduce((sum, q) => sum + (Number(q) || 0), 0)} / {item.quantity}
+                        </p>
+                      </div>
+                    )}
                     <div className="w-full flex justify-end gap-2">
                       <button
                         onClick={() => {
                           setIsSplitting(false);
-                          setSplitQuantity("");
+                          setNumSplits("");
+                          setSplitQuantities([]);
                         }}
                         className="rounded border border-red-primary text-red-primary px-3 py-1 hover:bg-red-primary/10 transition-all duration-200"
                       >
@@ -353,11 +393,10 @@ function LineItemChip({
                       <button
                         onClick={splitItem}
                         disabled={
-                          isSplitLoading || 
-                          !splitQuantity ||
-                          !Number.isInteger(Number(splitQuantity)) || 
-                          Number(splitQuantity) <= 0 ||
-                          Number(splitQuantity) >= item.quantity
+                          isSplitLoading ||
+                          splitQuantities.length < 2 ||
+                          splitQuantities.some((q) => !q || !Number.isInteger(Number(q)) || Number(q) <= 0) ||
+                          splitQuantities.reduce((sum, q) => sum + (Number(q) || 0), 0) !== item.quantity
                         }
                         className="rounded bg-blue-primary text-white px-3 py-1 disabled:opacity-50"
                       >
