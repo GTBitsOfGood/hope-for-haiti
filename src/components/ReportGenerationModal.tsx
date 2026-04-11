@@ -90,6 +90,13 @@ export default function ReportGenerationModal({
     }
   };
 
+  const handleClose = () => {
+    resetFilters();
+    setStep("select-report");
+    setSelectedReportType(null);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -97,13 +104,11 @@ export default function ReportGenerationModal({
       <div className="relative mx-auto flex max-h-[calc(100dvh-3rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-gray-primary shadow-lg">
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           disabled={isSubmitting}
           aria-label="Close"
           className="absolute top-4 right-4 text-2xl text-gray-500 hover:text-gray-700 disabled:opacity-50"
         >
-          <X className="size-6" />
-        </button>
 
         {/* Header */}
         <div className="shrink-0 border-b border-gray-200 px-6 py-5 pr-14">
