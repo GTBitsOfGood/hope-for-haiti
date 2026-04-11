@@ -783,6 +783,11 @@ export default class DistributionService {
     endDate?: string;
     shipmentId?: string;
   }) {
+    console.log(
+      "[DistributionService] getShipmentPartnerSummaryReport payload:",
+      payload
+    );
+
     const signOffs = await db.signOff.findMany({
       where: {
         ...(payload.startDate || payload.endDate
@@ -810,6 +815,10 @@ export default class DistributionService {
         },
       },
     });
+
+    console.log(
+      `[DistributionService] Found ${signOffs.length} sign-offs`
+    );
 
     // Map to track shipment -> recipient -> category -> aggregated data
     const reportData = new Map<
@@ -847,6 +856,10 @@ export default class DistributionService {
         const recipient = signOff.partnerName;
         const category = generalItem?.category || null;
         const itemValue = Number(lineItem.unitPrice) * lineItem.quantity;
+
+        console.log(
+          `[DistributionService] Processing: shipment=${shipmentNumber}, recipient=${recipient}, category=${category}, quantity=${lineItem.quantity}, value=${itemValue}`
+        );
 
         // Initialize nested maps
         if (!reportData.has(shipmentNumber)) {
@@ -905,6 +918,10 @@ export default class DistributionService {
       }
       return (a.category || "").localeCompare(b.category || "");
     });
+
+    console.log(
+      `[DistributionService] Generated report with ${report.length} rows`
+    );
 
     return {
       rows: report,
