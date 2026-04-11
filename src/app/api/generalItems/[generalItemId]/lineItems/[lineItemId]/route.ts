@@ -68,6 +68,26 @@ export async function DELETE(
 }
 
 // splits line items 
-// export async function POST(
-//   _:
-// )
+export async function POST(
+  request: NextRequest, 
+  { params }: { params: Promise <{generalItemId: string; lineItemId: string}> }
+) {
+  try {
+    const session = await auth(); 
+    if(!session?.user) {
+      throw new AuthenticationError("Session required");
+    }
+
+    UserService.checkPermission(session.user, "offerWrite");
+
+    const { generalItemId, lineItemId} = await params; 
+
+    const body = await request.json()
+    const result = await LineItemService.splitLineItem(Number(lineItemId), Number(generalItemId), Number(body.splitQuantity));
+
+    return NextResponse.json(result, {status: 200 });
+
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
