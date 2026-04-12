@@ -21,6 +21,7 @@ import EditHfhShippingNumberModal from "./EditHfhShippingNumberModal";
 const SHIPMENTS_TUTORIAL_TRACK_SHIPMENTS_STEP_INDEX = 2;
 const SHIPMENTS_TUTORIAL_READY_FOR_DISTRIBUTION_STEP_INDEX = 3;
 const SHIPMENTS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX = 4;
+const SHIPMENTS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX = 5;
 const SHIPMENTS_TUTORIAL_TRACKING_SAMPLE_ID = -995001;
 const SHIPMENTS_TUTORIAL_READY_SAMPLE_ID = -995002;
 const SHIPMENTS_TUTORIAL_READY_SELECTED_LINE_ITEM_IDS = [-995111, -995112];
@@ -134,21 +135,16 @@ export default function ShipmentsTable({
 
   const tableRef = useRef<AdvancedBaseTableHandle<Shipment>>(null);
   const shouldShowSignOffTutorialStep =
-    tutorialMode && tutorialStep === SHIPMENTS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX;
+    tutorialMode &&
+    (tutorialStep === SHIPMENTS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX ||
+      tutorialStep === SHIPMENTS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX);
 
   const fetchTableData = useCallback(
     async (pageSize: number, page: number, filters: FilterList<Shipment>) => {
       if (tutorialMode) {
-        if (tutorialStep === SHIPMENTS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX) {
-          return {
-            data: [SHIPMENTS_TUTORIAL_READY_SAMPLE],
-            total: 1,
-          };
-        }
-
         return {
-          data: [SHIPMENTS_TUTORIAL_TRACKING_SAMPLE],
-          total: 1,
+          data: [SHIPMENTS_TUTORIAL_TRACKING_SAMPLE, SHIPMENTS_TUTORIAL_READY_SAMPLE],
+          total: 2,
         };
       }
 
@@ -167,7 +163,7 @@ export default function ShipmentsTable({
         total: res.total,
       };
     },
-    [apiClient, tutorialMode, tutorialStep]
+    [apiClient, tutorialMode]
   );
 
   useEffect(() => {
@@ -175,13 +171,16 @@ export default function ShipmentsTable({
       return;
     }
     tableRef.current?.reload();
-  }, [tutorialMode, tutorialStep]);
+  }, [tutorialMode]);
 
   useEffect(() => {
     if (!tutorialMode) {
       return;
     }
-    if (tutorialStep === SHIPMENTS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX) {
+    if (
+      tutorialStep === SHIPMENTS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX ||
+      tutorialStep === SHIPMENTS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX
+    ) {
       tableRef.current?.setOpenRowIds(new Set([SHIPMENTS_TUTORIAL_READY_SAMPLE_ID]));
       return;
     }

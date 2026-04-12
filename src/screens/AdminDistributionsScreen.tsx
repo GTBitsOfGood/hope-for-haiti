@@ -18,7 +18,6 @@ enum DistributionTab {
 const DISTRIBUTIONS_TUTORIAL_EDIT_STEP_INDEX = 1;
 const DISTRIBUTIONS_TUTORIAL_TRACK_SHIPMENTS_STEP_INDEX = 2;
 const DISTRIBUTIONS_TUTORIAL_READY_FOR_DISTRIBUTION_STEP_INDEX = 3;
-const DISTRIBUTIONS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX = 4;
 const DISTRIBUTIONS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX = 5;
 const DISTRIBUTIONS_TUTORIAL_TOOLTIP_SELECTOR = '[data-tutorial-tooltip="true"]';
 const DISTRIBUTIONS_SIGNOFFS_TAB_TUTORIAL_ID = "distributions-signoffs-tab";
@@ -197,15 +196,10 @@ export default function AdminDistributionsScreen() {
         setActiveTab(DistributionTab.DISTRIBUTIONS);
       } else if (
         stepIndex >= DISTRIBUTIONS_TUTORIAL_TRACK_SHIPMENTS_STEP_INDEX &&
-        stepIndex <= DISTRIBUTIONS_TUTORIAL_SIGN_OFF_ITEMS_STEP_INDEX &&
+        stepIndex <= DISTRIBUTIONS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX &&
         activeTab !== DistributionTab.SHIPMENTS
       ) {
         setActiveTab(DistributionTab.SHIPMENTS);
-      } else if (
-        stepIndex === DISTRIBUTIONS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX &&
-        activeTab !== DistributionTab.SIGNOFFS
-      ) {
-        setActiveTab(DistributionTab.SIGNOFFS);
       }
     },
     [activeTab, hasDistributionsTutorialEnded]

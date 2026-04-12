@@ -350,7 +350,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     // Group by month and year on the sign off, preserving the total
@@ -400,7 +400,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     type QueryResult = { shipmentCount: bigint; palletCount: bigint }[];
@@ -437,7 +437,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -472,7 +472,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     const result =
@@ -503,7 +503,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -540,7 +540,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -581,7 +581,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND p.tag NOT IN (${Prisma.join(excludePartnerTags)})`;
+      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}

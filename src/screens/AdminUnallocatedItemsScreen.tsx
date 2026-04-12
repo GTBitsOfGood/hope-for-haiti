@@ -238,8 +238,8 @@ export default function AdminUnallocatedItemsScreen() {
       title: <div>Track Incoming Requests</div>,
       content: (
         <div>
-          Click this button to let the system suggest the best distribution plan
-          based on partner wishlists and existing urgent needs.
+          This column shows how many partner requests are tied to each item.
+          Use it to quickly spot high-demand items and prioritize allocation.
         </div>
       ),
       placement: "left",

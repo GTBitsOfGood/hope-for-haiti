@@ -157,6 +157,7 @@ const ACCOUNT_MANAGEMENT_SAMPLE_HIGHLIGHT_CLASS =
 const ACCOUNT_MANAGEMENT_SAMPLE_STEP_INDEX = 1;
 const ACCOUNT_MANAGEMENT_UPDATE_DETAILS_STEP_INDEX = 2;
 const ACCOUNT_MANAGEMENT_DEACTIVATE_STEP_INDEX = 5;
+const ACCOUNT_MANAGEMENT_COMPLETED_STEP_INDEX = 6;
 
 function getStatusLabel(user: AccountUserResponse) {
   if (user.pending) {
@@ -552,7 +553,8 @@ export default function AccountManagementPage() {
         const shouldForceOpenTutorialManageMenu =
           isTutorialSampleRow &&
           (activeTutorialStep === ACCOUNT_MANAGEMENT_UPDATE_DETAILS_STEP_INDEX ||
-            activeTutorialStep === ACCOUNT_MANAGEMENT_DEACTIVATE_STEP_INDEX);
+            activeTutorialStep === ACCOUNT_MANAGEMENT_DEACTIVATE_STEP_INDEX ||
+            activeTutorialStep === ACCOUNT_MANAGEMENT_COMPLETED_STEP_INDEX);
         const shouldHideDeactivateOption = isTutorialSampleRow
           ? false
           : item.id === Number(currentUser?.id) || isProtectedUser(item);

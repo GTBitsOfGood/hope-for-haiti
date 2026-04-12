@@ -488,6 +488,29 @@ export default function Tutorial({
         return;
       }
 
+      if (eventType === EVENTS.TARGET_NOT_FOUND && action === ACTIONS.PREV) {
+        const prevIndex = Math.max(0, currentIndex - 1);
+        const prevOriginalIndex =
+          currentEntries[prevIndex]?.originalIndex ?? prevIndex;
+
+        notifyStepChange(prevOriginalIndex);
+
+        const prevTarget = currentSteps[prevIndex]?.target;
+        const prevSelector =
+          typeof prevTarget === "string" && prevTarget !== "body"
+            ? prevTarget
+            : null;
+
+        if (prevSelector) {
+          await waitForTutorialTarget(prevSelector);
+        }
+
+        stepIndexRef.current = prevIndex;
+        originalStepIndexRef.current = prevOriginalIndex;
+        setStepIndex(prevIndex);
+        return;
+      }
+
       const nextIndex = action === ACTIONS.PREV ? currentIndex - 1 : currentIndex + 1;
       const safeNextIndex = Math.max(
         0,
