@@ -103,14 +103,16 @@ const tutorialSteps: TutorialStep[] = [
       </div>
     ),
     placement: "left",
+    isFixed: true,
   },
   {
-    target: '[data-tutorial="wishlist-title-input"]',
+    target: '[data-tutorial="wishlist-title-input-box"]',
     title: "Adding a Wishlist",
     content:
       "For this example, we will enter Bottled Water Cases as the item title.",
     placement: "left",
     isFixed: true,
+    spotlightPadding: 2,
   },
   {
     target: '[data-tutorial="wishlist-suggestions"]',
@@ -127,6 +129,7 @@ const tutorialSteps: TutorialStep[] = [
       </div>
     ),
     placement: "left",
+    isFixed: true,
   },
   {
     target: "body",
