@@ -334,11 +334,8 @@ export default function SupportScreen({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleChannelUpdate = (event: any) => {
-      console.log("Channel updated event:", event);
-
       const channelData = event.channel?.data || activeChannel.data;
       if (channelData?.closed === true && activeTab === "Unresolved") {
-        console.log("Switching to Resolved tab");
         setActiveTab("Resolved");
       }
     };

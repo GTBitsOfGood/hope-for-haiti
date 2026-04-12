@@ -95,9 +95,6 @@ export async function PATCH(
     if (!session?.user) {
       throw new AuthenticationError("Session required");
     }
-    if (session.user.type === UserType.STAFF) {
-      UserService.checkPermission(session.user, "userWrite");
-    }
 
     const { userId } = await params;
     if (session.user.type === UserType.PARTNER && userId !== session.user.id) {
@@ -134,6 +131,21 @@ export async function PATCH(
 
     // These checks relate to the session user - the ones in userService relate to the target user
     const isSelf = session.user.id === parsed.data.userId.toString();
+    const isTutorialOnlyPatch =
+      bodyParsed.data.tutorialFinished !== undefined &&
+      bodyParsed.data.name === undefined &&
+      bodyParsed.data.email === undefined &&
+      bodyParsed.data.tag === undefined &&
+      bodyParsed.data.role === undefined &&
+      bodyParsed.data.enabled === undefined &&
+      bodyParsed.data.permissions === undefined;
+
+    if (session.user.type === UserType.STAFF) {
+      const canSelfUpdateTutorialWithoutUserWrite = isSelf && isTutorialOnlyPatch;
+      if (!canSelfUpdateTutorialWithoutUserWrite) {
+        UserService.checkPermission(session.user, "userWrite");
+      }
+    }
 
     if (isSelf) {
       if (bodyParsed.data.permissions) {

@@ -94,6 +94,8 @@ export default function Tutorial({
   const [serverTutorialCompleted, setServerTutorialCompleted] = useState<
     boolean | null
   >(null);
+  const [localTutorialCompleted, setLocalTutorialCompleted] = useState(false);
+  const [isCompletionSynced, setIsCompletionSynced] = useState(repeatOnRefresh);
   const hasFinishedRef = useRef(false);
   const hasFetchedCompletionRef = useRef(false);
   const joyrideHelpersRef = useRef<StoreHelpers | null>(null);
@@ -102,9 +104,32 @@ export default function Tutorial({
   const originalStepIndexRef = useRef(0);
   const lastNotifiedStepIndexRef = useRef<number | null>(null);
   const tutorialField = nameMap[type];
+  const localCompletionKey = user?.id
+    ? `tutorial-completed:${user.id}:${type}`
+    : null;
   const sessionTutorialCompleted = Boolean(user?.[tutorialField]);
+  const remotelyCompleted =
+    serverTutorialCompleted ?? sessionTutorialCompleted;
   const isTutorialCompleted =
-    repeatOnRefresh ? false : serverTutorialCompleted ?? sessionTutorialCompleted;
+    repeatOnRefresh
+      ? false
+      : isCompletionSynced
+        ? remotelyCompleted
+        : localTutorialCompleted || sessionTutorialCompleted;
+
+  useEffect(() => {
+    if (repeatOnRefresh || !localCompletionKey) {
+      setLocalTutorialCompleted(false);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(localCompletionKey);
+      setLocalTutorialCompleted(stored === "1");
+    } catch {
+      setLocalTutorialCompleted(false);
+    }
+  }, [localCompletionKey, repeatOnRefresh]);
 
   useEffect(() => {
     const updateViewportWidth = () => {
@@ -241,10 +266,28 @@ export default function Tutorial({
     const userId = user?.id;
     if (!userId || repeatOnRefresh) return;
 
+    if (localCompletionKey) {
+      try {
+        localStorage.setItem(localCompletionKey, "1");
+      } catch {
+        // ignore storage errors
+      }
+      setLocalTutorialCompleted(true);
+    }
+
+    // Optimistically mark complete so route changes don't reopen the tutorial
+    // while the backend PATCH request is still in flight.
+    setServerTutorialCompleted(true);
+    setIsCompletionSynced(true);
+    void updateSession({
+      [tutorialField]: true,
+    });
+
     void (async () => {
       try {
         const response = await fetch(`/api/users/${userId}`, {
           method: "PATCH",
+          keepalive: true,
           headers: {
             "Content-Type": "application/json",
           },
@@ -260,26 +303,27 @@ export default function Tutorial({
           );
           return;
         }
-
-        setServerTutorialCompleted(true);
-        await updateSession({
-          [tutorialField]: true,
-        });
       } catch (error) {
         toast.error(COMPLETION_ERROR_MESSAGE);
         console.error("Error updating tutorial status:", error);
       }
     })();
-  }, [repeatOnRefresh, tutorialField, type, updateSession, user?.id]);
+  }, [localCompletionKey, repeatOnRefresh, tutorialField, type, updateSession, user?.id]);
 
   useEffect(() => {
     hasFetchedCompletionRef.current = false;
     lastNotifiedStepIndexRef.current = null;
     setServerTutorialCompleted(null);
+    setIsCompletionSynced(repeatOnRefresh);
   }, [repeatOnRefresh, type, user?.id]);
 
   useEffect(() => {
-    if (repeatOnRefresh || !user?.id || hasFetchedCompletionRef.current) {
+    if (repeatOnRefresh) {
+      setIsCompletionSynced(true);
+      return;
+    }
+
+    if (!user?.id || hasFetchedCompletionRef.current) {
       return;
     }
 
@@ -294,6 +338,7 @@ export default function Tutorial({
         if (!response.ok) {
           if (!cancelled) {
             setServerTutorialCompleted(sessionTutorialCompleted);
+            setIsCompletionSynced(true);
           }
           return;
         }
@@ -304,12 +349,27 @@ export default function Tutorial({
         const latestValue = payload.user?.[tutorialField];
 
         if (!cancelled && typeof latestValue === "boolean") {
+          if (localCompletionKey) {
+            try {
+              if (latestValue) {
+                localStorage.setItem(localCompletionKey, "1");
+                setLocalTutorialCompleted(true);
+              } else {
+                localStorage.removeItem(localCompletionKey);
+                setLocalTutorialCompleted(false);
+              }
+            } catch {
+              // ignore storage errors
+            }
+          }
+
           setServerTutorialCompleted(latestValue);
           if (latestValue !== sessionTutorialCompleted) {
             await updateSession({
               [tutorialField]: latestValue,
             });
           }
+          setIsCompletionSynced(true);
           return;
         }
       } catch (error) {
@@ -318,16 +378,29 @@ export default function Tutorial({
 
       if (!cancelled) {
         setServerTutorialCompleted(sessionTutorialCompleted);
+        setIsCompletionSynced(true);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [repeatOnRefresh, sessionTutorialCompleted, tutorialField, updateSession, user?.id]);
+  }, [
+    repeatOnRefresh,
+    localCompletionKey,
+    sessionTutorialCompleted,
+    tutorialField,
+    updateSession,
+    user?.id,
+  ]);
 
   useEffect(() => {
-    if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
+    if (
+      !user ||
+      !isCompletionSynced ||
+      isTutorialCompleted ||
+      tutorialSteps.length === 0
+    ) {
       return;
     }
 
@@ -341,7 +414,7 @@ export default function Tutorial({
     setStepIndex(0);
     setRun(true);
     notifyStepChange(initialOriginalIndex);
-  }, [isTutorialCompleted, notifyStepChange, tutorialSteps, user]);
+  }, [isCompletionSynced, isTutorialCompleted, notifyStepChange, tutorialSteps, user]);
 
   useEffect(() => {
     if (!run || responsiveTutorialEntries.length === 0) {
@@ -541,13 +614,20 @@ export default function Tutorial({
     }
   }, [finishTutorial, notifyStepChange]);
 
-  if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
+  if (
+    !user ||
+    !isCompletionSynced ||
+    isTutorialCompleted ||
+    tutorialSteps.length === 0
+  ) {
     return null;
   }
 
   return (
     <Joyride
-      tooltipComponent={JoyrideStep}
+      tooltipComponent={(props) => (
+        <JoyrideStep {...props} onSkip={finishTutorial} />
+      )}
       getHelpers={(helpers) => {
         joyrideHelpersRef.current = helpers;
       }}
@@ -583,6 +663,7 @@ export default function Tutorial({
         },
       }}
       disableOverlayClose
+      showSkipButton
       scrollToFirstStep={!disableAutoScroll}
       disableScrolling={disableAutoScroll}
       continuous
