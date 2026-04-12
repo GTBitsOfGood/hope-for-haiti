@@ -250,8 +250,7 @@ export default function AdminWishlistScreen() {
     <div className="pb-32">
       <Tutorial
         tutorialSteps={tutorialSteps}
-        type="adminDashboard"
-        repeatOnRefresh
+        type="adminWishlist"
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}
       />

@@ -13,6 +13,12 @@ export type SessionUser = PermissionFlags & {
   tag?: string;
   dashboardTutorial: boolean;
   adminDashboardTutorial: boolean;
+  adminSupportTutorial: boolean;
+  adminAccountManagementTutorial: boolean;
+  adminUnallocatedTutorial: boolean;
+  adminDonorOffersTutorial: boolean;
+  adminWishlistTutorial: boolean;
+  adminDistributionsTutorial: boolean;
   itemsTutorial: boolean;
   requestsTutorial: boolean;
   wishlistsTutorial: boolean;

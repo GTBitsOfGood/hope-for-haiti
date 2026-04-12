@@ -624,8 +624,7 @@ export default function SupportScreen({
       >
         <Tutorial
           tutorialSteps={SUPPORT_TUTORIAL_STEPS}
-          type="adminDashboard"
-          repeatOnRefresh
+          type="adminSupport"
           onStepChange={handleTutorialStepChange}
           onTutorialEnd={handleTutorialEnd}
         />

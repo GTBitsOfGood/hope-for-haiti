@@ -92,7 +92,6 @@ export default function AdminDashboardScreen() {
       <Tutorial
         tutorialSteps={tutorialSteps}
         type="adminDashboard"
-        repeatOnRefresh
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}
       />

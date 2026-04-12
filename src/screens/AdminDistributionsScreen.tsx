@@ -297,8 +297,7 @@ export default function AdminDistributionsScreen() {
     <>
       <Tutorial
         tutorialSteps={tutorialSteps}
-        type="adminDashboard"
-        repeatOnRefresh
+        type="adminDistributions"
         disableAutoScroll={shouldDisableDistributionsTutorialAutoScroll}
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}

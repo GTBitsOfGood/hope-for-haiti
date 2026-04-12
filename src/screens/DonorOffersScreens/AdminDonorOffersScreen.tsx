@@ -677,8 +677,7 @@ export default function AdminDonorOffersScreen() {
     <>
       <Tutorial
         tutorialSteps={tutorialSteps}
-        type="adminDashboard"
-        repeatOnRefresh
+        type="adminDonorOffers"
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}
       />

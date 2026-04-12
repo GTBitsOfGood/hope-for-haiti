@@ -393,8 +393,7 @@ export default function AdminUnallocatedItemsScreen() {
     <>
       <Tutorial
         tutorialSteps={tutorialSteps}
-        type="adminDashboard"
-        repeatOnRefresh
+        type="adminUnallocated"
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}
       />

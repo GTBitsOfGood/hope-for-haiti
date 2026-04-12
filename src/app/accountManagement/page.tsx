@@ -598,8 +598,7 @@ export default function AccountManagementPage() {
       </h1>
       <Tutorial
         tutorialSteps={tutorialSteps}
-        type="adminDashboard"
-        repeatOnRefresh
+        type="adminAccountManagement"
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}
       />

@@ -42,7 +42,19 @@ const patchBodySchema = z.object({
   enabled: z.boolean().optional(),
   permissions: permissionsSchema.optional(),
   tutorialFinished: z
-    .enum(["dashboard", "adminDashboard", "items", "requests", "wishlists"])
+    .enum([
+      "dashboard",
+      "adminDashboard",
+      "adminSupport",
+      "adminAccountManagement",
+      "adminUnallocated",
+      "adminDonorOffers",
+      "adminWishlist",
+      "adminDistributions",
+      "items",
+      "requests",
+      "wishlists",
+    ])
     .optional(),
 });
 
@@ -153,6 +165,28 @@ export async function PATCH(
         bodyParsed.data.tutorialFinished === "dashboard" ? true : undefined,
       adminDashboardTutorial:
         bodyParsed.data.tutorialFinished === "adminDashboard"
+          ? true
+          : undefined,
+      adminSupportTutorial:
+        bodyParsed.data.tutorialFinished === "adminSupport" ? true : undefined,
+      adminAccountManagementTutorial:
+        bodyParsed.data.tutorialFinished === "adminAccountManagement"
+          ? true
+          : undefined,
+      adminUnallocatedTutorial:
+        bodyParsed.data.tutorialFinished === "adminUnallocated"
+          ? true
+          : undefined,
+      adminDonorOffersTutorial:
+        bodyParsed.data.tutorialFinished === "adminDonorOffers"
+          ? true
+          : undefined,
+      adminWishlistTutorial:
+        bodyParsed.data.tutorialFinished === "adminWishlist"
+          ? true
+          : undefined,
+      adminDistributionsTutorial:
+        bodyParsed.data.tutorialFinished === "adminDistributions"
           ? true
           : undefined,
       itemsTutorial:

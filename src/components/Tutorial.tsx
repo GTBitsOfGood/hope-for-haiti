@@ -15,6 +15,12 @@ import { useSession } from "next-auth/react";
 const nameMap = {
   dashboard: "dashboardTutorial" as keyof SessionUser,
   adminDashboard: "adminDashboardTutorial" as keyof SessionUser,
+  adminSupport: "adminSupportTutorial" as keyof SessionUser,
+  adminAccountManagement: "adminAccountManagementTutorial" as keyof SessionUser,
+  adminUnallocated: "adminUnallocatedTutorial" as keyof SessionUser,
+  adminDonorOffers: "adminDonorOffersTutorial" as keyof SessionUser,
+  adminWishlist: "adminWishlistTutorial" as keyof SessionUser,
+  adminDistributions: "adminDistributionsTutorial" as keyof SessionUser,
   items: "itemsTutorial" as keyof SessionUser,
   requests: "requestsTutorial" as keyof SessionUser,
   wishlists: "wishlistsTutorial" as keyof SessionUser,
