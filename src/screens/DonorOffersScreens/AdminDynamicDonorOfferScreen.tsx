@@ -22,6 +22,7 @@ import PartnerRequestChipGroup, {
 } from "@/components/chips/PartnerRequestChipGroup";
 import toast from "react-hot-toast";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
+import { TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID } from "@/util/tutorialIds";
 
 type StreamingChunk = {
   itemIndex: number;
@@ -65,7 +66,8 @@ type AdminDonorOfferDetails = {
   items: GeneralItemWithRequests[];
 };
 
-const DONOR_OFFERS_TUTORIAL_SAMPLE_ID = -970001;
+const DONOR_OFFERS_TUTORIAL_SAMPLE_ID =
+  TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID;
 const DONOR_OFFERS_TUTORIAL_SAMPLE_ITEMS: GeneralItemWithRequests[] = [
   {
     id: -970101,

@@ -441,7 +441,7 @@ export default class UserService {
       }
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.type !== undefined) updateData.type = data.type;

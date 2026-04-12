@@ -8,8 +8,10 @@ import AdminAllocateDonorOfferScreen from "@/screens/DonorOffersScreens/AdminAll
 import AdminArchivedDonorOfferScreen from "@/screens/DonorOffersScreens/AdminArchivedDonorOfferScreen";
 import { useFetch } from "@/hooks/useFetch";
 import { DonorOffer } from "@prisma/client";
+import { TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID } from "@/util/tutorialIds";
 
-const DONOR_OFFERS_TUTORIAL_SAMPLE_ID = -970001;
+const DONOR_OFFERS_TUTORIAL_SAMPLE_ID =
+  TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID;
 
 export default function DonorOfferDetailsPage() {
   const { data: session } = useSession();
@@ -24,6 +26,18 @@ export default function DonorOfferDetailsPage() {
 
   // Partners should use the unified items screen at /items instead
   if (isPartner(session.user.type)) {
+    redirect("/");
+  }
+
+  const canAccessDonorOffers = hasAnyPermission(session.user, [
+    "requestRead",
+    "requestWrite",
+    "allocationRead",
+    "archivedRead",
+    "offerWrite",
+  ]);
+
+  if (!canAccessDonorOffers) {
     redirect("/");
   }
 
@@ -51,23 +65,14 @@ export default function DonorOfferDetailsPage() {
     );
   } 
 
-  if (
-    hasAnyPermission(session.user, [
-    "requestRead",
-    "requestWrite",
-    "allocationRead",
-    "archivedRead",
-    "offerWrite",
-    ])) {
-    const { donorOffer } = data;
-    
-    if (donorOffer.state === "UNFINALIZED") {
-      return <AdminDynamicDonorOfferScreen />;
-    } else if (donorOffer.state === "FINALIZED") {
-      return <AdminAllocateDonorOfferScreen />;
-    } else if (donorOffer.state === "ARCHIVED") {
-      return <AdminArchivedDonorOfferScreen />;
-    }
+  const { donorOffer } = data;
+
+  if (donorOffer.state === "UNFINALIZED") {
+    return <AdminDynamicDonorOfferScreen />;
+  } else if (donorOffer.state === "FINALIZED") {
+    return <AdminAllocateDonorOfferScreen />;
+  } else if (donorOffer.state === "ARCHIVED") {
+    return <AdminArchivedDonorOfferScreen />;
   }
 
   redirect("/");

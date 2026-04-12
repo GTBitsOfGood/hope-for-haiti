@@ -25,6 +25,7 @@ import { useUser } from "@/components/context/UserContext";
 import { hasPermission } from "@/lib/userUtils";
 import { useApiClient } from "@/hooks/useApiClient";
 import Tutorial, { type TutorialStep } from "@/components/Tutorial";
+import { TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID } from "@/util/tutorialIds";
 
 enum StatusFilterKey {
   UNFINALIZED = "Unfinalized",
@@ -38,7 +39,8 @@ const statusFilterTabs = [
   StatusFilterKey.ARCHIVED,
 ] as const;
 
-const DONOR_OFFERS_TUTORIAL_SAMPLE_ID = -970001;
+const DONOR_OFFERS_TUTORIAL_SAMPLE_ID =
+  TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID;
 const DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ID = -970002;
 const DONOR_OFFERS_TUTORIAL_SAMPLE_ROW_TUTORIAL_ID =
   "donor-offers-allocate-line-items";
