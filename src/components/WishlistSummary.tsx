@@ -109,6 +109,7 @@ export default function WishlistSummary() {
           <button
             onClick={() => setIsRequested(true)}
             className="flex items-center px-4 py-2 bg-blue-primary text-white rounded-md font-medium hover:bg-blue-600 transition-colors shadow-sm"
+            data-tutorial="wishlist-summarize-needs"
           >
             Generate Summary
           </button>
@@ -117,15 +118,13 @@ export default function WishlistSummary() {
 
       <div
         className={`mt-4 mb-5 ${
-          isRequested && showContainer 
-            ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light" 
+          isRequested && showContainer
+            ? "min-h-4 p-4 rounded border border-blue-primary bg-blue-light"
             : "hidden"
         } transition-all duration-200`}
       >
         <div className="prose inline-block align-top-markdown-content">
-          <ReactMarkdown>
-            {displayedText}
-          </ReactMarkdown>
+          <ReactMarkdown>{displayedText}</ReactMarkdown>
         </div>
         {showCursor && <span className="animate-pulse">|</span>}
       </div>

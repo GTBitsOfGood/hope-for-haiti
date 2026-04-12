@@ -68,6 +68,7 @@ export default function NotificationHandler({
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
 
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const activeTabParamRef = useRef<string | null>(searchParams.get("activeTab"));
 
   // Ensure that mirroring doesn't overwrite sessionStorage before loading
   const isHydrated = useRef(false);
@@ -143,6 +144,10 @@ export default function NotificationHandler({
       prev.filter((n) => !n.isChat || n.action !== currentUrl)
     );
   }, [pathname, searchParams]);
+
+  useEffect(() => {
+    activeTabParamRef.current = searchParams.get("activeTab");
+  }, [searchParams]);
 
   const refreshNotifications = useCallback(async () => {
     if (!user?.id) return;
@@ -293,7 +298,7 @@ export default function NotificationHandler({
       const channelId = event.channel?.id ?? event.cid?.split(":")[1];
       if (!channelId) return;
 
-      if (searchParams.get("activeTab") === "Unresolved") return;
+      if (activeTabParamRef.current === "Unresolved") return;
 
       const text = event.message?.text?.trim();
       const channelName =

@@ -9,10 +9,14 @@ import AdminArchivedDonorOfferScreen from "@/screens/DonorOffersScreens/AdminArc
 import { useFetch } from "@/hooks/useFetch";
 import { DonorOffer } from "@prisma/client";
 
+const DONOR_OFFERS_TUTORIAL_SAMPLE_ID = -970001;
+
 export default function DonorOfferDetailsPage() {
   const { data: session } = useSession();
   const params = useParams();
   const donorOfferId = params.donorOfferId as string;
+  const isTutorialSampleOffer =
+    Number(donorOfferId) === DONOR_OFFERS_TUTORIAL_SAMPLE_ID;
 
   if (!session?.user.type) {
     redirect("/signIn");
@@ -26,6 +30,7 @@ export default function DonorOfferDetailsPage() {
   const { data, isLoading } = useFetch<{
     donorOffer: DonorOffer;
   }>(`/api/donorOffers/${donorOfferId}`, {
+    conditionalFetch: !isTutorialSampleOffer,
     cache: "no-store",
     onError: (error) => {
       if (error.includes("404")) {
@@ -33,6 +38,10 @@ export default function DonorOfferDetailsPage() {
       }
     },
   });
+
+  if (isTutorialSampleOffer) {
+    return <AdminDynamicDonorOfferScreen />;
+  }
 
   if (isLoading || !data) {
     return (

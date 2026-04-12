@@ -47,6 +47,19 @@ interface AccountUserResponse {
 
 type AccountRow = AccountUserResponse;
 type AccountUserDetail = AccountUserResponse & PermissionFlags;
+const ACCOUNT_TUTORIAL_SAMPLE_ID = -999001;
+const ACCOUNT_TUTORIAL_SAMPLE_ROW: AccountRow = {
+  id: ACCOUNT_TUTORIAL_SAMPLE_ID,
+  name: "Hope Medical Center",
+  email: "hmc@gmail.com",
+  type: UserType.PARTNER,
+  tag: "Internal",
+  enabled: true,
+  pending: false,
+  isSuper: false,
+  userWrite: false,
+  invite: null,
+};
 
 const tutorialSteps: TutorialStep[] = [
   {
@@ -68,16 +81,16 @@ const tutorialSteps: TutorialStep[] = [
     placement: "left",
     isFixed: true,
     disableBeacon: true,
-    spotlightPadding: 2,
+    spotlightPadding: 3,
   },
   {
     target: '[data-tutorial=\"acc-management-update-details\"]',
     title: <div>Update User Details</div>,
     content: (
       <div>
-        Select this button to modify the user's name or assign a new tag. Note
-        that the email address is fixed to maintain account security and cannot
-        be changed.
+        Select this button to modify the user&apos;s name or assign a new tag.
+        Note that the email address is fixed to maintain account security and
+        cannot be changed.
       </div>
     ),
     placement: "left",
@@ -104,8 +117,8 @@ const tutorialSteps: TutorialStep[] = [
     title: <div>Create New Users</div>,
     content: (
       <div>
-        Click here to invite a new staff member or partner to the portal. You'll
-        be able to set their login credentials and initial role.
+        Click here to invite a new staff member or partner to the portal.
+        You&apos;ll be able to set their login credentials and initial role.
       </div>
     ),
     placement: "left",
@@ -132,12 +145,18 @@ const tutorialSteps: TutorialStep[] = [
         You are now ready to view, edit, and add staff/partners to the platform!
       </div>
     ),
-    placement: "left",
+    placement: "center",
     isFixed: true,
     disableBeacon: true,
     spotlightPadding: 2,
   },
 ];
+
+const ACCOUNT_MANAGEMENT_SAMPLE_HIGHLIGHT_CLASS =
+  "account-management-tutorial-sample-highlight";
+const ACCOUNT_MANAGEMENT_SAMPLE_STEP_INDEX = 1;
+const ACCOUNT_MANAGEMENT_UPDATE_DETAILS_STEP_INDEX = 2;
+const ACCOUNT_MANAGEMENT_DEACTIVATE_STEP_INDEX = 5;
 
 function getStatusLabel(user: AccountUserResponse) {
   if (user.pending) {
@@ -159,6 +178,7 @@ export default function AccountManagementPage() {
   const canManageAccounts = hasPermission(currentUser, "userWrite");
 
   const tableRef = useRef<AdvancedBaseTableHandle<AccountRow>>(null);
+  const hasAccountTutorialEndedRef = useRef(false);
   const { apiClient } = useApiClient();
   const { data: tags, refetch: refetchTags } =
     useFetch<string[]>("/api/users/tags");
@@ -176,6 +196,17 @@ export default function AccountManagementPage() {
     permissions: StaffPermissionFlags;
     isSuper: boolean;
   } | null>(null);
+  const [isAccountTutorialActive, setIsAccountTutorialActive] = useState(true);
+  const [hasAccountTutorialEnded, setHasAccountTutorialEnded] = useState(false);
+  const [activeTutorialStep, setActiveTutorialStep] = useState<number | null>(
+    null
+  );
+  const isTutorialSampleMode =
+    isAccountTutorialActive && !hasAccountTutorialEnded;
+
+  const clearAccountSampleHighlight = useCallback(() => {
+    document.body.classList.remove(ACCOUNT_MANAGEMENT_SAMPLE_HIGHLIGHT_CLASS);
+  }, []);
 
   const router = useRouter();
   const mapPermissionsFromUser = (
@@ -205,12 +236,14 @@ export default function AccountManagementPage() {
   };
 
   const handleDeleteAccount = (user: AccountRow) => {
+    if (user.id === ACCOUNT_TUTORIAL_SAMPLE_ID) return;
     if (!canManageAccounts) return;
     setSelectedUser(user);
     setDeleteModalOpen(true);
   };
 
   const handleSendReminder = async (user: AccountRow) => {
+    if (user.id === ACCOUNT_TUTORIAL_SAMPLE_ID) return;
     if (!canManageAccounts) return;
     try {
       await apiClient.post(`/api/users/${user.id}/reminder`);
@@ -222,6 +255,7 @@ export default function AccountManagementPage() {
   };
 
   const handleEditAccount = (user: AccountRow) => {
+    if (user.id === ACCOUNT_TUTORIAL_SAMPLE_ID) return;
     if (!canManageAccounts) return;
 
     // Show the modal for all account types
@@ -233,6 +267,7 @@ export default function AccountManagementPage() {
   };
 
   const handleDeactivateAccount = (user: AccountRow) => {
+    if (user.id === ACCOUNT_TUTORIAL_SAMPLE_ID) return;
     if (!canManageAccounts) return;
     if (user.pending) return;
     if (currentUser && user.id === Number(currentUser.id)) {
@@ -404,6 +439,12 @@ export default function AccountManagementPage() {
 
   const fetchFn = useCallback(
     async (pageSize: number, page: number, filters: FilterList<AccountRow>) => {
+      if (isTutorialSampleMode) {
+        return {
+          data: [ACCOUNT_TUTORIAL_SAMPLE_ROW],
+          total: 1,
+        };
+      }
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
@@ -418,8 +459,46 @@ export default function AccountManagementPage() {
         total: data.total,
       };
     },
-    [apiClient]
+    [apiClient, isTutorialSampleMode]
   );
+
+  const handleTutorialStepChange = useCallback(
+    (stepIndex: number) => {
+      if (hasAccountTutorialEndedRef.current || hasAccountTutorialEnded) {
+        return;
+      }
+      setIsAccountTutorialActive(true);
+      setActiveTutorialStep(stepIndex);
+      if (stepIndex === ACCOUNT_MANAGEMENT_SAMPLE_STEP_INDEX) {
+        document.body.classList.add(ACCOUNT_MANAGEMENT_SAMPLE_HIGHLIGHT_CLASS);
+      } else {
+        clearAccountSampleHighlight();
+      }
+    },
+    [clearAccountSampleHighlight, hasAccountTutorialEnded]
+  );
+
+  const handleTutorialEnd = useCallback(() => {
+    hasAccountTutorialEndedRef.current = true;
+    setHasAccountTutorialEnded(true);
+    setIsAccountTutorialActive(false);
+    setActiveTutorialStep(null);
+    setSelectedUser(null);
+    setDeleteModalOpen(false);
+    setDeactivateModalOpen(false);
+    setEditModalOpen(false);
+    setPermissionsModalOpen(false);
+    setPermissionsModalLoading(false);
+    setPermissionState(null);
+    tableRef.current?.setFilterMenuOpen(false);
+    clearAccountSampleHighlight();
+  }, [clearAccountSampleHighlight]);
+
+  useEffect(() => {
+    return () => {
+      clearAccountSampleHighlight();
+    };
+  }, [clearAccountSampleHighlight]);
 
   const baseColumns: ColumnDefinition<AccountRow>[] = [
     "name",
@@ -467,23 +546,44 @@ export default function AccountManagementPage() {
     baseColumns.push({
       id: "manage",
       headerClassName: "text-right",
-      cell: (item) => (
-        <div
-          className="flex justify-end"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <AccountDropdown
-            isPending={item.pending}
-            user={{ enabled: item.enabled }}
-            onDeleteAccount={() => handleDeleteAccount(item)}
-            onEditAccount={() => handleEditAccount(item)}
-            onDeactivateAccount={() => handleDeactivateAccount(item)}
-            onSendReminder={() => handleSendReminder(item)}
-            canManage={canManageAccounts}
-            hideDeactivateOption={item.id === Number(currentUser?.id) || isProtectedUser(item)}
-          />
-        </div>
-      ),
+      cell: (item) => {
+        const isTutorialSampleRow =
+          isTutorialSampleMode && item.id === ACCOUNT_TUTORIAL_SAMPLE_ID;
+        const shouldForceOpenTutorialManageMenu =
+          isTutorialSampleRow &&
+          (activeTutorialStep === ACCOUNT_MANAGEMENT_UPDATE_DETAILS_STEP_INDEX ||
+            activeTutorialStep === ACCOUNT_MANAGEMENT_DEACTIVATE_STEP_INDEX);
+        const shouldHideDeactivateOption = isTutorialSampleRow
+          ? false
+          : item.id === Number(currentUser?.id) || isProtectedUser(item);
+
+        return (
+          <div
+            className="flex justify-end"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <AccountDropdown
+              isPending={item.pending}
+              user={{ enabled: item.enabled }}
+              onDeleteAccount={() => handleDeleteAccount(item)}
+              onEditAccount={() => handleEditAccount(item)}
+              onDeactivateAccount={() => handleDeactivateAccount(item)}
+              onSendReminder={() => handleSendReminder(item)}
+              canManage={canManageAccounts}
+              hideDeactivateOption={shouldHideDeactivateOption}
+              forceOpen={shouldForceOpenTutorialManageMenu}
+              editOptionTutorialId={
+                isTutorialSampleRow
+                  ? "acc-management-update-details"
+                  : undefined
+              }
+              deactivateOptionTutorialId={
+                isTutorialSampleRow ? "acc-management-deactivate" : undefined
+              }
+            />
+          </div>
+        );
+      },
     });
   }
 
@@ -497,12 +597,12 @@ export default function AccountManagementPage() {
         Account Management
       </h1>
       <Tutorial
-              tutorialSteps={tutorialSteps}
-              type="adminDashboard"
-              repeatOnRefresh
-              //onStepChange={handleTutorialStepChange}
-              //onTutorialEnd={handleTutorialEnd}
-            />
+        tutorialSteps={tutorialSteps}
+        type="adminDashboard"
+        repeatOnRefresh
+        onStepChange={handleTutorialStepChange}
+        onTutorialEnd={handleTutorialEnd}
+      />
       <AdvancedBaseTable
         ref={tableRef}
         columns={baseColumns}
@@ -510,9 +610,16 @@ export default function AccountManagementPage() {
         rowId="id"
         headerCellStyles="min-w-32"
         emptyState="No accounts to display"
+        filterButtonAttributes={{ "data-tutorial": "acc-management-filter" }}
+        getRowAttributes={(item) =>
+          isTutorialSampleMode && item.id === ACCOUNT_TUTORIAL_SAMPLE_ID
+            ? { "data-tutorial": "acc-management-partner-example" }
+            : undefined
+        }
         toolBar={
           canManageAccounts && (
             <button
+              data-tutorial="acc-management-new-users"
               className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
               onClick={() => setInviteModalOpen(true)}
             >

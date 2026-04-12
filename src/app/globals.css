@@ -325,3 +325,190 @@ body.admin-dashboard-tutorial-bell-highlight
   svg {
   color: #1f2937 !important;
 }
+
+/* Keep the Account Management sample row clearly visible during tutorial step 2. */
+body.account-management-tutorial-sample-highlight
+  [data-tutorial="acc-management-partner-example"] {
+  position: relative;
+  z-index: 1;
+}
+
+body.account-management-tutorial-sample-highlight
+  [data-tutorial="acc-management-partner-example"]
+  td {
+  background-color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.98) !important;
+}
+
+body.account-management-tutorial-sample-highlight
+  [data-tutorial="acc-management-partner-example"]
+  td:first-child {
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+body.account-management-tutorial-sample-highlight
+  [data-tutorial="acc-management-partner-example"]
+  td:last-child {
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+/* Keep the Unallocated Items sample row clearly visible during tutorial step 2. */
+body.unallocated-items-tutorial-sample-highlight
+  [data-row-id="-990001"] {
+  position: relative;
+  z-index: 1;
+}
+
+body.unallocated-items-tutorial-sample-highlight
+  [data-row-id="-990001"]
+  td {
+  background-color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.98) !important;
+}
+
+body.unallocated-items-tutorial-sample-highlight
+  [data-row-id="-990001"]
+  td:first-child {
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+body.unallocated-items-tutorial-sample-highlight
+  [data-row-id="-990001"]
+  td:last-child {
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+/* Make the Suggest Allocations spotlight area taller during Unallocated tutorial step 5. */
+body.unallocated-items-tutorial-suggest-highlight
+  [data-tutorial="unallocated-items-suggest-allocations"] {
+  min-height: 3rem !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Keep Donor Offers tutorial step 2 button visually bright. */
+body.donor-offers-tutorial-create-highlight
+  [data-tutorial="donor-offers-initial-offer"] {
+  position: relative;
+  z-index: 1;
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.98),
+    0 0 0 4px rgba(255, 255, 255, 0.35),
+    0 6px 14px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Keep Donor Offers tutorial step 3 sample row clearly visible. */
+body.donor-offers-tutorial-sample-highlight
+  [data-tutorial="donor-offers-allocate-line-items"] {
+  position: relative;
+  z-index: 1;
+}
+
+body.donor-offers-tutorial-sample-highlight
+  [data-tutorial="donor-offers-allocate-line-items"]
+  td {
+  background-color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.98) !important;
+}
+
+body.donor-offers-tutorial-sample-highlight
+  [data-tutorial="donor-offers-allocate-line-items"]
+  td:first-child {
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+body.donor-offers-tutorial-sample-highlight
+  [data-tutorial="donor-offers-allocate-line-items"]
+  td:last-child {
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+/* Keep Donor Offers tutorial step 6 finalized row clearly visible. */
+body.donor-offers-tutorial-finalized-sample-highlight
+  [data-tutorial="donor-offers-finalized-sample-offer"] {
+  position: relative;
+  z-index: 1;
+}
+
+body.donor-offers-tutorial-finalized-sample-highlight
+  [data-tutorial="donor-offers-finalized-sample-offer"]
+  td {
+  background-color: #ffffff !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.98),
+    0 0 0 1px rgba(255, 255, 255, 0.96) !important;
+}
+
+body.donor-offers-tutorial-finalized-sample-highlight
+  [data-tutorial="donor-offers-finalized-sample-offer"]
+  td:first-child {
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+body.donor-offers-tutorial-finalized-sample-highlight
+  [data-tutorial="donor-offers-finalized-sample-offer"]
+  td:last-child {
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+/* Keep Wishlist tutorial step 4 sample row clearly visible. */
+body.wishlist-tutorial-sample-highlight
+  [data-tutorial="wishlist-sample-request"] {
+  position: relative;
+  z-index: 1;
+}
+
+body.wishlist-tutorial-sample-highlight
+  [data-tutorial="wishlist-sample-request"]
+  td {
+  background-color: #ffffff !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.98),
+    0 0 0 1px rgba(255, 255, 255, 0.96) !important;
+}
+
+body.wishlist-tutorial-sample-highlight
+  [data-tutorial="wishlist-sample-request"]
+  td:first-child {
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+body.wishlist-tutorial-sample-highlight
+  [data-tutorial="wishlist-sample-request"]
+  td:last-child {
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+/* Keep Distributions tutorial step 6 Sign-offs tab visibly bright. */
+body.distributions-tutorial-signoffs-tab-highlight
+  [data-tutorial="distributions-signoffs-tab"] {
+  position: relative;
+  z-index: 1;
+  background-color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  color: #1f2937 !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.98),
+    0 0 0 4px rgba(255, 255, 255, 0.35),
+    0 6px 14px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.distributions-tutorial-signoffs-tab-highlight
+  [data-tutorial="distributions-signoffs-tab"]
+  > div {
+  background-color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  color: #1f2937 !important;
+}

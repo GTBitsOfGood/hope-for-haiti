@@ -77,9 +77,12 @@ export type AllocationTableProps = {
   suggestionConfig?: SuggestionConfig;
   toolBarExtras?: React.ReactNode;
   emptyState?: React.ReactNode;
+  requestsHeaderTutorialId?: string;
 };
 
-function buildDefaultColumns(): ColumnDefinition<AllocationTableItem>[] {
+function buildDefaultColumns(
+  requestsHeaderTutorialId?: string
+): ColumnDefinition<AllocationTableItem>[] {
   return [
     {
       id: "title",
@@ -103,7 +106,16 @@ function buildDefaultColumns(): ColumnDefinition<AllocationTableItem>[] {
     "unitType",
     {
       id: "requests",
-      header: "# of Requests",
+      header: requestsHeaderTutorialId ? (
+        <div
+          data-tutorial={requestsHeaderTutorialId}
+          className="block w-full rounded-md px-1 py-1"
+        >
+          # of Requests
+        </div>
+      ) : (
+        "# of Requests"
+      ),
       cell: (item) => item.requests?.length,
       filterable: false,
     },
@@ -125,6 +137,7 @@ export default function AllocationTable({
   suggestionConfig,
   toolBarExtras,
   emptyState,
+  requestsHeaderTutorialId,
 }: AllocationTableProps) {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<AllocationTableItem>>(null);
@@ -160,8 +173,8 @@ export default function AllocationTable({
   }, [activeView]);
 
   const resolvedColumns = useMemo(
-    () => columns ?? buildDefaultColumns(),
-    [columns]
+    () => columns ?? buildDefaultColumns(requestsHeaderTutorialId),
+    [columns, requestsHeaderTutorialId]
   );
 
   const resolvedEmptyState = useMemo(
@@ -733,6 +746,7 @@ export default function AllocationTable({
               onClick={handleSuggestAllocations}
               className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={isProcessingSuggestions}
+              data-tutorial="unallocated-items-suggest-allocations"
             >
               {isProcessingSuggestions
                 ? "Preparing suggestions..."

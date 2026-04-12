@@ -40,6 +40,7 @@ export default function ToggleViewSwitch({
       className={`inline-flex items-center rounded-full bg-blue-light p-1 ${className}`}
       role="group"
       aria-label="Toggle view"
+      data-tutorial="unallocated-items-views"
     >
       <button
         type="button"

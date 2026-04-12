@@ -26,6 +26,7 @@ interface TutorialProps {
   onStepChange?: (stepIndex: number) => void;
   onTutorialEnd?: () => void;
   repeatOnRefresh?: boolean;
+  disableAutoScroll?: boolean;
 }
 
 export type TutorialStep = Step & {
@@ -77,6 +78,7 @@ export default function Tutorial({
   onStepChange,
   onTutorialEnd,
   repeatOnRefresh = false,
+  disableAutoScroll = false,
 }: TutorialProps) {
   const { user } = useUser();
   const { update: updateSession } = useSession();
@@ -438,6 +440,7 @@ export default function Tutorial({
       typeof index === "number" ? index : stepIndexRef.current;
     const lastIndex = currentSteps.length - 1;
     const isOnLastStep = currentIndex === lastIndex;
+    const isPrevAction = action === ACTIONS.PREV;
     const endedByClose = action === ACTIONS.CLOSE;
     const endedBySkip = action === ACTIONS.SKIP;
     const endedByDone =
@@ -446,8 +449,9 @@ export default function Tutorial({
         (action === ACTIONS.NEXT || action === ACTIONS.COMPLETE) &&
         isOnLastStep);
     const endedByTerminalStatus =
-      status === STATUS.FINISHED || status === STATUS.SKIPPED;
-    const endedByTourEndEvent = eventType === EVENTS.TOUR_END;
+      (status === STATUS.FINISHED || status === STATUS.SKIPPED) &&
+      !isPrevAction;
+    const endedByTourEndEvent = eventType === EVENTS.TOUR_END && !isPrevAction;
 
     if (
       endedByClose ||
@@ -550,7 +554,8 @@ export default function Tutorial({
         },
       }}
       disableOverlayClose
-      scrollToFirstStep
+      scrollToFirstStep={!disableAutoScroll}
+      disableScrolling={disableAutoScroll}
       continuous
       steps={responsiveTutorialSteps}
       run={run}

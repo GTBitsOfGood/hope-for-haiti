@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DetailedChip from "./DetailedChip";
 import { Package, CaretDown } from "@phosphor-icons/react";
 import { Shipment } from "@/types/api/shippingStatus.types";
@@ -10,6 +10,10 @@ import SignatureImageTooltip from "../SignatureImageTooltip";
 interface ShipmentsLineItemChipGroupProps {
   shipment: Shipment;
   canCreateSignOffs: boolean;
+  tutorialPresetSelectedItemIds?: number[];
+  tutorialSignOffButtonId?: string;
+  tutorialForceShowSignOffButton?: boolean;
+  tutorialDisableSignOffAction?: boolean;
   onSignOffClick: (
     selectedAllocationIds: number[],
     partnerId: number,
@@ -20,6 +24,10 @@ interface ShipmentsLineItemChipGroupProps {
 export default function ShipmentsLineItemChipGroup({
   shipment,
   canCreateSignOffs,
+  tutorialPresetSelectedItemIds,
+  tutorialSignOffButtonId,
+  tutorialForceShowSignOffButton = false,
+  tutorialDisableSignOffAction = false,
   onSignOffClick,
 }: ShipmentsLineItemChipGroupProps) {
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
@@ -28,6 +36,19 @@ export default function ShipmentsLineItemChipGroup({
   const unsignedLineItems = shipment.lineItems;
   const hasSelectedItems = selectedItems.size > 0;
   const isReadyForDistribution = shipment.value === "READY_FOR_DISTRIBUTION";
+  const canInteractWithItems =
+    canCreateSignOffs || tutorialForceShowSignOffButton;
+  const shouldShowSignOffButton =
+    (canCreateSignOffs || tutorialForceShowSignOffButton) && hasSelectedItems;
+
+  useEffect(() => {
+    if (tutorialPresetSelectedItemIds && tutorialPresetSelectedItemIds.length > 0) {
+      setSelectedItems(new Set(tutorialPresetSelectedItemIds));
+      return;
+    }
+
+    setSelectedItems(new Set());
+  }, [tutorialPresetSelectedItemIds]);
 
   const getSelectedPartnerInfo = () => {
     if (selectedItems.size === 0) return null;
@@ -80,7 +101,7 @@ export default function ShipmentsLineItemChipGroup({
         <div className="flex flex-wrap">
           {unsignedLineItems.map((lineItem) => {
             const isPending = lineItem.allocation.distribution.pending;
-            const canClick = canCreateSignOffs && !isPending;
+            const canClick = canInteractWithItems && !isPending;
             return (
               <DetailedChip
                 key={lineItem.id}
@@ -94,7 +115,7 @@ export default function ShipmentsLineItemChipGroup({
                     className="text-blue-primary flex-shrink-0"
                   />
                 }
-                selected={canCreateSignOffs && selectedItems.has(lineItem.id)}
+                selected={canInteractWithItems && selectedItems.has(lineItem.id)}
                 onClick={
                   canClick ? () => handleItemClick(lineItem.id) : undefined
                 }
@@ -120,9 +141,10 @@ export default function ShipmentsLineItemChipGroup({
           </button>
         )}
 
-        {canCreateSignOffs && hasSelectedItems && (
+        {shouldShowSignOffButton && (
           <button
-            onClick={handleSignOffClick}
+            data-tutorial={tutorialSignOffButtonId}
+            onClick={tutorialDisableSignOffAction ? undefined : handleSignOffClick}
             disabled={!isReadyForDistribution}
             className={`ml-auto px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               isReadyForDistribution
