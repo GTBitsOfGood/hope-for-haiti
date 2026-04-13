@@ -5,7 +5,7 @@ const baseContactSchema = z.object({
   lastName: z.string(),
   orgTitle: z.string(),
   primaryTelephone: z.string(),
-  secondaryTelephone: z.string(),
+  secondaryTelephone: z.string().optional(),
   email: z.string().email(),
 });
 
