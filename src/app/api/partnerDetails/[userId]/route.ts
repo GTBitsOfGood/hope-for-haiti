@@ -9,7 +9,7 @@ import {
 } from "@/util/errors";
 import { NextResponse, NextRequest } from "next/server";
 import { zfd } from "zod-form-data";
-import { partnerDetailsSchema } from "@/schema/partnerDetails";
+import { partnerDetailsUpdateSchema } from "@/schema/partnerDetails";
 import { z } from "zod";
 
 const paramSchema = z.object({
@@ -23,7 +23,7 @@ const paramSchema = z.object({
 });
 
 const partnerDetailsFormSchema = zfd.formData({
-  partnerDetails: zfd.json(partnerDetailsSchema),
+  partnerDetails: zfd.json(partnerDetailsUpdateSchema),
 });
 
 export async function GET(
