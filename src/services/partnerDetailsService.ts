@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { NotFoundError } from "@/util/errors";
-import { PartnerDetails, PartnerDetailsUpdate } from "@/schema/partnerDetails";
+import { PartnerDetails } from "@/schema/partnerDetails";
 import { UpdatePartnerDetailsData } from "@/types/api/partnerDetails.types";
 
 function deepMerge(
