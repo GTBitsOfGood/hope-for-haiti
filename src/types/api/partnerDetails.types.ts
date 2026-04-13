@@ -1,4 +1,4 @@
-import { PartnerDetails, PartnerDetailsUpdate } from "@/schema/partnerDetails";
+import { PartnerDetailsUpdate } from "@/schema/partnerDetails";
 
 export interface GetPartnerDetailsParams {
   userId: number;
