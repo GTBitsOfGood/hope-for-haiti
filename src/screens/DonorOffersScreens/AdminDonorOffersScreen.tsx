@@ -304,7 +304,7 @@ export default function AdminDonorOffersScreen() {
         rowId="donorOfferId"
         onRowClick={(offer) => router.push(`/donorOffers/${offer.donorOfferId}`)}
         toolBar={
-            canManageOffers && (
+            canManageOffers && activeTab === StatusFilterKey.UNFINALIZED && (
               <button
                 className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
                 onClick={() => router.push("/donorOffers/create")}
