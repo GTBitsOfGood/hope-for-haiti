@@ -343,7 +343,7 @@ function LineItemChip({
                         const val = e.target.value;
                         setNumSplits(val);
                         const n = Number(val);
-                        if (n >= 2 && n <= 7) {
+                        if (Number.isInteger(n) && n >= 2 && n <= 7) {
                           setSplitQuantities(Array(n).fill(""));
                         } else {
                           setSplitQuantities([]);
