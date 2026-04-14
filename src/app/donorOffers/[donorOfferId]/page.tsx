@@ -20,7 +20,7 @@ export default function DonorOfferDetailsPage() {
 
   // Partners should use the unified items screen at /items instead
   if (isPartner(session.user.type)) {
-    redirect("/");
+    redirect("/items");
   }
 
   const { data, isLoading } = useFetch<{
