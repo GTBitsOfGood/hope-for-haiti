@@ -1,14 +1,12 @@
 import { exit } from "process";
 import { hash } from "argon2";
-import { UserType, DonorOfferState, ItemType, ItemCategory, ShipmentStatus } from "@prisma/client";
+import { UserType } from "@prisma/client";
 
 import { db } from "@/db";
 import type { Prisma } from "@prisma/client";
 import StreamIoService from "@/services/streamIoService";
 import FileService from "@/services/fileService";
 import UserService from "@/services/userService";
-import { addDays, subDays } from "date-fns";
-
 const existingStreamTokens: { [email: string]: string } = {};
 
 async function fetchExistingStreamTokens() {
@@ -292,3 +290,4 @@ buildSeedData()
     console.error("❌ Error seeding database", error);
     exit(1);
   });
+  
