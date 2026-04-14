@@ -38,6 +38,15 @@ export default function CreateDonorOfferPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false);
 
+  const getTodayDateString = () => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  };
+
   const {
     fileName,
     fileSize,
@@ -55,17 +64,21 @@ export default function CreateDonorOfferPage() {
       setData(result.donorOfferItems);
     },
     validateBeforeUpload: () => {
-      if (
-        !offerName ||
-        !donorName ||
-        !partnerRequestDeadline ||
-        !donorRequestDeadline
-      ) {
-        return [
-          "Please fill out all required fields (Offer Name, Donor Name, Partner Request Deadline, Donor Request Deadline) before uploading a file.",
-        ];
+      const today = getTodayDateString();
+      const validationErrors: string[] = [];
+
+      if (!offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline) {
+        validationErrors.push("Please fill out all required fields.");
       }
-      return null;
+
+      if (donorRequestDeadline && donorRequestDeadline < today) {
+        validationErrors.push("Donor Request Deadline cannot be in the past.");
+      }
+
+      if (partnerRequestDeadline && partnerRequestDeadline < today) {
+        validationErrors.push("Partner Request Deadline cannot be in the past.");
+      }
+      return validationErrors.length > 0 ? validationErrors : null;
     },
     buildFormData: (_, formData) => {
       formData.append("offerName", offerName);
