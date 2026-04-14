@@ -357,7 +357,7 @@ function LineItemChip({
                         {splitQuantities.map((qty, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <label className="text-sm text-gray-primary font-normal whitespace-nowrap">
-                              Item {i + 1}:
+                              Line Item {i + 1}:
                             </label>
                             <input
                               type="number"
@@ -374,8 +374,8 @@ function LineItemChip({
                             />
                           </div>
                         ))}
-                        <p className="text-xs text-gray-primary font-normal">
-                          Sum: {splitQuantities.reduce((sum, q) => sum + (Number(q) || 0), 0)} / {item.quantity}
+                        <p className="flex justify-end text-s font-semibold text-gray-primary my-2">
+                          Total: {splitQuantities.reduce((sum, q) => sum + (Number(q) || 0), 0)} / {item.quantity}
                         </p>
                       </div>
                     )}
