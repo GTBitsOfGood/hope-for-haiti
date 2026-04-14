@@ -40,7 +40,7 @@ export default function AdminWishlistScreen() {
 
   return (
     <div className="pb-32">
-      <h1 className="text-2xl font-bold text-gray-primary">Wishlists</h1>
+      <h1 className="text-2xl font-semibold text-gray-primary">Wishlists</h1>
       <WishlistSummary />
       <AdvancedBaseTable
         columns={[

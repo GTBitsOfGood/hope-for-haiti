@@ -493,7 +493,7 @@ export default function PartnerWishlistScreen({
   ) : null;
 
   return (
-    <div className="pb-32">
+    <div className="w-full px-4 pb-32 font-[Open_Sans]">
       {!readOnly && !partnerId && (
         <Tutorial
           tutorialSteps={tutorialSteps}
@@ -503,9 +503,11 @@ export default function PartnerWishlistScreen({
         />
       )}
 
+      <div className="h-4"></div>
+
       <div className="flex items-start justify-between">
-        <h1 className="text-2xl font-semibold text-gray-primary mb-2">
-          Wishlist
+        <h1 className="text-2xl font-semibold text-gray-primary m-0">
+          My Wishlist
         </h1>
       </div>
 

@@ -486,7 +486,7 @@ export default function PartnerRequestsScreen() {
   ];
 
   return (
-    <div className="w-full px-4 py-6 font-[Open_Sans]">
+    <div className="w-full px-4 pb-6 font-[Open_Sans]">
       <Tutorial
         tutorialSteps={tutorialSteps}
         type="requests"
@@ -494,9 +494,13 @@ export default function PartnerRequestsScreen() {
         onTutorialEnd={handleTutorialEnd}
       />
 
-      <h1 className="text-2xl font-semibold text-gray-primary mb-6">
-        My Requests
-      </h1>
+      <div className="h-4"></div>
+
+      <div className="flex items-start justify-between">
+        <h1 className="text-2xl font-semibold text-gray-primary m-0">
+          My Requests
+        </h1>
+      </div>
 
       <AdvancedBaseTable
         ref={tableRef}
