@@ -16,7 +16,7 @@ export default function FloatingNotification() {
   const unreadCount = notifications.length;
 
   return (
-    <div className="fixed top-9 right-20 sm:right-9 w-12 h-12 flex justify-center items-center z-[50]">
+    <div className="fixed top-7 right-20 sm:right-9 w-12 h-12 flex justify-center items-center z-[50]">
       <button
         onClick={() => setIsPanelOpen(true)}
         className="absolute top-0 right-0 text-gray-500 hover:text-gray-700 transition-all "

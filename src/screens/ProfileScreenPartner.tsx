@@ -245,10 +245,12 @@ export default function ProfileScreenPartner({
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-6 font-[Open_Sans]">
-      <h1 className="text-[32px] font-bold leading-[40px] text-[#22070B]">
-        Profile
-      </h1>
+    <div className="max-w-6xl mx-auto pb-8 px-6 font-[Open_Sans]">
+      <div className="flex items-start justify-between">
+        <h1 className="text-2xl font-semibold text-gray-primary m-0">
+          Profile
+        </h1>
+      </div>
 
       <div className="mt-6">
         <div className="flex justify-between items-center">
