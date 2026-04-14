@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import NotificationCard from "./NotificationCard";
 import { UnifiedNotification } from "../NotificationHandler";
 
@@ -20,15 +20,40 @@ export default function NotificationsPanel({
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [isVisible, setIsVisible] = useState(false);
 
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    // Wait for the exit transition to finish before returning null/calling onClose
+    setTimeout(() => onClose(), 200);
+  }, [onClose]);
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      handleClose();
+    }, 7000); /* Adjusted to 7 seconds */
+  }, [handleClose]);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
+      startTimer();
     } else {
       setIsVisible(false);
+      clearTimer();
     }
-  }, [isOpen]);
+    return () => clearTimer();
+  }, [isOpen, startTimer, clearTimer]);
 
   if (!isOpen) return null;
+
+  const handleMouseEnter = () => clearTimer();
+  const handleMouseLeave = () => startTimer();
 
   const filteredNotifications = notifications.filter((notif) => {
     if (activeTab === "all") return true;
@@ -55,10 +80,10 @@ export default function NotificationsPanel({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 cursor-default ${
+        className={`fixed inset-0 z-40 cursor-default transition-opacity duration-200 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       <div
@@ -67,6 +92,8 @@ export default function NotificationsPanel({
             ? "opacity-100 scale-100 translate-y-0"
             : "opacity-0 scale-95 -translate-y-2"
         }`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <div className="sticky space-y-4 top-0 bg-white z-10 border-b border-gray-100">
           <h1 className="text-lg font-bold text-gray-900 tracking-tight">

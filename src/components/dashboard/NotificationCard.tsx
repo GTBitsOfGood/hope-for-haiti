@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { Toast } from "react-hot-toast";
 import toast from "react-hot-toast";
 import { useNotifications } from "../NotificationHandler";
+import { useEffect, useRef, useCallback } from "react";
 
 interface NotificationCardProps {
   id: number | string;
@@ -51,6 +52,29 @@ export default function NotificationCard({
   const router = useRouter();
   const { dismissNotification } = useNotifications();
 
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startTimer = useCallback(() => {
+    if (!t) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      toast.dismiss(t.id);
+    }, 10000);
+  }, [t]);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  // Auto-dismiss after 10 seconds
+  useEffect(() => {
+    startTimer();
+    return () => clearTimer();
+  }, [startTimer, clearTimer]);
+
+  const handleMouseEnter = () => clearTimer();
+  const handleMouseLeave = () => startTimer();
+
   const handleClick = async (redirect: boolean) => {
     if (!actionUrl) return;
     if (t) toast.dismiss(t.id);
@@ -65,7 +89,7 @@ export default function NotificationCard({
 
   const styles = isChat
     ? {
-        container: "border-blue-primary/20 bg-blue-500/5",
+        container: "border-blue-primary/20 bg-blue-50",
         icon: "text-blue-primary/60",
         text: "text-blue-primary/80",
         time: "text-blue-primary",
@@ -75,7 +99,7 @@ export default function NotificationCard({
         dismiss: "text-blue-primary/60 hover:text-blue-primary",
       }
     : {
-        container: "border-red-primary/20 bg-red-primary/5",
+        container: "border-red-primary/20 bg-red-50",
         icon: "text-red-primary/60",
         text: "text-red-primary/80",
         time: "text-red-primary",
@@ -93,6 +117,8 @@ export default function NotificationCard({
       style={{
         animation: t ? "slideGrow 0.2s ease-out forwards" : undefined,
       }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <IconComponent
         className={`flex-shrink-0 ${styles.icon}`}
