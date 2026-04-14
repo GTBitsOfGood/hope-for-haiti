@@ -246,8 +246,6 @@ export default function ProfileScreenPartner({
 
   return (
     <div className="max-w-6xl mx-auto pb-8 px-6 font-[Open_Sans]">
-      <div className="h-4"></div>
-
       <div className="flex items-start justify-between">
         <h1 className="text-2xl font-semibold text-gray-primary m-0">
           Profile
