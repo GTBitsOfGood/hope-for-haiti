@@ -25,14 +25,14 @@ export default function RootLayout({
           <NotificationHandler>
             <NavbarLayout>{children}</NavbarLayout>
             <Toaster
-              position="bottom-right"
+              position="top-right"
               containerClassName="general-toaster"
               containerStyle={{
                 top: 20,
                 right: 80,
               }}
               toastOptions={{
-                duration: 4000,
+                duration: 10000,
                 className: "border font-medium",
                 success: {
                   className: "!bg-green-50 !border-green-500 !text-green-700",
