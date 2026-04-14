@@ -44,11 +44,6 @@ export async function GET(request: NextRequest) {
     const { reportType, startDate, endDate, shipmentId, donorName } =
       parsed.data;
 
-    console.log(
-      `[Reports API] Generating ${reportType} report with params:`,
-      { startDate, endDate, shipmentId, donorName }
-    );
-
     let result;
 
     if (reportType === "shipment-partner") {
@@ -64,10 +59,6 @@ export async function GET(request: NextRequest) {
         donorName,
       });
     }
-
-    console.log(
-      `[Reports API] Generated report with ${result.rows.length} rows`
-    );
 
     // Build CSV content based on report type
     let csv: string;
@@ -121,11 +112,6 @@ export async function GET(request: NextRequest) {
 
       csv = `\uFEFF${Papa.unparse(rows, { columns })}`;
     }
-
-    console.log(
-      `[Reports API] CSV generated, first 200 chars:`,
-      csv.substring(0, 200)
-    );
 
     return new NextResponse(csv, {
       status: 200,

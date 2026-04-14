@@ -783,10 +783,6 @@ export default class DistributionService {
     endDate?: string;
     shipmentId?: string;
   }) {
-    console.log(
-      "[DistributionService] getShipmentPartnerSummaryReport payload:",
-      payload
-    );
 
     const signOffs = await db.signOff.findMany({
       where: {
@@ -815,10 +811,6 @@ export default class DistributionService {
         },
       },
     });
-
-    console.log(
-      `[DistributionService] Found ${signOffs.length} sign-offs`
-    );
 
     // Map to track shipment -> recipient -> category -> aggregated data
     const reportData = new Map<
@@ -856,10 +848,6 @@ export default class DistributionService {
         const recipient = signOff.partnerName;
         const category = generalItem?.category || null;
         const itemValue = Number(lineItem.unitPrice) * lineItem.quantity;
-
-        console.log(
-          `[DistributionService] Processing: shipment=${shipmentNumber}, recipient=${recipient}, category=${category}, quantity=${lineItem.quantity}, value=${itemValue}`
-        );
 
         // Initialize nested maps
         if (!reportData.has(shipmentNumber)) {
@@ -919,10 +907,6 @@ export default class DistributionService {
       return (a.category || "").localeCompare(b.category || "");
     });
 
-    console.log(
-      `[DistributionService] Generated report with ${report.length} rows`
-    );
-
     return {
       rows: report,
       fileName: `shipment-partner-summary-${format(new Date(), "yyyy-MM-dd")}.csv`,
@@ -939,10 +923,6 @@ export default class DistributionService {
     endDate?: string;
     donorName?: string;
   }) {
-    console.log(
-      "[DistributionService] getDonorCategorySummaryReport payload:",
-      payload
-    );
 
     const signOffs = await db.signOff.findMany({
       where: {
@@ -971,10 +951,6 @@ export default class DistributionService {
         },
       },
     });
-
-    console.log(
-      `[DistributionService] Found ${signOffs.length} sign-offs`
-    );
 
     // Map to track donor -> category -> aggregated data
     const reportData = new Map<
@@ -1007,10 +983,6 @@ export default class DistributionService {
 
         const category = generalItem?.category || null;
         const itemValue = Number(lineItem.unitPrice) * lineItem.quantity;
-
-        console.log(
-          `[DistributionService] Processing: donor=${donor}, category=${category}, quantity=${lineItem.quantity}, value=${itemValue}`
-        );
 
         // Initialize nested maps
         if (!reportData.has(donor)) {
@@ -1050,10 +1022,6 @@ export default class DistributionService {
       }
       return (a.category || "").localeCompare(b.category || "");
     });
-
-    console.log(
-      `[DistributionService] Generated report with ${report.length} rows`
-    );
 
     return {
       rows: report,

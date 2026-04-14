@@ -84,7 +84,7 @@ export default function ReportGenerationModal({
       setSelectedReportType(null);
       onClose();
     } catch (error) {
-      console.error("Error submitting report:", error);
+      throw error
     } finally {
       setIsSubmitting(false);
     }
