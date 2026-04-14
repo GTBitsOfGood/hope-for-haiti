@@ -22,12 +22,18 @@ export default function NotificationsPanel({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    // Wait for the exit transition to finish before returning null/calling onClose
+    setTimeout(() => onClose(), 200);
+  }, [onClose]);
+
   const startTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      onClose();
-    }, 10000);
-  }, [onClose]);
+      handleClose();
+    }, 7000); /* Adjusted to 7 seconds */
+  }, [handleClose]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -74,10 +80,10 @@ export default function NotificationsPanel({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 cursor-default ${
+        className={`fixed inset-0 z-40 cursor-default transition-opacity duration-200 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       <div

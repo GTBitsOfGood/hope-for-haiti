@@ -273,18 +273,6 @@ async function buildSeedData() {
     ),
   });
 
-  // Create test notification for partner1
-  await db.notification.create({
-    data: {
-      title: "New Donor Offer Available",
-      action: "/items",
-      actionText: "View the Donor Offer",
-      template: "donorOfferNotification",
-      userId: partner1.id,
-      isDelivered: true,
-    },
-  });
-
   console.log("✓ Created users");
   console.log(`  - Super Admin: ${superAdmin.email}`);
   console.log(`  - Staff Admin: ${staffAdmin.email}`);
