@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Joyride, { 
+import { 
+  Joyride, 
   Step,
   CallBackProps,
   STATUS,
