@@ -80,6 +80,7 @@ export default function Tutorial({
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
+  const [isCompletionSynced, setIsCompletionSynced] = useState(false);
   const [serverTutorialCompleted, setServerTutorialCompleted] = useState<
     boolean | null
   >(null);
@@ -264,11 +265,15 @@ export default function Tutorial({
   useEffect(() => {
     hasFetchedCompletionRef.current = false;
     lastNotifiedStepIndexRef.current = null;
+    setIsCompletionSynced(false);
     setServerTutorialCompleted(null);
   }, [type, user?.id]);
 
   useEffect(() => {
     if (!user?.id || hasFetchedCompletionRef.current) {
+      if (!user?.id) {
+        setIsCompletionSynced(true);
+      }
       return;
     }
 
@@ -283,6 +288,7 @@ export default function Tutorial({
         if (!response.ok) {
           if (!cancelled) {
             setServerTutorialCompleted(sessionTutorialCompleted);
+            setIsCompletionSynced(true);
           }
           return;
         }
@@ -299,6 +305,7 @@ export default function Tutorial({
               [tutorialField]: latestValue,
             });
           }
+          setIsCompletionSynced(true);
           return;
         }
       } catch (error) {
@@ -307,6 +314,7 @@ export default function Tutorial({
 
       if (!cancelled) {
         setServerTutorialCompleted(sessionTutorialCompleted);
+        setIsCompletionSynced(true);
       }
     })();
 
@@ -316,7 +324,12 @@ export default function Tutorial({
   }, [sessionTutorialCompleted, tutorialField, updateSession, user?.id]);
 
   useEffect(() => {
-    if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
+    if (
+      !user ||
+      !isCompletionSynced ||
+      isTutorialCompleted ||
+      tutorialSteps.length === 0
+    ) {
       return;
     }
 
@@ -330,7 +343,7 @@ export default function Tutorial({
     setStepIndex(0);
     setRun(true);
     notifyStepChange(initialOriginalIndex);
-  }, [isTutorialCompleted, notifyStepChange, tutorialSteps, user]);
+  }, [isCompletionSynced, isTutorialCompleted, notifyStepChange, tutorialSteps, user]);
 
   useEffect(() => {
     if (!run || responsiveTutorialEntries.length === 0) {
@@ -501,7 +514,12 @@ export default function Tutorial({
     }
   }, [finishTutorial, notifyStepChange]);
 
-  if (!user || isTutorialCompleted || tutorialSteps.length === 0) {
+  if (
+    !user ||
+    !isCompletionSynced ||
+    isTutorialCompleted ||
+    tutorialSteps.length === 0
+  ) {
     return null;
   }
 
