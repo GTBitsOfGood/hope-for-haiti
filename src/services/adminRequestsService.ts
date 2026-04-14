@@ -220,7 +220,10 @@ function classifyRequest(request: RequestWithRelations): ClassifiedRequest {
   );
   const donorOffer = request.generalItem.donorOffer;
 
-  if (request.finalQuantity === 0) {
+  if (
+    request.finalQuantity === 0 &&
+    donorOffer.state !== DonorOfferState.UNFINALIZED
+  ) {
     return {
       bucket: "past",
       signedOffQuantity,
@@ -228,7 +231,10 @@ function classifyRequest(request: RequestWithRelations): ClassifiedRequest {
     };
   }
 
-  if (signedOffQuantity >= request.finalQuantity) {
+  if (
+    request.finalQuantity > 0 &&
+    signedOffQuantity >= request.finalQuantity
+  ) {
     const dateFulfilled = computeDateFulfilled(
       request.generalItem.items,
       request.partnerId,
@@ -243,7 +249,7 @@ function classifyRequest(request: RequestWithRelations): ClassifiedRequest {
 
   if (
     donorOffer.state === DonorOfferState.ARCHIVED &&
-    signedOffQuantity < request.quantity
+    signedOffQuantity < request.finalQuantity
   ) {
     return {
       bucket: "past",
