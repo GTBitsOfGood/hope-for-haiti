@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { DonorOffer } from "@prisma/client";
 import { formatTableValue } from "@/util/format";
@@ -23,6 +23,7 @@ import PartnerRequestChipGroup, {
 import toast from "react-hot-toast";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
 import { TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID } from "@/util/tutorialIds";
+import { useUser } from "@/components/context/UserContext";
 
 type StreamingChunk = {
   itemIndex: number;
@@ -121,8 +122,14 @@ const DONOR_OFFERS_TUTORIAL_SAMPLE_ITEMS: GeneralItemWithRequests[] = [
 
 export default function AdminDynamicDonorOfferScreen() {
   const { donorOfferId } = useParams();
+  const router = useRouter();
+  const { user, loading } = useUser();
   const isTutorialSampleOffer =
     Number(donorOfferId) === DONOR_OFFERS_TUTORIAL_SAMPLE_ID;
+  const [
+    hasLocalDonorOffersTutorialCompletion,
+    setHasLocalDonorOffersTutorialCompletion,
+  ] = useState(false);
   const tableRef =
     useRef<AdvancedBaseTableHandle<GeneralItemWithRequests>>(null);
   const { apiClient } = useApiClient();
@@ -141,6 +148,37 @@ export default function AdminDynamicDonorOfferScreen() {
   useEffect(() => {
     currentItemsRef.current = currentItems;
   }, [currentItems]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setHasLocalDonorOffersTutorialCompletion(false);
+      return;
+    }
+
+    try {
+      setHasLocalDonorOffersTutorialCompletion(
+        localStorage.getItem(
+          `tutorial-completed:${user.id}:adminDonorOffers`
+        ) === "1"
+      );
+    } catch {
+      setHasLocalDonorOffersTutorialCompletion(false);
+    }
+  }, [user?.id]);
+
+  const shouldBlockTutorialSampleOffer =
+    isTutorialSampleOffer &&
+    Boolean(
+      user?.adminDonorOffersTutorial || hasLocalDonorOffersTutorialCompletion
+    );
+
+  useEffect(() => {
+    if (!shouldBlockTutorialSampleOffer) {
+      return;
+    }
+
+    router.replace("/donorOffers");
+  }, [router, shouldBlockTutorialSampleOffer]);
 
   const fetchItems = useCallback(
     async (pageSize: number, page: number) => {
@@ -598,6 +636,14 @@ export default function AdminDynamicDonorOfferScreen() {
     },
     [handleRequestUpdated, isLLMMode, isTutorialSampleOffer]
   );
+
+  if (shouldBlockTutorialSampleOffer) {
+    return null;
+  }
+
+  if (isTutorialSampleOffer && loading) {
+    return null;
+  }
 
   return (
     <div>

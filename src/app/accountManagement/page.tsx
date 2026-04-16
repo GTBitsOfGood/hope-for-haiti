@@ -197,10 +197,39 @@ export default function AccountManagementPage() {
     permissions: StaffPermissionFlags;
     isSuper: boolean;
   } | null>(null);
-  const [isAccountTutorialActive, setIsAccountTutorialActive] = useState(true);
+  const [hasLocalAccountTutorialCompletion, setHasLocalAccountTutorialCompletion] =
+    useState(() => {
+      if (!currentUser?.id || typeof window === "undefined") {
+        return false;
+      }
+
+      try {
+        return (
+          localStorage.getItem(
+            `tutorial-completed:${currentUser.id}:adminAccountManagement`
+          ) === "1"
+        );
+      } catch {
+        return false;
+      }
+    });
+  const [isAccountTutorialActive, setIsAccountTutorialActive] = useState(
+    () =>
+      Boolean(
+        currentUser &&
+          !currentUser.adminAccountManagementTutorial &&
+          !hasLocalAccountTutorialCompletion
+      )
+  );
   const [hasAccountTutorialEnded, setHasAccountTutorialEnded] = useState(false);
   const [activeTutorialStep, setActiveTutorialStep] = useState<number | null>(
     null
+  );
+  const shouldAutoStartAccountTutorial = Boolean(
+    currentUser &&
+      !loading &&
+      !currentUser.adminAccountManagementTutorial &&
+      !hasLocalAccountTutorialCompletion
   );
   const isTutorialSampleMode =
     isAccountTutorialActive && !hasAccountTutorialEnded;
@@ -225,6 +254,31 @@ export default function AccountManagementPage() {
       router.replace("/");
     }
   }, [loading, canViewAccounts, router]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setHasLocalAccountTutorialCompletion(false);
+      return;
+    }
+
+    try {
+      setHasLocalAccountTutorialCompletion(
+        localStorage.getItem(
+          `tutorial-completed:${currentUser.id}:adminAccountManagement`
+        ) === "1"
+      );
+    } catch {
+      setHasLocalAccountTutorialCompletion(false);
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (hasAccountTutorialEndedRef.current || hasAccountTutorialEnded) {
+      return;
+    }
+
+    setIsAccountTutorialActive(shouldAutoStartAccountTutorial);
+  }, [hasAccountTutorialEnded, shouldAutoStartAccountTutorial]);
 
   const handleInviteSubmit = (role: UserType) => {
     if (role === "PARTNER") {
@@ -493,6 +547,7 @@ export default function AccountManagementPage() {
     setPermissionState(null);
     tableRef.current?.setFilterMenuOpen(false);
     clearAccountSampleHighlight();
+    tableRef.current?.reload();
   }, [clearAccountSampleHighlight]);
 
   useEffect(() => {

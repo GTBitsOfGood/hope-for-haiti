@@ -109,18 +109,47 @@ export default function AdminDonorOffersScreen() {
     StatusFilterKey.UNFINALIZED
   );
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const {apiClient} = useApiClient();
   const canManageOffers = hasPermission(user, "offerWrite");
 
   const tableRef = useRef<AdvancedBaseTableHandle<AdminDonorOffer>>(null);
   const hasDonorOffersTutorialEndedRef = useRef(false);
+  const [hasLocalDonorOffersTutorialCompletion, setHasLocalDonorOffersTutorialCompletion] =
+    useState(() => {
+      if (!user?.id || typeof window === "undefined") {
+        return false;
+      }
+
+      try {
+        return (
+          localStorage.getItem(
+            `tutorial-completed:${user.id}:adminDonorOffers`
+          ) === "1"
+        );
+      } catch {
+        return false;
+      }
+    });
   const [isDonorOffersTutorialActive, setIsDonorOffersTutorialActive] =
-    useState(true);
+    useState(
+      () =>
+        Boolean(
+          user &&
+            !user.adminDonorOffersTutorial &&
+            !hasLocalDonorOffersTutorialCompletion
+        )
+    );
   const [hasDonorOffersTutorialEnded, setHasDonorOffersTutorialEnded] =
     useState(false);
   const [activeTutorialStep, setActiveTutorialStep] = useState<number | null>(
     null
+  );
+  const shouldAutoStartDonorOffersTutorial = Boolean(
+    user &&
+      !loading &&
+      !user.adminDonorOffersTutorial &&
+      !hasLocalDonorOffersTutorialCompletion
   );
   const isDonorOffersTutorialSampleMode =
     isDonorOffersTutorialActive && !hasDonorOffersTutorialEnded;
@@ -199,6 +228,34 @@ export default function AdminDonorOffersScreen() {
     clearDonorOffersTutorialHighlights();
     tableRef.current?.reload();
   }, [clearDonorOffersTutorialHighlights]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setHasLocalDonorOffersTutorialCompletion(false);
+      return;
+    }
+
+    try {
+      setHasLocalDonorOffersTutorialCompletion(
+        localStorage.getItem(
+          `tutorial-completed:${user.id}:adminDonorOffers`
+        ) === "1"
+      );
+    } catch {
+      setHasLocalDonorOffersTutorialCompletion(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (
+      hasDonorOffersTutorialEndedRef.current ||
+      hasDonorOffersTutorialEnded
+    ) {
+      return;
+    }
+
+    setIsDonorOffersTutorialActive(shouldAutoStartDonorOffersTutorial);
+  }, [hasDonorOffersTutorialEnded, shouldAutoStartDonorOffersTutorial]);
 
   useEffect(() => {
     if (!hasDonorOffersTutorialEnded) {
