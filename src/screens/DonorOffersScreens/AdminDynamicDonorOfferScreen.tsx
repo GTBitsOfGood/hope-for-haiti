@@ -127,6 +127,10 @@ export default function AdminDynamicDonorOfferScreen() {
   const isTutorialSampleOffer =
     Number(donorOfferId) === DONOR_OFFERS_TUTORIAL_SAMPLE_ID;
   const [
+    hasResolvedDonorOffersTutorialState,
+    setHasResolvedDonorOffersTutorialState,
+  ] = useState(false);
+  const [
     hasLocalDonorOffersTutorialCompletion,
     setHasLocalDonorOffersTutorialCompletion,
   ] = useState(false);
@@ -145,29 +149,50 @@ export default function AdminDynamicDonorOfferScreen() {
   );
   const currentItemsRef = useRef<GeneralItemWithRequests[]>([]);
 
+  const getHasLocalDonorOffersTutorialCompletion = useCallback(() => {
+    if (!user?.id) {
+      return false;
+    }
+
+    try {
+      return (
+        localStorage.getItem(`tutorial-completed:${user.id}:adminDonorOffers`) ===
+        "1"
+      );
+    } catch {
+      return false;
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     currentItemsRef.current = currentItems;
   }, [currentItems]);
 
   useEffect(() => {
+    if (loading) {
+      setHasResolvedDonorOffersTutorialState(false);
+      return;
+    }
+
     if (!user?.id) {
       setHasLocalDonorOffersTutorialCompletion(false);
+      setHasResolvedDonorOffersTutorialState(true);
       return;
     }
 
     try {
       setHasLocalDonorOffersTutorialCompletion(
-        localStorage.getItem(
-          `tutorial-completed:${user.id}:adminDonorOffers`
-        ) === "1"
+        getHasLocalDonorOffersTutorialCompletion()
       );
     } catch {
       setHasLocalDonorOffersTutorialCompletion(false);
     }
-  }, [user?.id]);
+    setHasResolvedDonorOffersTutorialState(true);
+  }, [getHasLocalDonorOffersTutorialCompletion, loading, user?.id]);
 
   const shouldBlockTutorialSampleOffer =
     isTutorialSampleOffer &&
+    hasResolvedDonorOffersTutorialState &&
     Boolean(
       user?.adminDonorOffersTutorial || hasLocalDonorOffersTutorialCompletion
     );
@@ -641,7 +666,7 @@ export default function AdminDynamicDonorOfferScreen() {
     return null;
   }
 
-  if (isTutorialSampleOffer && loading) {
+  if (isTutorialSampleOffer && (!hasResolvedDonorOffersTutorialState || loading)) {
     return null;
   }
 
@@ -658,7 +683,7 @@ export default function AdminDynamicDonorOfferScreen() {
           <span className="text-gray-500 text-sm flex items-center">/</span>
           <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
             {isTutorialSampleOffer
-              ? "Tutorial Offer"
+              ? "Test Donor Offer"
               : formatTableValue(String(donorOfferId))}
           </span>
         </div>

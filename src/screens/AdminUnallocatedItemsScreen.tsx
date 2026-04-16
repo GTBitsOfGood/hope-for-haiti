@@ -10,6 +10,7 @@ import {
 import { FilterList } from "@/components/baseTable/AdvancedBaseTable";
 import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import Tutorial, { type TutorialStep } from "@/components/Tutorial";
+import { useUser } from "@/components/context/UserContext";
 
 type SuggestionResponse = {
   programs: AllocationSuggestionProgram[];
@@ -23,10 +24,9 @@ const UNALLOCATED_TUTORIAL_SAMPLE_HIGHLIGHT_CLASS =
   "unallocated-items-tutorial-sample-highlight";
 const UNALLOCATED_TUTORIAL_SUGGEST_HIGHLIGHT_CLASS =
   "unallocated-items-tutorial-suggest-highlight";
-const TUTORIAL_TOOLTIP_SELECTOR = '[data-tutorial-tooltip="true"]';
 const UNALLOCATED_TUTORIAL_SAMPLE_ITEM: AllocationTableItem = {
   id: UNALLOCATED_TUTORIAL_SAMPLE_ID,
-  title: "Paracetamol 500mg",
+  title: "Sample Item",
   type: "MEDICATION",
   quantity: 1200,
   expirationDate: "2027-12-31T00:00:00.000Z",
@@ -73,14 +73,45 @@ function calculateItemsAllocated(
 
 export default function AdminUnallocatedItemsScreen() {
   const { apiClient } = useApiClient();
+  const { user, loading } = useUser();
   const [modifiedPagesCount, setModifiedPagesCount] = useState(0);
   const hasUnallocatedTutorialEndedRef = useRef(false);
+  const [hasResolvedUnallocatedTutorialState, setHasResolvedUnallocatedTutorialState] =
+    useState(false);
+  const [
+    hasLocalUnallocatedTutorialCompletion,
+    setHasLocalUnallocatedTutorialCompletion,
+  ] = useState(false);
   const [isUnallocatedTutorialActive, setIsUnallocatedTutorialActive] =
-    useState(true);
+    useState(false);
   const [hasUnallocatedTutorialEnded, setHasUnallocatedTutorialEnded] =
     useState(false);
+  const [hasUnallocatedTutorialStarted, setHasUnallocatedTutorialStarted] =
+    useState(false);
   const isUnallocatedTutorialSampleMode =
-    isUnallocatedTutorialActive && !hasUnallocatedTutorialEnded;
+    Boolean(
+      user &&
+        hasResolvedUnallocatedTutorialState &&
+        isUnallocatedTutorialActive &&
+        !hasUnallocatedTutorialEnded &&
+        (hasUnallocatedTutorialStarted || !user.adminUnallocatedTutorial) &&
+        !hasLocalUnallocatedTutorialCompletion
+    );
+
+  const getHasLocalUnallocatedTutorialCompletion = useCallback(() => {
+    if (!user?.id) {
+      return false;
+    }
+
+    try {
+      return (
+        localStorage.getItem(`tutorial-completed:${user.id}:adminUnallocated`) ===
+        "1"
+      );
+    } catch {
+      return false;
+    }
+  }, [user?.id]);
 
   const clearUnallocatedTutorialHighlights = useCallback(() => {
     document.body.classList.remove(UNALLOCATED_TUTORIAL_SAMPLE_HIGHLIGHT_CLASS);
@@ -296,8 +327,16 @@ export default function AdminUnallocatedItemsScreen() {
     if (hasUnallocatedTutorialEndedRef.current || hasUnallocatedTutorialEnded) {
       return;
     }
-    setIsUnallocatedTutorialActive(true);
+
+    const hasLocalCompletion = getHasLocalUnallocatedTutorialCompletion();
+    setHasLocalUnallocatedTutorialCompletion(hasLocalCompletion);
+    setIsUnallocatedTutorialActive(!hasLocalCompletion);
+    setHasUnallocatedTutorialStarted(!hasLocalCompletion);
     clearUnallocatedTutorialHighlights();
+
+    if (hasLocalCompletion) {
+      return;
+    }
 
     if (
       stepIndex === UNALLOCATED_TUTORIAL_SAMPLE_STEP_INDEX ||
@@ -309,15 +348,58 @@ export default function AdminUnallocatedItemsScreen() {
     if (stepIndex === UNALLOCATED_TUTORIAL_SUGGEST_STEP_INDEX) {
       document.body.classList.add(UNALLOCATED_TUTORIAL_SUGGEST_HIGHLIGHT_CLASS);
     }
-  }, [clearUnallocatedTutorialHighlights, hasUnallocatedTutorialEnded]);
+  }, [
+    clearUnallocatedTutorialHighlights,
+    getHasLocalUnallocatedTutorialCompletion,
+    hasUnallocatedTutorialEnded,
+  ]);
 
   const handleTutorialEnd = useCallback(() => {
     hasUnallocatedTutorialEndedRef.current = true;
     setHasUnallocatedTutorialEnded(true);
     setIsUnallocatedTutorialActive(false);
+    setHasUnallocatedTutorialStarted(false);
     setModifiedPagesCount(0);
     clearUnallocatedTutorialHighlights();
   }, [clearUnallocatedTutorialHighlights]);
+
+  useEffect(() => {
+    if (loading) {
+      setHasResolvedUnallocatedTutorialState(false);
+      return;
+    }
+
+    if (!user?.id) {
+      setHasLocalUnallocatedTutorialCompletion(false);
+      setIsUnallocatedTutorialActive(false);
+      setHasResolvedUnallocatedTutorialState(true);
+      return;
+    }
+
+    try {
+      const hasLocalCompletion = getHasLocalUnallocatedTutorialCompletion();
+      setHasLocalUnallocatedTutorialCompletion(hasLocalCompletion);
+      setIsUnallocatedTutorialActive((currentValue) =>
+        hasUnallocatedTutorialStarted
+          ? currentValue || !hasLocalCompletion
+          : !user.adminUnallocatedTutorial && !hasLocalCompletion
+      );
+    } catch {
+      setHasLocalUnallocatedTutorialCompletion(false);
+      setIsUnallocatedTutorialActive((currentValue) =>
+        hasUnallocatedTutorialStarted
+          ? currentValue
+          : !user.adminUnallocatedTutorial
+      );
+    }
+    setHasResolvedUnallocatedTutorialState(true);
+  }, [
+    getHasLocalUnallocatedTutorialCompletion,
+    hasUnallocatedTutorialStarted,
+    loading,
+    user?.adminUnallocatedTutorial,
+    user?.id,
+  ]);
 
   useEffect(() => {
     if (!hasUnallocatedTutorialEnded) {
@@ -325,63 +407,10 @@ export default function AdminUnallocatedItemsScreen() {
     }
 
     setIsUnallocatedTutorialActive(false);
+    setHasUnallocatedTutorialStarted(false);
     setModifiedPagesCount(0);
     clearUnallocatedTutorialHighlights();
   }, [clearUnallocatedTutorialHighlights, hasUnallocatedTutorialEnded]);
-
-  useEffect(() => {
-    if (!isUnallocatedTutorialActive || hasUnallocatedTutorialEnded) {
-      return;
-    }
-
-    let pendingCleanupTimeout: number | null = null;
-
-    const maybeScheduleCleanup = () => {
-      const hasTooltip = Boolean(
-        document.querySelector(TUTORIAL_TOOLTIP_SELECTOR)
-      );
-
-      if (hasTooltip) {
-        if (pendingCleanupTimeout !== null) {
-          window.clearTimeout(pendingCleanupTimeout);
-          pendingCleanupTimeout = null;
-        }
-        return;
-      }
-
-      if (pendingCleanupTimeout !== null) {
-        return;
-      }
-
-      pendingCleanupTimeout = window.setTimeout(() => {
-        pendingCleanupTimeout = null;
-
-        if (!document.querySelector(TUTORIAL_TOOLTIP_SELECTOR)) {
-          hasUnallocatedTutorialEndedRef.current = true;
-          setHasUnallocatedTutorialEnded(true);
-          setIsUnallocatedTutorialActive(false);
-          setModifiedPagesCount(0);
-          clearUnallocatedTutorialHighlights();
-        }
-      }, 200);
-    };
-
-    maybeScheduleCleanup();
-
-    const observer = new MutationObserver(maybeScheduleCleanup);
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-      if (pendingCleanupTimeout !== null) {
-        window.clearTimeout(pendingCleanupTimeout);
-      }
-    };
-  }, [
-    clearUnallocatedTutorialHighlights,
-    hasUnallocatedTutorialEnded,
-    isUnallocatedTutorialActive,
-  ]);
 
   useEffect(() => {
     return () => {
@@ -410,20 +439,22 @@ export default function AdminUnallocatedItemsScreen() {
         </div>
       )}
 
-      <AllocationTable
-        key={
-          isUnallocatedTutorialSampleMode
-            ? "unallocated-tutorial-sample"
-            : "unallocated-live-data"
-        }
-        fetchFn={fetchTableData}
-        requestsHeaderTutorialId="unallocated-items-requests-nums"
-        suggestionConfig={{
-          onSuggest: handleSuggest,
-          onApply: handleApplySuggestions,
-          onModifiedPagesChange: setModifiedPagesCount,
-        }}
-      />
+      {hasResolvedUnallocatedTutorialState ? (
+        <AllocationTable
+          key={
+            isUnallocatedTutorialSampleMode
+              ? "unallocated-tutorial-sample"
+              : "unallocated-live-data"
+          }
+          fetchFn={fetchTableData}
+          requestsHeaderTutorialId="unallocated-items-requests-nums"
+          suggestionConfig={{
+            onSuggest: handleSuggest,
+            onApply: handleApplySuggestions,
+            onModifiedPagesChange: setModifiedPagesCount,
+          }}
+        />
+      ) : null}
     </>
   );
 }

@@ -115,44 +115,30 @@ export default function AdminDonorOffersScreen() {
 
   const tableRef = useRef<AdvancedBaseTableHandle<AdminDonorOffer>>(null);
   const hasDonorOffersTutorialEndedRef = useRef(false);
-  const [hasLocalDonorOffersTutorialCompletion, setHasLocalDonorOffersTutorialCompletion] =
-    useState(() => {
-      if (!user?.id || typeof window === "undefined") {
-        return false;
-      }
-
-      try {
-        return (
-          localStorage.getItem(
-            `tutorial-completed:${user.id}:adminDonorOffers`
-          ) === "1"
-        );
-      } catch {
-        return false;
-      }
-    });
+  const [hasResolvedDonorOffersTutorialState, setHasResolvedDonorOffersTutorialState] =
+    useState(false);
+  const [
+    hasLocalDonorOffersTutorialCompletion,
+    setHasLocalDonorOffersTutorialCompletion,
+  ] = useState(false);
   const [isDonorOffersTutorialActive, setIsDonorOffersTutorialActive] =
-    useState(
-      () =>
-        Boolean(
-          user &&
-            !user.adminDonorOffersTutorial &&
-            !hasLocalDonorOffersTutorialCompletion
-        )
-    );
+    useState(false);
   const [hasDonorOffersTutorialEnded, setHasDonorOffersTutorialEnded] =
+    useState(false);
+  const [hasDonorOffersTutorialStarted, setHasDonorOffersTutorialStarted] =
     useState(false);
   const [activeTutorialStep, setActiveTutorialStep] = useState<number | null>(
     null
   );
-  const shouldAutoStartDonorOffersTutorial = Boolean(
-    user &&
-      !loading &&
-      !user.adminDonorOffersTutorial &&
-      !hasLocalDonorOffersTutorialCompletion
-  );
   const isDonorOffersTutorialSampleMode =
-    isDonorOffersTutorialActive && !hasDonorOffersTutorialEnded;
+    Boolean(
+      user &&
+        hasResolvedDonorOffersTutorialState &&
+        isDonorOffersTutorialActive &&
+        !hasDonorOffersTutorialEnded &&
+        (hasDonorOffersTutorialStarted || !user.adminDonorOffersTutorial) &&
+        !hasLocalDonorOffersTutorialCompletion
+    );
   const isTutorialManageMenuStep =
     isDonorOffersTutorialSampleMode &&
     activeTutorialStep !== null &&
@@ -176,15 +162,39 @@ export default function AdminDonorOffersScreen() {
     );
   }, []);
 
+  const getHasLocalDonorOffersTutorialCompletion = useCallback(() => {
+    if (!user?.id) {
+      return false;
+    }
+
+    try {
+      return (
+        localStorage.getItem(`tutorial-completed:${user.id}:adminDonorOffers`) ===
+        "1"
+      );
+    } catch {
+      return false;
+    }
+  }, [user?.id]);
+
   const handleTutorialStepChange = useCallback(
     (stepIndex: number) => {
       if (hasDonorOffersTutorialEndedRef.current || hasDonorOffersTutorialEnded) {
         return;
       }
 
-      setIsDonorOffersTutorialActive(true);
-      setActiveTutorialStep(stepIndex);
+      const hasLocalCompletion = getHasLocalDonorOffersTutorialCompletion();
+      setHasLocalDonorOffersTutorialCompletion(hasLocalCompletion);
+      setIsDonorOffersTutorialActive(!hasLocalCompletion);
+      setHasDonorOffersTutorialStarted(!hasLocalCompletion);
       clearDonorOffersTutorialHighlights();
+
+      if (hasLocalCompletion) {
+        setActiveTutorialStep(null);
+        return;
+      }
+
+      setActiveTutorialStep(stepIndex);
 
       if (
         stepIndex >= DONOR_OFFERS_TUTORIAL_ALLOCATE_STEP_INDEX &&
@@ -217,45 +227,59 @@ export default function AdminDonorOffersScreen() {
         );
       }
     },
-    [activeTab, clearDonorOffersTutorialHighlights, hasDonorOffersTutorialEnded]
+    [
+      activeTab,
+      clearDonorOffersTutorialHighlights,
+      getHasLocalDonorOffersTutorialCompletion,
+      hasDonorOffersTutorialEnded,
+    ]
   );
 
   const handleTutorialEnd = useCallback(() => {
     hasDonorOffersTutorialEndedRef.current = true;
     setHasDonorOffersTutorialEnded(true);
     setIsDonorOffersTutorialActive(false);
+    setHasDonorOffersTutorialStarted(false);
     setActiveTutorialStep(null);
     clearDonorOffersTutorialHighlights();
     tableRef.current?.reload();
   }, [clearDonorOffersTutorialHighlights]);
 
   useEffect(() => {
+    if (loading) {
+      setHasResolvedDonorOffersTutorialState(false);
+      return;
+    }
+
     if (!user?.id) {
       setHasLocalDonorOffersTutorialCompletion(false);
+      setIsDonorOffersTutorialActive(false);
+      setHasResolvedDonorOffersTutorialState(true);
       return;
     }
 
     try {
-      setHasLocalDonorOffersTutorialCompletion(
-        localStorage.getItem(
-          `tutorial-completed:${user.id}:adminDonorOffers`
-        ) === "1"
+      const hasLocalCompletion = getHasLocalDonorOffersTutorialCompletion();
+      setHasLocalDonorOffersTutorialCompletion(hasLocalCompletion);
+      setIsDonorOffersTutorialActive((currentValue) =>
+        hasDonorOffersTutorialStarted
+          ? currentValue || !hasLocalCompletion
+          : !user.adminDonorOffersTutorial && !hasLocalCompletion
       );
     } catch {
       setHasLocalDonorOffersTutorialCompletion(false);
+      setIsDonorOffersTutorialActive((currentValue) =>
+        hasDonorOffersTutorialStarted ? currentValue : !user.adminDonorOffersTutorial
+      );
     }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (
-      hasDonorOffersTutorialEndedRef.current ||
-      hasDonorOffersTutorialEnded
-    ) {
-      return;
-    }
-
-    setIsDonorOffersTutorialActive(shouldAutoStartDonorOffersTutorial);
-  }, [hasDonorOffersTutorialEnded, shouldAutoStartDonorOffersTutorial]);
+    setHasResolvedDonorOffersTutorialState(true);
+  }, [
+    getHasLocalDonorOffersTutorialCompletion,
+    hasDonorOffersTutorialStarted,
+    loading,
+    user?.adminDonorOffersTutorial,
+    user?.id,
+  ]);
 
   useEffect(() => {
     if (!hasDonorOffersTutorialEnded) {
@@ -263,6 +287,7 @@ export default function AdminDonorOffersScreen() {
     }
 
     setIsDonorOffersTutorialActive(false);
+    setHasDonorOffersTutorialStarted(false);
     setActiveTutorialStep(null);
     clearDonorOffersTutorialHighlights();
     tableRef.current?.reload();
@@ -288,8 +313,8 @@ export default function AdminDonorOffersScreen() {
             data: [
               {
                 donorOfferId: DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ID,
-                offerName: "H4hDonorOffer.csv",
-                donorName: "Global Med Supplies",
+                offerName: "Test Donor Offer.csv",
+                donorName: "Test Donor",
                 responseDeadline,
                 donorResponseDeadline,
                 state: DonorOfferState.FINALIZED,
@@ -307,8 +332,8 @@ export default function AdminDonorOffersScreen() {
           data: [
             {
               donorOfferId: DONOR_OFFERS_TUTORIAL_SAMPLE_ID,
-              offerName: "H4hDonorOffer.csv",
-              donorName: "Global Med Supplies",
+              offerName: "Test Donor Offer.csv",
+              donorName: "Test Donor",
               responseDeadline,
               donorResponseDeadline,
               state: mapTabToDonorOfferState(activeTab),
@@ -654,7 +679,7 @@ export default function AdminDonorOffersScreen() {
       title: <div>Revise Allocations</div>,
       content: (
         <div>
-          This example offer was created from <b>H4hDonorOffer.csv</b>. Click
+          This example offer was created from <b>Test Donor Offer.csv</b>. Click
           the offer row to open the resulting page, then review and revise
           partner requests per item.
         </div>
@@ -763,45 +788,52 @@ export default function AdminDonorOffersScreen() {
         </div>
       </div>
 
-      <AdvancedBaseTable
-        ref={tableRef}
-        columns={columns}
-        fetchFn={fetchFn}
-        rowId="donorOfferId"
-        onRowClick={(offer) => {
-          if (
-            isDonorOffersTutorialSampleMode &&
-            offer.donorOfferId === DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ID
-          ) {
-            return;
+      {hasResolvedDonorOffersTutorialState ? (
+        <AdvancedBaseTable
+          key={
+            isDonorOffersTutorialSampleMode
+              ? "donor-offers-tutorial-sample"
+              : "donor-offers-live-data"
           }
+          ref={tableRef}
+          columns={columns}
+          fetchFn={fetchFn}
+          rowId="donorOfferId"
+          onRowClick={(offer) => {
+            if (
+              isDonorOffersTutorialSampleMode &&
+              offer.donorOfferId === DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ID
+            ) {
+              return;
+            }
 
-          router.push(`/donorOffers/${offer.donorOfferId}`);
-        }}
-        getRowAttributes={(offer) =>
-          isDonorOffersTutorialSampleMode &&
-          offer.donorOfferId === DONOR_OFFERS_TUTORIAL_SAMPLE_ID
-            ? { "data-tutorial": DONOR_OFFERS_TUTORIAL_SAMPLE_ROW_TUTORIAL_ID }
-            : isDonorOffersTutorialSampleMode &&
-                offer.donorOfferId === DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ID
-              ? {
-                  "data-tutorial":
-                    DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ROW_TUTORIAL_ID,
-                }
-              : undefined
-        }
-        toolBar={
-          canManageOffers && (
-            <button
-              className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
-              onClick={() => router.push("/donorOffers/create")}
-              data-tutorial="donor-offers-initial-offer"
-            >
-              <Plus size={18} /> + Donor Offer
-            </button>
-          )
-        }
-      />
+            router.push(`/donorOffers/${offer.donorOfferId}`);
+          }}
+          getRowAttributes={(offer) =>
+            isDonorOffersTutorialSampleMode &&
+            offer.donorOfferId === DONOR_OFFERS_TUTORIAL_SAMPLE_ID
+              ? { "data-tutorial": DONOR_OFFERS_TUTORIAL_SAMPLE_ROW_TUTORIAL_ID }
+              : isDonorOffersTutorialSampleMode &&
+                  offer.donorOfferId === DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ID
+                ? {
+                    "data-tutorial":
+                      DONOR_OFFERS_TUTORIAL_FINALIZED_SAMPLE_ROW_TUTORIAL_ID,
+                  }
+                : undefined
+          }
+          toolBar={
+            canManageOffers && (
+              <button
+                className="order-1 ml-4 flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+                onClick={() => router.push("/donorOffers/create")}
+                data-tutorial="donor-offers-initial-offer"
+              >
+                <Plus size={18} /> + Donor Offer
+              </button>
+            )
+          }
+        />
+      ) : null}
     </>
   );
 }
