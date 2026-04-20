@@ -70,7 +70,9 @@ const DonorOfferSchema = z.object({
 });
 
 const coerceNormalizedString = (value: unknown): string => {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
 };
 
 const coerceOptionalString = (options?: { allowEmpty?: boolean }) =>
@@ -147,6 +149,7 @@ const FinalizeDonorOfferItemSchema = z.object({
     .transform((val) => val ?? 0)
     .pipe(z.number().min(0, "Weight must be non-negative")),
   category: z.nativeEnum(ItemCategory).optional(),
+  type: z.nativeEnum(ItemType).optional(),
   quantity: coerceNumber().pipe(
     z.number().int().min(0, "Quantity must be non-negative")
   ),
@@ -159,14 +162,11 @@ const FinalizeDonorOfferItemSchema = z.object({
   boxNumber: coerceOptionalString({ allowEmpty: true }).transform(
     (val) => val ?? ""
   ),
-  donorShippingNumber: coerceOptionalString({ allowEmpty: true }),
-  hfhShippingNumber: coerceOptionalString({ allowEmpty: true }),
   unitPrice: coerceNumber().pipe(z.number().min(0)),
-  maxRequestLimit: coerceOptionalString({ allowEmpty: true }),
-  ndc: coerceOptionalString({ allowEmpty: true }),
   visible: coerceBoolean(false),
   allowAllocations: coerceBoolean(true),
   gik: coerceBoolean(true),
+  additionalInfo: z.record(z.unknown()).optional().default({}),
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
@@ -413,24 +413,31 @@ export default class DonorOfferService {
 
     if (filters?.responseDeadline && filters.responseDeadline.type === "date") {
       const dateCondition: Record<string, string> = {};
-      if (filters.responseDeadline.gte) dateCondition.gte = filters.responseDeadline.gte; 
-      if (filters.responseDeadline.lte) dateCondition.lte = filters.responseDeadline.lte; 
-      (where as Record<string, unknown>).partnerResponseDeadline = dateCondition; 
+      if (filters.responseDeadline.gte)
+        dateCondition.gte = filters.responseDeadline.gte;
+      if (filters.responseDeadline.lte)
+        dateCondition.lte = filters.responseDeadline.lte;
+      (where as Record<string, unknown>).partnerResponseDeadline =
+        dateCondition;
     }
 
     if (filters?.partnerInvolved && filters.partnerInvolved.type === "string") {
       (where as Record<string, unknown>).partnerVisibilities = {
         some: {
           name: {
-            contains: filters.partnerInvolved.value, 
+            contains: filters.partnerInvolved.value,
             mode: "insensitive",
           },
         },
       };
     }
 
-    if (filters?.allPartnersResponded && filters.allPartnersResponded.type === "enum") {
-      const needEverything = filters.allPartnersResponded.values.includes("Yes");
+    if (
+      filters?.allPartnersResponded &&
+      filters.allPartnersResponded.type === "enum"
+    ) {
+      const needEverything =
+        filters.allPartnersResponded.values.includes("Yes");
 
       const nonRespondedIds = await db.$queryRaw<{ id: number }[]>(Prisma.sql`
         SELECT DISTINCT jt."A" AS id
@@ -451,9 +458,9 @@ export default class DonorOfferService {
       const ids = nonRespondedIds.map((r) => r.id);
 
       if (needEverything) {
-        (where as Record<string, unknown>).id = {notIn: ids };
+        (where as Record<string, unknown>).id = { notIn: ids };
       } else {
-        (where as Record<string, unknown>).id = {in: ids};
+        (where as Record<string, unknown>).id = { in: ids };
       }
     }
 
@@ -502,7 +509,7 @@ export default class DonorOfferService {
       })
     );
 
-    return {donorOffers: mappedOffers, total}
+    return { donorOffers: mappedOffers, total };
   }
 
   static async getItemRequests(
@@ -870,23 +877,24 @@ export default class DonorOfferService {
 
     const shouldIncludeRequests = requests ?? true;
 
-    const orderBy: Prisma.GeneralItemOrderByWithRelationInput[] = shouldIncludeRequests
-      ? [
-          {
-            requests: {
-              _count: "desc" as const,
+    const orderBy: Prisma.GeneralItemOrderByWithRelationInput[] =
+      shouldIncludeRequests
+        ? [
+            {
+              requests: {
+                _count: "desc" as const,
+              },
             },
-          },
-          { id: "asc" as const },
-        ]
-      : [
-          {
-            items: {
-              _count: "desc" as const,
+            { id: "asc" as const },
+          ]
+        : [
+            {
+              items: {
+                _count: "desc" as const,
+              },
             },
-          },
-          { id: "asc" as const },
-        ];
+            { id: "asc" as const },
+          ];
 
     const items = await db.generalItem.findMany({
       where: { donorOfferId },
@@ -914,10 +922,8 @@ export default class DonorOfferService {
   }
 
   static async getUnfinalizedDonorOfferCsv(donorOfferId: number) {
-    const { donorOffer, partners, items } = await this.getAdminDonorOfferDetails(
-      donorOfferId,
-      true
-    );
+    const { donorOffer, partners, items } =
+      await this.getAdminDonorOfferDetails(donorOfferId, true);
 
     if (donorOffer.state !== DonorOfferState.UNFINALIZED) {
       throw new ArgumentError(
@@ -944,7 +950,8 @@ export default class DonorOfferService {
 
     const rows = itemsWithRequests.map((item) => {
       const requestTotal = item.requests.reduce(
-        (sum, request) => sum + (request.finalQuantity ?? request.quantity ?? 0),
+        (sum, request) =>
+          sum + (request.finalQuantity ?? request.quantity ?? 0),
         0
       );
 
@@ -1005,15 +1012,15 @@ export default class DonorOfferService {
         where: { id: requests[0].donorOfferItemId },
         include: {
           donorOffer: {
-            select: { partnerResponseDeadline: true, state: true }
+            select: { partnerResponseDeadline: true, state: true },
           },
           items: {
             where: {
-              allocation: null
+              allocation: null,
             },
-            select: { id: true }
-          }
-        }
+            select: { id: true },
+          },
+        },
       });
 
       if (!firstItem) {
@@ -1022,14 +1029,17 @@ export default class DonorOfferService {
 
       if (firstItem.donorOffer?.state === "ARCHIVED") {
         if (firstItem.items.length === 0) {
-          throw new ArgumentError("Cannot create requests for fully allocated archived items.");
+          throw new ArgumentError(
+            "Cannot create requests for fully allocated archived items."
+          );
         }
-      }
-      else if (firstItem.donorOffer?.state === "UNFINALIZED") {
+      } else if (firstItem.donorOffer?.state === "UNFINALIZED") {
         if (firstItem.donorOffer.partnerResponseDeadline) {
           const now = new Date();
           if (now > firstItem.donorOffer.partnerResponseDeadline) {
-            throw new ArgumentError("Cannot create or update requests after the partner response deadline has passed.");
+            throw new ArgumentError(
+              "Cannot create or update requests after the partner response deadline has passed."
+            );
           }
         }
       }
@@ -1254,7 +1264,7 @@ export default class DonorOfferService {
           firstLineItem.expirationDate
         );
 
-        let generalItem: typeof offerItems[0] | undefined;
+        let generalItem: (typeof offerItems)[0] | undefined;
         try {
           const query = firstLineItem.title;
           const embeddingMatch = await MatchingService.findSimilarFromCache(
@@ -1266,15 +1276,20 @@ export default class DonorOfferService {
               expirationDate: normalizedExpiration,
               expirationTolerance: 1,
             },
-            0.20
+            0.2
           );
           console.log(generalItem?.title, embeddingMatch?.title);
 
           if (embeddingMatch?.generalItemId) {
-            generalItem = offerItems.find((di) => di.id === embeddingMatch.generalItemId);
+            generalItem = offerItems.find(
+              (di) => di.id === embeddingMatch.generalItemId
+            );
           }
         } catch (error) {
-          console.warn("Embedding matching failed, falling back to exact matching:", error);
+          console.warn(
+            "Embedding matching failed, falling back to exact matching:",
+            error
+          );
         }
 
         if (!generalItem) {
@@ -1291,8 +1306,9 @@ export default class DonorOfferService {
               DonorOfferService.normalizeForComparison(firstLineItem.title) ===
                 DonorOfferService.normalizeForComparison(di.title) &&
               expirationMatches &&
-              DonorOfferService.normalizeForComparison(firstLineItem.unitType) ===
-                DonorOfferService.normalizeForComparison(di.unitType)
+              DonorOfferService.normalizeForComparison(
+                firstLineItem.unitType
+              ) === DonorOfferService.normalizeForComparison(di.unitType)
             );
           });
         }
@@ -1310,7 +1326,9 @@ export default class DonorOfferService {
                 DonorOfferService.normalizeWhitespace(item.title) ===
                   DonorOfferService.normalizeWhitespace(firstLineItem.title) &&
                 DonorOfferService.normalizeWhitespace(item.unitType) ===
-                  DonorOfferService.normalizeWhitespace(firstLineItem.unitType) &&
+                  DonorOfferService.normalizeWhitespace(
+                    firstLineItem.unitType
+                  ) &&
                 Number(item.weight) > 0
             );
             weight = similarItem ? Number(similarItem.weight) : 0;
@@ -1326,6 +1344,8 @@ export default class DonorOfferService {
             initialQuantity: totalQuantity,
             description: null,
             weight,
+            category: firstLineItem.category ?? undefined,
+            type: firstLineItem.type ?? undefined,
           };
 
           generalItem = await db.generalItem.create({
@@ -1351,8 +1371,8 @@ export default class DonorOfferService {
         const generalItemId = generalItem.id;
         console.log(generalItemId, generalItem.title);
 
-        const lineItemsToCreate: Prisma.LineItemCreateManyInput[] = lineItems.map(
-          (item) => ({
+        const lineItemsToCreate: Prisma.LineItemCreateManyInput[] =
+          lineItems.map((item) => ({
             allowAllocations: item.allowAllocations ?? true,
             visible: item.visible ?? true,
             gik: item.gik ?? true,
@@ -1362,18 +1382,16 @@ export default class DonorOfferService {
             palletNumber: item.palletNumber,
             boxNumber: item.boxNumber,
             unitPrice: item.unitPrice,
-            maxRequestLimit: item.maxRequestLimit ?? null,
-            donorShippingNumber: item.donorShippingNumber ?? null,
-            hfhShippingNumber: item.hfhShippingNumber ?? null,
-            ndc: item.ndc ?? null,
             notes: null,
+            additionalInfo:
+              Object.keys(item.additionalInfo || {}).length > 0
+                ? (item.additionalInfo as Prisma.InputJsonValue)
+                : undefined,
             generalItemId,
-          })
-        );
+          }));
 
         await db.lineItem.createMany({ data: lineItemsToCreate });
       }
-
     }
 
     await db.generalItem.deleteMany({
@@ -1585,59 +1603,60 @@ export default class DonorOfferService {
 
     buildQueryWithPagination(query, page, pageSize);
 
-    const [items, total, orphanedGeneralItems, targetOptions] = await Promise.all([
-      db.generalItem.findMany(query),
-      db.generalItem.count({ where }),
-      db.generalItem.findMany({
-        where: {
-          donorOfferId,
-          items: { none: {} },
-          requests: { some: {} },
-        },
-        include: {
-          requests: {
-            include: {
-              partner: {
-                select: { id: true, name: true },
-              },
-            },
-            orderBy: { id: "asc" },
+    const [items, total, orphanedGeneralItems, targetOptions] =
+      await Promise.all([
+        db.generalItem.findMany(query),
+        db.generalItem.count({ where }),
+        db.generalItem.findMany({
+          where: {
+            donorOfferId,
+            items: { none: {} },
+            requests: { some: {} },
           },
-        },
-        orderBy: { id: "asc" },
-      }),
-      db.generalItem.findMany({
-        where: {
-          donorOfferId,
-          items: { some: {} },
-        },
-        select: {
-          id: true,
-          title: true,
-          unitType: true,
-          expirationDate: true,
-          requests: {
-            include: {
-              partner: {
-                select: { id: true, name: true },
+          include: {
+            requests: {
+              include: {
+                partner: {
+                  select: { id: true, name: true },
+                },
               },
+              orderBy: { id: "asc" },
             },
           },
-          items: {
-            include: {
-              allocation: {
-                include: {
-                  partner: {
-                    select: { id: true, name: true },
+          orderBy: { id: "asc" },
+        }),
+        db.generalItem.findMany({
+          where: {
+            donorOfferId,
+            items: { some: {} },
+          },
+          select: {
+            id: true,
+            title: true,
+            unitType: true,
+            expirationDate: true,
+            requests: {
+              include: {
+                partner: {
+                  select: { id: true, name: true },
+                },
+              },
+            },
+            items: {
+              include: {
+                allocation: {
+                  include: {
+                    partner: {
+                      select: { id: true, name: true },
+                    },
                   },
                 },
               },
             },
           },
-        },
-        orderBy: { title: "asc" },
-      }),
-    ]);
+          orderBy: { title: "asc" },
+        }),
+      ]);
 
     type ItemWithItems = Prisma.GeneralItemGetPayload<{
       include: {
