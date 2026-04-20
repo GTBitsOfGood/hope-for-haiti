@@ -23,21 +23,27 @@ const unfinalizedRequiredKeys = new Map<string, string>([
   ["UOM Weight Lb", "weight"],
 ]);
 
-const finalizedRequiredKeys = new Map<string, string>([
-  ["Description", "title"],
-  ["Exp.", "expirationDate"],
-  ["Container Type", "unitType"],
-  ["Donor", "donorName"],
-  ["# of Containers", "quantity"],
-  ["Lot #", "lotNumber"],
+const finalizedPermanentKeys = new Map<string, string>([
   ["Pallet #", "palletNumber"],
   ["Box #", "boxNumber"],
+  ["Description", "title"],
+  ["Donor", "donorName"],
+  ["Lot #", "lotNumber"],
+  ["Exp.", "expirationDate"],
+  ["Container Type", "unitType"],
+  ["# of Containers", "quantity"],
   ["Cost per Piece", "unitPrice"],
+  ["Category", "category"],
+  ["Type", "type"],
 ]);
 
-const finalizedOptionalKeys = new Map<string, string>([
-  ["Weight Lb", "weight"],
-  ["Donor Shipping #", "donorShippingNumber"],
+const finalizedRequiredKeys = new Set([
+  "Pallet #",
+  "Description",
+  "Donor",
+  "Container Type",
+  "# of Containers",
+  "Cost per Piece",
 ]);
 
 const normalizeHeader = (key: string): string =>
@@ -45,7 +51,11 @@ const normalizeHeader = (key: string): string =>
 
 const canonicalizeHeader = (key: string): string => {
   const normalized = normalizeHeader(key).replace(/(?:__|_)\d+$/i, "");
-  return normalized.toLowerCase().replace(/[^a-z0-9#]+/g, "");
+  return normalized
+    .toLowerCase()
+    .replace(/(\w)\s*#/g, "$1number") // "Pallet #" → "palletnumber"
+    .replace(/#/g, "") // Strip remaining # (like "# of Containers")
+    .replace(/[^a-z0-9]+/g, "");
 };
 
 const buildCanonicalMap = (entries: Map<string, string>) => {
@@ -59,15 +69,12 @@ const buildCanonicalMap = (entries: Map<string, string>) => {
 const unfinalizedRequiredCanonicalMap = buildCanonicalMap(
   unfinalizedRequiredKeys
 );
-const finalizedRequiredCanonicalMap = buildCanonicalMap(
-  finalizedRequiredKeys
+const finalizedPermanentCanonicalMap = buildCanonicalMap(
+  finalizedPermanentKeys
 );
-const finalizedOptionalCanonicalMap =
-  buildCanonicalMap(finalizedOptionalKeys);
 
 const canonicalRequiredKeys = {
   unfinalized: Array.from(unfinalizedRequiredCanonicalMap.keys()),
-  finalized: Array.from(finalizedRequiredCanonicalMap.keys()),
 };
 
 const normalizeRowKeys = (row: Record<string, unknown>) => {
@@ -97,15 +104,25 @@ const containsRequiredKeys = (
   fields?: string[]
 ): { valid: boolean; missingKeys: string[] } => {
   if (!fields) return { valid: false, missingKeys: [] };
-  const canonicalFields = new Set(
-    fields.map((key) => canonicalizeHeader(key))
-  );
-  const requiredKeys =
-    type === "finalized"
-      ? canonicalRequiredKeys.finalized
-      : canonicalRequiredKeys.unfinalized;
+  const canonicalFields = new Set(fields.map((key) => canonicalizeHeader(key)));
 
-  const missingKeys = requiredKeys.filter((key) => !canonicalFields.has(key));
+  if (type === "finalized") {
+    const missingDisplayNames: string[] = [];
+    for (const displayName of finalizedRequiredKeys) {
+      const canonicalKey = canonicalizeHeader(displayName);
+      if (!canonicalFields.has(canonicalKey)) {
+        missingDisplayNames.push(displayName);
+      }
+    }
+    return {
+      valid: missingDisplayNames.length === 0,
+      missingKeys: missingDisplayNames,
+    };
+  }
+
+  const missingKeys = canonicalRequiredKeys.unfinalized.filter(
+    (key) => !canonicalFields.has(key)
+  );
   return { valid: missingKeys.length === 0, missingKeys };
 };
 
@@ -127,32 +144,60 @@ const filterEmptyRows = (
       )
     : rows.filter((row) => hasValue(row[canonicalizeHeader("Donor")]));
 
-const remapRequiredColumns = (
+const remapColumns = (
   type: "unfinalized" | "finalized",
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
+  originalHeaders?: string[]
 ): Record<string, unknown> => {
   const normalizedRow = normalizeRowKeys(row);
-  const requiredMap =
-    type === "unfinalized"
-      ? unfinalizedRequiredCanonicalMap
-      : finalizedRequiredCanonicalMap;
-  const optionalMap =
-    type === "unfinalized"
-      ? new Map<string, string>()
-      : finalizedOptionalCanonicalMap;
-
   const updated: Record<string, unknown> = {};
 
-  const assignFromMap = (map: Map<string, string>) => {
-    for (const [canonicalKey, newKey] of map) {
-      if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
-        updated[newKey] = normalizedRow[canonicalKey];
+  if (type === "unfinalized") {
+    const assignFromMap = (map: Map<string, string>) => {
+      for (const [canonicalKey, newKey] of map) {
+        if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
+          updated[newKey] = normalizedRow[canonicalKey];
+        }
+      }
+    };
+    assignFromMap(unfinalizedRequiredCanonicalMap);
+  } else {
+    // Finalized: extract permanent columns and collect additional info
+    const assignFromMap = (map: Map<string, string>) => {
+      for (const [canonicalKey, newKey] of map) {
+        if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
+          updated[newKey] = normalizedRow[canonicalKey];
+        }
+      }
+    };
+
+    assignFromMap(finalizedPermanentCanonicalMap);
+
+    const additionalInfo: Record<string, unknown> = {};
+    const permanentCanonicalKeys = new Set(
+      finalizedPermanentCanonicalMap.keys()
+    );
+
+    for (const [canonicalKey, value] of Object.entries(normalizedRow)) {
+      if (
+        !permanentCanonicalKeys.has(canonicalKey) &&
+        value !== undefined &&
+        value !== null &&
+        value !== ""
+      ) {
+        // Find original header for display
+        const originalHeader =
+          originalHeaders?.find(
+            (h) => canonicalizeHeader(h) === canonicalKey
+          ) || canonicalKey;
+        additionalInfo[originalHeader] = value;
       }
     }
-  };
 
-  assignFromMap(requiredMap);
-  assignFromMap(optionalMap);
+    if (Object.keys(additionalInfo).length > 0) {
+      updated["additionalInfo"] = additionalInfo;
+    }
+  }
 
   return updated;
 };
@@ -160,7 +205,7 @@ const remapRequiredColumns = (
 const transformDonorOfferRow = (
   row: Record<string, unknown>
 ): Record<string, unknown> => {
-  const remapped = remapRequiredColumns("unfinalized", row);
+  const remapped = remapColumns("unfinalized", row);
   const quantity = remapped["quantity"];
   const weight = remapped["weight"];
   const transformed: Record<string, unknown> = {
@@ -437,6 +482,7 @@ export default class FileService {
     try {
       let jsonData: Record<string, unknown>[] = [];
       let fields: string[] = [];
+      let originalFields: string[] = [];
 
       if (fileExt === "xlsx") {
         const buffer = await file.arrayBuffer();
@@ -447,6 +493,7 @@ export default class FileService {
         const { data, meta } = Papa.parse(csvText, { header: true });
 
         jsonData = data as Record<string, unknown>[];
+        originalFields = meta.fields || [];
         fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       } else {
         const text = skipEmptyRows(await file.text());
@@ -456,12 +503,13 @@ export default class FileService {
         });
 
         jsonData = data as Record<string, unknown>[];
+        originalFields = meta.fields || [];
         fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       }
 
       jsonData = jsonData.map((row) => normalizeRowKeys(row));
       jsonData = filterEmptyRows("finalized", jsonData).map((row) =>
-        remapRequiredColumns("finalized", row)
+        remapColumns("finalized", row, originalFields)
       );
 
       const validationResult = containsRequiredKeys("finalized", fields);
