@@ -223,6 +223,7 @@ model LineItem {
   datePosted          DateTime  @default(now())
   ndc                 String?
   notes               String?
+  additionalInfo      Json?
 
   allowAllocations Boolean
   visible          Boolean
