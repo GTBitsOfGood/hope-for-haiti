@@ -152,29 +152,19 @@ const remapColumns = (
   const normalizedRow = normalizeRowKeys(row);
   const updated: Record<string, unknown> = {};
 
-  if (type === "unfinalized") {
-    const assignFromMap = (map: Map<string, string>) => {
+  const assignFromMap = (map: Map<string, string>) => {
       for (const [canonicalKey, newKey] of map) {
         if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
           updated[newKey] = normalizedRow[canonicalKey];
         }
       }
     };
+
+  if (type === "unfinalized") {
     assignFromMap(unfinalizedRequiredCanonicalMap);
   } else {
-    // Finalized: extract permanent columns and collect additional info
-    const assignFromMap = (map: Map<string, string>) => {
-      for (const [canonicalKey, newKey] of map) {
-        if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
-          updated[newKey] = normalizedRow[canonicalKey];
-        }
-      }
-    };
-
-    // Assign permanent columns (11 columns in display order)
     assignFromMap(finalizedPermanentCanonicalMap);
 
-    // Collect additional info from non-permanent columns
     const additionalInfo: Record<string, unknown> = {};
     const permanentCanonicalKeys = new Set(
       finalizedPermanentCanonicalMap.keys()
@@ -187,7 +177,6 @@ const remapColumns = (
         value !== null &&
         value !== ""
       ) {
-        // Find original header for display
         const originalHeader =
           originalHeaders?.find(
             (h) => canonicalizeHeader(h) === canonicalKey

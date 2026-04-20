@@ -1,8 +1,4 @@
-import { useEffect } from "react";
-import BaseTable, {
-  extendTableHeader,
-  tableConditional,
-} from "../baseTable/BaseTable";
+import BaseTable, { extendTableHeader } from "../baseTable/BaseTable";
 
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {
@@ -85,10 +81,6 @@ const AdditionalInfoTooltip = ({ info }: { info: Record<string, unknown> }) => {
 };
 
 export const PreviewTable = ({ data, final }: PreviewTableProps) => {
-  useEffect(() => {
-    console.log(data, final);
-  }, [data, final]);
-
   if (!final) {
     return (
       <div className="overflow-x-auto mt-4 bg-white rounded">
@@ -138,7 +130,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
           extendTableHeader("Type", "min-w-20"),
           extendTableHeader("Additional Info", "min-w-24 text-center"),
         ]}
-        rows={data.map((item) => {
+        rows={data.map((item, index) => {
           return {
             cells: [
               item.palletNumber || "-",
@@ -157,7 +149,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
               item.category || "-",
               item.type || "-",
               <AdditionalInfoTooltip
-                key={`info-${item.title}`}
+                key={`info-${index}`}
                 info={item.additionalInfo || {}}
               />,
             ],
