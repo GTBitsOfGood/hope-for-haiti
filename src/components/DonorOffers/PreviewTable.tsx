@@ -1,7 +1,5 @@
-import { useEffect } from "react";
 import BaseTable, {
   extendTableHeader,
-  tableConditional,
 } from "../baseTable/BaseTable";
 
 // Define donor offer item data type based on schema
@@ -85,10 +83,6 @@ const AdditionalInfoTooltip = ({ info }: { info: Record<string, unknown> }) => {
 };
 
 export const PreviewTable = ({ data, final }: PreviewTableProps) => {
-  useEffect(() => {
-    console.log(data, final);
-  }, [data, final]);
-
   if (!final) {
     return (
       <div className="overflow-x-auto mt-4 bg-white rounded">
