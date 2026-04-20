@@ -23,7 +23,6 @@ const unfinalizedRequiredKeys = new Map<string, string>([
   ["UOM Weight Lb", "weight"],
 ]);
 
-// 11 permanent columns in display order
 const finalizedPermanentKeys = new Map<string, string>([
   ["Pallet #", "palletNumber"],
   ["Box #", "boxNumber"],
@@ -38,14 +37,13 @@ const finalizedPermanentKeys = new Map<string, string>([
   ["Type", "type"],
 ]);
 
-// Only 6 strictly required columns
 const finalizedRequiredKeys = new Set([
-  "palletnumber",
-  "description",
-  "donor",
-  "containertype",
-  "ofcontainers",
-  "costperpiece",
+  "Pallet #",
+  "Description",
+  "Donor",
+  "Container Type",
+  "# of Containers",
+  "Cost per Piece",
 ]);
 
 const normalizeHeader = (key: string): string =>
@@ -68,25 +66,15 @@ const buildCanonicalMap = (entries: Map<string, string>) => {
   return canonical;
 };
 
-const buildCanonicalSet = (entries: Set<string>) => {
-  const canonical = new Set<string>();
-  for (const label of entries) {
-    canonical.add(canonicalizeHeader(label));
-  }
-  return canonical;
-};
-
 const unfinalizedRequiredCanonicalMap = buildCanonicalMap(
   unfinalizedRequiredKeys
 );
 const finalizedPermanentCanonicalMap = buildCanonicalMap(
   finalizedPermanentKeys
 );
-const finalizedRequiredCanonicalSet = buildCanonicalSet(finalizedRequiredKeys);
 
 const canonicalRequiredKeys = {
   unfinalized: Array.from(unfinalizedRequiredCanonicalMap.keys()),
-  finalized: Array.from(finalizedRequiredCanonicalSet),
 };
 
 const normalizeRowKeys = (row: Record<string, unknown>) => {
@@ -117,12 +105,24 @@ const containsRequiredKeys = (
 ): { valid: boolean; missingKeys: string[] } => {
   if (!fields) return { valid: false, missingKeys: [] };
   const canonicalFields = new Set(fields.map((key) => canonicalizeHeader(key)));
-  const requiredKeys =
-    type === "finalized"
-      ? canonicalRequiredKeys.finalized
-      : canonicalRequiredKeys.unfinalized;
 
-  const missingKeys = requiredKeys.filter((key) => !canonicalFields.has(key));
+  if (type === "finalized") {
+    const missingDisplayNames: string[] = [];
+    for (const displayName of finalizedRequiredKeys) {
+      const canonicalKey = canonicalizeHeader(displayName);
+      if (!canonicalFields.has(canonicalKey)) {
+        missingDisplayNames.push(displayName);
+      }
+    }
+    return {
+      valid: missingDisplayNames.length === 0,
+      missingKeys: missingDisplayNames,
+    };
+  }
+
+  const missingKeys = canonicalRequiredKeys.unfinalized.filter(
+    (key) => !canonicalFields.has(key)
+  );
   return { valid: missingKeys.length === 0, missingKeys };
 };
 
@@ -171,10 +171,8 @@ const remapColumns = (
       }
     };
 
-    // Assign permanent columns (11 columns in display order)
     assignFromMap(finalizedPermanentCanonicalMap);
 
-    // Collect additional info from non-permanent columns
     const additionalInfo: Record<string, unknown> = {};
     const permanentCanonicalKeys = new Set(
       finalizedPermanentCanonicalMap.keys()
