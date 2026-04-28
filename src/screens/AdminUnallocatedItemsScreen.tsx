@@ -121,7 +121,9 @@ export default function AdminUnallocatedItemsScreen() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Unallocated Items</h1>
+      <h1 className="text-2xl font-semibold m-0">Unallocated Items</h1>
+
+      <div className="h-4"></div>
 
       {modifiedPagesCount > 0 && (
         <div className="mb-4 mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">

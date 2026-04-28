@@ -1,4 +1,4 @@
-import { PartnerDetails } from "@/schema/partnerDetails";
+import { PartnerDetailsUpdate } from "@/schema/partnerDetails";
 
 export interface GetPartnerDetailsParams {
   userId: number;
@@ -6,5 +6,5 @@ export interface GetPartnerDetailsParams {
 
 export interface UpdatePartnerDetailsData {
   userId: number;
-  partnerDetails: PartnerDetails;
+  partnerDetails: PartnerDetailsUpdate;
 }

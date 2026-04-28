@@ -557,7 +557,7 @@ export default function AdminDynamicDonorOfferScreen() {
           !isLLMMode ? (
             <button
               onClick={handleSuggestRevisions}
-              className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              className="px-4 py-2 bg-gradient-to-br from-blue-primary to-red-primary text-white rounded hover:from-blue-700 hover:to-red-700 transition-all disabled:opacity-50"
               disabled={isStreaming}
             >
               Suggest Revisions

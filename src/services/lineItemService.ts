@@ -201,6 +201,71 @@ export class LineItemService {
     }
   }
 
+  static async splitLineItem(lineItemId: number, generalItemId: number, quantities: number[]) {
+    return await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "LineItem" WHERE id = ${lineItemId} FOR UPDATE`;
+      const lineItem = await tx.lineItem.findUnique({
+        where: {id: lineItemId },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          },
+          allocation: true
+        }
+      });
+
+      if (!lineItem) {
+        throw new Error(`Line item with ID ${lineItemId} does not exist.`);
+      }
+      if (lineItem.generalItemId !== generalItemId) {
+        throw new Error("Line item does not belong to this general item.");
+      }
+      if (lineItem.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new Error("Cannot split line items for archived donor offers.");
+      }
+      if (lineItem.allocation) {
+        throw new Error("Cannot split an already allocated line item.");
+      }
+      if (quantities.length < 2 || quantities.length > 7) {
+        throw new Error("Number of splits must be between 2 and 7");
+      }
+      if (quantities.some((q) => !Number.isInteger(q) || q <= 0)) {
+        throw new Error("All quantities must be positive whole numbers.");
+      }
+      if (quantities.reduce((sum, q) => sum + q, 0) !== lineItem.quantity) {
+        throw new Error(`Quantities must add up to ${lineItem.quantity}`);
+      }
+      
+      const original = await tx.lineItem.update({
+        where: { id: lineItemId },
+        data: { quantity: quantities[0] }
+      });
+      
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, allocation, generalItem, generalItemId: _gId , ...itemData } = lineItem; 
+
+      const newItem = await Promise.all(
+        quantities.slice(1).map((qty) =>
+          tx.lineItem.create({
+            data: {
+              ...itemData,
+              quantity: qty,
+              generalItem: {
+                connect: { id: generalItemId },
+              },
+            },
+          })
+        )
+      );
+
+      return { original, newItem };
+    })
+  }
+
   static async getAllItems(
     filters?: Filters,
     page?: number,

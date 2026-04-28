@@ -449,9 +449,11 @@ export default function AccountManagementPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold text-gray-primary">
+      <h1 className="text-2xl font-semibold text-gray-primary m-0">
         Account Management
       </h1>
+
+      <div className="h-4"></div>
 
       <AdvancedBaseTable
         ref={tableRef}

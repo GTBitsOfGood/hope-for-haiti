@@ -223,7 +223,7 @@ export default function NotificationHandler({
             hideAction={pathname === payload.action}
           />
         ),
-        { duration: 20 * 1000, position: "top-right" }
+        { duration: 10 * 1000, position: "top-right" }
       );
     };
 
@@ -329,7 +329,7 @@ export default function NotificationHandler({
             isChat
           />
         ),
-        { duration: 20 * 1000, position: "top-right" }
+        { duration: 10 * 1000, position: "top-right" }
       );
     };
 

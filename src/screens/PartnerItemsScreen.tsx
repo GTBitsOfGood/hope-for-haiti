@@ -535,13 +535,15 @@ export default function PartnerItemsScreen() {
   };
 
   return (
-    <div className="w-full px-4 py-6 font-[Open_Sans]">
+    <div className="w-full px-4 pb-6 font-[Open_Sans]">
       <Tutorial tutorialSteps={tutorialSteps} type="items" onStepChange={handleTutorialStepChange} onTutorialEnd={handleTutorialEnd}/>
-      <h1 className="text-2xl font-semibold text-gray-primary mb-6">
-        
-        Available Items
-      
-      </h1>
+      <div className="flex items-start justify-between">
+        <h1 className="text-2xl font-semibold text-gray-primary m-0">
+          Available Items
+        </h1>
+      </div>
+
+      <div className="h-4"></div>
 
       <AdvancedBaseTable
         ref={tableRef}

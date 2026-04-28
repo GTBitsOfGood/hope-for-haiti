@@ -1,6 +1,4 @@
-import BaseTable, {
-  extendTableHeader,
-} from "../baseTable/BaseTable";
+import BaseTable, { extendTableHeader } from "../baseTable/BaseTable";
 
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {
@@ -132,7 +130,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
           extendTableHeader("Type", "min-w-20"),
           extendTableHeader("Additional Info", "min-w-24 text-center"),
         ]}
-        rows={data.map((item) => {
+        rows={data.map((item, index) => {
           return {
             cells: [
               item.palletNumber || "-",
@@ -151,7 +149,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
               item.category || "-",
               item.type || "-",
               <AdditionalInfoTooltip
-                key={`info-${item.title}`}
+                key={`info-${index}`}
                 info={item.additionalInfo || {}}
               />,
             ],

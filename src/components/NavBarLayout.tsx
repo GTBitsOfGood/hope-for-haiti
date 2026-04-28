@@ -13,6 +13,7 @@ import {
   Chat,
   SignOut,
   ArrowClockwise,
+  Notebook,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -114,6 +115,8 @@ function NavLinks({
     "archivedRead",
     "offerWrite",
   ]);
+  const canViewAdminRequests =
+    !isPartnerUser && hasPermission(user, "requestRead");
   const canViewWishlists = isPartnerUser || hasPermission(user, "wishlistRead");
   const canViewDistributions = hasAnyPermission(user, [
     "distributionRead",
@@ -150,6 +153,13 @@ function NavLinks({
           href="/donorOffers"
           label="Donor Offers"
           icon={<HandHeart size={22} />}
+        />
+      )}
+      {canViewAdminRequests && (
+        <NavLink
+          href="/adminRequests"
+          label="Requests"
+          icon={<Notebook size={22} />}
         />
       )}
       {isPartnerUser && (

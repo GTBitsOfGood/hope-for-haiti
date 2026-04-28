@@ -57,8 +57,29 @@ const DonorOfferItemSchema = z.object({
     .string()
     .transform((val) => (val.trim() === "" ? undefined : Number(val)))
     .pipe(z.number().min(0, "Weight must be non-negative")),
-  type: z.nativeEnum(ItemType).optional(),
-  category: z.nativeEnum(ItemCategory).optional(),
+  
+  // Apply the fixes here too:
+  type: z.preprocess(
+    (val) => (val ? String(val).toUpperCase().replace(/[\s-]+/g, '_') : undefined),
+    z.nativeEnum(ItemType, {
+      errorMap: (issue) => ({
+        message: issue.code === 'invalid_enum_value' 
+          ? `must be MEDICATION, MEDICATION_SUPPLEMENT, or NON_MEDICATION` 
+          : "Invalid type"
+      })
+    }).optional()
+  ),
+  
+  category: z.preprocess(
+    (val) => (val ? String(val).toUpperCase().replace(/[\s-]+/g, '_') : undefined),
+    z.nativeEnum(ItemCategory, {
+      errorMap: (issue) => ({
+        message: issue.code === 'invalid_enum_value' 
+          ? `is not a valid Hope for Haiti category. Check the formatting.` 
+          : "Invalid category"
+      })
+    }).optional()
+  ),
 });
 
 const DonorOfferSchema = z.object({
@@ -148,11 +169,35 @@ const FinalizeDonorOfferItemSchema = z.object({
   weight: coerceNumber()
     .transform((val) => val ?? 0)
     .pipe(z.number().min(0, "Weight must be non-negative")),
-  category: z.nativeEnum(ItemCategory).optional(),
-  type: z.nativeEnum(ItemType).optional(),
+
+  category: z.preprocess(
+    (val) => (val ? String(val).toUpperCase().replace(/[\s-]+/g, '_') : undefined),
+    z.nativeEnum(ItemCategory, {
+      errorMap: (issue, _ctx) => {
+        if (issue.code === z.ZodIssueCode.invalid_enum_value) {
+          return { message: `is not a valid Category. Please use standard Hope for Haiti categories (e.g., WOUND_CARE).` };
+        }
+        return { message: _ctx.defaultError };
+      },
+    }).optional()
+  ),
+
+  type: z.preprocess(
+    (val) => (val ? String(val).toUpperCase().replace(/[\s-]+/g, '_') : undefined),
+    z.nativeEnum(ItemType, {
+      errorMap: (issue, _ctx) => {
+        if (issue.code === z.ZodIssueCode.invalid_enum_value) {
+          return { message: `is not a valid Type. Must be MEDICATION, MEDICATION_SUPPLEMENT, or NON_MEDICATION.` };
+        }
+        return { message: _ctx.defaultError };
+      },
+    }).optional()
+  ),
+
   quantity: coerceNumber().pipe(
     z.number().int().min(0, "Quantity must be non-negative")
   ),
+
   lotNumber: coerceOptionalString({ allowEmpty: true }).transform(
     (val) => val ?? ""
   ),
