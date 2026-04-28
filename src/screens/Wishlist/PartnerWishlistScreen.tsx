@@ -103,14 +103,16 @@ const tutorialSteps: TutorialStep[] = [
       </div>
     ),
     placement: "left",
+    isFixed: true,
   },
   {
-    target: '[data-tutorial="wishlist-title-input"]',
+    target: '[data-tutorial="wishlist-title-input-box"]',
     title: "Adding a Wishlist",
     content:
       "For this example, we will enter Bottled Water Cases as the item title.",
     placement: "left",
     isFixed: true,
+    spotlightPadding: 2,
   },
   {
     target: '[data-tutorial="wishlist-suggestions"]',
@@ -127,6 +129,7 @@ const tutorialSteps: TutorialStep[] = [
       </div>
     ),
     placement: "left",
+    isFixed: true,
   },
   {
     target: "body",
@@ -493,7 +496,7 @@ export default function PartnerWishlistScreen({
   ) : null;
 
   return (
-    <div className="pb-32">
+    <div className="w-full px-4 pb-32 font-[Open_Sans]">
       {!readOnly && !partnerId && (
         <Tutorial
           tutorialSteps={tutorialSteps}
@@ -503,9 +506,11 @@ export default function PartnerWishlistScreen({
         />
       )}
 
+      <div className="h-4"></div>
+
       <div className="flex items-start justify-between">
-        <h1 className="text-2xl font-semibold text-gray-primary mb-2">
-          Wishlist
+        <h1 className="text-2xl font-semibold text-gray-primary m-0 -mt-3">
+          My Wishlist
         </h1>
       </div>
 

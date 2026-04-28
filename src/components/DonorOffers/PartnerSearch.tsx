@@ -7,7 +7,7 @@ import SelectGroupWithAddAll from "../SelectGroupWithAddAll";
 export type Partner = {
   id: number;
   name: string;
-  tag?: string;
+  tags?: { id: number; name: string }[];
 };
 
 interface PartnerSearchProps {

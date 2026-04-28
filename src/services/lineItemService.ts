@@ -101,13 +101,15 @@ export class LineItemService {
         where: { id: generalItemId },
         include: {
           donorOffer: {
-            select: { state: true }
-          }
-        }
+            select: { state: true },
+          },
+        },
       });
 
       if (generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new Error("Cannot create line items for archived donor offers. Archived offers are read-only.");
+        throw new Error(
+          "Cannot create line items for archived donor offers. Archived offers are read-only."
+        );
       }
     }
 
@@ -135,15 +137,17 @@ export class LineItemService {
           generalItem: {
             include: {
               donorOffer: {
-                select: { state: true }
-              }
-            }
-          }
-        }
+                select: { state: true },
+              },
+            },
+          },
+        },
       });
 
       if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new Error("Cannot update line items for archived donor offers. Archived offers are read-only.");
+        throw new Error(
+          "Cannot update line items for archived donor offers. Archived offers are read-only."
+        );
       }
 
       const updatedItem = await db.lineItem.update({
@@ -171,15 +175,17 @@ export class LineItemService {
           generalItem: {
             include: {
               donorOffer: {
-                select: { state: true }
-              }
-            }
-          }
-        }
+                select: { state: true },
+              },
+            },
+          },
+        },
       });
 
       if (lineItem?.generalItem?.donorOffer?.state === "ARCHIVED") {
-        throw new Error("Cannot delete line items for archived donor offers. Archived offers are read-only.");
+        throw new Error(
+          "Cannot delete line items for archived donor offers. Archived offers are read-only."
+        );
       }
 
       await db.lineItem.delete({
@@ -193,6 +199,72 @@ export class LineItemService {
       }
       throw error;
     }
+  }
+
+  static async splitLineItem(lineItemId: number, generalItemId: number, quantities: number[]) {
+    return await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "LineItem" WHERE id = ${lineItemId} FOR UPDATE`;
+      const lineItem = await tx.lineItem.findUnique({
+        where: {id: lineItemId },
+        include: {
+          generalItem: {
+            include: {
+              donorOffer: {
+                select: { state: true }
+              }
+            }
+          },
+          allocation: true
+        }
+      });
+
+      if (!lineItem) {
+        throw new Error(`Line item with ID ${lineItemId} does not exist.`);
+      }
+      if (lineItem.generalItemId !== generalItemId) {
+        throw new Error("Line item does not belong to this general item.");
+      }
+      if (lineItem.generalItem?.donorOffer?.state === "ARCHIVED") {
+        throw new Error("Cannot split line items for archived donor offers.");
+      }
+      if (lineItem.allocation) {
+        throw new Error("Cannot split an already allocated line item.");
+      }
+      if (quantities.length < 2 || quantities.length > 7) {
+        throw new Error("Number of splits must be between 2 and 7");
+      }
+      if (quantities.some((q) => !Number.isInteger(q) || q <= 0)) {
+        throw new Error("All quantities must be positive whole numbers.");
+      }
+      if (quantities.reduce((sum, q) => sum + q, 0) !== lineItem.quantity) {
+        throw new Error(`Quantities must add up to ${lineItem.quantity}`);
+      }
+      
+      const original = await tx.lineItem.update({
+        where: { id: lineItemId },
+        data: { quantity: quantities[0] }
+      });
+      
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, allocation, generalItem, generalItemId: _gId , ...itemData } = lineItem; 
+
+      const newItem = await Promise.all(
+        quantities.slice(1).map((qty) =>
+          tx.lineItem.create({
+            data: {
+              ...itemData,
+              quantity: qty,
+              additionalInfo: itemData.additionalInfo as Prisma.InputJsonValue || undefined,
+              generalItem: {
+                connect: { id: generalItemId },
+              },
+            },
+          })
+        )
+      );
+
+      return { original, newItem };
+    })
   }
 
   static async getAllItems(
@@ -350,7 +422,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     // Group by month and year on the sign off, preserving the total
@@ -374,24 +446,19 @@ export class LineItemService {
   }
 
   /**
-   * Counts shipments where at least one line item (based on shipping numbers) has been allocated and signed off.
-   * Note: Will be inaccurate if the number of relevant shipments exceeds the maximum size for numbers
+   * @returns The number of shipments and pallets for a given date range
    */
   static async getShipmentStats(
     startDate: Date = new Date(0),
     endDate: Date = new Date(),
     excludePartnerTags: string[] = []
-  ): Promise<{
-    shipmentCount: number;
-    palletCount: number;
-  }> {
+  ): Promise<{ shipmentCount: number; palletCount: number }> {
     let baseQuery = Prisma.sql`
-      SELECT COUNT(DISTINCT ss.id) as "shipmentCount", COUNT(DISTINCT li."palletNumber") as "palletCount"
-      FROM "ShippingStatus" ss
-      JOIN (
-        SELECT DISTINCT li.*
-        FROM "LineItem" li
-      ) li ON ss."hfhShippingNumber" = li."hfhShippingNumber" OR
+      SELECT
+        COUNT(DISTINCT li."donorShippingNumber") as "shipmentCount",
+        COUNT(DISTINCT li."palletNumber") as "palletCount"
+      FROM "LineItem" li
+      JOIN "ShippingStatus" ss ON
         ss."donorShippingNumber" = li."donorShippingNumber"
       JOIN "Allocation" a ON li.id = a."lineItemId"
       JOIN "User" p ON a."partnerId" = p.id
@@ -400,7 +467,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     type QueryResult = { shipmentCount: bigint; palletCount: bigint }[];
@@ -437,7 +504,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -447,7 +514,9 @@ export class LineItemService {
     `;
 
     const result =
-      await db.$queryRaw<{ category: string | null; totalValue: number }[]>(baseQuery);
+      await db.$queryRaw<{ category: string | null; totalValue: number }[]>(
+        baseQuery
+      );
     return result
       .filter((row) => row.category != null)
       .map((row) => ({
@@ -472,7 +541,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     const result =
@@ -503,7 +572,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -540,16 +609,15 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
       GROUP BY g.type
     `;
 
-    const result = await db.$queryRaw<{ type: string | null; count: bigint }[]>(
-      baseQuery
-    );
+    const result =
+      await db.$queryRaw<{ type: string | null; count: bigint }[]>(baseQuery);
 
     const breakdown: Record<string, number> = {};
     result.forEach((row) => {
@@ -581,7 +649,7 @@ export class LineItemService {
     `;
 
     if (excludePartnerTags.length > 0) {
-      baseQuery = Prisma.sql`${baseQuery} AND (p.tag IS NULL OR p.tag NOT IN (${Prisma.join(excludePartnerTags)}))`;
+      baseQuery = Prisma.sql`${baseQuery} AND p.id NOT IN (SELECT ut."A" FROM "_TagToUser" ut JOIN "Tag" t ON ut."B" = t.id WHERE t.name IN (${Prisma.join(excludePartnerTags)}))`;
     }
 
     baseQuery = Prisma.sql`${baseQuery}
@@ -590,9 +658,10 @@ export class LineItemService {
       LIMIT 5
     `;
 
-    const result = await db.$queryRaw<
-      { category: string | null; totalValue: number }[]
-    >(baseQuery);
+    const result =
+      await db.$queryRaw<{ category: string | null; totalValue: number }[]>(
+        baseQuery
+      );
 
     const categories: Record<string, number> = {};
     result.forEach((row) => {

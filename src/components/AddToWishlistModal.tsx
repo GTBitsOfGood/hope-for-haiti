@@ -224,114 +224,118 @@ export default function AddToWishlistModal({
           <form onSubmit={handleSubmit} className="space-y-5">
             {step === 1 && (
               <>
-                <ModalFormRow>
-                  <ModalTextField
-                    label="Title"
-                    name="name"
-                    placeholder="Placeholder name"
-                    required
-                    value={form.name}
-                    inputProps={{ "data-tutorial": "wishlist-title-input" }}
-                    onChange={(e) => {
-                      setForm((f) => ({ ...f, name: e.target.value }));
-                      setSuggestions([]);
-                    }}
-                  />
-                </ModalFormRow>
+                <div data-tutorial="wishlist-title-field">
+                  <ModalFormRow>
+                    <div className="grow" data-tutorial="wishlist-title-input-box">
+                      <ModalTextField
+                        label="Title"
+                        name="name"
+                        placeholder="Placeholder name"
+                        required
+                        value={form.name}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, name: e.target.value }));
+                          setSuggestions([]);
+                        }}
+                      />
+                    </div>
+                  </ModalFormRow>
+                </div>
 
-                {/* Suggestions block (red highlighted) */}
-                {showSuggestions && (
-                  <>
-                    <div
-                      className="rounded-lg border border-red-primary bg-red-50/50 p-3 md:p-4"
-                      data-tutorial="wishlist-suggestions"
-                    >
-                      <div className="mb-3">
-                        {effectiveHardMatch ? (
-                          <h3 className="text-red-primary font-semibold text-lg">
-                            This item already exists in our inventory. <br />{" "}
-                            Please request that item instead.
-                          </h3>
+                <div data-tutorial="wishlist-suggestions">
+                  {/* Suggestions block (red highlighted) */}
+                  {showSuggestions && (
+                    <>
+                      <div className="rounded-lg border border-red-primary bg-red-50/50 p-3 md:p-4">
+                        <div className="mb-3">
+                          {effectiveHardMatch ? (
+                            <h3 className="text-red-primary font-semibold text-lg">
+                              This item already exists in our inventory. <br />{" "}
+                              Please request that item instead.
+                            </h3>
+                          ) : (
+                            <h3 className="text-red-primary font-semibold text-lg">
+                              Similar items are in our inventory. <br /> Please go
+                              to Items Page if any of these match.
+                            </h3>
+                          )}
+                        </div>
+
+                        {isTutorialSuggestions ? (
+                          <div className="overflow-hidden rounded border border-red-primary/25 bg-white">
+                            <div className="grid grid-cols-2 bg-red-primary/80 px-4 py-2 text-sm font-medium text-white">
+                              <span>Title</span>
+                              <span>Quantity</span>
+                            </div>
+                            {displaySuggestions.map((suggestion) => (
+                              <div
+                                key={suggestion.id}
+                                className="grid grid-cols-2 border-t border-gray-100 px-4 py-2 text-sm text-gray-900"
+                              >
+                                <span>{suggestion.title}</span>
+                                <span>{suggestion.quantity ?? "-"}</span>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
-                          <h3 className="text-red-primary font-semibold text-lg">
-                            Similar items are in our inventory. <br /> Please go
-                            to Items Page if any of these match.
-                          </h3>
+                          <AdvancedBaseTable<AddToWishlistSuggestion>
+                            columns={suggestionColumns}
+                            fetchFn={suggestionFetchFn}
+                            rowId="id"
+                            headerClassName="bg-red-primary/80 text-white"
+                            rowCellStyles="border border-transparent bg-white"
+                            emptyState={
+                              <div className="py-3 text-sm text-red-700">
+                                No similar items found.
+                              </div>
+                            }
+                            toolBar={null}
+                            disablePagination
+                            disableFilters
+                          />
                         )}
                       </div>
 
-                      {isTutorialSuggestions ? (
-                        <div className="overflow-hidden rounded border border-red-primary/25 bg-white">
-                          <div className="grid grid-cols-2 bg-red-primary/80 px-4 py-2 text-sm font-medium text-white">
-                            <span>Title</span>
-                            <span>Quantity</span>
-                          </div>
-                          {displaySuggestions.map((suggestion) => (
-                            <div
-                              key={suggestion.id}
-                              className="grid grid-cols-2 border-t border-gray-100 px-4 py-2 text-sm text-gray-900"
-                            >
-                              <span>{suggestion.title}</span>
-                              <span>{suggestion.quantity ?? "-"}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <AdvancedBaseTable<AddToWishlistSuggestion>
-                          columns={suggestionColumns}
-                          fetchFn={suggestionFetchFn}
-                          rowId="id"
-                          headerClassName="bg-red-primary/80 text-white"
-                          rowCellStyles="border border-transparent bg-white"
-                          emptyState={
-                            <div className="py-3 text-sm text-red-700">
-                              No similar items found.
-                            </div>
-                          }
-                          toolBar={null}
-                          disablePagination
-                          disableFilters
-                        />
-                      )}
-                    </div>
+                      <div className="mt-6 flex gap-4">
+                        <Link
+                          href={`/items?initialItems=${encodeURIComponent(
+                            JSON.stringify(displaySuggestions.map((s) => s.id))
+                          )}`}
+                          className="inline-block w-1/2 rounded-lg border border-red-primary px-4 py-2 font-medium text-red-primary hover:bg-red-50 active:translate-y-px text-center"
+                        >
+                          Go to Items Page
+                        </Link>
 
-                    <div className="mt-6 flex gap-4">
-                      <Link
-                        href={`/items?initialItems=${encodeURIComponent(
-                          JSON.stringify(displaySuggestions.map((s) => s.id))
-                        )}`}
-                        className="inline-block w-1/2 rounded-lg border border-red-primary px-4 py-2 font-medium text-red-primary hover:bg-red-50 active:translate-y-px text-center"
-                      >
-                        Go to Items Page
-                      </Link>
+                        {/* Continue → Step 2 */}
+                        <button
+                          type="button"
+                          onClick={goToStep2}
+                          disabled={effectiveHardMatch || !form.name.trim()}
+                          className={`w-1/2 rounded-lg px-4 py-2 font-medium text-white active:translate-y-px ${
+                            effectiveHardMatch || !form.name.trim()
+                              ? "bg-red-300 cursor-not-allowed"
+                              : "bg-red-primary hover:brightness-95"
+                          }`}
+                        >
+                          Continue with Wish
+                        </button>
+                      </div>
+                    </>
+                  )}
 
-                      {/* Continue → Step 2 */}
+                  {/* No suggestions but non-empty title */}
+                  {!searching &&
+                    displaySuggestions.length === 0 &&
+                    form.name !== "" && (
                       <button
                         type="button"
                         onClick={goToStep2}
-                        disabled={effectiveHardMatch || !form.name.trim()}
-                        className={`w-1/2 rounded-lg px-4 py-2 font-medium text-white active:translate-y-px ${
-                          effectiveHardMatch || !form.name.trim()
-                            ? "bg-red-300 cursor-not-allowed"
-                            : "bg-red-primary hover:brightness-95"
-                        }`}
+                        className="w-full rounded-lg px-4 py-2 font-medium text-white active:translate-y-px bg-red-primary hover:brightness-95"
                       >
                         Continue with Wish
                       </button>
-                    </div>
-                  </>
-                )}
-
-                {/* No suggestions but non-empty title */}
-                {!searching && displaySuggestions.length === 0 && form.name !== "" && (
-                  <button
-                    type="button"
-                    onClick={goToStep2}
-                    className="w-full rounded-lg px-4 py-2 font-medium text-white active:translate-y-px bg-red-primary hover:brightness-95"
-                  >
-                    Continue with Wish
-                  </button>
-                )}
+                    )}
+                </div>
               </>
             )}
 

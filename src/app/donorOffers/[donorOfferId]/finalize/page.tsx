@@ -211,7 +211,7 @@ export default function FinalizeDonorOfferPage() {
         onReset={resetUpload}
       />
 
-      {errors && errors.length > 0 && <ErrorDisplay errors={errors} />}
+      {errors && errors.length > 0 && !fileErrorMessage && <ErrorDisplay errors={errors} />}
 
       {preview && <PreviewTable final={true} data={previewData} />}
 

@@ -26,7 +26,7 @@ export default function DonorOfferDetailsPage() {
 
   // Partners should use the unified items screen at /items instead
   if (isPartner(session.user.type)) {
-    redirect("/");
+    redirect("/items");
   }
 
   const canAccessDonorOffers = hasAnyPermission(session.user, [

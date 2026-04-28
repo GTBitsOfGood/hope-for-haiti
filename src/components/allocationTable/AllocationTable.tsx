@@ -145,9 +145,15 @@ export default function AllocationTable({
   const preInteractionItemsRef = useRef<AllocationTableItem[]>([]);
   const fullItemsCacheRef = useRef<Map<number, AllocationTableItem>>(new Map());
 
-  const [orphanedRequests, setOrphanedRequests] = useState<OrphanedRequest[]>([]);
-  const [generalItemOptions, setGeneralItemOptions] = useState<GeneralItemOption[]>([]);
-  const [processingRequestId, setProcessingRequestId] = useState<number | null>(null);
+  const [orphanedRequests, setOrphanedRequests] = useState<OrphanedRequest[]>(
+    []
+  );
+  const [generalItemOptions, setGeneralItemOptions] = useState<
+    GeneralItemOption[]
+  >([]);
+  const [processingRequestId, setProcessingRequestId] = useState<number | null>(
+    null
+  );
   const [isInteractionMode, setIsInteractionMode] = useState(false);
   const [isProcessingSuggestions, setIsProcessingSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -163,8 +169,7 @@ export default function AllocationTable({
         if (parsed === "partner" || parsed === "allocation") {
           setActiveView(parsed);
         }
-      } catch {
-      }
+      } catch {}
     }
   }, []);
 
@@ -395,9 +400,7 @@ export default function AllocationTable({
       } catch (error) {
         console.error("Failed to reassign request", error);
         toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to reassign request"
+          error instanceof Error ? error.message : "Failed to reassign request"
         );
       } finally {
         setProcessingRequestId(null);
@@ -411,8 +414,8 @@ export default function AllocationTable({
       if (generalItemOptions.length === 0) {
         return (
           <p className="text-sm text-gray-500">
-            No general items with line items are available yet. Load the
-            donor offer inventory before reassigning.
+            No general items with line items are available yet. Load the donor
+            offer inventory before reassigning.
           </p>
         );
       }
@@ -744,7 +747,7 @@ export default function AllocationTable({
           <div className="flex items-center gap-2">
             <button
               onClick={handleSuggestAllocations}
-              className="px-4 py-2 bg-blue-primary text-white rounded hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-gradient-to-br from-blue-primary to-red-primary text-white rounded hover:from-blue-700 hover:to-red-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={isProcessingSuggestions}
               data-tutorial="unallocated-items-suggest-allocations"
             >
@@ -861,9 +864,7 @@ export default function AllocationTable({
                 label={request.partner.name}
                 showLabel
                 amount={request.quantity}
-                revisedAmount={
-                  request.finalQuantity ?? request.quantity
-                }
+                revisedAmount={request.finalQuantity ?? request.quantity}
                 textColor="text-amber-900"
                 className="border-amber-400 bg-white"
                 popover={renderOrphanedRequestPopover(request)}

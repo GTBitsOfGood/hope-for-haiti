@@ -8,7 +8,7 @@ import AdvancedBaseTable, {
 import { useApiClient } from "@/hooks/useApiClient";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WishlistSummary from "@/components/WishlistSummary";
-import { ChatTeardropText } from "@phosphor-icons/react";
+import { ChatTeardropText, Question } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
 import PriorityTag from "@/components/tags/PriorityTag";
 import Tutorial, { type TutorialStep } from "@/components/Tutorial";
@@ -74,6 +74,7 @@ export default function AdminWishlistScreen() {
       return false;
     }
   }, [user?.id]);
+  const [totalItems, setTotalItems] = useState<number | null>(null);
 
   const fetch = useCallback(
     async (
@@ -97,6 +98,7 @@ export default function AdminWishlistScreen() {
         wishlists: AdminWishlistRow[];
         total: number;
       }>(`/api/wishlists?${searchParams}`);
+      setTotalItems(response.total);
 
       return {
         data: response.wishlists,
@@ -275,8 +277,21 @@ export default function AdminWishlistScreen() {
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}
       />
-      <h1 className="text-2xl font-bold text-gray-primary">Wishlists</h1>
-      <WishlistSummary />
+      <h1 className="text-2xl font-semibold text-gray-primary">Wishlists</h1>
+      {totalItems !== null && totalItems >= 10 ? <WishlistSummary/> :
+        <div className="flex justify-end -mb-10 mt-8 mr-28">
+          <Question 
+            size={20} 
+            className="text-gray-primary/60 cursor-help"
+            data-tooltip-id="wishlist-ai-info"
+            data-tooltip-content="AI Wishlist Summary is available when Wishlist contains 10 or more entries"
+          />
+          <Tooltip 
+            id="wishlist-ai-info" 
+            className="z-50 max-w-xs" 
+          />
+        </div>
+      }      
       {hasResolvedWishlistTutorialState ? (
         <AdvancedBaseTable<AdminWishlistRow>
           key={

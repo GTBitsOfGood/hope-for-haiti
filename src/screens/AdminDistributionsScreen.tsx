@@ -12,7 +12,7 @@ import Tutorial, { type TutorialStep } from "@/components/Tutorial";
 enum DistributionTab {
   DISTRIBUTIONS = "Distributions",
   SHIPMENTS = "Shipments",
-  SIGNOFFS = "Sign-offs",
+  SIGNOFFS = "Completed Sign-offs"
 }
 
 const DISTRIBUTIONS_TUTORIAL_EDIT_STEP_INDEX = 1;

@@ -91,6 +91,7 @@ export default function Tutorial({
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
+  const [isCompletionSynced, setIsCompletionSynced] = useState(false);
   const [serverTutorialCompleted, setServerTutorialCompleted] = useState<
     boolean | null
   >(null);
@@ -313,6 +314,7 @@ export default function Tutorial({
   useEffect(() => {
     hasFetchedCompletionRef.current = false;
     lastNotifiedStepIndexRef.current = null;
+    setIsCompletionSynced(false);
     setServerTutorialCompleted(null);
     setIsCompletionSynced(repeatOnRefresh);
   }, [repeatOnRefresh, type, user?.id]);
@@ -324,6 +326,9 @@ export default function Tutorial({
     }
 
     if (!user?.id || hasFetchedCompletionRef.current) {
+      if (!user?.id) {
+        setIsCompletionSynced(true);
+      }
       return;
     }
 

@@ -22,7 +22,7 @@ interface CreateTicketModalProps {
 type Partner = {
   name: string;
   id: number;
-  tag?: string;
+  tags?: { id: number; name: string }[];
 };
 
 export default function CreateTicketModal({
@@ -72,7 +72,7 @@ export default function CreateTicketModal({
     }
 
     if (!NAME_REGEX.test(ticketName.trim())) {
-      toast.error("Only a-z, A-Z, 0-9 and _- are allowed for ticket names")
+      toast.error("Only a-z, A-Z, 0-9 and _- are allowed for ticket names");
       return;
     }
 
