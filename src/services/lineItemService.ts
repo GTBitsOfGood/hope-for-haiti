@@ -254,6 +254,7 @@ export class LineItemService {
             data: {
               ...itemData,
               quantity: qty,
+              additionalInfo: itemData.additionalInfo as Prisma.InputJsonValue || undefined,
               generalItem: {
                 connect: { id: generalItemId },
               },
