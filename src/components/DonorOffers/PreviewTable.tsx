@@ -1,8 +1,5 @@
 import { useEffect } from "react";
-import BaseTable, {
-  extendTableHeader,
-  tableConditional,
-} from "../baseTable/BaseTable";
+import BaseTable, {extendTableHeader} from "../baseTable/BaseTable";
 
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {

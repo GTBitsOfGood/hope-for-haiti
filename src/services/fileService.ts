@@ -152,33 +152,17 @@ const remapColumns = (
   const normalizedRow = normalizeRowKeys(row);
   const updated: Record<string, unknown> = {};
 
-  const assignFromMap = (map: Map<string, string>) => {
-      for (const [canonicalKey, newKey] of map) {
-        if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
-          updated[newKey] = normalizedRow[canonicalKey];
-        }
+    const assignFromMap = (map: Map<string, string>) => {
+    for (const [canonicalKey, newKey] of map) {
+      if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
+        updated[newKey] = normalizedRow[canonicalKey];
       }
-    };
+    }
+  };
 
   if (type === "unfinalized") {
-    const assignFromMap = (map: Map<string, string>) => {
-      for (const [canonicalKey, newKey] of map) {
-        if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
-          updated[newKey] = normalizedRow[canonicalKey];
-        }
-      }
-    };
     assignFromMap(unfinalizedRequiredCanonicalMap);
   } else {
-    // Finalized: extract permanent columns and collect additional info
-    const assignFromMap = (map: Map<string, string>) => {
-      for (const [canonicalKey, newKey] of map) {
-        if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
-          updated[newKey] = normalizedRow[canonicalKey];
-        }
-      }
-    };
-
     assignFromMap(finalizedPermanentCanonicalMap);
 
     const additionalInfo: Record<string, unknown> = {};
