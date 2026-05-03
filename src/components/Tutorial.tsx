@@ -529,7 +529,7 @@ export default function Tutorial({
     const endedByDone =
       (status === STATUS.FINISHED && isOnLastStep) ||
       (eventType === EVENTS.STEP_AFTER &&
-        (action === ACTIONS.NEXT || action === ACTIONS.COMPLETE) &&
+        action === ACTIONS.NEXT &&
         isOnLastStep);
     const endedByTerminalStatus =
       (status === STATUS.FINISHED || status === STATUS.SKIPPED) &&
@@ -638,19 +638,13 @@ export default function Tutorial({
       floaterProps={{
         hideArrow: true,
         offset: 12,
-        modifiers: {
+        options: {
           preventOverflow: {
-            options: {
-              boundary: "clippingParents",
-              rootBoundary: "viewport",
-              padding: 8,
-              tether: true,
-            },
+            boundariesElement: "viewport",
+            padding: 8,
           },
           flip: {
-            options: {
-              fallbackPlacements: ["top", "bottom", "right", "left"],
-            },
+            behavior: ["top", "bottom", "right", "left"],
           },
         },
         styles: {

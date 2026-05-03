@@ -137,7 +137,7 @@ export async function PATCH(
       bodyParsed.data.tutorialFinished !== undefined &&
       bodyParsed.data.name === undefined &&
       bodyParsed.data.email === undefined &&
-      bodyParsed.data.tag === undefined &&
+      bodyParsed.data.tags === undefined &&
       bodyParsed.data.role === undefined &&
       bodyParsed.data.enabled === undefined &&
       bodyParsed.data.permissions === undefined;
