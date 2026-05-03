@@ -638,13 +638,19 @@ export default function Tutorial({
       floaterProps={{
         hideArrow: true,
         offset: 12,
-        options: {
+        modifiers: {
           preventOverflow: {
-            boundariesElement: "viewport",
-            padding: 8,
+            options: {
+              boundary: "clippingParents",
+              rootBoundary: "viewport",
+              padding: 8,
+              tether: true,
+            },
           },
           flip: {
-            behavior: ["top", "bottom", "right", "left"],
+            options: {
+              fallbackPlacements: ["top", "bottom", "right", "left"],
+            },
           },
         },
         styles: {
