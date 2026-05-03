@@ -661,15 +661,17 @@ export default function SupportScreen({
           />
         </div>
       </div>
-      <Channel>
-        <Window>
-          <TicketChannelHeader />
-          <MessageList />
-          <TicketMessageInput />
-          {isSupportTutorialActive && <TutorialSampleConversation />}
-        </Window>
-        <Thread />
-      </Channel>
+      <div className="relative flex flex-col flex-1 min-w-0 h-full">
+        <Channel>
+          <Window>
+            <TicketChannelHeader />
+            <MessageList />
+            <TicketMessageInput />
+          </Window>
+          <Thread />
+        </Channel>
+        {isSupportTutorialActive && <TutorialSampleConversation />}
+      </div>
     </>
   );
 }

@@ -340,6 +340,7 @@ export default function SignOffsTable({
   ];
 
   return (
+    <>
     <AdvancedBaseTable
       ref={tableRef}
       columns={columns}

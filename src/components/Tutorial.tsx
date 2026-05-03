@@ -91,7 +91,6 @@ export default function Tutorial({
   const [stepIndex, setStepIndex] = useState(0);
   const [run, setRun] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number | null>(null);
-  const [isCompletionSynced, setIsCompletionSynced] = useState(false);
   const [serverTutorialCompleted, setServerTutorialCompleted] = useState<
     boolean | null
   >(null);

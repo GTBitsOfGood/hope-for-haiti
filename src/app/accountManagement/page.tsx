@@ -58,7 +58,7 @@ const ACCOUNT_TUTORIAL_SAMPLE_ROW: AccountRow = {
   name: "Hope Medical Center",
   email: "hmc@gmail.com",
   type: UserType.PARTNER,
-  tag: "Internal",
+  tags: [{ id: 0, name: "Internal" }],
   enabled: true,
   pending: false,
   isSuper: false,
