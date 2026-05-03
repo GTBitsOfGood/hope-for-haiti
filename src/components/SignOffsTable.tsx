@@ -1,6 +1,6 @@
 "use client";
 import { format } from "date-fns";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Package, FileCsv } from "@phosphor-icons/react";
 import { useApiClient } from "@/hooks/useApiClient";
 import toast from "react-hot-toast";
@@ -19,7 +19,55 @@ import ReportGenerationModal, {
   ReportFilters,
 } from "./ReportGenerationModal";
 
-function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
+const SIGNOFFS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX = 5;
+const SIGNOFFS_TUTORIAL_SAMPLE_ID = -996001;
+const SIGNOFFS_TUTORIAL_SIGNATURE_URL = "/tutorial-signature.svg";
+
+const SIGNOFFS_TUTORIAL_SAMPLE_SHIPMENT: Shipment = {
+  id: SIGNOFFS_TUTORIAL_SAMPLE_ID,
+  donorShippingNumber: "DON-39041",
+  hfhShippingNumber: "HFH-81220",
+  value: "READY_FOR_DISTRIBUTION",
+  lineItems: [],
+  signOffs: [
+    {
+      id: -996101,
+      staffMemberName: "Alicia Joseph",
+      partnerName: "Clinique Esperance",
+      partnerSignerName: "Dr. Mireille Paul",
+      date: new Date("2026-03-24T09:15:00.000Z"),
+      signatureUrl: SIGNOFFS_TUTORIAL_SIGNATURE_URL,
+      partnerSignatureUrl: SIGNOFFS_TUTORIAL_SIGNATURE_URL,
+      lineItems: [
+        {
+          id: -996201,
+          quantity: 60,
+          palletNumber: "PAL-3A",
+          boxNumber: "BX-04",
+          lotNumber: "LOT-9011",
+          generalItem: {
+            id: -996301,
+            title: "Amoxicillin 500mg",
+          },
+          allocation: {
+            partner: {
+              id: -996401,
+              name: "Clinique Esperance",
+            },
+          },
+        },
+      ],
+    },
+  ],
+};
+
+function SignedOffItemsBody({
+  shipment,
+  tutorialHighlightSignature = false,
+}: {
+  shipment: Shipment;
+  tutorialHighlightSignature?: boolean;
+}) {
   const [showSignOffs] = useState(true);
 
   if (!shipment.signOffs?.length) {
@@ -29,7 +77,7 @@ function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
   return (
     <div className="w-full bg-sunken p-2">
       {showSignOffs && (
-        <div className=" border-gray-200 pt-4">
+        <div className="border-gray-200 pt-4">
           {shipment.signOffs.map((signOff) => (
             <div key={signOff.id} className="space-y-2">
               {(() => {
@@ -53,6 +101,11 @@ function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
                           <span className="mx-2">•</span>
                           <span
                             data-tooltip-id={staffTooltipId}
+                            data-tutorial={
+                              tutorialHighlightSignature
+                                ? "distributions-view-signature"
+                                : undefined
+                            }
                             className="underline decoration-dotted cursor-pointer text-gray-500"
                           >
                             View staff signature
@@ -123,13 +176,30 @@ function SignedOffItemsBody({ shipment }: { shipment: Shipment }) {
   );
 }
 
-export default function SignOffsTable() {
+type SignOffsTableProps = {
+  tutorialMode?: boolean;
+  tutorialStep?: number | null;
+};
+
+export default function SignOffsTable({
+  tutorialMode = false,
+  tutorialStep = null,
+}: SignOffsTableProps) {
   const { apiClient } = useApiClient();
   const tableRef = useRef<AdvancedBaseTableHandle<Shipment>>(null);
+  const shouldHighlightSignature =
+    tutorialMode && tutorialStep === SIGNOFFS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchTableData = useCallback(
     async (pageSize: number, page: number, filters: FilterList<Shipment>) => {
+      if (tutorialMode) {
+        return {
+          data: [SIGNOFFS_TUTORIAL_SAMPLE_SHIPMENT],
+          total: 1,
+        };
+      }
+
       const searchParams = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
@@ -143,9 +213,29 @@ export default function SignOffsTable() {
 
       return { data: res.data, total: res.total };
     },
-    [apiClient]
+    [apiClient, tutorialMode]
   );
 
+  useEffect(() => {
+    if (!tutorialMode) {
+      return;
+    }
+
+    tableRef.current?.reload();
+  }, [tutorialMode, tutorialStep]);
+
+  useEffect(() => {
+    if (!tutorialMode) {
+      return;
+    }
+
+    if (tutorialStep === SIGNOFFS_TUTORIAL_TRACK_PAST_SIGN_OFFS_STEP_INDEX) {
+      tableRef.current?.setOpenRowIds(new Set([SIGNOFFS_TUTORIAL_SAMPLE_ID]));
+      return;
+    }
+
+    tableRef.current?.setOpenRowIds(new Set());
+  }, [tutorialMode, tutorialStep]);
   const handleReportSubmit = async (
     _reportType: string,
     filters: ReportFilters
@@ -217,7 +307,7 @@ export default function SignOffsTable() {
     {
       id: "donorShippingNumber",
       header: "Donor Shipping #",
-      filterType: "string", 
+      filterType: "string",
       cell: (s) => s.donorShippingNumber,
     },
     {
@@ -228,7 +318,7 @@ export default function SignOffsTable() {
     {
       id: "value",
       header: "Status",
-      filterType: "enum", 
+      filterType: "enum",
       filterOptions: Object.values(shippingStatusToText),
       cell: (s) => <ShippingStatusTag status={s.value} />,
     },
@@ -239,10 +329,7 @@ export default function SignOffsTable() {
         const partnerMap = new Map<number, string>();
         shipment.signOffs.forEach((signOff) => {
           signOff.lineItems.forEach((item) => {
-            partnerMap.set(
-              item.allocation.partner.id,
-              item.allocation.partner.name
-            );
+            partnerMap.set(item.allocation.partner.id, item.allocation.partner.name);
           });
         });
         return Array.from(partnerMap.entries()).map(([id, name]) => (
@@ -254,12 +341,12 @@ export default function SignOffsTable() {
 
   return (
     <>
-      <AdvancedBaseTable
-        ref={tableRef}
-        columns={columns}
-        fetchFn={fetchTableData}
-        rowId="id"
-        toolBar={
+    <AdvancedBaseTable
+      ref={tableRef}
+      columns={columns}
+      fetchFn={fetchTableData}
+      rowId="id"
+      toolBar={
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 rounded-md bg-blue-primary px-4 py-2 font-semibold text-white hover:bg-blue-primary/80 transition-colors"
@@ -268,14 +355,21 @@ export default function SignOffsTable() {
             Generate Reports
           </button>
         }
-        rowBody={(shipment) => (
-          <div className="border-t bg-gray-50 px-6">
-            <SignedOffItemsBody shipment={shipment} />
-          </div>
-        )}
-      />
-
-      <ReportGenerationModal
+      getRowAttributes={(shipment) =>
+        tutorialMode && shipment.id === SIGNOFFS_TUTORIAL_SAMPLE_ID
+          ? { "data-tutorial": "distributions-signedoff-shipment-row" }
+          : undefined
+      }
+      rowBody={(shipment) => (
+        <div className="border-t bg-gray-50 px-6">
+          <SignedOffItemsBody
+            shipment={shipment}
+            tutorialHighlightSignature={shouldHighlightSignature}
+          />
+        </div>
+      )}
+    />
+     <ReportGenerationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleReportSubmit}

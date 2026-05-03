@@ -4,15 +4,20 @@ import type { TooltipRenderProps } from "react-joyride";
 const cx = (...classes: Array<string | null | undefined | false>) =>
   classes.filter(Boolean).join(" ");
 
+interface JoyrideStepProps extends TooltipRenderProps {
+  onSkip?: () => void;
+}
+
 export default function JoyrideStep({
   backProps,
   index,
+  onSkip,
   primaryProps,
   size,
   skipProps,
   step,
   tooltipProps,
-}: TooltipRenderProps) {
+}: JoyrideStepProps) {
   const totalSteps = size ?? 0;
   const showPointer = step.placement !== "center";
 
@@ -30,6 +35,7 @@ export default function JoyrideStep({
   return (
     <div
       {...tooltipProps}
+      data-tutorial-tooltip="true"
       style={{
         width: "min(24rem, calc(100vw - 1rem), calc(100dvw - 1rem))",
         maxWidth: "calc(100vw - 1rem)",
@@ -86,6 +92,10 @@ export default function JoyrideStep({
           <button
             type="button"
             {...skipProps}
+            onClick={(event) => {
+              skipProps.onClick?.(event);
+              onSkip?.();
+            }}
             className={cx(
               "w-fit text-sm font-medium text-red-primary",
               "focus:outline-none"

@@ -28,6 +28,13 @@ declare module "next-auth" {
     pending: boolean;
     tags?: { id: number; name: string }[];
     dashboardTutorial: boolean;
+    adminDashboardTutorial: boolean;
+    adminSupportTutorial: boolean;
+    adminAccountManagementTutorial: boolean;
+    adminUnallocatedTutorial: boolean;
+    adminDonorOffersTutorial: boolean;
+    adminWishlistTutorial: boolean;
+    adminDistributionsTutorial: boolean;
     itemsTutorial: boolean;
     requestsTutorial: boolean;
     wishlistsTutorial: boolean;
@@ -44,6 +51,13 @@ declare module "next-auth" {
       tags?: { id: number; name: string }[];
       enabled: boolean;
       dashboardTutorial: boolean;
+      adminDashboardTutorial: boolean;
+      adminSupportTutorial: boolean;
+      adminAccountManagementTutorial: boolean;
+      adminUnallocatedTutorial: boolean;
+      adminDonorOffersTutorial: boolean;
+      adminWishlistTutorial: boolean;
+      adminDistributionsTutorial: boolean;
       itemsTutorial: boolean;
       requestsTutorial: boolean;
       wishlistsTutorial: boolean;
@@ -65,6 +79,13 @@ declare module "next-auth/jwt" {
     streamUserToken: string | null;
     tags?: { id: number; name: string }[];
     dashboardTutorial: boolean;
+    adminDashboardTutorial: boolean;
+    adminSupportTutorial: boolean;
+    adminAccountManagementTutorial: boolean;
+    adminUnallocatedTutorial: boolean;
+    adminDonorOffersTutorial: boolean;
+    adminWishlistTutorial: boolean;
+    adminDistributionsTutorial: boolean;
     itemsTutorial: boolean;
     requestsTutorial: boolean;
     wishlistsTutorial: boolean;
@@ -98,6 +119,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             partnerDetails: true,
             ...PERMISSION_SELECT,
             dashboardTutorial: true,
+            adminDashboardTutorial: true,
+            adminSupportTutorial: true,
+            adminAccountManagementTutorial: true,
+            adminUnallocatedTutorial: true,
+            adminDonorOffersTutorial: true,
+            adminWishlistTutorial: true,
+            adminDistributionsTutorial: true,
             itemsTutorial: true,
             requestsTutorial: true,
             wishlistsTutorial: true,
@@ -122,6 +150,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           streamUserToken: user.streamUserToken,
           tags: user.tags,
           dashboardTutorial: user.dashboardTutorial,
+          adminDashboardTutorial: user.adminDashboardTutorial,
+          adminSupportTutorial: user.adminSupportTutorial,
+          adminAccountManagementTutorial: user.adminAccountManagementTutorial,
+          adminUnallocatedTutorial: user.adminUnallocatedTutorial,
+          adminDonorOffersTutorial: user.adminDonorOffersTutorial,
+          adminWishlistTutorial: user.adminWishlistTutorial,
+          adminDistributionsTutorial: user.adminDistributionsTutorial,
           itemsTutorial: user.itemsTutorial,
           requestsTutorial: user.requestsTutorial,
           wishlistsTutorial: user.wishlistsTutorial,
@@ -149,6 +184,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token[field] = user[field];
         });
         token.dashboardTutorial = user.dashboardTutorial;
+        token.adminDashboardTutorial = user.adminDashboardTutorial;
+        token.adminSupportTutorial = user.adminSupportTutorial;
+        token.adminAccountManagementTutorial =
+          user.adminAccountManagementTutorial;
+        token.adminUnallocatedTutorial = user.adminUnallocatedTutorial;
+        token.adminDonorOffersTutorial = user.adminDonorOffersTutorial;
+        token.adminWishlistTutorial = user.adminWishlistTutorial;
+        token.adminDistributionsTutorial = user.adminDistributionsTutorial;
         token.itemsTutorial = user.itemsTutorial;
         token.requestsTutorial = user.requestsTutorial;
         token.wishlistsTutorial = user.wishlistsTutorial;
@@ -158,6 +201,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === "update" && session) {
         const tutorialFields = [
           "dashboardTutorial",
+          "adminDashboardTutorial",
+          "adminSupportTutorial",
+          "adminAccountManagementTutorial",
+          "adminUnallocatedTutorial",
+          "adminDonorOffersTutorial",
+          "adminWishlistTutorial",
+          "adminDistributionsTutorial",
           "itemsTutorial",
           "requestsTutorial",
           "wishlistsTutorial",
@@ -187,6 +237,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user[field] = Boolean(token[field]);
       });
       session.user.dashboardTutorial = Boolean(token.dashboardTutorial);
+      session.user.adminDashboardTutorial = Boolean(token.adminDashboardTutorial);
+      session.user.adminSupportTutorial = Boolean(token.adminSupportTutorial);
+      session.user.adminAccountManagementTutorial = Boolean(
+        token.adminAccountManagementTutorial
+      );
+      session.user.adminUnallocatedTutorial = Boolean(
+        token.adminUnallocatedTutorial
+      );
+      session.user.adminDonorOffersTutorial = Boolean(
+        token.adminDonorOffersTutorial
+      );
+      session.user.adminWishlistTutorial = Boolean(token.adminWishlistTutorial);
+      session.user.adminDistributionsTutorial = Boolean(
+        token.adminDistributionsTutorial
+      );
       session.user.itemsTutorial = Boolean(token.itemsTutorial);
       session.user.requestsTutorial = Boolean(token.requestsTutorial);
       session.user.wishlistsTutorial = Boolean(token.wishlistsTutorial);

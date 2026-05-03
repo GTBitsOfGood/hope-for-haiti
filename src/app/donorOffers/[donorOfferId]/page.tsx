@@ -8,11 +8,17 @@ import AdminAllocateDonorOfferScreen from "@/screens/DonorOffersScreens/AdminAll
 import AdminArchivedDonorOfferScreen from "@/screens/DonorOffersScreens/AdminArchivedDonorOfferScreen";
 import { useFetch } from "@/hooks/useFetch";
 import { DonorOffer } from "@prisma/client";
+import { TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID } from "@/util/tutorialIds";
+
+const DONOR_OFFERS_TUTORIAL_SAMPLE_ID =
+  TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID;
 
 export default function DonorOfferDetailsPage() {
   const { data: session } = useSession();
   const params = useParams();
   const donorOfferId = params.donorOfferId as string;
+  const isTutorialSampleOffer =
+    Number(donorOfferId) === DONOR_OFFERS_TUTORIAL_SAMPLE_ID;
 
   if (!session?.user.type) {
     redirect("/signIn");
@@ -23,9 +29,22 @@ export default function DonorOfferDetailsPage() {
     redirect("/items");
   }
 
+  const canAccessDonorOffers = hasAnyPermission(session.user, [
+    "requestRead",
+    "requestWrite",
+    "allocationRead",
+    "archivedRead",
+    "offerWrite",
+  ]);
+
+  if (!canAccessDonorOffers) {
+    redirect("/");
+  }
+
   const { data, isLoading } = useFetch<{
     donorOffer: DonorOffer;
   }>(`/api/donorOffers/${donorOfferId}`, {
+    conditionalFetch: !isTutorialSampleOffer,
     cache: "no-store",
     onError: (error) => {
       if (error.includes("404")) {
@@ -33,6 +52,10 @@ export default function DonorOfferDetailsPage() {
       }
     },
   });
+
+  if (isTutorialSampleOffer) {
+    return <AdminDynamicDonorOfferScreen />;
+  }
 
   if (isLoading || !data) {
     return (
@@ -42,23 +65,14 @@ export default function DonorOfferDetailsPage() {
     );
   } 
 
-  if (
-    hasAnyPermission(session.user, [
-    "requestRead",
-    "requestWrite",
-    "allocationRead",
-    "archivedRead",
-    "offerWrite",
-    ])) {
-    const { donorOffer } = data;
-    
-    if (donorOffer.state === "UNFINALIZED") {
-      return <AdminDynamicDonorOfferScreen />;
-    } else if (donorOffer.state === "FINALIZED") {
-      return <AdminAllocateDonorOfferScreen />;
-    } else if (donorOffer.state === "ARCHIVED") {
-      return <AdminArchivedDonorOfferScreen />;
-    }
+  const { donorOffer } = data;
+
+  if (donorOffer.state === "UNFINALIZED") {
+    return <AdminDynamicDonorOfferScreen />;
+  } else if (donorOffer.state === "FINALIZED") {
+    return <AdminAllocateDonorOfferScreen />;
+  } else if (donorOffer.state === "ARCHIVED") {
+    return <AdminArchivedDonorOfferScreen />;
   }
 
   redirect("/");

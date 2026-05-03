@@ -32,18 +32,19 @@ export default function TicketInput({ canWrite }: TicketInputProps) {
   };
 
   return (
-    <WithDragAndDropUpload className="px-2 w-full flex items-center justify-between gap-2">
+    <WithDragAndDropUpload className="px-2 w-full flex items-center gap-2">
       <QuotedMessagePreview />
       <AttachmentPreviewList />
       {/* cursor-pointer is being weird and only working over the padding */}
       <div
         className={`hover:bg-sunken hover:shadow-md cursor-pointer *:cursor-pointer rounded-full p-2 transition
           ${isDisabled ? "opacity-50 pointer-events-none *:pointer-events-none" : ""}`}
+        data-tutorial="support-attachments"
       >
         <SimpleAttachmentSelector />
       </div>
       <TextareaComposer
-        containerClassName={`grow *:w-full *:rounded-full *:resize-none flex items-center ${
+        containerClassName={`flex-1 min-w-0 *:w-full *:rounded-full *:resize-none flex items-center ${
           isDisabled && "*:bg-gray-primary/15 *:cursor-not-allowed"
         }`}
         placeholder={getPlaceholder()}

@@ -109,6 +109,7 @@ export default function WishlistSummary() {
           <button
             onClick={() => setIsRequested(true)}
             className="flex items-center px-4 py-2 bg-gradient-to-br from-blue-primary to-red-primary text-white rounded-md font-medium hover:from-blue-700 hover:to-red-700 transition-all shadow-sm"
+            data-tutorial="wishlist-summarize-needs"
           >
             Generate Summary
           </button>

@@ -18,14 +18,21 @@ export default function TicketChannelHeader() {
         <h2 className="text-lg font-semibold">
           {data.name || "Unnamed Support Ticket"}
         </h2>
-        {isStaffUser && data.partnerName && <span className="text-sm text-gray-primary/70">{data.partnerName}</span>}
+        {isStaffUser && data.partnerName && (
+          <span className="text-sm text-gray-primary/70">
+            {data.partnerName}
+          </span>
+        )}
         <span
           className={`px-2 py-1 ${data.closed ? "bg-gray-primary/20 text-gray-primary" : "bg-green-primary text-green-dark"} rounded-full text-sm`}
+          data-tutorial="support-ticket-status"
         >
           {data.closed ? "Closed" : "Open"}
         </span>
       </div>
-      {!data.closed && isStaffUser && <ChannelOptionsButton channel={channel} />}
+      {!data.closed && isStaffUser && (
+        <ChannelOptionsButton channel={channel} />
+      )}
     </div>
   );
 }

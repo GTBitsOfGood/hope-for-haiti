@@ -123,6 +123,13 @@ export default class UserService {
         streamUserId: true,
         streamUserToken: true,
         dashboardTutorial: true,
+        adminDashboardTutorial: true,
+        adminSupportTutorial: true,
+        adminAccountManagementTutorial: true,
+        adminUnallocatedTutorial: true,
+        adminDonorOffersTutorial: true,
+        adminWishlistTutorial: true,
+        adminDistributionsTutorial: true,
         itemsTutorial: true,
         requestsTutorial: true,
         wishlistsTutorial: true,
@@ -462,6 +469,28 @@ export default class UserService {
     }
     if (data.dashboardTutorial !== undefined) {
       updateData.dashboardTutorial = data.dashboardTutorial;
+    }
+    if (data.adminDashboardTutorial !== undefined) {
+      updateData.adminDashboardTutorial = data.adminDashboardTutorial;
+    }
+    if (data.adminSupportTutorial !== undefined) {
+      updateData.adminSupportTutorial = data.adminSupportTutorial;
+    }
+    if (data.adminAccountManagementTutorial !== undefined) {
+      updateData.adminAccountManagementTutorial =
+        data.adminAccountManagementTutorial;
+    }
+    if (data.adminUnallocatedTutorial !== undefined) {
+      updateData.adminUnallocatedTutorial = data.adminUnallocatedTutorial;
+    }
+    if (data.adminDonorOffersTutorial !== undefined) {
+      updateData.adminDonorOffersTutorial = data.adminDonorOffersTutorial;
+    }
+    if (data.adminWishlistTutorial !== undefined) {
+      updateData.adminWishlistTutorial = data.adminWishlistTutorial;
+    }
+    if (data.adminDistributionsTutorial !== undefined) {
+      updateData.adminDistributionsTutorial = data.adminDistributionsTutorial;
     }
     if (data.itemsTutorial !== undefined) {
       updateData.itemsTutorial = data.itemsTutorial;

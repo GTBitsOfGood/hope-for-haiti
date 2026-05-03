@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { DotsThree } from "@phosphor-icons/react";
 import {
   EnvelopeSimple,
@@ -14,6 +14,7 @@ interface DropdownItem {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  tutorialId?: string;
 }
 
 interface AccountDropdownProps {
@@ -26,6 +27,11 @@ interface AccountDropdownProps {
   canManage?: boolean;
   /** When true, hide Deactivate/Activate option (e.g. for self or protected users) */
   hideDeactivateOption?: boolean;
+  forceOpen?: boolean;
+  triggerTutorialId?: string;
+  menuTutorialId?: string;
+  editOptionTutorialId?: string;
+  deactivateOptionTutorialId?: string;
 }
 
 export default function AccountDropdown({
@@ -37,6 +43,11 @@ export default function AccountDropdown({
   onSendReminder,
   canManage = true,
   hideDeactivateOption = false,
+  forceOpen = false,
+  triggerTutorialId,
+  menuTutorialId,
+  editOptionTutorialId,
+  deactivateOptionTutorialId,
 }: AccountDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -71,6 +82,7 @@ export default function AccountDropdown({
         {
           icon: <PencilSimple size={18} />,
           label: "Edit account",
+          tutorialId: editOptionTutorialId,
           onClick: () => {
             onEditAccount?.();
             setIsOpen(false);
@@ -81,6 +93,7 @@ export default function AccountDropdown({
         items.push({
           icon: isEnabled ? <EyeSlash size={18} /> : <Eye size={18} />,
           label: isEnabled ? "Deactivate account" : "Activate account",
+          tutorialId: deactivateOptionTutorialId,
           onClick: () => {
             onDeactivateAccount?.();
             setIsOpen(false);
@@ -92,12 +105,17 @@ export default function AccountDropdown({
   };
 
   const dropdownItems = getDropdownItems();
+  const shouldShowMenu = forceOpen || isOpen;
 
   return (
     <div className="relative">
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (forceOpen) return;
+          setIsOpen(!isOpen);
+        }}
+        data-tutorial={triggerTutorialId}
         className="p-1 hover:bg-gray-100 rounded transition-colors"
       >
         <DotsThree
@@ -108,11 +126,16 @@ export default function AccountDropdown({
       </button>
 
       <Portal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        isOpen={shouldShowMenu}
+        onClose={() => {
+          if (forceOpen) return;
+          setIsOpen(false);
+        }}
         triggerRef={buttonRef}
         position="bottom-right"
         className="w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5"
+        tutorialId={menuTutorialId}
+        closeOnOutsideClick={!forceOpen}
       >
         <div className="py-1">
           {dropdownItems.map((item, index) => (
@@ -120,6 +143,7 @@ export default function AccountDropdown({
               key={index}
               onClick={item.onClick}
               disabled={item.disabled}
+              data-tutorial={item.tutorialId}
               className={`
                 flex items-center w-full px-4 py-2 text-sm text-left
                 ${!item.disabled ? "hover:bg-gray-50 text-gray-900" : "text-gray-700"}

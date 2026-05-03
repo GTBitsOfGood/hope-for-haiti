@@ -42,7 +42,19 @@ const patchBodySchema = z.object({
   enabled: z.boolean().optional(),
   permissions: permissionsSchema.optional(),
   tutorialFinished: z
-    .enum(["dashboard", "items", "requests", "wishlists"])
+    .enum([
+      "dashboard",
+      "adminDashboard",
+      "adminSupport",
+      "adminAccountManagement",
+      "adminUnallocated",
+      "adminDonorOffers",
+      "adminWishlist",
+      "adminDistributions",
+      "items",
+      "requests",
+      "wishlists",
+    ])
     .optional(),
 });
 
@@ -83,9 +95,6 @@ export async function PATCH(
     if (!session?.user) {
       throw new AuthenticationError("Session required");
     }
-    if (session.user.type === UserType.STAFF) {
-      UserService.checkPermission(session.user, "userWrite");
-    }
 
     const { userId } = await params;
     if (session.user.type === UserType.PARTNER && userId !== session.user.id) {
@@ -124,6 +133,21 @@ export async function PATCH(
 
     // These checks relate to the session user - the ones in userService relate to the target user
     const isSelf = session.user.id === parsed.data.userId.toString();
+    const isTutorialOnlyPatch =
+      bodyParsed.data.tutorialFinished !== undefined &&
+      bodyParsed.data.name === undefined &&
+      bodyParsed.data.email === undefined &&
+      bodyParsed.data.tags === undefined &&
+      bodyParsed.data.role === undefined &&
+      bodyParsed.data.enabled === undefined &&
+      bodyParsed.data.permissions === undefined;
+
+    if (session.user.type === UserType.STAFF) {
+      const canSelfUpdateTutorialWithoutUserWrite = isSelf && isTutorialOnlyPatch;
+      if (!canSelfUpdateTutorialWithoutUserWrite) {
+        UserService.checkPermission(session.user, "userWrite");
+      }
+    }
 
     if (isSelf) {
       if (bodyParsed.data.permissions) {
@@ -153,6 +177,32 @@ export async function PATCH(
       permissions: bodyParsed.data.permissions,
       dashboardTutorial:
         bodyParsed.data.tutorialFinished === "dashboard" ? true : undefined,
+      adminDashboardTutorial:
+        bodyParsed.data.tutorialFinished === "adminDashboard"
+          ? true
+          : undefined,
+      adminSupportTutorial:
+        bodyParsed.data.tutorialFinished === "adminSupport" ? true : undefined,
+      adminAccountManagementTutorial:
+        bodyParsed.data.tutorialFinished === "adminAccountManagement"
+          ? true
+          : undefined,
+      adminUnallocatedTutorial:
+        bodyParsed.data.tutorialFinished === "adminUnallocated"
+          ? true
+          : undefined,
+      adminDonorOffersTutorial:
+        bodyParsed.data.tutorialFinished === "adminDonorOffers"
+          ? true
+          : undefined,
+      adminWishlistTutorial:
+        bodyParsed.data.tutorialFinished === "adminWishlist"
+          ? true
+          : undefined,
+      adminDistributionsTutorial:
+        bodyParsed.data.tutorialFinished === "adminDistributions"
+          ? true
+          : undefined,
       itemsTutorial:
         bodyParsed.data.tutorialFinished === "items" ? true : undefined,
       requestsTutorial:

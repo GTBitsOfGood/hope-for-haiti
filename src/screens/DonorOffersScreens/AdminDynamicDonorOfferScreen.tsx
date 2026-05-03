@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { DonorOffer } from "@prisma/client";
 import { formatTableValue } from "@/util/format";
@@ -22,6 +22,8 @@ import PartnerRequestChipGroup, {
 } from "@/components/chips/PartnerRequestChipGroup";
 import toast from "react-hot-toast";
 import { CgChevronDown, CgChevronUp } from "react-icons/cg";
+import { TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID } from "@/util/tutorialIds";
+import { useUser } from "@/components/context/UserContext";
 
 type StreamingChunk = {
   itemIndex: number;
@@ -65,8 +67,73 @@ type AdminDonorOfferDetails = {
   items: GeneralItemWithRequests[];
 };
 
+const DONOR_OFFERS_TUTORIAL_SAMPLE_ID =
+  TUTORIAL_ADMIN_DONOR_OFFERS_SAMPLE_ID;
+const DONOR_OFFERS_TUTORIAL_SAMPLE_ITEMS: GeneralItemWithRequests[] = [
+  {
+    id: -970101,
+    title: "Acetaminophen 500mg Tablets",
+    type: "MEDICATION",
+    expirationDate: "2027-12-31T00:00:00.000Z",
+    unitType: "BOTTLE",
+    quantityPerUnit: 100,
+    initialQuantity: 1200,
+    requestQuantity: 900,
+    requests: [
+      {
+        id: -970111,
+        quantity: 500,
+        finalQuantity: 500,
+        partner: { id: -970201, name: "Hope Medical Center" },
+      },
+      {
+        id: -970112,
+        quantity: 400,
+        finalQuantity: 400,
+        partner: { id: -970202, name: "Les Cayes Community Hospital" },
+      },
+    ],
+  },
+  {
+    id: -970102,
+    title: "Surgical Gloves (Medium)",
+    type: "SUPPLY",
+    expirationDate: "2028-06-30T00:00:00.000Z",
+    unitType: "BOX",
+    quantityPerUnit: 50,
+    initialQuantity: 600,
+    requestQuantity: 450,
+    requests: [
+      {
+        id: -970121,
+        quantity: 250,
+        finalQuantity: 250,
+        partner: { id: -970201, name: "Hope Medical Center" },
+      },
+      {
+        id: -970122,
+        quantity: 200,
+        finalQuantity: 200,
+        partner: { id: -970202, name: "Les Cayes Community Hospital" },
+      },
+    ],
+  },
+];
+
 export default function AdminDynamicDonorOfferScreen() {
   const { donorOfferId } = useParams();
+  const router = useRouter();
+  const { user, loading } = useUser();
+  const isTutorialSampleOffer =
+    Number(donorOfferId) === DONOR_OFFERS_TUTORIAL_SAMPLE_ID;
+  const [
+    hasResolvedDonorOffersTutorialState,
+    setHasResolvedDonorOffersTutorialState,
+  ] = useState(false);
+  const [
+    hasLocalDonorOffersTutorialCompletion,
+    setHasLocalDonorOffersTutorialCompletion,
+  ] = useState(false);
   const tableRef =
     useRef<AdvancedBaseTableHandle<GeneralItemWithRequests>>(null);
   const { apiClient } = useApiClient();
@@ -82,12 +149,77 @@ export default function AdminDynamicDonorOfferScreen() {
   );
   const currentItemsRef = useRef<GeneralItemWithRequests[]>([]);
 
+  const getHasLocalDonorOffersTutorialCompletion = useCallback(() => {
+    if (!user?.id) {
+      return false;
+    }
+
+    try {
+      return (
+        localStorage.getItem(`tutorial-completed:${user.id}:adminDonorOffers`) ===
+        "1"
+      );
+    } catch {
+      return false;
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     currentItemsRef.current = currentItems;
   }, [currentItems]);
 
+  useEffect(() => {
+    if (loading) {
+      setHasResolvedDonorOffersTutorialState(false);
+      return;
+    }
+
+    if (!user?.id) {
+      setHasLocalDonorOffersTutorialCompletion(false);
+      setHasResolvedDonorOffersTutorialState(true);
+      return;
+    }
+
+    try {
+      setHasLocalDonorOffersTutorialCompletion(
+        getHasLocalDonorOffersTutorialCompletion()
+      );
+    } catch {
+      setHasLocalDonorOffersTutorialCompletion(false);
+    }
+    setHasResolvedDonorOffersTutorialState(true);
+  }, [getHasLocalDonorOffersTutorialCompletion, loading, user?.id]);
+
+  const shouldBlockTutorialSampleOffer =
+    isTutorialSampleOffer &&
+    hasResolvedDonorOffersTutorialState &&
+    Boolean(
+      user?.adminDonorOffersTutorial || hasLocalDonorOffersTutorialCompletion
+    );
+
+  useEffect(() => {
+    if (!shouldBlockTutorialSampleOffer) {
+      return;
+    }
+
+    router.replace("/donorOffers");
+  }, [router, shouldBlockTutorialSampleOffer]);
+
   const fetchItems = useCallback(
     async (pageSize: number, page: number) => {
+      if (isTutorialSampleOffer) {
+        setCurrentItems(DONOR_OFFERS_TUTORIAL_SAMPLE_ITEMS);
+        const start = (page - 1) * pageSize;
+        const paged = DONOR_OFFERS_TUTORIAL_SAMPLE_ITEMS.slice(
+          start,
+          start + pageSize
+        );
+        return {
+          data: paged,
+          total: DONOR_OFFERS_TUTORIAL_SAMPLE_ITEMS.length,
+        };
+      }
+
       const data = await apiClient.get<AdminDonorOfferDetails>(
         `/api/donorOffers/${donorOfferId}?requests=true`,
         { cache: "no-store" }
@@ -128,7 +260,7 @@ export default function AdminDynamicDonorOfferScreen() {
       const paged = items.slice(start, start + pageSize);
       return { data: paged, total: items.length };
     },
-    [apiClient, donorOfferId, isLLMMode]
+    [apiClient, donorOfferId, isLLMMode, isTutorialSampleOffer]
   );
 
   const columns: ColumnDefinition<GeneralItemWithRequests>[] = useMemo(
@@ -523,11 +655,20 @@ export default function AdminDynamicDonorOfferScreen() {
           generalItemId={item.id}
           onRequestUpdated={handleRequestUpdated}
           isLLMMode={isLLMMode}
+          readOnly={isTutorialSampleOffer}
         />
       );
     },
-    [handleRequestUpdated, isLLMMode]
+    [handleRequestUpdated, isLLMMode, isTutorialSampleOffer]
   );
+
+  if (shouldBlockTutorialSampleOffer) {
+    return null;
+  }
+
+  if (isTutorialSampleOffer && (!hasResolvedDonorOffersTutorialState || loading)) {
+    return null;
+  }
 
   return (
     <div>
@@ -541,7 +682,9 @@ export default function AdminDynamicDonorOfferScreen() {
           </Link>
           <span className="text-gray-500 text-sm flex items-center">/</span>
           <span className="font-medium hover:bg-gray-100 transition-colors rounded cursor-pointer flex items-center justify-center p-1">
-            {formatTableValue(String(donorOfferId))}
+            {isTutorialSampleOffer
+              ? "Test Donor Offer"
+              : formatTableValue(String(donorOfferId))}
           </span>
         </div>
       </div>
@@ -554,7 +697,7 @@ export default function AdminDynamicDonorOfferScreen() {
         rowBody={rowBody}
         pageSize={20}
         toolBar={
-          !isLLMMode ? (
+          isTutorialSampleOffer ? undefined : !isLLMMode ? (
             <button
               onClick={handleSuggestRevisions}
               className="px-4 py-2 bg-gradient-to-br from-blue-primary to-red-primary text-white rounded hover:from-blue-700 hover:to-red-700 transition-all disabled:opacity-50"

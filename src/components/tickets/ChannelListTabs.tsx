@@ -10,7 +10,10 @@ export default function ChannelListTabs({
   onTabChange,
 }: ChannelListTabsProps) {
   return (
-    <div className="flex space-x-4 border-b-2 border-gray-primary/10">
+    <div
+      className="flex space-x-4 border-b-2 border-gray-primary/10"
+      data-tutorial="support-resolved-unresolved-tabs"
+    >
       <button
         data-active={activeTab === "Unresolved"}
         className="px-2 py-1 text-md font-medium text-gray-primary/70 relative -mb-px transition-colors focus:outline-none data-[active=true]:border-b-2 data-[active=true]:border-gray-primary data-[active=true]:bottom-[-1px] data-[active=true]:text-opacity-100"
