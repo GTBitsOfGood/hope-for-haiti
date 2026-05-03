@@ -828,7 +828,7 @@ export default function AdminDonorOffersScreen() {
                 onClick={() => router.push("/donorOffers/create")}
                 data-tutorial="donor-offers-initial-offer"
               >
-                <Plus size={18} /> + Donor Offer
+                <Plus size={18} />Donor Offer
               </button>
             )
           }
