@@ -279,7 +279,7 @@ export default function AdminWishlistScreen() {
       />
       <h1 className="text-2xl font-semibold text-gray-primary">Wishlists</h1>
       {(totalItems !== null && totalItems >= 10) || isWishlistTutorialSampleMode ? <WishlistSummary/> :
-        <div className="flex justify-end -mb-10 mt-8 mr-28">
+        <div className="flex justify-end mr-4 mt-3">
           <Question 
             size={20} 
             className="text-gray-primary/60 cursor-help"
