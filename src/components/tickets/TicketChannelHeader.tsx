@@ -1,6 +1,7 @@
 import { ExtraChannelData } from "@/types/api/streamio.types";
 import { useChannelStateContext } from "stream-chat-react";
 import ChannelOptionsButton from "./ChannelOptionsButton";
+import TicketAttachmentsButton from "./TicketAttachmentsButton";
 import { useSession } from "next-auth/react";
 import { isStaff } from "@/lib/userUtils";
 
@@ -29,6 +30,7 @@ export default function TicketChannelHeader() {
         >
           {data.closed ? "Closed" : "Open"}
         </span>
+        <TicketAttachmentsButton />
       </div>
       {!data.closed && isStaffUser && (
         <ChannelOptionsButton channel={channel} />
