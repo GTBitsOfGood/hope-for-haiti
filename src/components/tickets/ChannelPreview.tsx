@@ -42,7 +42,7 @@ export default function ChannelPreview({
     >
       {/* Top Row */}
       <div className="flex items-start mb-1 gap-2 min-w-0">
-        <div className="font-semibold text-left flex-1 min-w-0 overflow-hidden">
+        <div className="font-semibold text-left flex-1 min-w-0 truncate">
           <span className="inline">{data.name}</span>
           {isStaffUser && data.partnerName && (
             <span className="text-sm text-gray-500 font-normal ml-2">
