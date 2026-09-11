@@ -99,7 +99,8 @@ export async function POST(req: Request) {
       partnerName!,
       session!.user.streamUserId!,
       streamUsers,
-      extraData
+      extraData,
+      session.user.name ?? undefined
     );
 
     return NextResponse.json({ channelId: channel.id });
