@@ -199,7 +199,7 @@ function NavLinks({
           {isPartnerUser ? (user?.siteName ?? user?.name) : user?.name}
         </p>
       </li>
-      <ul className="flex gap-2">
+      <ul className="flex flex-row sm:flex-col md:flex-row gap-2">
         <li className="flex-1 mt-auto">
           <NavLink
             href="/profile"
@@ -301,7 +301,7 @@ function DesktopNavbar() {
 
       <hr className="mt-2 mb-4 h-1 bg-blue-dark border-t-0 w-full" />
 
-      <ul className="p-1 w-full flex flex-col flex-1 flex-grow">
+      <ul className="p-1 w-full flex flex-col flex-1 min-h-0 overflow-y-auto">
         <NavLinks includeTutorialTargets />
       </ul>
     </nav>
@@ -322,7 +322,7 @@ function MobileNavbar() {
 
   return (
     <nav
-      className={`fixed top-4 right-4 p-4 rounded-lg sm:hidden overflow-hidden transition-all ${open ? "w-64 h-[30rem] bg-blue-light" : "w-12 h-12"}`}
+      className={`fixed top-4 right-4 p-4 rounded-lg sm:hidden overflow-hidden transition-all ${open ? "w-64 h-[30rem] max-h-[calc(100dvh-2rem)] bg-blue-light" : "w-12 h-12"}`}
     >
       <div
         className={`w-full h-full flex flex-col items-start transition-all ${open ? "opacity-100" : "opacity-0"}`}
@@ -333,7 +333,7 @@ function MobileNavbar() {
 
         <hr className="mt-4 mb-3 h-0.5 bg-blue-dark border-t-0 w-full" />
 
-        <ul className="flex-1 flex flex-col w-full">
+        <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col w-full">
           <NavLinks />
         </ul>
       </div>
