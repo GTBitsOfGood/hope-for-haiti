@@ -147,7 +147,6 @@ export class SignOffService {
     const query = Prisma.validator<Prisma.SignOffFindManyArgs>()({
       where,
       include: {
-        allocations: true,
         _count: {
           select: {
             allocations: true,
@@ -196,7 +195,6 @@ export class SignOffService {
     const query = Prisma.validator<Prisma.SignOffFindManyArgs>()({
       where: { partnerId },
       include: {
-        allocations: true,
         _count: {
           select: {
             allocations: true,
