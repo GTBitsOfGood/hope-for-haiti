@@ -110,7 +110,8 @@ export default class StreamIoService {
     partnerName: string,
     createdById: string,
     memberIds: string[],
-    extraData: ChannelData
+    extraData: ChannelData,
+    createdByName?: string
   ) {
     const channelId = this.channelNameToId(channelName);
     const channel = StreamIoService.client.channel("ticket", channelId, {
@@ -119,6 +120,7 @@ export default class StreamIoService {
       name: channelName,
       image: channelImage,
       partnerName,
+      ...(createdByName ? { createdByName } : {}),
       ...extraData,
     } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -185,6 +187,38 @@ export default class StreamIoService {
     const response = await channel.queryMembers({}); 
 
     return response.members.map(member => member.user_id).filter(Boolean) as string[];
+  }
+
+  static async searchMessageCids(
+    memberStreamUserId: string,
+    query: string,
+    distinctLimit = 20,
+    pageSize = 20,
+    maxPages = 3
+  ): Promise<string[]> {
+    const cids = new Set<string>();
+    let offset = 0;
+    for (let page = 0; page < maxPages; page++) {
+      const res = await StreamIoService.client.search(
+        { members: { $in: [memberStreamUserId] }, type: "ticket" },
+        { text: { $autocomplete: query } },
+        { limit: pageSize, offset }
+      );
+      for (const hit of res.results ?? []) {
+        const cid =
+          (hit.message as { cid?: unknown })?.cid ??
+          (hit.message as { channel_cid?: unknown })?.channel_cid;
+        if (typeof cid === "string" && cid) cids.add(cid);
+        if (cids.size >= distinctLimit) break;
+      }
+      if (cids.size >= distinctLimit) break;
+      if (!res.results || res.results.length < pageSize) break;
+      if ((res as { next?: string }).next) {
+        // If Stream returns a cursor, prefer it - but offset fallback is safe
+      }
+      offset += res.results.length;
+    }
+    return [...cids].slice(0, distinctLimit);
   }
 
   static async getChannelData(channelId: string): Promise<{

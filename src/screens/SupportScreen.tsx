@@ -260,6 +260,10 @@ export default function SupportScreen({
   streamUserId,
 }: SupportScreenProps) {
   const { client, setActiveChannel, channel: activeChannel } = useChatContext();
+  const [messageMatchCids, setMessageMatchCids] = useState<Set<string>>(
+    new Set()
+  );
+  const [messageSearchPending, setMessageSearchPending] = useState(false);
   const [isSupportTutorialActive, setIsSupportTutorialActive] = useState(false);
   const [hasSupportTutorialEnded, setHasSupportTutorialEnded] = useState(false);
   const [activeTutorialStep, setActiveTutorialStep] = useState<number | null>(
@@ -598,18 +602,97 @@ export default function SupportScreen({
     filters.closed = { $eq: true };
   }
 
-  if (searchQuery.trim()) {
-    filters.name = { $autocomplete: searchQuery };
+  const trimmedQuery = searchQuery.trim();
+
+  useEffect(() => {
+    if (!trimmedQuery) {
+      setMessageMatchCids(new Set());
+      setMessageSearchPending(false);
+      return;
+    }
+    setMessageSearchPending(true);
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/tickets/search?q=${encodeURIComponent(trimmedQuery)}`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) throw new Error(await res.text());
+        const data = (await res.json()) as { cids?: unknown };
+        if (cancelled) return;
+        const cids = new Set<string>();
+        if (Array.isArray(data.cids)) {
+          for (const cid of data.cids) {
+            if (typeof cid === "string" && cid) cids.add(cid);
+          }
+        }
+        setMessageMatchCids(cids);
+      } catch {
+        if (!cancelled) setMessageMatchCids(new Set());
+      } finally {
+        if (!cancelled) setMessageSearchPending(false);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [trimmedQuery]);
+
+  if (trimmedQuery) {
+    filters.$or = [
+      { name: { $autocomplete: trimmedQuery } },
+      { partnerName: { $autocomplete: trimmedQuery } },
+      { createdByName: { $autocomplete: trimmedQuery } },
+      ...(messageMatchCids.size > 0
+        ? [{ cid: { $in: [...messageMatchCids] } }]
+        : []),
+    ];
   }
 
   const channelRenderFilterFn = (channels: ChannelType[]) => {
+    const q = searchQuery.trim().toLowerCase();
     return channels.filter((channel) => {
       const channelData = channel.data as ExtraChannelData;
-      if (activeTab === "Unresolved") {
-        return channelData?.closed !== true;
-      } else {
-        return channelData?.closed === true;
+      const isOpen = channelData?.closed !== true;
+      const matchesTab =
+        activeTab === "Unresolved" ? isOpen : !isOpen;
+      if (!matchesTab) {
+        return false;
       }
+      if (!q) {
+        return true;
+      }
+      const title = String(channelData?.name ?? "").toLowerCase();
+      const partner = String(
+        channelData?.partnerName ?? ""
+      ).toLowerCase();
+      const creator = String(
+        channelData?.createdByName ?? ""
+      ).toLowerCase();
+      if (title.includes(q) || partner.includes(q) || creator.includes(q)) {
+        return true;
+      }
+      const members = Object.values(channel.state?.members ?? {});
+      for (const member of members) {
+        const memberName = String(
+          (member as { user?: { name?: unknown } })?.user?.name ?? ""
+        ).toLowerCase();
+        if (memberName && memberName.includes(q)) {
+          return true;
+        }
+      }
+      const lastText = String(
+        channel.lastMessage?.()?.text ?? ""
+      ).toLowerCase();
+      if (lastText && lastText.includes(q)) {
+        return true;
+      }
+      if (messageMatchCids.has(channel.cid)) {
+        return true;
+      }
+      return false;
     });
   };
 
@@ -647,8 +730,18 @@ export default function SupportScreen({
             ]}
             Preview={ChannelPreviewWrapper}
             Paginator={InfiniteScroll}
-            EmptyStateIndicator={() =>
-              isSupportTutorialActive ? null : (
+            EmptyStateIndicator={() => {
+              if (isSupportTutorialActive) return null;
+              if (messageSearchPending && trimmedQuery) {
+                return (
+                  <div className="w-full flex flex-col justify-center gap-2 my-8">
+                    <p className="text-center text-gray-primary/60">
+                      Searching messages…
+                    </p>
+                  </div>
+                );
+              }
+              return (
                 <div className="w-full flex flex-col justify-center gap-2 my-8">
                   <ChatCircleSlash
                     size={48}
@@ -656,8 +749,8 @@ export default function SupportScreen({
                   />
                   <p className="text-center">No tickets found.</p>
                 </div>
-              )
-            }
+              );
+            }}
           />
         </div>
       </div>
