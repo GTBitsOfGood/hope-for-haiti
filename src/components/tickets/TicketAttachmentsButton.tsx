@@ -1,12 +1,68 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChannelStateContext } from "stream-chat-react";
+import type { LocalMessage } from "stream-chat";
 import { Paperclip, FileText } from "@phosphor-icons/react";
 import Portal from "../baseTable/Portal";
+
+const MAX_HISTORY_PAGES = 20;
+const HISTORY_PAGE_SIZE = 100;
 
 export default function TicketAttachmentsButton() {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const { messages } = useChannelStateContext();
+  const { channel } = useChannelStateContext();
+  const [messages, setMessages] = useState<LocalMessage[]>(
+    () => channel.state.messages
+  );
+  const backfilledChannelsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    setMessages([...channel.state.messages]);
+
+    const refresh = () => setMessages([...channel.state.messages]);
+    channel.on("message.new", refresh);
+    channel.on("message.updated", refresh);
+    channel.on("message.deleted", refresh);
+
+    let cancelled = false;
+
+    const backfillHistory = async () => {
+      const cid = channel.cid;
+      if (backfilledChannelsRef.current.has(cid)) return;
+
+      for (let page = 0; page < MAX_HISTORY_PAGES; page++) {
+        if (cancelled) return;
+        if (!channel.state.messagePagination.hasPrev) break;
+
+        const oldestId = channel.state.messages[0]?.id;
+        try {
+          await channel.query({
+            messages: {
+              limit: HISTORY_PAGE_SIZE,
+              ...(oldestId ? { id_lt: oldestId } : {}),
+            },
+          });
+        } catch (error) {
+          console.error("Failed to backfill ticket message history:", error);
+          break;
+        }
+
+        if (cancelled) return;
+        setMessages([...channel.state.messages]);
+      }
+
+      if (!cancelled) backfilledChannelsRef.current.add(cid);
+    };
+
+    backfillHistory();
+
+    return () => {
+      cancelled = true;
+      channel.off("message.new", refresh);
+      channel.off("message.updated", refresh);
+      channel.off("message.deleted", refresh);
+    };
+  }, [channel]);
 
   const attachments = useMemo(() => {
     return (messages ?? [])
