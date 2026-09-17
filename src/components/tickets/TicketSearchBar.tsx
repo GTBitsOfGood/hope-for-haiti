@@ -33,7 +33,7 @@ export default function TicketSearchBar({
         />
         <input
           type="text"
-          placeholder="Search tickets"
+          placeholder="Search tickets, names, messages"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           className="pl-10 pr-4 py-2 w-full border border-gray-primary/20 rounded-lg bg-sunken focus:outline-none focus:border-blue-primary/50"
