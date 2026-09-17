@@ -10,7 +10,8 @@ import NavbarLayout from "@/components/NavBarLayout";
 
 export const metadata: Metadata = {
   title: "Hope for Haiti",
-  description: "TODO",
+  description:
+    "A portal for Hope for Haiti staff and partner organizations to manage donation inventory, distributions, and requests.",
 };
 
 export default function RootLayout({
