@@ -5,7 +5,6 @@ import { isStaff, isPartner } from "@/lib/userUtils";
 import AdminDashboardScreen from "@/screens/dashboard/AdminDashboardScreen";
 import PartnerDashboardScreen from "@/screens/dashboard/PartnerDashboardScreen";
 import LoadingScreen from "@/screens/LoadingScreen";
-import { redirect } from "next/navigation";
 
 export default function HomePage() {
   const { user, loading } = useUser();
@@ -23,6 +22,4 @@ export default function HomePage() {
   if (user && isPartner(user.type)) {
     return <PartnerDashboardScreen />;
   }
-
-  redirect("/login");
 }
