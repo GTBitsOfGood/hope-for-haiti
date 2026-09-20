@@ -196,25 +196,47 @@ export class ShippingStatusService {
 
     const lineItems = await db.lineItem.findMany({
       where: lineItemClauses.length ? { OR: lineItemClauses } : undefined,
-      include: {
-        generalItem: true,
+      select: {
+        id: true,
+        quantity: true,
+        palletNumber: true,
+        boxNumber: true,
+        lotNumber: true,
+        donorShippingNumber: true,
+        hfhShippingNumber: true,
+        generalItemId: true,
+        generalItem: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         allocation: {
-          include: {
-            partner: true,
-            signOff: {
-              include: {
-                allocations: {
-                  include: {
-                    lineItem: {
-                      include: {
-                        generalItem: true,
-                      },
-                    },
-                  },
-                },
+          select: {
+            id: true,
+            partner: {
+              select: {
+                id: true,
+                name: true,
               },
             },
-            distribution: true,
+            distribution: {
+              select: {
+                id: true,
+                pending: true,
+              },
+            },
+            signOff: {
+              select: {
+                id: true,
+                staffMemberName: true,
+                partnerName: true,
+                partnerSignerName: true,
+                date: true,
+                signatureUrl: true,
+                partnerSignatureUrl: true,
+              },
+            },
           },
         },
       },
