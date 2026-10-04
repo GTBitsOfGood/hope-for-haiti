@@ -54,6 +54,7 @@ async function run() {
     await tx.donorOffer.deleteMany();
     await tx.distribution.deleteMany();
     await tx.signOff.deleteMany();
+    await tx.itemPrice.deleteMany();
     await tx.user.deleteMany();
     await tx.userInvite.deleteMany();
     await tx.generalItem.deleteMany();

@@ -133,6 +133,7 @@ async function buildSeedData() {
   await db.userInvite.deleteMany();
   await db.notification.deleteMany();
   await db.passwordResetToken.deleteMany();
+  await db.itemPrice.deleteMany();
   await db.user.deleteMany();
   await db.tag.deleteMany();
 
