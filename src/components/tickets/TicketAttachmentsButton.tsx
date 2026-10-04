@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChannelStateContext } from "stream-chat-react";
-import type { LocalMessage } from "stream-chat";
-import { Paperclip, FileText } from "@phosphor-icons/react";
+import { isScrapedContent, type LocalMessage } from "stream-chat";
+import { Paperclip, FileText, LinkSimple } from "@phosphor-icons/react";
 import Portal from "../baseTable/Portal";
 
 const MAX_HISTORY_PAGES = 20;
@@ -68,7 +68,12 @@ export default function TicketAttachmentsButton() {
     return (messages ?? [])
       .filter((message) => !message.deleted_at)
       .flatMap((message) => message.attachments ?? [])
-      .filter((attachment) => attachment.image_url || attachment.asset_url);
+      .filter(
+        (attachment) =>
+          isScrapedContent(attachment) ||
+          attachment.image_url ||
+          attachment.asset_url
+      );
   }, [messages]);
 
   return (
@@ -99,7 +104,11 @@ export default function TicketAttachmentsButton() {
           attachments.map((attachment, i) => (
             <a
               key={i}
-              href={attachment.asset_url ?? attachment.image_url}
+              href={
+                isScrapedContent(attachment)
+                  ? attachment.title_link || attachment.og_scrape_url
+                  : (attachment.asset_url ?? attachment.image_url)
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-100"
@@ -108,14 +117,19 @@ export default function TicketAttachmentsButton() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={attachment.thumb_url ?? attachment.image_url}
-                  alt={attachment.title ?? "attachment"}
+                  alt={attachment.title ?? attachment.fallback ?? "attachment"}
                   className="w-8 h-8 object-cover rounded shrink-0"
                 />
+              ) : isScrapedContent(attachment) ? (
+                <LinkSimple size={20} className="shrink-0" />
               ) : (
                 <FileText size={20} className="shrink-0" />
               )}
               <span className="text-sm truncate">
-                {attachment.title ?? "Untitled file"}
+                {attachment.title ??
+                  attachment.fallback ??
+                  attachment.og_scrape_url ??
+                  "Untitled file"}
               </span>
             </a>
           ))
