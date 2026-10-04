@@ -138,6 +138,7 @@ model User {
   wishlists              Wishlist[]
   invite                 UserInvite?
   notifications          Notification[]
+  itemPrices             ItemPrice[]
 
   streamUserId    String? @unique
   streamUserToken String? @unique
@@ -241,6 +242,22 @@ model LineItem {
   generalItem   GeneralItem? @relation(fields: [generalItemId], references: [id], onDelete: Cascade)
 
   allocation Allocation? @relation
+}
+
+// Pricebook: one row per item code (NDC) holding the price entered by a staff
+// member, when it was entered, and who entered it. No price history is kept
+// (offers store their own copy of the price they used via LineItem.unitPrice).
+model ItemPrice {
+  id Int @id @default(autoincrement())
+
+  ndc       String  @unique // item code = the identity of the item
+  unitPrice Decimal @db.Money
+
+  enteredById Int
+  enteredBy   User @relation(fields: [enteredById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ItemEmbedding {
