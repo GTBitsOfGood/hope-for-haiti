@@ -33,8 +33,8 @@ export default function ChannelPreview({
   const hasUnread = unread > 0;
 
   return (
-    // Use <a> instead of <button> because we need buttons inside and buttons cannot have other buttons inside them
-    <a
+    // Not <button> or <a>: this holds a button, and message previews can contain links
+    <div
       onClick={() => setActiveChannel?.(channel)}
       className={`flex flex-col p-3 rounded-lg my-1 relative ${
         isActive ? "bg-blue-light" : "bg-white"
@@ -59,7 +59,7 @@ export default function ChannelPreview({
 
       {/* Bottom Row */}
       <div className="flex justify-between items-center text-sm text-gray-600">
-        <div className="flex-1 min-w-0 max-w-[170px] truncate text-ellipsis">
+        <div className="flex-1 min-w-0 max-w-[170px] truncate text-ellipsis [&_a]:pointer-events-none">
           {latestMessagePreview == "Nothing yet..." ? "" : latestMessagePreview}
         </div>
         <div className="flex items-center gap-2">
@@ -71,6 +71,6 @@ export default function ChannelPreview({
           </div>
         </div>
       </div>
-    </a>
+    </div>
   );
 }
