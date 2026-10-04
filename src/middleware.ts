@@ -6,7 +6,6 @@ const { auth } = NextAuth(authConfig);
 
 const publicPaths = [
   "/signIn",
-  "/signup",
   "/register",
   "/deactivated",
   "/pending",

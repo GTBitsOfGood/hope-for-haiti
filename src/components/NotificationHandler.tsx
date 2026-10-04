@@ -214,8 +214,6 @@ export default function NotificationHandler({
         window.dispatchEvent(new Event("shipment-status-updated"));
       }
 
-      if (pathname === "/login") return;
-
       toast.custom(
         (t: Toast) => (
           <NotificationCard
