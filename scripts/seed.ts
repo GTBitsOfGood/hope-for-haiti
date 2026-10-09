@@ -7,6 +7,8 @@ import type { Prisma } from "@prisma/client";
 import StreamIoService from "@/services/streamIoService";
 import FileService from "@/services/fileService";
 import UserService from "@/services/userService";
+import { ITEM_PRICE_RECHECK_DAYS } from "@/util/itemPrice";
+
 const existingStreamTokens: { [email: string]: string } = {};
 
 async function fetchExistingStreamTokens() {
@@ -209,6 +211,39 @@ async function buildSeedData() {
     supportWrite: true,
     supportNotify: true,
   });
+
+  // Create sample item prices: current, stale, and re-confirmed
+  const priceSeededAt = new Date();
+  const recheckThresholdMs = ITEM_PRICE_RECHECK_DAYS * 24 * 60 * 60 * 1000;
+  const stalePriceDate = new Date(
+    priceSeededAt.getTime() - 2 * recheckThresholdMs
+  );
+  await db.itemPrice.createMany({
+    data: [
+      {
+        ndc: "00002-8215-01",
+        unitPrice: "12.34",
+        enteredById: superAdmin.id,
+        createdAt: priceSeededAt,
+        updatedAt: priceSeededAt,
+      },
+      {
+        ndc: "00003-0787-05",
+        unitPrice: "5.67",
+        enteredById: staffAdmin.id,
+        createdAt: stalePriceDate,
+        updatedAt: stalePriceDate,
+      },
+      {
+        ndc: "00004-1234-56",
+        unitPrice: "89.01",
+        enteredById: superAdmin.id,
+        createdAt: stalePriceDate,
+        updatedAt: priceSeededAt,
+      },
+    ],
+  });
+  console.log("  - Seeded 3 sample item prices");
 
   // Create distribution lead staff user
   const distributionLead = await createUser({
