@@ -14,12 +14,13 @@ import {
   SignOut,
   ArrowClockwise,
   Notebook,
+  Tag,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "./context/UserContext";
 import { useEffect, useState } from "react";
-import { hasAnyPermission, hasPermission, isPartner } from "@/lib/userUtils";
+import { hasAnyPermission, hasPermission, isPartner, isStaff } from "@/lib/userUtils";
 import { signOut } from "next-auth/react";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useNotifications } from "./NotificationHandler";
@@ -107,6 +108,8 @@ function NavLinks({
   const isPartnerUser = isPartner(user?.type);
   const canViewSupport = isPartnerUser || hasPermission(user, "supportRead");
   const canViewAccounts = hasPermission(user, "userRead");
+  const canViewPricebook =
+    isStaff(user?.type) && hasPermission(user, "offerWrite");
   const canViewUnallocated = hasPermission(user, "allocationRead");
   const canViewDonorOffers = hasAnyPermission(user, [
     "requestRead",
@@ -139,6 +142,13 @@ function NavLinks({
           href="/accountManagement"
           label="Account Management"
           icon={<UserList size={22} />}
+        />
+      )}
+      {canViewPricebook && (
+        <NavLink
+          href="/pricebook"
+          label="Pricebook"
+          icon={<Tag size={22} />}
         />
       )}
       {canViewUnallocated && (
