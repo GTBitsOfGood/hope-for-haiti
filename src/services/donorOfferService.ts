@@ -221,6 +221,7 @@ const FinalizeDonorOfferItemSchema = z.object({
       const normalized = coerceNormalizedString(val);
       return normalized || undefined;
     }),
+  additionalInfo: z.record(z.unknown()).optional().default({}),
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
