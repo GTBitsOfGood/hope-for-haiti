@@ -106,3 +106,36 @@ export function normalizeNdc(
 
   return fromSegments(segments[0], segments[1], segments[2]);
 }
+
+/**
+ * Decide what to persist on a finalized offer line item.
+ * Readable codes become the standard 11-digit form. Unreadable codes stay
+ * out of `ndc` and keep the original value in additionalInfo so the upload
+ * is never blocked.
+ */
+export function resolveFinalizedNdc(
+  raw: string | null | undefined,
+  additionalInfo: Record<string, unknown> = {}
+): { ndc: string | null; additionalInfo: Record<string, unknown> } {
+  const info = { ...additionalInfo };
+  const result = normalizeNdc(raw);
+
+  if (result.status === "normalized") {
+    return { ndc: result.value, additionalInfo: info };
+  }
+
+  if (result.status === "unreadable") {
+    const original = raw == null ? "" : String(raw).trim();
+    if (original) {
+      const alreadyStored = Object.values(info).some(
+        (value) => String(value).trim() === original
+      );
+      if (!alreadyStored) {
+        info.NDC = original;
+      }
+    }
+    return { ndc: null, additionalInfo: info };
+  }
+
+  return { ndc: null, additionalInfo: info };
+}
