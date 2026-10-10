@@ -35,6 +35,11 @@ const finalizedPermanentKeys = new Map<string, string>([
   ["Cost per Piece", "unitPrice"],
   ["Category", "category"],
   ["Type", "type"],
+  // Optional. Cover common NDC headers; do not map "Item #" (donor catalog #).
+  ["NDC", "ndc"],
+  ["NDC Code", "ndc"],
+  ["NDC Number", "ndc"],
+  ["National Drug Code", "ndc"],
 ]);
 
 const finalizedRequiredKeys = new Set([
