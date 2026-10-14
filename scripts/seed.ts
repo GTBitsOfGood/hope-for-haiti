@@ -243,7 +243,6 @@ async function buildSeedData() {
       },
     ],
   });
-  console.log("  - Seeded 3 sample item prices");
 
   // Create distribution lead staff user
   const distributionLead = await createUser({

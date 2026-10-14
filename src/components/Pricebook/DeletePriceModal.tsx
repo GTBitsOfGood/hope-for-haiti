@@ -33,7 +33,7 @@ export default function DeletePriceModal({ item, onClose, onDelete }: {
     <Dialog open onClose={close} className="relative z-50">
       <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center overflow-y-auto p-4">
-        <DialogPanel className="w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+        <DialogPanel className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
           <DialogTitle className="text-xl font-semibold text-gray-900">Delete price?</DialogTitle>
           <p className="mt-3 text-gray-700">Permanently delete the price for <strong>{item.ndc}</strong>?</p>
           {error && <p role="alert" className="mt-3 text-red-700">{error}</p>}

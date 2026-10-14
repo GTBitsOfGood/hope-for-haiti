@@ -332,7 +332,7 @@ function MobileNavbar() {
 
   return (
     <nav
-      className={`fixed top-4 right-4 p-4 rounded-lg sm:hidden overflow-hidden transition-all ${open ? "w-64 h-[30rem] max-h-[calc(100dvh-2rem)] bg-blue-light" : "w-12 h-12"}`}
+      className={`fixed z-[45] top-4 right-4 p-4 rounded-lg sm:hidden overflow-hidden transition-all ${open ? "w-64 h-[30rem] max-h-[calc(100dvh-2rem)] bg-blue-light" : "w-12 h-12"}`}
     >
       <div
         className={`w-full h-full flex flex-col items-start transition-all ${open ? "opacity-100" : "opacity-0"}`}

@@ -49,7 +49,7 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
     <Dialog open onClose={close} className="relative z-50">
       <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center overflow-y-auto p-4">
-        <DialogPanel className="w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+        <DialogPanel className="w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
           <DialogTitle className="text-xl font-semibold text-gray-900">
             {editing ? "Edit price" : "Add price"}
           </DialogTitle>
