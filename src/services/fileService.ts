@@ -159,6 +159,8 @@ const remapColumns = (
 
     const assignFromMap = (map: Map<string, string>) => {
     for (const [canonicalKey, newKey] of map) {
+      // Several headers can map to one key (the NDC nicknames). Keep the first filled one.
+      if (hasValue(updated[newKey])) continue;
       if (Object.prototype.hasOwnProperty.call(normalizedRow, canonicalKey)) {
         updated[newKey] = normalizedRow[canonicalKey];
       }
