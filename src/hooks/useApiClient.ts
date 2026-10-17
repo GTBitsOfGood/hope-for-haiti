@@ -6,6 +6,14 @@ type ApiClientOptions = Omit<RequestInit, "method">;
 
 type HTTPRequestType = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
+export function extractErrorMessages(error: unknown, fallback: string): string[] {
+  const errors = (error as Error & { errors?: string[] })?.errors;
+  if (Array.isArray(errors) && errors.length > 0) {
+    return errors;
+  }
+  return [error instanceof Error ? error.message : fallback];
+}
+
 export async function apiRequest<T = unknown>(
   url: string,
   method: HTTPRequestType,
@@ -33,11 +41,15 @@ export async function apiRequest<T = unknown>(
 
   if (!response.ok) {
     let errorMessage = `${response.status} ${response.statusText}`;
+    let errorsList: string[] | undefined;
 
     try {
       const errorData = await response.json();
       if (errorData.error) {
         errorMessage = errorData.error;
+      } else if (Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+        errorsList = errorData.errors;
+        errorMessage = errorData.errors.join("; ");
       } else if (errorData.message) {
         errorMessage = errorData.message;
       }
@@ -45,7 +57,9 @@ export async function apiRequest<T = unknown>(
       // If response body is not JSON, use status + statusText
     }
 
-    throw new Error(errorMessage);
+    const err = new Error(errorMessage) as Error & { errors?: string[] };
+    if (errorsList) err.errors = errorsList;
+    throw err;
   }
 
   const contentType = response.headers.get("content-type");

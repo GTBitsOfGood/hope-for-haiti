@@ -87,7 +87,7 @@ const normalizeRowKeys = (row: Record<string, unknown>) => {
   return normalized;
 };
 
-const skipEmptyRows = (text: string): string => {
+const skipEmptyRows = (text: string): { text: string; skipped: number } => {
   const lines = text.split("\n");
   const firstNonEmptyIndex = lines.findIndex((line) => {
     const trimmed = line.trim();
@@ -95,8 +95,8 @@ const skipEmptyRows = (text: string): string => {
   });
 
   return firstNonEmptyIndex > 0
-    ? lines.slice(firstNonEmptyIndex).join("\n")
-    : text;
+    ? { text: lines.slice(firstNonEmptyIndex).join("\n"), skipped: firstNonEmptyIndex }
+    : { text, skipped: 0 };
 };
 
 const containsRequiredKeys = (
@@ -149,8 +149,13 @@ const remapColumns = (
   row: Record<string, unknown>,
   originalHeaders?: string[]
 ): Record<string, unknown> => {
-  const normalizedRow = normalizeRowKeys(row);
+  const { __excelRow, ...rowWithoutExcelRow } = row;
+  const normalizedRow = normalizeRowKeys(rowWithoutExcelRow);
   const updated: Record<string, unknown> = {};
+
+  if (__excelRow !== undefined) {
+    updated["__excelRow"] = __excelRow;
+  }
 
     const assignFromMap = (map: Map<string, string>) => {
     for (const [canonicalKey, newKey] of map) {
@@ -210,8 +215,6 @@ const transformDonorOfferRow = (
 
   if (weight !== undefined && weight !== null) {
     transformed["weight"] = weight;
-  } else {
-    throw new Error("Weight is required");
   }
 
   delete transformed["quantity"];
@@ -422,28 +425,29 @@ export default class FileService {
     try {
       let jsonData: Record<string, unknown>[] = [];
       let fields: string[] = [];
+      let skipped = 0;
 
       if (fileExt === "xlsx") {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const csvText = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
-        const { data, meta } = Papa.parse(csvText, { header: true });
+        const skipResult = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
+        skipped = skipResult.skipped;
+        const { data, meta } = Papa.parse(skipResult.text, { header: true });
 
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       } else if (fileExt === "csv") {
-        const text = skipEmptyRows(await file.text());
-        const { data, meta } = Papa.parse(text, {
-          header: true,
-          skipEmptyLines: true,
-        });
+        const skipResult = skipEmptyRows(await file.text());
+        skipped = skipResult.skipped;
+        const { data, meta } = Papa.parse(skipResult.text, { header: true });
 
         jsonData = data as Record<string, unknown>[];
         fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       }
       jsonData = jsonData.map((row) => normalizeRowKeys(row));
+      jsonData = jsonData.map((row, i) => ({ ...row, __excelRow: skipped + i + 2 }));
       jsonData = filterEmptyRows("unfinalized", jsonData);
 
       const validationResult = containsRequiredKeys("unfinalized", fields);
@@ -475,24 +479,24 @@ export default class FileService {
       let jsonData: Record<string, unknown>[] = [];
       let fields: string[] = [];
       let originalFields: string[] = [];
+      let skipped = 0;
 
       if (fileExt === "xlsx") {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const csvText = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
-        const { data, meta } = Papa.parse(csvText, { header: true });
+        const skipResult = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
+        skipped = skipResult.skipped;
+        const { data, meta } = Papa.parse(skipResult.text, { header: true });
 
         jsonData = data as Record<string, unknown>[];
         originalFields = meta.fields || [];
         fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
       } else {
-        const text = skipEmptyRows(await file.text());
-        const { data, meta } = Papa.parse(text, {
-          header: true,
-          skipEmptyLines: true,
-        });
+        const skipResult = skipEmptyRows(await file.text());
+        skipped = skipResult.skipped;
+        const { data, meta } = Papa.parse(skipResult.text, { header: true });
 
         jsonData = data as Record<string, unknown>[];
         originalFields = meta.fields || [];
@@ -500,6 +504,7 @@ export default class FileService {
       }
 
       jsonData = jsonData.map((row) => normalizeRowKeys(row));
+      jsonData = jsonData.map((row, i) => ({ ...row, __excelRow: skipped + i + 2 }));
       jsonData = filterEmptyRows("finalized", jsonData).map((row) =>
         remapColumns("finalized", row, originalFields)
       );

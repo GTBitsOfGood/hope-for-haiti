@@ -41,6 +41,7 @@ export function useFileUpload<T>(
     if (options.validateBeforeUpload) {
       const validationErrors = options.validateBeforeUpload();
       if (validationErrors && validationErrors.length > 0) {
+        setFileErrorMessage(null);
         setErrors(validationErrors);
         e.target.value = "";
         return;

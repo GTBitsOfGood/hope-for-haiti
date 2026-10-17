@@ -705,7 +705,7 @@ export default class DonorOfferService {
           })
           .join("; ");
         errors.push(
-          `Error validating donor offer item on row ${index + 1}: ${errorMessages}`
+          `Error validating donor offer item on row ${(row.__excelRow as number | undefined) ?? index + 1}: ${errorMessages}`
         );
       } else {
         validDonorOfferItems.push(parsed.data);
@@ -1228,7 +1228,7 @@ export default class DonorOfferService {
       if (!result.success) {
         const errorMessages = result.error.issues.map((issue) => {
           const field = issue.path.join(".");
-          return `Row ${index + 1}, Field '${field}': ${issue.message}`;
+          return `Row ${(row.__excelRow as number | undefined) ?? index + 1}, Field '${field}': ${issue.message}`;
         });
         return { valid: false, errors: errorMessages };
       }
