@@ -99,6 +99,12 @@ const skipEmptyRows = (text: string): { text: string; skipped: number } => {
     : { text, skipped: 0 };
 };
 
+// sheet_to_csv only emits rows within the sheet's used range, so rows above a
+// range that starts below row 1 (e.g. a title row, or the sheet just not using
+// row 1) never appear as blank lines for skipEmptyRows to count.
+const getSheetStartRowOffset = (sheet: XLSX.WorkSheet): number =>
+  sheet["!ref"] ? XLSX.utils.decode_range(sheet["!ref"]).s.r : 0;
+
 const containsRequiredKeys = (
   type: "unfinalized" | "finalized",
   fields?: string[]
@@ -433,7 +439,7 @@ export default class FileService {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const skipResult = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
-        skipped = skipResult.skipped;
+        skipped = getSheetStartRowOffset(sheet) + skipResult.skipped;
         const { data, meta } = Papa.parse(skipResult.text, { header: true });
 
         jsonData = data as Record<string, unknown>[];
@@ -487,7 +493,7 @@ export default class FileService {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const skipResult = skipEmptyRows(XLSX.utils.sheet_to_csv(sheet));
-        skipped = skipResult.skipped;
+        skipped = getSheetStartRowOffset(sheet) + skipResult.skipped;
         const { data, meta } = Papa.parse(skipResult.text, { header: true });
 
         jsonData = data as Record<string, unknown>[];
