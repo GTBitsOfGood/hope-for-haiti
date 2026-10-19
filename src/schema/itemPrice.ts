@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { isCanonicalNdc, isValidMoneyString } from "@/util/itemPrice";
+import { isValidMoneyString } from "@/util/itemPrice";
+import { normalizeNdc } from "@/util/ndc";
 
 export const itemPriceInputSchema = z.object({
-  ndc: z.string().trim().min(1, "NDC is required").refine(isCanonicalNdc, "Enter an NDC in canonical format: 00000-0000-00."),
+  ndc: z.string().transform((value, ctx) => {
+    const result = normalizeNdc(value);
+    if (result.status === "normalized") return result.value;
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.status === "empty" ? "NDC is required." : "Enter a recognizable NDC format; ambiguous 10-digit undashed values are not accepted." });
+    return z.NEVER;
+  }),
   unitPrice: z.string().refine(isValidMoneyString, "Enter a non-negative price with no more than two decimal places, within the supported money range."),
 }).strict();

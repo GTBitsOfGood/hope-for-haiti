@@ -1,9 +1,10 @@
+import { normalizeNdc } from "@/util/ndc";
+
 export const ITEM_PRICE_RECHECK_DAYS = 365;
 
 export const MAX_INT32_ID = 2_147_483_647;
 export const MAX_ITEM_PRICE_CENTS = BigInt("9223372036854775807");
 const MAX_PRICE_LENGTH = 32;
-const CANONICAL_NDC_PATTERN = /^\d{5}-\d{4}-\d{2}$/;
 
 export function parsePositivePriceId(value: string): number | null {
   if (!/^\d+$/.test(value)) return null;
@@ -41,22 +42,14 @@ export function parseItemPriceListQuery(params: URLSearchParams): ItemPriceListQ
       if (!ndc || typeof ndc !== "object" || Array.isArray(ndc) || Object.keys(ndc).some((key) => key !== "type" && key !== "value") || (ndc as Record<string, unknown>).type !== "string" || typeof (ndc as Record<string, unknown>).value !== "string") {
         throw new Error("NDC filter must be {type:'string',value:string}.");
       }
-      ndcFilter = ((ndc as { value: string }).value).trim() || undefined;
+      const value = (ndc as { value: string }).value.trim();
+      if (value) {
+        const normalized = normalizeNdc(value);
+        ndcFilter = normalized.status === "normalized" ? normalized.value : value;
+      }
     }
   }
   return { page, pageSize, ndcFilter };
-}
-
-/** Validate only the canonical NDC format. Does not normalize; replace with #371 normalizeNdc when available. */
-export function isCanonicalNdc(value: unknown): value is string {
-  return typeof value === "string" && CANONICAL_NDC_PATTERN.test(value);
-}
-
-export function canonicalizeNdc(value: unknown): string {
-  if (typeof value !== "string") throw new Error("Enter an NDC in canonical format: 00000-0000-00.");
-  const ndc = value.trim();
-  if (!isCanonicalNdc(ndc)) throw new Error("Enter an NDC in canonical format: 00000-0000-00.");
-  return ndc;
 }
 
 export function isValidMoneyString(value: string): boolean {

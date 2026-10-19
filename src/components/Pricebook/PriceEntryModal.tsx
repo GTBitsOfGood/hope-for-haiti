@@ -2,6 +2,7 @@ import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { useEffect, useState } from "react";
 import type { ItemPriceInput, ItemPriceResponse } from "@/types/api/itemPrice.types";
 import { isValidMoneyString } from "@/util/itemPrice";
+import { normalizeNdc } from "@/util/ndc";
 
 export default function PriceEntryModal({ item, onClose, onSave }: {
   item: ItemPriceResponse | null | "new";
@@ -23,11 +24,16 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
   }, [isOpen, selected?.id, selected?.ndc, selected?.unitPrice]);
 
   if (item === null) return null;
+  const normalizedNdc = normalizeNdc(ndc);
   const close = () => { if (!pending) onClose(); };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!/^\d{5}-\d{4}-\d{2}$/.test(ndc)) {
-      setError("Enter an NDC in 5-4-2 format, for example 00093-4155-73.");
+    if (normalizedNdc.status === "empty") {
+      setError("NDC is required.");
+      return;
+    }
+    if (normalizedNdc.status === "unreadable") {
+      setError("Enter a recognizable NDC format; ambiguous 10-digit undashed values are not accepted.");
       return;
     }
     if (!isValidMoneyString(price)) {
@@ -37,7 +43,7 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
     setPending(true);
     setError("");
     try {
-      await onSave({ ndc, unitPrice: price }, selected);
+      await onSave({ ndc: normalizedNdc.value, unitPrice: price }, selected);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save price.");
     } finally {
@@ -69,7 +75,7 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
                 aria-describedby="ndc-guidance"
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
-              <p id="ndc-guidance" className="mt-1 text-sm text-gray-600">Use canonical 5-4-2 format, for example 00093-4155-73.</p>
+              <p id="ndc-guidance" className="mt-1 text-sm text-gray-600">Use a recognized dashed 4-4-2, 5-3-2, 5-4-1, or 5-4-2 format, or 11 undashed digits. Ambiguous 10-digit undashed values are not accepted.{ndc.trim() && normalizedNdc.status === "normalized" ? ` Will save as ${normalizedNdc.value}.` : ""}</p>
             </div>
             <div>
               <label htmlFor="price-unit" className="mb-1 block text-sm font-medium text-gray-700">Unit price</label>

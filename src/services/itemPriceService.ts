@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/db";
 import { itemPriceInputSchema } from "@/schema/itemPrice";
-import { canonicalizeNdc, MAX_INT32_ID, needsItemPriceRecheck } from "@/util/itemPrice";
+import { MAX_INT32_ID, needsItemPriceRecheck } from "@/util/itemPrice";
 import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
 import type { ItemPriceInput, ItemPriceResponse } from "@/types/api/itemPrice.types";
 
@@ -25,7 +25,7 @@ function validate(input: unknown): ItemPriceInput {
   if (!parsed.success) {
     throw new ArgumentError(parsed.error.issues.map((issue) => `${issue.path.join(".") || "Input"}: ${issue.message}`).join("; "));
   }
-  return { ndc: canonicalizeNdc(parsed.data.ndc), unitPrice: parsed.data.unitPrice };
+  return parsed.data;
 }
 
 function serialize(row: {

@@ -1,8 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  canonicalizeNdc,
-  isCanonicalNdc,
   isValidMoneyString,
   needsItemPriceRecheck,
   parseItemPriceListQuery,
@@ -11,6 +9,7 @@ import {
   MAX_INT32_ID,
 } from "../../src/util/itemPrice";
 import { itemPriceInputSchema } from "../../src/schema/itemPrice";
+import { normalizeNdc } from "../../src/util/ndc";
 
 const validInput = (ndc: string, unitPrice: string) => ({ ndc, unitPrice });
 
@@ -25,6 +24,14 @@ test("price resource IDs require positive signed 32-bit integers", () => {
 test("list query has stable defaults, validates ranges, filters and safe offsets", () => {
   assert.deepEqual(parseItemPriceListQuery(new URLSearchParams()), { page: 1, pageSize: 10, ndcFilter: undefined });
   assert.deepEqual(parseItemPriceListQuery(new URLSearchParams("filters={}")), { page: 1, pageSize: 10, ndcFilter: undefined });
+  for (const [raw, expected] of [["0093-4155-73", "00093-4155-73"], ["00093-415-573", "00093-415-573"], ["00093-4155-7", "00093-4155-07"], ["12345-678-90", "12345-0678-90"], ["12345-6789-0", "12345-6789-00"], ["00093415573", "00093-4155-73"], ["00093-4155-73", "00093-4155-73"], [" 00093-4155-73 ", "00093-4155-73"]]) {
+    const filters = JSON.stringify({ ndc: { type: "string", value: raw } });
+    assert.equal(parseItemPriceListQuery(new URLSearchParams(`filters=${encodeURIComponent(filters)}`)).ndcFilter, expected);
+  }
+  for (const raw of ["abc", "0093", "0009341557"]) {
+    const filters = JSON.stringify({ ndc: { type: "string", value: raw } });
+    assert.equal(parseItemPriceListQuery(new URLSearchParams(`filters=${encodeURIComponent(filters)}`)).ndcFilter, raw);
+  }
   for (const query of ["filters=", "filters=%20%20"]) {
     assert.throws(() => parseItemPriceListQuery(new URLSearchParams(query)), { message: "Filters must be valid JSON." });
   }
@@ -35,14 +42,31 @@ test("list query has stable defaults, validates ranges, filters and safe offsets
   }
 });
 
-test("NDC boundary accepts canonical values and deliberately rejects noncanonical formats", () => {
-  assert.equal(isCanonicalNdc("00093-4155-73"), true);
-  assert.equal(canonicalizeNdc(" 00093-4155-73 "), "00093-4155-73");
-  for (const value of ["", "  ", "00093415573", "0093-4155-73", "00093-415573", "00093 4155 73", "00093-4155-73-00", "bad"]) {
-    assert.equal(isCanonicalNdc(value.trim()), false, value);
+test("NDC schema safely normalizes recognized formats and rejects empty or unreadable input", () => {
+  const variants: [string, string][] = [["0093-4155-73", "00093-4155-73"], ["12345-678-90", "12345-0678-90"], ["12345-6789-0", "12345-6789-00"], ["00093415573", "00093-4155-73"], ["00093-4155-73", "00093-4155-73"], [" 00093-4155-73 ", "00093-4155-73"], ["00093-4155-7", "00093-4155-07"]];
+  for (const [raw, expected] of variants) {
+    const result = itemPriceInputSchema.safeParse(validInput(raw, "1"));
+    assert.equal(result.success, true, raw);
+    if (result.success) {
+      assert.equal(result.data.ndc, expected, raw);
+      assert.deepEqual(normalizeNdc(result.data.ndc), { status: "normalized", value: expected });
+    }
+  }
+  assert.deepEqual(normalizeNdc(null), { status: "empty" });
+  assert.deepEqual(normalizeNdc(undefined), { status: "empty" });
+  for (const value of ["", "  "]) {
+    const result = itemPriceInputSchema.safeParse(validInput(value, "1"));
+    assert.equal(result.success, false);
+    if (!result.success) assert.match(result.error.issues[0].message, /required/i);
+  }
+  for (const value of ["0009341557", "0093415573", "00093-415573", "00093 4155 73", "00093-4155-73-00", "bad"]) {
+    assert.doesNotThrow(() => itemPriceInputSchema.safeParse(validInput(value, "1")));
     assert.equal(itemPriceInputSchema.safeParse(validInput(value, "1")).success, false, value);
   }
-  for (const value of [null, undefined, 42]) assert.throws(() => canonicalizeNdc(value));
+  for (const ndc of [null, undefined, false, 42, [], {}]) {
+    assert.doesNotThrow(() => itemPriceInputSchema.safeParse({ ndc, unitPrice: "1" }));
+    assert.equal(itemPriceInputSchema.safeParse({ ndc, unitPrice: "1" }).success, false);
+  }
 });
 
 test("money validation uses exact cents and the signed PostgreSQL MONEY bound", () => {
@@ -56,6 +80,8 @@ test("money validation uses exact cents and the signed PostgreSQL MONEY bound", 
   }
   assert.equal(itemPriceInputSchema.safeParse(validInput("00093-4155-73", "2.00")).success, true);
   assert.equal(itemPriceInputSchema.safeParse({ ...validInput("00093-4155-73", "2.00"), enteredById: 1 }).success, false);
+  assert.equal(itemPriceInputSchema.safeParse({ ...validInput("00093-4155-73", "2.00"), createdAt: new Date() }).success, false);
+  assert.equal(itemPriceInputSchema.safeParse({ ...validInput("00093-4155-73", "2.00"), updatedAt: new Date() }).success, false);
 });
 
 test("staleness uses updatedAt and strict elapsed-day cutoff across dates and zones", () => {
