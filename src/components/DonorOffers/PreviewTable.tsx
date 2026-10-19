@@ -21,6 +21,7 @@ export type DonorOfferItem = {
   description?: string;
   category?: string;
   type?: string;
+  ndc?: string;
   additionalInfo?: Record<string, unknown>;
 };
 
@@ -116,7 +117,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
     );
   }
 
-  // Finalized offer table with 12 columns in specified order
+  // Finalized offer table with mapped sheet columns plus NDC
   return (
     <div className="overflow-x-auto mt-4 bg-white rounded">
       <BaseTable
@@ -133,6 +134,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
           extendTableHeader("Cost Per Piece", "min-w-28"),
           extendTableHeader("Category", "min-w-24"),
           extendTableHeader("Type", "min-w-20"),
+          extendTableHeader("NDC", "min-w-32"),
           extendTableHeader("Additional Info", "min-w-24 text-center"),
         ]}
         rows={data.map((item, index) => {
@@ -153,6 +155,7 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
                 : "-",
               item.category || "-",
               item.type || "-",
+              item.ndc || "-",
               <AdditionalInfoTooltip
                 key={`info-${index}`}
                 info={item.additionalInfo || {}}
