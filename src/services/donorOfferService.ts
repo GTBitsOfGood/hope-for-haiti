@@ -14,6 +14,7 @@ import {
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
 import { ArgumentError, NotFoundError } from "@/util/errors";
+import { resolveFinalizedNdc } from "@/util/ndc";
 import {
   PartnerDonorOffer,
   AdminDonorOffer,
@@ -211,6 +212,15 @@ const FinalizeDonorOfferItemSchema = z.object({
   visible: coerceBoolean(false),
   allowAllocations: coerceBoolean(true),
   gik: coerceBoolean(true),
+  // Optional; never fail the row on a bad NDC. Normalization happens later.
+  ndc: z
+    .unknown()
+    .optional()
+    .transform((val) => {
+      if (val == null) return undefined;
+      const normalized = coerceNormalizedString(val);
+      return normalized || undefined;
+    }),
   additionalInfo: z.record(z.unknown()).optional().default({}),
 });
 
@@ -1250,9 +1260,14 @@ export default class DonorOfferService {
       .map((r) => r.data);
 
     if (preview) {
-      const previewItems = validItems.slice(0, 8).map((item) => ({
-        ...item,
-      }));
+      const previewItems = validItems.slice(0, 8).map((item) => {
+        const resolved = resolveFinalizedNdc(item.ndc, item.additionalInfo);
+        return {
+          ...item,
+          ndc: resolved.ndc ?? undefined,
+          additionalInfo: resolved.additionalInfo,
+        };
+      });
 
       return {
         success: true,
@@ -1417,23 +1432,27 @@ export default class DonorOfferService {
         console.log(generalItemId, generalItem.title);
 
         const lineItemsToCreate: Prisma.LineItemCreateManyInput[] =
-          lineItems.map((item) => ({
-            allowAllocations: item.allowAllocations ?? true,
-            visible: item.visible ?? true,
-            gik: item.gik ?? true,
-            donorName: item.donorName || updatedOffer.donorName,
-            quantity: item.quantity,
-            lotNumber: item.lotNumber,
-            palletNumber: item.palletNumber,
-            boxNumber: item.boxNumber,
-            unitPrice: item.unitPrice,
-            notes: null,
-            additionalInfo:
-              Object.keys(item.additionalInfo || {}).length > 0
-                ? (item.additionalInfo as Prisma.InputJsonValue)
-                : undefined,
-            generalItemId,
-          }));
+          lineItems.map((item) => {
+            const resolved = resolveFinalizedNdc(item.ndc, item.additionalInfo);
+            return {
+              allowAllocations: item.allowAllocations ?? true,
+              visible: item.visible ?? true,
+              gik: item.gik ?? true,
+              donorName: item.donorName || updatedOffer.donorName,
+              quantity: item.quantity,
+              lotNumber: item.lotNumber,
+              palletNumber: item.palletNumber,
+              boxNumber: item.boxNumber,
+              unitPrice: item.unitPrice,
+              ndc: resolved.ndc,
+              notes: null,
+              additionalInfo:
+                Object.keys(resolved.additionalInfo).length > 0
+                  ? (resolved.additionalInfo as Prisma.InputJsonValue)
+                  : undefined,
+              generalItemId,
+            };
+          });
 
         await db.lineItem.createMany({ data: lineItemsToCreate });
       }
