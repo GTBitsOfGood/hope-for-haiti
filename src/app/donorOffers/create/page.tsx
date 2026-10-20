@@ -17,7 +17,7 @@ import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useApiClient } from "@/hooks/useApiClient";
+import { useApiClient, extractErrorMessages } from "@/hooks/useApiClient";
 import { hasPermission } from "@/lib/userUtils";
 
 export default function CreateDonorOfferPage() {
@@ -37,6 +37,7 @@ export default function CreateDonorOfferPage() {
   const [preview, setPreview] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [submitErrors, setSubmitErrors] = useState<string[]>([]);
 
   const getTodayDateString = () => {
     const date = new Date();
@@ -111,12 +112,18 @@ export default function CreateDonorOfferPage() {
     setPreview(true);
   };
 
+  // fileErrorMessage duplicates errors[0] only when FileInfoDisplay/useFileUpload set them together
+  // (API/network failures); validateBeforeUpload sets errors without fileErrorMessage, so don't assume it.
+  const additionalErrors =
+    fileErrorMessage && errors[0] === fileErrorMessage ? errors.slice(1) : errors;
+
   const resetUpload = () => {
     resetFileUpload();
 
     setPreview(false);
     setIsSuccess(false);
     setIsError(false);
+    setSubmitErrors([]);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -145,6 +152,12 @@ export default function CreateDonorOfferPage() {
       setIsSuccess(true);
     } catch (error) {
       console.error("Error creating donor offer:", error);
+      setSubmitErrors(
+        extractErrorMessages(
+          error,
+          "An error occurred while creating the donor offer. Please try again."
+        )
+      );
       setIsError(true);
     }
   };
@@ -231,7 +244,7 @@ export default function CreateDonorOfferPage() {
         onReset={resetUpload}
       />
 
-      {errors && errors.length > 0 && !fileErrorMessage && <ErrorDisplay errors={errors} />}
+      {additionalErrors.length > 0 && <ErrorDisplay errors={additionalErrors} />}
 
       {preview && <PreviewTable final={false} data={data} />}
 
@@ -284,9 +297,7 @@ export default function CreateDonorOfferPage() {
         <DonorOfferErrorModal
           setErrorOpen={setIsError}
           resetUpload={resetUpload}
-          errors={[
-            "An error occurred while creating the donor offer. Please try again.",
-          ]}
+          errors={submitErrors}
         />
       )}
     </div>

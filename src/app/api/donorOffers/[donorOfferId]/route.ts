@@ -223,13 +223,9 @@ export async function PATCH(
         embeddingCache
       );
 
-      if (preview) {
-        return NextResponse.json({
-          donorOfferItems: result.donorOfferItems ?? [],
-        });
-      }
-
-      return NextResponse.json(result);
+      return NextResponse.json(result, {
+        status: result.success === false ? 422 : 200,
+      });
     }
 
     const formObj = formDataToObject(formData) as typeof updateSchema._input;

@@ -17,7 +17,7 @@ import { redirect, useParams, useRouter } from "next/navigation";
 import { PartnerSearch as NewPartnerSearch, Partner } from "@/components/DonorOffers/PartnerSearch";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useFetch } from "@/hooks/useFetch";
-import { useApiClient } from "@/hooks/useApiClient";
+import { useApiClient, extractErrorMessages } from "@/hooks/useApiClient";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 import { hasPermission } from "@/lib/userUtils";
 
@@ -42,6 +42,7 @@ export default function FinalizeDonorOfferPage() {
   const [preview, setPreview] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [submitErrors, setSubmitErrors] = useState<string[]>([]);
 
   const { data, isLoading: isLoadingDetails } = useFetch<{
     donorOffer: DonorOffer
@@ -91,11 +92,17 @@ export default function FinalizeDonorOfferPage() {
     setPreview(true);
   };
 
+  // fileErrorMessage duplicates errors[0] only when they were set together (API/network failures);
+  // don't assume that invariant holds for every errors-setting path.
+  const additionalErrors =
+    fileErrorMessage && errors[0] === fileErrorMessage ? errors.slice(1) : errors;
+
   const resetUpload = () => {
     resetFileUpload();
     setPreview(false);
     setIsSuccess(false);
     setIsError(false);
+    setSubmitErrors([]);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -115,7 +122,14 @@ export default function FinalizeDonorOfferPage() {
         body: formData,
       });
       setIsSuccess(true);
-    } catch {
+    } catch (error) {
+      console.error("Error finalizing donor offer:", error);
+      setSubmitErrors(
+        extractErrorMessages(
+          error,
+          "An error occurred while finalizing the donor offer. Please try again."
+        )
+      );
       setIsError(true);
     }
   };
@@ -211,7 +225,7 @@ export default function FinalizeDonorOfferPage() {
         onReset={resetUpload}
       />
 
-      {errors && errors.length > 0 && !fileErrorMessage && <ErrorDisplay errors={errors} />}
+      {additionalErrors.length > 0 && <ErrorDisplay errors={additionalErrors} />}
 
       {preview && <PreviewTable final={true} data={previewData} />}
 
@@ -256,9 +270,7 @@ export default function FinalizeDonorOfferPage() {
         <DonorOfferErrorModal
           setErrorOpen={setIsError}
           resetUpload={resetUpload}
-          errors={[
-            "An error occurred while finalizing the donor offer. Please try again.",
-          ]}
+          errors={submitErrors}
         />
       )}
     </div>

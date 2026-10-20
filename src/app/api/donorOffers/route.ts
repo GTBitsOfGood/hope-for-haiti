@@ -109,7 +109,9 @@ export async function POST(req: NextRequest) {
       await donorOfferInput(),
       preview
     );
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      status: result.success === false ? 422 : 200,
+    });
   } catch (error) {
     return errorResponse(error);
   }
