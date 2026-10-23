@@ -10,6 +10,8 @@ import {
   DonorOfferItem,
   DonorOfferSuccessModal,
   DonorOfferErrorModal,
+  PriceCheckSummary,
+  PriceCheckStepperModal,
 } from "@/components/DonorOffers";
 import BulkAddLoadingModal from "@/components/BulkAdd/BulkAddLoadingModal";
 import { useSession } from "next-auth/react";
@@ -20,6 +22,14 @@ import { useFetch } from "@/hooks/useFetch";
 import { useApiClient, extractErrorMessages } from "@/hooks/useApiClient";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 import { hasPermission } from "@/lib/userUtils";
+import type { PriceCheckedItem } from "@/types/api/donorOffer.types";
+import {
+  canFinalize as derivePriceCheckCanFinalize,
+  codesNeedingPrice,
+  isBlockingStatus,
+  summarize as summarizePriceCheck,
+} from "@/util/priceCheck";
+import Papa from "papaparse";
 
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
@@ -43,6 +53,8 @@ export default function FinalizeDonorOfferPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false);
   const [submitErrors, setSubmitErrors] = useState<string[]>([]);
+  const [backendCanFinalize, setBackendCanFinalize] = useState<boolean | undefined>(undefined);
+  const [stepperItems, setStepperItems] = useState<PriceCheckedItem[] | null>(null);
 
   const { data, isLoading: isLoadingDetails } = useFetch<{
     donorOffer: DonorOffer
@@ -76,16 +88,64 @@ export default function FinalizeDonorOfferPage() {
     errors,
     uploadedFile,
     handleFileChange,
+    rerunPreview,
     resetUpload: resetFileUpload,
-  } = useFileUpload<{ donorOfferItems: DonorOfferItem[] }>({
+  } = useFileUpload<{ donorOfferItems: DonorOfferItem[]; canFinalize?: boolean }>({
     previewEndpoint: `/api/donorOffers/${donorOfferId}?preview=true`,
     previewEndpointMethod: "PATCH",
     onSuccess: (result) => {
       setPreviewData(result.donorOfferItems);
+      setBackendCanFinalize(result.canFinalize);
     },
   });
 
   const { isLoading: isSubmitting, apiClient } = useApiClient();
+
+  // TEMP (#380): priceCheck is only present once the backend ticket attaches
+  // it to every Preview row. Rows without it are simply excluded here, so
+  // the summary/lock logic degrades to "nothing to check" until it lands.
+  const priceCheckedItems: PriceCheckedItem[] = previewData
+    .map((item, index) => ({ item, index }))
+    .filter(
+      (entry): entry is { item: DonorOfferItem & { priceCheck: NonNullable<DonorOfferItem["priceCheck"]> }; index: number } =>
+        !!entry.item.priceCheck
+    )
+    .map(({ item, index }) => ({
+      row: item.row ?? index + 1,
+      title: item.title,
+      priceCheck: item.priceCheck,
+    }));
+  const blockingItems = priceCheckedItems.filter((item) => isBlockingStatus(item.priceCheck.status));
+  const canFinalizeNow = backendCanFinalize ?? derivePriceCheckCanFinalize(priceCheckedItems);
+  const priceCheckSummary = summarizePriceCheck(priceCheckedItems);
+
+  const openPriceAction = (item: DonorOfferItem) => {
+    if (!item.priceCheck) return;
+    setStepperItems([{ row: item.row ?? 0, title: item.title, priceCheck: item.priceCheck }]);
+  };
+
+  const handleStepperSaved = async () => {
+    if (uploadedFile) await rerunPreview();
+  };
+
+  const downloadPriceList = () => {
+    const rows = codesNeedingPrice(priceCheckedItems).map((r) => ({
+      Code: r.code,
+      Name: r.name,
+      Price: r.price,
+    }));
+    // BOM prefix so Excel detects UTF-8 correctly (same as donorOfferService.ts's CSV export).
+    const csv = String.fromCharCode(0xfeff) + Papa.unparse(rows, { columns: ["Code", "Name", "Price"] });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = "prices-needed.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  };
 
   const showPreview = () => {
     if (!fileUploaded || fileErrorMessage) return;
@@ -100,6 +160,9 @@ export default function FinalizeDonorOfferPage() {
   const resetUpload = () => {
     resetFileUpload();
     setPreview(false);
+    setPreviewData([]);
+    setBackendCanFinalize(undefined);
+    setStepperItems(null);
     setIsSuccess(false);
     setIsError(false);
     setSubmitErrors([]);
@@ -227,9 +290,41 @@ export default function FinalizeDonorOfferPage() {
 
       {additionalErrors.length > 0 && <ErrorDisplay errors={additionalErrors} />}
 
-      {preview && <PreviewTable final={true} data={previewData} />}
+      {preview && (
+        <>
+          <PriceCheckSummary items={priceCheckedItems} />
+          <div className="flex gap-3 mt-3">
+            {blockingItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setStepperItems(blockingItems)}
+                className="bg-red-500 hover:bg-red-700 text-white py-1 px-4 rounded text-sm"
+              >
+                Add prices
+              </button>
+            )}
+            {codesNeedingPrice(priceCheckedItems).length > 0 && (
+              <button
+                type="button"
+                onClick={downloadPriceList}
+                className="bg-white hover:bg-gray-100 text-red-500 border border-red-500 py-1 px-4 rounded text-sm"
+              >
+                Download list
+              </button>
+            )}
+          </div>
+          <PreviewTable final={true} data={previewData} onPriceAction={openPriceAction} />
+        </>
+      )}
 
-      <div className="flex justify-end mt-4">
+      <div className="flex flex-col items-end mt-4">
+        {preview && !canFinalizeNow && (
+          <p className="text-sm text-red-600 mb-1">
+            {priceCheckSummary.needsPriceCount} row
+            {priceCheckSummary.needsPriceCount === 1 ? "" : "s"} need a price before you can finalize
+          </p>
+        )}
+        <div className="flex">
         <button
           onClick={() => router.push("/donorOffers")}
           className="bg-white hover:bg-gray-100 w-48 text-red-500 border border-red-500 py-1 px-4 mt-1 mb-6 rounded text-sm"
@@ -238,8 +333,13 @@ export default function FinalizeDonorOfferPage() {
         </button>
         {preview ? (
           <button
+            disabled={!canFinalizeNow}
             onClick={handleSubmit}
-            className="bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+            className={
+              canFinalizeNow
+                ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+                : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+            }
           >
             Finalize Offer
           </button>
@@ -260,6 +360,7 @@ export default function FinalizeDonorOfferPage() {
             Preview Offer
           </button>
         )}
+        </div>
       </div>
 
       {isSubmitting && <BulkAddLoadingModal />}
@@ -271,6 +372,14 @@ export default function FinalizeDonorOfferPage() {
           setErrorOpen={setIsError}
           resetUpload={resetUpload}
           errors={submitErrors}
+        />
+      )}
+
+      {stepperItems && (
+        <PriceCheckStepperModal
+          items={stepperItems}
+          onClose={() => setStepperItems(null)}
+          onSaved={handleStepperSaved}
         />
       )}
     </div>

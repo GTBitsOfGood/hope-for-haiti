@@ -1,5 +1,8 @@
 import { useEffect } from "react";
 import BaseTable, {extendTableHeader} from "../baseTable/BaseTable";
+import type { PriceCheck } from "@/types/api/donorOffer.types";
+import PriceCheckBadge from "./PriceCheckBadge";
+import { isBlockingStatus } from "@/util/priceCheck";
 
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {
@@ -23,11 +26,17 @@ export type DonorOfferItem = {
   type?: string;
   ndc?: string;
   additionalInfo?: Record<string, unknown>;
+  // TEMP (#380): optional until the backend ticket attaches these to every
+  // Preview row — see src/types/api/donorOffer.types.ts.
+  row?: number;
+  priceCheck?: PriceCheck;
 };
 
 interface PreviewTableProps {
   data: DonorOfferItem[];
   final: boolean;
+  /** Called when a row's "Add price"/"Re-check" button is clicked. */
+  onPriceAction?: (item: DonorOfferItem) => void;
 }
 
 const MagnifyingGlassIcon = () => (
@@ -82,7 +91,7 @@ const AdditionalInfoTooltip = ({ info }: { info: Record<string, unknown> }) => {
   );
 };
 
-export const PreviewTable = ({ data, final }: PreviewTableProps) => {
+export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) => {
   useEffect(() => {
     console.log(data, final);
   }, [data, final]);
@@ -131,13 +140,22 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
           extendTableHeader("Expiration Date", "min-w-32"),
           extendTableHeader("Container Type", "min-w-28"),
           extendTableHeader("# of Containers", "min-w-28"),
-          extendTableHeader("Cost Per Piece", "min-w-28"),
+          extendTableHeader("Cost Per Piece (Donor)", "min-w-28"),
+          extendTableHeader("Status", "min-w-32"),
+          extendTableHeader("Code", "min-w-32"),
+          extendTableHeader("Our Price", "min-w-24"),
+          extendTableHeader("Price Set", "min-w-28"),
+          extendTableHeader("Value", "min-w-24"),
           extendTableHeader("Category", "min-w-24"),
           extendTableHeader("Type", "min-w-20"),
           extendTableHeader("NDC", "min-w-32"),
+          extendTableHeader("Actions", "min-w-28"),
           extendTableHeader("Additional Info", "min-w-24 text-center"),
         ]}
         rows={data.map((item, index) => {
+          const priceCheck = item.priceCheck;
+          const canAct = priceCheck && isBlockingStatus(priceCheck.status) && onPriceAction;
+
           return {
             cells: [
               item.palletNumber || "-",
@@ -153,9 +171,28 @@ export const PreviewTable = ({ data, final }: PreviewTableProps) => {
               item.unitPrice != null
                 ? `$${Number(item.unitPrice).toFixed(2)}`
                 : "-",
+              priceCheck ? <PriceCheckBadge key={`status-${index}`} status={priceCheck.status} /> : "-",
+              priceCheck?.code
+                ? `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
+                : "-",
+              priceCheck?.price != null ? `$${Number(priceCheck.price).toFixed(2)}` : "-",
+              priceCheck?.priceSetOn ?? "-",
+              priceCheck?.value != null ? `$${Number(priceCheck.value).toFixed(2)}` : "-",
               item.category || "-",
               item.type || "-",
               item.ndc || "-",
+              canAct ? (
+                <button
+                  key={`action-${index}`}
+                  type="button"
+                  onClick={() => onPriceAction!(item)}
+                  className="text-red-600 underline text-sm whitespace-nowrap"
+                >
+                  {priceCheck!.status === "expired" ? "Re-check" : "Add price"}
+                </button>
+              ) : (
+                "-"
+              ),
               <AdditionalInfoTooltip
                 key={`info-${index}`}
                 info={item.additionalInfo || {}}
