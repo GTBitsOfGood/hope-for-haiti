@@ -14,6 +14,7 @@ import {
   ReadUrlResult,
   ParsedFileData,
 } from "@/types/api/file.types";
+import type { ParsedPricebookRow } from "@/types/api/itemPrice.types";
 
 const unfinalizedRequiredKeys = new Map<string, string>([
   ["Generic Description", "title"],
@@ -478,6 +479,75 @@ export default class FileService {
       if (error instanceof ArgumentError) {
         throw error;
       }
+      throw new InternalError("Error processing file");
+    }
+  }
+
+  static async parsePricebookFile(file: File): Promise<{
+    rows: ParsedPricebookRow[];
+    fields: string[];
+  }> {
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+    if (!["csv", "xlsx"].includes(fileExt || "")) {
+      throw new ArgumentError("File must be a CSV or XLSX file");
+    }
+
+    try {
+      let jsonData: Record<string, unknown>[] = [];
+      let fields: string[] = [];
+      let skipped = 0;
+
+      if (fileExt === "xlsx") {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const skipResult = skipEmptyRows(
+          XLSX.utils.sheet_to_csv(sheet, { rawNumbers: true })
+        );
+        skipped = getSheetStartRowOffset(sheet) + skipResult.skipped;
+        const { data, meta } = Papa.parse(skipResult.text, { header: true });
+        jsonData = data as Record<string, unknown>[];
+        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
+      } else {
+        const skipResult = skipEmptyRows(await file.text());
+        skipped = skipResult.skipped;
+        const { data, meta } = Papa.parse(skipResult.text, { header: true });
+        jsonData = data as Record<string, unknown>[];
+        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
+      }
+
+      const required = ["Code", "Price"];
+      const missing = required.filter(
+        (label) => !fields.includes(canonicalizeHeader(label))
+      );
+      if (missing.length > 0) {
+        throw new ArgumentError(
+          `File does not contain required columns. Missing: ${missing.join(", ")}`
+        );
+      }
+
+      const codeKey = canonicalizeHeader("Code");
+      const nameKey = canonicalizeHeader("Name");
+      const priceKey = canonicalizeHeader("Price");
+      const rows: ParsedPricebookRow[] = [];
+
+      jsonData.forEach((rawRow, index) => {
+        const row = normalizeRowKeys(rawRow);
+        const code = row[codeKey];
+        const name = row[nameKey];
+        const price = row[priceKey];
+        if (!hasValue(code) && !hasValue(name) && !hasValue(price)) return;
+        rows.push({
+          lineNumber: skipped + index + 2,
+          code,
+          name,
+          price,
+        });
+      });
+
+      return { rows, fields };
+    } catch (error) {
+      if (error instanceof ArgumentError) throw error;
       throw new InternalError("Error processing file");
     }
   }

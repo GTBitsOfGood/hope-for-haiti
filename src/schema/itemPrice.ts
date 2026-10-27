@@ -9,5 +9,11 @@ export const itemPriceInputSchema = z.object({
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.status === "empty" ? "NDC is required." : "Enter a recognizable NDC format; ambiguous 10-digit undashed values are not accepted." });
     return z.NEVER;
   }),
+  name: z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? null : value))
+    .nullable()
+    .optional(),
   unitPrice: z.string().refine(isValidMoneyString, "Enter a non-negative price with no more than two decimal places, within the supported money range."),
 }).strict();
