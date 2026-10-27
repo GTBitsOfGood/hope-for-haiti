@@ -157,6 +157,7 @@ export default function PriceUploadModal({
                 Lines with a blank price were skipped, as intended.
               </p>
             )}
+            <div className="space-y-6">
             {(Object.keys(GROUP_LABELS) as GroupKey[]).map((key) => {
               const lines = review.groups[key];
               if (lines.length === 0) return null;
@@ -165,8 +166,8 @@ export default function PriceUploadModal({
                 selectable &&
                 lines.every((line) => selected.has(line.lineNumber));
               return (
-                <section key={key} className="mb-6 last:mb-0">
-                  <div className="mb-2 flex items-center gap-3">
+                <section key={key} className="space-y-2">
+                  <div className="flex items-center gap-3">
                     {selectable && (
                       <input
                         type="checkbox"
@@ -181,7 +182,7 @@ export default function PriceUploadModal({
                     </h3>
                   </div>
                   <div className="overflow-x-auto rounded-lg border border-gray-200">
-                    <table className="w-full min-w-[760px] text-left text-sm text-gray-primary">
+                    <table className="w-full min-w-price-review text-left text-sm text-gray-primary">
                       <thead className="border-b-2 border-blue-primary/10 bg-blue-light text-gray-primary/70">
                         <tr>
                           {selectable && (
@@ -246,6 +247,7 @@ export default function PriceUploadModal({
                 </section>
               );
             })}
+            </div>
             {review.totalRows === 0 && (
               <p className="text-sm text-gray-600">
                 This file has no price rows to review.
