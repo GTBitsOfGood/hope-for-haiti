@@ -14,6 +14,7 @@ import {
   ReadUrlResult,
   ParsedFileData,
 } from "@/types/api/file.types";
+import type { ParsedPricebookRow } from "@/types/api/itemPrice.types";
 
 const unfinalizedRequiredKeys = new Map<string, string>([
   ["Generic Description", "title"],
@@ -90,6 +91,88 @@ const normalizeRowKeys = (row: Record<string, unknown>) => {
     normalized[canonicalKey] = value;
   }
   return normalized;
+};
+
+type CsvRecord = { text: string; lineNumber: number };
+
+const splitCsvRecords = (text: string): CsvRecord[] => {
+  const normalized = text.replace(/\r\n?/g, "\n");
+  const records: CsvRecord[] = [];
+  let start = 0;
+  let startLine = 1;
+  let line = 1;
+  let inQuotes = false;
+  let atFieldStart = true;
+
+  for (let index = 0; index < normalized.length; index++) {
+    const char = normalized[index];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (normalized[index + 1] === '"') index++;
+        else {
+          inQuotes = false;
+          atFieldStart = false;
+        }
+      } else if (char === "\n") {
+        line++;
+      }
+      continue;
+    }
+
+    if (char === '"' && atFieldStart) {
+      inQuotes = true;
+      atFieldStart = false;
+      continue;
+    }
+
+    if (char === "\n") {
+      records.push({
+        text: normalized.slice(start, index),
+        lineNumber: startLine,
+      });
+      start = index + 1;
+      startLine = line + 1;
+      atFieldStart = true;
+      line++;
+      continue;
+    }
+
+    if (char === ",") {
+      atFieldStart = true;
+      continue;
+    }
+
+    atFieldStart = false;
+  }
+
+  if (start < normalized.length || normalized.endsWith("\n")) {
+    records.push({
+      text: normalized.slice(start),
+      lineNumber: startLine,
+    });
+  }
+  return records;
+};
+
+const assertUniquePricebookHeaders = (headers: string[]) => {
+  const recognized = new Set(["code", "name", "price"]);
+  const labels = new Map<string, string[]>();
+  for (const header of headers) {
+    const key = canonicalizeHeader(header);
+    if (!recognized.has(key)) continue;
+    labels.set(key, [...(labels.get(key) ?? []), header || "(blank)"]);
+  }
+  const duplicates = Array.from(labels.entries()).filter(
+    ([, values]) => values.length > 1
+  );
+  if (duplicates.length > 0) {
+    throw new ArgumentError(
+      `File contains duplicate recognized columns: ${duplicates
+        .map(([key, values]) => `${key} (${values.join(", ")})`)
+        .join("; ")}`
+    );
+  }
 };
 
 const skipEmptyRows = (text: string): { text: string; skipped: number } => {
@@ -478,6 +561,103 @@ export default class FileService {
       if (error instanceof ArgumentError) {
         throw error;
       }
+      throw new InternalError("Error processing file");
+    }
+  }
+
+  static async parsePricebookFile(file: File): Promise<{
+    rows: ParsedPricebookRow[];
+    fields: string[];
+  }> {
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+    if (!["csv", "xlsx"].includes(fileExt || "")) {
+      throw new ArgumentError("File must be a CSV or XLSX file");
+    }
+
+    try {
+      const rows: ParsedPricebookRow[] = [];
+      const codeKey = canonicalizeHeader("Code");
+      const nameKey = canonicalizeHeader("Name");
+      const priceKey = canonicalizeHeader("Price");
+      let fields: string[] = [];
+
+      const addRow = (
+        rawRow: Record<string, unknown>,
+        lineNumber: number
+      ) => {
+        const row = normalizeRowKeys(rawRow);
+        const code = row[codeKey];
+        const name = row[nameKey];
+        const price = row[priceKey];
+        if (!hasValue(code) && !hasValue(name) && !hasValue(price)) return;
+        rows.push({ lineNumber, code, name, price });
+      };
+
+      let rawHeaders: string[] = [];
+
+      if (fileExt === "xlsx") {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+          header: 1,
+          raw: true,
+          defval: "",
+        });
+        const headerIndex = matrix.findIndex((row) =>
+          row.some((value) => hasValue(value))
+        );
+        if (headerIndex < 0) {
+          throw new ArgumentError("File does not contain a header row");
+        }
+        rawHeaders = matrix[headerIndex].map((value) => String(value ?? ""));
+        const sheetStart = getSheetStartRowOffset(sheet);
+        for (let index = headerIndex + 1; index < matrix.length; index++) {
+          const rawRow: Record<string, unknown> = {};
+          rawHeaders.forEach((header, column) => {
+            rawRow[header] = matrix[index][column] ?? "";
+          });
+          addRow(rawRow, sheetStart + index + 1);
+        }
+      } else {
+        const records = splitCsvRecords(await file.text());
+        const headerIndex = records.findIndex((record) => {
+          const value = record.text.trim();
+          return value.length > 0 && !/^,+$/.test(value);
+        });
+        if (headerIndex < 0) {
+          throw new ArgumentError("File does not contain a header row");
+        }
+        const dataRecords = records.slice(headerIndex + 1);
+        const parsed = Papa.parse(
+          [records[headerIndex].text, ...dataRecords.map((record) => record.text)].join("\n"),
+          { header: true }
+        );
+        rawHeaders = parsed.meta.fields ?? [];
+        dataRecords.forEach((record, index) => {
+          addRow(
+            (parsed.data[index] as Record<string, unknown> | undefined) ?? {},
+            record.lineNumber
+          );
+        });
+      }
+
+      assertUniquePricebookHeaders(rawHeaders);
+      fields = rawHeaders.map((header) => canonicalizeHeader(header));
+
+      const required = ["Code", "Price"];
+      const missing = required.filter(
+        (label) => !fields.includes(canonicalizeHeader(label))
+      );
+      if (missing.length > 0) {
+        throw new ArgumentError(
+          `File does not contain required columns. Missing: ${missing.join(", ")}`
+        );
+      }
+
+      return { rows, fields };
+    } catch (error) {
+      if (error instanceof ArgumentError) throw error;
       throw new InternalError("Error processing file");
     }
   }

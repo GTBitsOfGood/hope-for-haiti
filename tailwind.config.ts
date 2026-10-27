@@ -11,6 +11,9 @@ export default {
       transitionProperty: {
         height: "height",
       },
+      minWidth: {
+        "price-review": "760px",
+      },
       colors: {
         blue: {
           light: "#f6f7ff",
