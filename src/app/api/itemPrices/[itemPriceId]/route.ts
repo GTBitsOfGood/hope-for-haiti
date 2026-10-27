@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import UserService from "@/services/userService";
 import { ItemPriceService } from "@/services/itemPriceService";
-import { ArgumentError, AuthenticationError, errorResponse } from "@/util/errors";
-import { MAX_INT32_ID, parsePositivePriceId } from "@/util/itemPrice";
+import { ArgumentError, errorResponse } from "@/util/errors";
+import { parsePositivePriceId } from "@/util/itemPrice";
+import { authorizeItemPriceUser } from "../authorize";
 
 function parseId(value: string): number {
   const id = parsePositivePriceId(value);
@@ -13,12 +13,7 @@ function parseId(value: string): number {
 
 async function authorize() {
   const session = await auth();
-  if (!session?.user) throw new AuthenticationError("Session required");
-  UserService.checkStaff(session.user);
-  UserService.checkPermission(session.user, "offerWrite");
-  const userId = Number(session.user.id);
-  if (!Number.isSafeInteger(userId) || userId <= 0 || userId > MAX_INT32_ID) throw new AuthenticationError("Invalid user session");
-  return userId;
+  return authorizeItemPriceUser(session?.user);
 }
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ itemPriceId: string }> }) {
