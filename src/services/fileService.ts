@@ -96,35 +96,59 @@ const normalizeRowKeys = (row: Record<string, unknown>) => {
 type CsvRecord = { text: string; lineNumber: number };
 
 const splitCsvRecords = (text: string): CsvRecord[] => {
+  const normalized = text.replace(/\r\n?/g, "\n");
   const records: CsvRecord[] = [];
   let start = 0;
   let startLine = 1;
   let line = 1;
   let inQuotes = false;
+  let atFieldStart = true;
 
-  for (let index = 0; index < text.length; index++) {
-    const char = text[index];
-    if (char === '"') {
-      if (inQuotes && text[index + 1] === '"') index++;
-      else inQuotes = !inQuotes;
+  for (let index = 0; index < normalized.length; index++) {
+    const char = normalized[index];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (normalized[index + 1] === '"') index++;
+        else {
+          inQuotes = false;
+          atFieldStart = false;
+        }
+      } else if (char === "\n") {
+        line++;
+      }
       continue;
     }
-    if (char === "\n") {
-      if (!inQuotes) {
-        records.push({
-          text: text.slice(start, index).replace(/\r$/, ""),
-          lineNumber: startLine,
-        });
-        start = index + 1;
-        startLine = line + 1;
-      }
-      line++;
+
+    if (char === '"' && atFieldStart) {
+      inQuotes = true;
+      atFieldStart = false;
+      continue;
     }
+
+    if (char === "\n") {
+      records.push({
+        text: normalized.slice(start, index),
+        lineNumber: startLine,
+      });
+      start = index + 1;
+      startLine = line + 1;
+      atFieldStart = true;
+      line++;
+      continue;
+    }
+
+    if (char === ",") {
+      atFieldStart = true;
+      continue;
+    }
+
+    atFieldStart = false;
   }
 
-  if (start < text.length || text.endsWith("\n")) {
+  if (start < normalized.length || normalized.endsWith("\n")) {
     records.push({
-      text: text.slice(start).replace(/\r$/, ""),
+      text: normalized.slice(start),
       lineNumber: startLine,
     });
   }

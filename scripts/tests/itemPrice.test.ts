@@ -246,6 +246,36 @@ test("pricebook parser rejects duplicate recognized headers and keeps physical C
       { lineNumber: 4, code: "12345-678-90" },
     ]
   );
+
+  const inchMark = new File(
+    [
+      "Code,Name,Price\n",
+      '99872-9051-01,Gauze 4",1.00\n',
+      "99872-9052-01,Second,2.00\n",
+    ],
+    "inch.csv",
+    { type: "text/csv" }
+  );
+  const inchParsed = await FileService.parsePricebookFile(inchMark);
+  assert.deepEqual(
+    inchParsed.rows.map((row) => ({ lineNumber: row.lineNumber, code: row.code })),
+    [
+      { lineNumber: 2, code: "99872-9051-01" },
+      { lineNumber: 3, code: "99872-9052-01" },
+    ]
+  );
+
+  const crOnly = new File(
+    [
+      "Code,Name,Price\r",
+      "99872-9051-01,First,1.00\r",
+      "99872-9052-01,Second,2.00\r",
+    ],
+    "cr.csv",
+    { type: "text/csv" }
+  );
+  const crParsed = await FileService.parsePricebookFile(crOnly);
+  assert.equal(crParsed.rows.length, 2);
 });
 
 test("pricebook parser keeps raw numeric Excel prices even when formatted as currency", async () => {
