@@ -218,6 +218,36 @@ test("pricebook parser accepts loose CSV headers, ignores extras, and keeps line
   ]);
 });
 
+test("pricebook parser rejects duplicate recognized headers and keeps physical CSV line numbers", async () => {
+  const duplicate = new File(
+    ["Code,Price,Price_1\n00093-4155-73,1.00,2.00\n"],
+    "duplicate.csv",
+    { type: "text/csv" }
+  );
+  await assert.rejects(
+    () => FileService.parsePricebookFile(duplicate),
+    /duplicate recognized columns/i
+  );
+
+  const multiline = new File(
+    [
+      "Code,Name,Price\n",
+      '0093-4155-73,"multi\nline",12.5\n',
+      "12345-678-90,Second,1.00\n",
+    ],
+    "multiline.csv",
+    { type: "text/csv" }
+  );
+  const parsed = await FileService.parsePricebookFile(multiline);
+  assert.deepEqual(
+    parsed.rows.map((row) => ({ lineNumber: row.lineNumber, code: row.code })),
+    [
+      { lineNumber: 2, code: "0093-4155-73" },
+      { lineNumber: 4, code: "12345-678-90" },
+    ]
+  );
+});
+
 test("pricebook parser keeps raw numeric Excel prices even when formatted as currency", async () => {
   const workbook = XLSX.utils.book_new();
   const sheet = XLSX.utils.aoa_to_sheet([
@@ -233,7 +263,7 @@ test("pricebook parser keeps raw numeric Excel prices even when formatted as cur
 
   const parsed = await FileService.parsePricebookFile(file);
   assert.deepEqual(parsed.rows, [
-    { lineNumber: 2, code: "0093-4155-73", name: "Amoxicillin", price: "12.5" },
+    { lineNumber: 2, code: "0093-4155-73", name: "Amoxicillin", price: 12.5 },
   ]);
 });
 

@@ -93,6 +93,64 @@ const normalizeRowKeys = (row: Record<string, unknown>) => {
   return normalized;
 };
 
+type CsvRecord = { text: string; lineNumber: number };
+
+const splitCsvRecords = (text: string): CsvRecord[] => {
+  const records: CsvRecord[] = [];
+  let start = 0;
+  let startLine = 1;
+  let line = 1;
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === '"') {
+      if (inQuotes && text[index + 1] === '"') index++;
+      else inQuotes = !inQuotes;
+      continue;
+    }
+    if (char === "\n") {
+      if (!inQuotes) {
+        records.push({
+          text: text.slice(start, index).replace(/\r$/, ""),
+          lineNumber: startLine,
+        });
+        start = index + 1;
+        startLine = line + 1;
+      }
+      line++;
+    }
+  }
+
+  if (start < text.length || text.endsWith("\n")) {
+    records.push({
+      text: text.slice(start).replace(/\r$/, ""),
+      lineNumber: startLine,
+    });
+  }
+  return records;
+};
+
+const assertUniquePricebookHeaders = (headers: string[]) => {
+  const recognized = new Set(["code", "name", "price"]);
+  const labels = new Map<string, string[]>();
+  for (const header of headers) {
+    const key = canonicalizeHeader(header);
+    if (!recognized.has(key)) continue;
+    labels.set(key, [...(labels.get(key) ?? []), header || "(blank)"]);
+  }
+  const duplicates = Array.from(labels.entries()).filter(
+    ([, values]) => values.length > 1
+  );
+  if (duplicates.length > 0) {
+    throw new ArgumentError(
+      `File contains duplicate recognized columns: ${duplicates
+        .map(([key, values]) => `${key} (${values.join(", ")})`)
+        .join("; ")}`
+    );
+  }
+};
+
 const skipEmptyRows = (text: string): { text: string; skipped: number } => {
   const lines = text.split("\n");
   const firstNonEmptyIndex = lines.findIndex((line) => {
@@ -493,28 +551,75 @@ export default class FileService {
     }
 
     try {
-      let jsonData: Record<string, unknown>[] = [];
+      const rows: ParsedPricebookRow[] = [];
+      const codeKey = canonicalizeHeader("Code");
+      const nameKey = canonicalizeHeader("Name");
+      const priceKey = canonicalizeHeader("Price");
       let fields: string[] = [];
-      let skipped = 0;
+
+      const addRow = (
+        rawRow: Record<string, unknown>,
+        lineNumber: number
+      ) => {
+        const row = normalizeRowKeys(rawRow);
+        const code = row[codeKey];
+        const name = row[nameKey];
+        const price = row[priceKey];
+        if (!hasValue(code) && !hasValue(name) && !hasValue(price)) return;
+        rows.push({ lineNumber, code, name, price });
+      };
+
+      let rawHeaders: string[] = [];
 
       if (fileExt === "xlsx") {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const skipResult = skipEmptyRows(
-          XLSX.utils.sheet_to_csv(sheet, { rawNumbers: true })
+        const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+          header: 1,
+          raw: true,
+          defval: "",
+        });
+        const headerIndex = matrix.findIndex((row) =>
+          row.some((value) => hasValue(value))
         );
-        skipped = getSheetStartRowOffset(sheet) + skipResult.skipped;
-        const { data, meta } = Papa.parse(skipResult.text, { header: true });
-        jsonData = data as Record<string, unknown>[];
-        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
+        if (headerIndex < 0) {
+          throw new ArgumentError("File does not contain a header row");
+        }
+        rawHeaders = matrix[headerIndex].map((value) => String(value ?? ""));
+        const sheetStart = getSheetStartRowOffset(sheet);
+        for (let index = headerIndex + 1; index < matrix.length; index++) {
+          const rawRow: Record<string, unknown> = {};
+          rawHeaders.forEach((header, column) => {
+            rawRow[header] = matrix[index][column] ?? "";
+          });
+          addRow(rawRow, sheetStart + index + 1);
+        }
       } else {
-        const skipResult = skipEmptyRows(await file.text());
-        skipped = skipResult.skipped;
-        const { data, meta } = Papa.parse(skipResult.text, { header: true });
-        jsonData = data as Record<string, unknown>[];
-        fields = meta.fields?.map((field) => canonicalizeHeader(field)) || [];
+        const records = splitCsvRecords(await file.text());
+        const headerIndex = records.findIndex((record) => {
+          const value = record.text.trim();
+          return value.length > 0 && !/^,+$/.test(value);
+        });
+        if (headerIndex < 0) {
+          throw new ArgumentError("File does not contain a header row");
+        }
+        const dataRecords = records.slice(headerIndex + 1);
+        const parsed = Papa.parse(
+          [records[headerIndex].text, ...dataRecords.map((record) => record.text)].join("\n"),
+          { header: true }
+        );
+        rawHeaders = parsed.meta.fields ?? [];
+        dataRecords.forEach((record, index) => {
+          addRow(
+            (parsed.data[index] as Record<string, unknown> | undefined) ?? {},
+            record.lineNumber
+          );
+        });
       }
+
+      assertUniquePricebookHeaders(rawHeaders);
+      fields = rawHeaders.map((header) => canonicalizeHeader(header));
 
       const required = ["Code", "Price"];
       const missing = required.filter(
@@ -525,25 +630,6 @@ export default class FileService {
           `File does not contain required columns. Missing: ${missing.join(", ")}`
         );
       }
-
-      const codeKey = canonicalizeHeader("Code");
-      const nameKey = canonicalizeHeader("Name");
-      const priceKey = canonicalizeHeader("Price");
-      const rows: ParsedPricebookRow[] = [];
-
-      jsonData.forEach((rawRow, index) => {
-        const row = normalizeRowKeys(rawRow);
-        const code = row[codeKey];
-        const name = row[nameKey];
-        const price = row[priceKey];
-        if (!hasValue(code) && !hasValue(name) && !hasValue(price)) return;
-        rows.push({
-          lineNumber: skipped + index + 2,
-          code,
-          name,
-          price,
-        });
-      });
 
       return { rows, fields };
     } catch (error) {
