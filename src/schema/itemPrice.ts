@@ -15,5 +15,11 @@ export const itemPriceInputSchema = z.object({
     });
     return z.NEVER;
   }),
+  name: z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? null : value))
+    .nullable()
+    .optional(),
   unitPrice: z.string().refine(isValidMoneyString, "Enter a non-negative price with no more than two decimal places, within the supported money range."),
 }).strict();
