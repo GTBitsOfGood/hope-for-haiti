@@ -229,20 +229,6 @@ test("pricebook parser rejects duplicate recognized headers and keeps physical C
     /duplicate recognized columns/i
   );
 
-  const multiline = new File(
-    [
-      "Code,Name,Price\n",
-      '0093-4155-73,"multi\nline",12.5\n',
-      "12345-678-90,Second,1.00\n",
-    ],
-    "multiline.csv",
-    { type: "text/csv" }
-  );
-  await assert.rejects(
-    () => FileService.parsePricebookFile(multiline),
-    /Couldn't read line 2\./
-  );
-
   const inchMark = new File(
     [
       "Code,Name,Price\n",
@@ -303,20 +289,31 @@ test("pricebook parser refuses CSV lines whose columns shifted and names the fir
     ["Code,Name,Price\n00093-4155-73,First,1.00\n00093-4155-74,Gauze,1,250.00\n", 3],
     ['Code,Name,Price\n00093-4155-71,"Gauze 4x4,1.00\n00093-4155-72,Tape 2",2.00\n', 2],
     ['Code,Name,Price\n00093-4155-71,"Kerlix" gauze,1.00\n00093-4155-72,B,2.00\n00093-4155-73,"Gauze, 4x4",3.00\n00093-4155-74,Tape, 2in,5.00\n', 2],
+    ['Code,Name,Price\n0093-4155-73,"multi\nline",12.5\n12345-678-90,Second,1.00\n', 2],
+    ["Code,Name,Price\r\n00093-4155-73,First,1.00\r\n00093-4155-74,Gauze, 4,12.50\r\n", 3],
+    ["\n\nCode,Name,Price\n00093-4155-73,First,1.00\n00093-4155-74,Gauze, 4,12.50\n", 5],
   ];
   for (const [text, line] of cases) {
     await assert.rejects(
       () => FileService.parsePricebookFile(csv(text)),
-      new RegExp(`Couldn't read line ${line}\\.`),
+      new RegExp(`Unable to read line ${line}\\.`),
       text
     );
   }
+  await assert.rejects(
+    () => FileService.parsePricebookFile(csv('Code,"Name,Price\n00093-4155-73,A,1.00\n')),
+    /Unable to read this file\./
+  );
+});
 
-  const semicolons = await FileService.parsePricebookFile(
-    csv('Code,Price,Name\n00000-000-00,1,",;;;"\n\n00000-0000-03,1,\n')
+test("pricebook parser splits CSV columns on commas only", async () => {
+  const parsed = await FileService.parsePricebookFile(
+    new File(['Code,Price,Name\n00000-000-00,1,",;;;"\n\n00000-0000-03,1,\n'], "prices.csv", {
+      type: "text/csv",
+    })
   );
   assert.deepEqual(
-    semicolons.rows.map((row) => row.name),
+    parsed.rows.map((row) => row.name),
     [",;;;", ""]
   );
 });
@@ -344,6 +341,8 @@ test("upload review flags Excel codes stored as numbers, since Excel drops leadi
     review.groups.problems.map((line) => line.lineNumber),
     [2]
   );
+  assert.equal(review.groups.problems[0].code, null);
+  assert.equal(review.groups.problems[0].rawCode, "36000291452");
   assert.match(review.groups.problems[0].reasons.join(" "), /stored as a number/);
 });
 

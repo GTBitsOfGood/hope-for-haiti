@@ -176,21 +176,18 @@ const assertUniquePricebookHeaders = (headers: string[]) => {
 };
 
 const assertNoShiftedColumns = (
-  parsed: Papa.ParseResult<unknown>,
+  errors: Papa.ParseError[],
   records: CsvRecord[]
 ) => {
-  const badRows = parsed.errors
+  const badRows = errors
     .filter((error) => error.type === "Quotes" || error.code === "TooManyFields")
     .map((error) => {
       if (error.row === undefined) return -1;
       const headerOffset = error.type === "Quotes" ? 1 : 0;
       return error.row - headerOffset;
     });
-  parsed.data.forEach((row, index) => {
-    const cells = Object.values(row as Record<string, unknown>);
-    if (cells.some((cell) => typeof cell === "string" && cell.includes("\n"))) {
-      badRows.push(index);
-    }
+  records.forEach((record, index) => {
+    if (record.text.includes("\n")) badRows.push(index);
   });
   if (badRows.length === 0) return;
 
@@ -198,9 +195,11 @@ const assertNoShiftedColumns = (
     .map((row) => records[row]?.lineNumber)
     .filter((line): line is number => line !== undefined);
   const where =
-    lineNumbers.length > 0 ? `line ${Math.min(...lineNumbers)}` : "this file";
+    lineNumbers.length > 0
+      ? `line ${lineNumbers.reduce((first, line) => Math.min(first, line))}`
+      : "this file";
   throw new ArgumentError(
-    `Couldn't read ${where}. Check it for a stray quote (") or an extra comma, and keep each cell on one line.`
+    `Unable to read ${where}. Check it for a stray quote (") or an extra comma, and keep each cell on one line.`
   );
 };
 
@@ -662,7 +661,7 @@ export default class FileService {
           [records[headerIndex].text, ...dataRecords.map((record) => record.text)].join("\n"),
           { header: true, delimiter: "," }
         );
-        assertNoShiftedColumns(parsed, dataRecords);
+        assertNoShiftedColumns(parsed.errors, dataRecords);
         rawHeaders = parsed.meta.fields ?? [];
         dataRecords.forEach((record, index) => {
           addRow(

@@ -73,17 +73,16 @@ function parseRows(rows: ParsedPricebookRow[]): {
     const line = baseLine(row, codeCell.text, priceCell.text);
     const reasons = line.reasons;
 
-    if (!codeCell.valid) reasons.push("Code must be text or a number.");
+    if (!codeCell.valid) reasons.push("Code must be text.");
     if (!priceCell.valid) reasons.push("Price must be a single number.");
     if (!nameCell.valid) reasons.push("Name must be text or a number.");
+
+    let canonicalCode: string | null = null;
     if (typeof row.code === "number") {
       reasons.push(
         "This code is stored as a number in Excel, which drops leading zeros. Format the Code column as Text and retype it."
       );
-    }
-
-    let canonicalCode: string | null = null;
-    if (codeCell.valid && codeCell.text) {
+    } else if (codeCell.valid && codeCell.text) {
       const codeResult = itemPriceInputSchema.safeParse({
         ndc: codeCell.text,
         unitPrice: "1",
