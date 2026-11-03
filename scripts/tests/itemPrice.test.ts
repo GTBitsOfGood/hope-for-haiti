@@ -238,13 +238,9 @@ test("pricebook parser rejects duplicate recognized headers and keeps physical C
     "multiline.csv",
     { type: "text/csv" }
   );
-  const parsed = await FileService.parsePricebookFile(multiline);
-  assert.deepEqual(
-    parsed.rows.map((row) => ({ lineNumber: row.lineNumber, code: row.code })),
-    [
-      { lineNumber: 2, code: "0093-4155-73" },
-      { lineNumber: 4, code: "12345-678-90" },
-    ]
+  await assert.rejects(
+    () => FileService.parsePricebookFile(multiline),
+    /Couldn't read line 2\./
   );
 
   const inchMark = new File(
@@ -295,6 +291,60 @@ test("pricebook parser keeps raw numeric Excel prices even when formatted as cur
   assert.deepEqual(parsed.rows, [
     { lineNumber: 2, code: "0093-4155-73", name: "Amoxicillin", price: 12.5 },
   ]);
+});
+
+test("pricebook parser refuses CSV lines whose columns shifted and names the first bad line", async () => {
+  const csv = (text: string) =>
+    new File([text], "prices.csv", { type: "text/csv" });
+  const cases: [string, number][] = [
+    ['Code,Name,Price\n00093-4155-73,"Kerlix" gauze,1.00\n00093-4155-74,Second,2.00\n', 2],
+    ['Code,Name,Price\n00093-4155-73,"4x4 gauze,1.00\n00093-4155-74,Second,2.00\n', 2],
+    ["Code,Name,Price\n00093-4155-73,First,1.00\n00093-4155-74,Gauze, 4,12.50\n", 3],
+    ["Code,Name,Price\n00093-4155-73,First,1.00\n00093-4155-74,Gauze,1,250.00\n", 3],
+    ['Code,Name,Price\n00093-4155-71,"Gauze 4x4,1.00\n00093-4155-72,Tape 2",2.00\n', 2],
+    ['Code,Name,Price\n00093-4155-71,"Kerlix" gauze,1.00\n00093-4155-72,B,2.00\n00093-4155-73,"Gauze, 4x4",3.00\n00093-4155-74,Tape, 2in,5.00\n', 2],
+  ];
+  for (const [text, line] of cases) {
+    await assert.rejects(
+      () => FileService.parsePricebookFile(csv(text)),
+      new RegExp(`Couldn't read line ${line}\\.`),
+      text
+    );
+  }
+
+  const semicolons = await FileService.parsePricebookFile(
+    csv('Code,Price,Name\n00000-000-00,1,",;;;"\n\n00000-0000-03,1,\n')
+  );
+  assert.deepEqual(
+    semicolons.rows.map((row) => row.name),
+    [",;;;", ""]
+  );
+});
+
+test("upload review flags Excel codes stored as numbers, since Excel drops leading zeros", async () => {
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ["Code", "Name", "Price"],
+    [36000291452, "Bandages", 3.25],
+    ["00093-4155-73", "Gauze", 1],
+  ]);
+  XLSX.utils.book_append_sheet(workbook, sheet, "Prices");
+  const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+  const file = new File([buffer], "prices.xlsx", {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  const parsed = await FileService.parsePricebookFile(file);
+  const review = buildItemPriceUploadReview(parsed.rows, []);
+  assert.deepEqual(
+    review.groups.new.map((line) => line.code),
+    ["00093-4155-73"]
+  );
+  assert.deepEqual(
+    review.groups.problems.map((line) => line.lineNumber),
+    [2]
+  );
+  assert.match(review.groups.problems[0].reasons.join(" "), /stored as a number/);
 });
 
 test("money formatting and positive-only checks use exact cents", () => {

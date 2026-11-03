@@ -167,7 +167,8 @@ export default function PricebookScreen() {
     <main className="text-gray-primary">
       <h1 className="text-2xl font-semibold text-gray-primary m-0">Pricebook</h1>
       <p className="mt-1 mb-6 text-sm text-gray-600">
-        Search by NDC using the table filter.{" "}
+        Search by NDC using the table filter. Using Excel? Format the Code
+        column as Text first so it keeps leading zeros.{" "}
         <button
           type="button"
           onClick={downloadTemplate}

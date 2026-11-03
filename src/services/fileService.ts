@@ -175,6 +175,35 @@ const assertUniquePricebookHeaders = (headers: string[]) => {
   }
 };
 
+const assertNoShiftedColumns = (
+  parsed: Papa.ParseResult<unknown>,
+  records: CsvRecord[]
+) => {
+  const badRows = parsed.errors
+    .filter((error) => error.type === "Quotes" || error.code === "TooManyFields")
+    .map((error) => {
+      if (error.row === undefined) return -1;
+      const headerOffset = error.type === "Quotes" ? 1 : 0;
+      return error.row - headerOffset;
+    });
+  parsed.data.forEach((row, index) => {
+    const cells = Object.values(row as Record<string, unknown>);
+    if (cells.some((cell) => typeof cell === "string" && cell.includes("\n"))) {
+      badRows.push(index);
+    }
+  });
+  if (badRows.length === 0) return;
+
+  const lineNumbers = badRows
+    .map((row) => records[row]?.lineNumber)
+    .filter((line): line is number => line !== undefined);
+  const where =
+    lineNumbers.length > 0 ? `line ${Math.min(...lineNumbers)}` : "this file";
+  throw new ArgumentError(
+    `Couldn't read ${where}. Check it for a stray quote (") or an extra comma, and keep each cell on one line.`
+  );
+};
+
 const skipEmptyRows = (text: string): { text: string; skipped: number } => {
   const lines = text.split("\n");
   const firstNonEmptyIndex = lines.findIndex((line) => {
@@ -631,8 +660,9 @@ export default class FileService {
         const dataRecords = records.slice(headerIndex + 1);
         const parsed = Papa.parse(
           [records[headerIndex].text, ...dataRecords.map((record) => record.text)].join("\n"),
-          { header: true }
+          { header: true, delimiter: "," }
         );
+        assertNoShiftedColumns(parsed, dataRecords);
         rawHeaders = parsed.meta.fields ?? [];
         dataRecords.forEach((record, index) => {
           addRow(

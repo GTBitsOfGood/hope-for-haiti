@@ -76,6 +76,11 @@ function parseRows(rows: ParsedPricebookRow[]): {
     if (!codeCell.valid) reasons.push("Code must be text or a number.");
     if (!priceCell.valid) reasons.push("Price must be a single number.");
     if (!nameCell.valid) reasons.push("Name must be text or a number.");
+    if (typeof row.code === "number") {
+      reasons.push(
+        "This code is stored as a number in Excel, which drops leading zeros. Format the Code column as Text and retype it."
+      );
+    }
 
     let canonicalCode: string | null = null;
     if (codeCell.valid && codeCell.text) {
