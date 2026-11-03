@@ -1,4 +1,4 @@
-import { normalizeNdc } from "@/util/ndc";
+import { parseItemCode } from "@/util/ndc";
 
 export const ITEM_PRICE_RECHECK_DAYS = 365;
 
@@ -44,8 +44,8 @@ export function parseItemPriceListQuery(params: URLSearchParams): ItemPriceListQ
       }
       const value = (ndc as { value: string }).value.trim();
       if (value) {
-        const normalized = normalizeNdc(value);
-        ndcFilter = normalized.status === "normalized" ? normalized.value : value;
+        const parsed = parseItemCode(value);
+        ndcFilter = parsed.status === "normalized" ? parsed.value : value;
       }
     }
   }
