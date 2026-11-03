@@ -251,6 +251,7 @@ model ItemPrice {
   id Int @id @default(autoincrement())
 
   ndc       String  @unique // item code = the identity of the item
+  name      String?         // medication or item name, optional
   unitPrice Decimal @db.Money
 
   enteredById Int

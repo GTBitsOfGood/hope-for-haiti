@@ -59,6 +59,18 @@ export function isValidMoneyString(value: string): boolean {
   return cents <= MAX_ITEM_PRICE_CENTS;
 }
 
+export function formatItemPriceMoney(value: string): string {
+  if (!isValidMoneyString(value)) throw new Error("Invalid item price.");
+  const [whole, fraction = ""] = value.split(".");
+  return `${whole}.${fraction.padEnd(2, "0")}`;
+}
+
+export function isPositiveMoneyString(value: string): boolean {
+  if (!isValidMoneyString(value)) return false;
+  const [whole, fraction = ""] = value.split(".");
+  return BigInt(whole) !== BigInt(0) || BigInt(fraction.padEnd(2, "0")) !== BigInt(0);
+}
+
 export function needsItemPriceRecheck(updatedAt: Date | string, referenceDate = new Date()): boolean {
   const updated = updatedAt instanceof Date ? updatedAt.getTime() : Date.parse(updatedAt);
   const reference = referenceDate.getTime();

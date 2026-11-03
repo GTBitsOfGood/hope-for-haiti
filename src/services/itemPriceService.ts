@@ -2,12 +2,27 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/db";
 import { itemPriceInputSchema } from "@/schema/itemPrice";
 import { MAX_INT32_ID, needsItemPriceRecheck } from "@/util/itemPrice";
-import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
-import type { ItemPriceInput, ItemPriceResponse } from "@/types/api/itemPrice.types";
+import {
+  ArgumentError,
+  ConflictError,
+  InternalError,
+  NotFoundError,
+} from "@/util/errors";
+import {
+  buildItemPriceUploadReview,
+  getItemPriceUploadCodes,
+} from "@/util/itemPriceUpload";
+import type {
+  ItemPriceInput,
+  ItemPriceResponse,
+  ItemPriceUploadReview,
+  ParsedPricebookRow,
+} from "@/types/api/itemPrice.types";
 
 const rowSelect = {
   id: true,
   ndc: true,
+  name: true,
   unitPrice: true,
   createdAt: true,
   updatedAt: true,
@@ -31,6 +46,7 @@ function validate(input: unknown): ItemPriceInput {
 function serialize(row: {
   id: number;
   ndc: string;
+  name: string | null;
   unitPrice: Prisma.Decimal;
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +55,7 @@ function serialize(row: {
   return {
     id: row.id,
     ndc: row.ndc,
+    name: row.name,
     unitPrice: row.unitPrice.toFixed(2),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -78,7 +95,7 @@ export class ItemPriceService {
       throw new ArgumentError("A valid staff user is required.");
     }
     try {
-      const row = await db.itemPrice.create({ data: { ...data, unitPrice: new Prisma.Decimal(data.unitPrice), enteredById }, select: rowSelect });
+      const row = await db.itemPrice.create({ data: { ...data, name: data.name ?? null, unitPrice: new Prisma.Decimal(data.unitPrice), enteredById }, select: rowSelect });
       return serialize(row);
     } catch (error) {
       return dbError(error);
@@ -92,11 +109,119 @@ export class ItemPriceService {
       throw new ArgumentError("A valid staff user is required.");
     }
     try {
-      const row = await db.itemPrice.update({ where: { id }, data: { ...data, unitPrice: new Prisma.Decimal(data.unitPrice), enteredById, updatedAt: new Date() }, select: rowSelect });
+      const row = await db.itemPrice.update({ where: { id }, data: { ...data, name: data.name, unitPrice: new Prisma.Decimal(data.unitPrice), enteredById, updatedAt: new Date() }, select: rowSelect });
       return serialize(row);
     } catch (error) {
       return dbError(error);
     }
+  }
+
+  static async reviewUpload(
+    rows: ParsedPricebookRow[]
+  ): Promise<ItemPriceUploadReview> {
+    const codes = getItemPriceUploadCodes(rows);
+    const existing = codes.length
+      ? await db.itemPrice.findMany({
+          where: { ndc: { in: codes } },
+          select: {
+            id: true,
+            ndc: true,
+            name: true,
+            unitPrice: true,
+            updatedAt: true,
+          },
+        })
+      : [];
+
+    return buildItemPriceUploadReview(
+      rows,
+      existing.map((row) => ({
+        id: row.id,
+        ndc: row.ndc,
+        name: row.name,
+        unitPrice: row.unitPrice.toFixed(2),
+        updatedAt: row.updatedAt.toISOString(),
+      }))
+    );
+  }
+
+  static async saveUpload(
+    rows: ParsedPricebookRow[],
+    selectedLineNumbers: number[],
+    enteredById: number
+  ): Promise<{ saved: number }> {
+    if (!Number.isSafeInteger(enteredById) || enteredById <= 0 || enteredById > MAX_INT32_ID) {
+      throw new ArgumentError("A valid staff user is required.");
+    }
+
+    const review = await this.reviewUpload(rows);
+    const selected = new Set(selectedLineNumbers);
+    if (selected.size === 0) {
+      throw new ArgumentError("Select at least one price to save.");
+    }
+
+    const actionable = [
+      ...review.groups.new,
+      ...review.groups.changed,
+      ...review.groups.same,
+    ];
+    const chosen = actionable.filter((line) => selected.has(line.lineNumber));
+    if (chosen.length !== selected.size) {
+      throw new ArgumentError(
+        "Some selected lines are not available to save. Review the file again."
+      );
+    }
+
+    const savedAt = new Date();
+    const operations = chosen.map((line) => {
+      if (!line.code || !line.price) {
+        throw new ArgumentError("Selected lines must have a valid code and price.");
+      }
+      if (line.status === "new") {
+        return db.itemPrice.create({
+          data: {
+            ndc: line.code,
+            name: line.name,
+            unitPrice: new Prisma.Decimal(line.price),
+            enteredById,
+            createdAt: savedAt,
+            updatedAt: savedAt,
+          },
+        });
+      }
+      return db.itemPrice.update({
+        where: {
+          id: line.old!.id,
+          updatedAt: new Date(line.old!.updatedAt),
+        },
+        data: {
+          name: line.name,
+          unitPrice: new Prisma.Decimal(line.price),
+          enteredById,
+          updatedAt: savedAt,
+        },
+      });
+    });
+
+    try {
+      await db.$transaction(operations);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (["P2002", "P2025"].includes(error.code)) {
+          throw new ConflictError(
+            "Prices changed while you were reviewing. Review the file again."
+          );
+        }
+        if (["P2028", "P2034"].includes(error.code)) {
+          throw new InternalError(
+            "Unable to save prices. Please try again."
+          );
+        }
+      }
+      return dbError(error);
+    }
+
+    return { saved: chosen.length };
   }
 
   static async remove(id: number): Promise<void> {

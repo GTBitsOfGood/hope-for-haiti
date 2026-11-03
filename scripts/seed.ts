@@ -222,6 +222,7 @@ async function buildSeedData() {
     data: [
       {
         ndc: "00002-8215-01",
+        name: "Amoxicillin 500 mg",
         unitPrice: "12.34",
         enteredById: superAdmin.id,
         createdAt: priceSeededAt,
@@ -229,6 +230,7 @@ async function buildSeedData() {
       },
       {
         ndc: "00003-0787-05",
+        name: "Ibuprofen 200 mg",
         unitPrice: "5.67",
         enteredById: staffAdmin.id,
         createdAt: stalePriceDate,
@@ -236,6 +238,7 @@ async function buildSeedData() {
       },
       {
         ndc: "00004-1234-56",
+        name: "Sterile gauze pads",
         unitPrice: "89.01",
         enteredById: superAdmin.id,
         createdAt: stalePriceDate,
