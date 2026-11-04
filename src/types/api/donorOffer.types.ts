@@ -100,12 +100,36 @@ export interface FinalizeDetailsResult {
   partners: { id: number; name: string }[];
 }
 
+export type PriceCheckStatus =
+  | "no-code"
+  | "unreadable"
+  | "missing"
+  | "expired"
+  | "priced";
+
+export interface PriceCheck {
+  status: PriceCheckStatus;
+  code: string | null; // cleaned-up code, or what the donor typed if unreadable
+  codeType: "NDC" | "UPC" | null;
+  itemPriceId: number | null; // pricebook entry id, needed to update an expired price
+  price: string | null; // our price as text, like "12.00"
+  priceSetOn: string | null; // date only, YYYY-MM-DD
+  value: string | null; // # of containers × price, only for priced rows
+}
+
+export interface PriceCheckedItem {
+  row: number; // same row number the upload errors use
+  title: string;
+  priceCheck: PriceCheck;
+}
+
 export interface FinalizeDonorOfferResult {
   success: boolean;
   errors?: string[];
   donorOfferId?: number;
   createdCount?: number;
   donorOfferItems?: Record<string, unknown>[];
+  canFinalize?: boolean; // false while any row is expired or missing
 }
 
 export interface DonorOfferUpdateParams {

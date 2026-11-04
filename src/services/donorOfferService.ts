@@ -14,7 +14,14 @@ import {
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
 import { ArgumentError, NotFoundError } from "@/util/errors";
-import { resolveFinalizedNdc } from "@/util/ndc";
+import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
+import {
+  buildPriceCheck,
+  doesPriceCheckBlockFinalize,
+  priceCheckErrorMessage,
+  type PriceBookEntry,
+} from "@/util/priceCheck";
+import type { PriceCheckStatus } from "@/types/api/donorOffer.types";
 import {
   PartnerDonorOffer,
   AdminDonorOffer,
@@ -225,6 +232,10 @@ const FinalizeDonorOfferItemSchema = z.object({
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
+type ValidFinalizeRow = {
+  row: number;
+  item: FinalizeDonorOfferItem;
+};
 type GeneralItemWithRequests = GeneralItem & {
   requests: (GeneralItemRequest & {
     partner: { id: number; name: string };
@@ -1212,6 +1223,77 @@ export default class DonorOfferService {
     };
   }
 
+  private static async priceCheckFinalizeRows(rows: ValidFinalizeRow[]) {
+    const parsedList = rows.map(({ item }) => parseItemCode(item.ndc));
+    const codes = [
+      ...new Set(
+        parsedList.flatMap((parsed) =>
+          parsed.status === "normalized" ? [parsed.value] : []
+        )
+      ),
+    ];
+
+    const priceRows =
+      codes.length > 0
+        ? await db.itemPrice.findMany({
+            where: { ndc: { in: codes } },
+            select: { id: true, ndc: true, unitPrice: true, updatedAt: true },
+          })
+        : [];
+
+    const priceByCode = new Map<string, PriceBookEntry>(
+      priceRows.map((priceRow) => [
+        priceRow.ndc,
+        {
+          id: priceRow.id,
+          ndc: priceRow.ndc,
+          unitPrice: priceRow.unitPrice.toFixed(2),
+          updatedAt: priceRow.updatedAt,
+        },
+      ])
+    );
+
+    const items = rows.map(({ row, item }, index) => {
+      const parsed = parsedList[index];
+      const entry =
+        parsed.status === "normalized"
+          ? priceByCode.get(parsed.value)
+          : undefined;
+      const resolved = resolveFinalizedNdc(item.ndc, item.additionalInfo);
+      const priceCheck = buildPriceCheck(
+        parsed,
+        item.ndc,
+        item.quantity,
+        entry
+      );
+
+      return {
+        ...item,
+        ndc: resolved.ndc ?? undefined,
+        additionalInfo: resolved.additionalInfo,
+        row,
+        priceCheck,
+      };
+    });
+
+    const blockingErrors = items
+      .filter((item) =>
+        doesPriceCheckBlockFinalize(item.priceCheck.status as PriceCheckStatus)
+      )
+      .map((item) =>
+        priceCheckErrorMessage(
+          item.row,
+          item.priceCheck.status as PriceCheckStatus
+        )
+      );
+
+    return {
+      items,
+      canFinalize: blockingErrors.length === 0,
+      blockingErrors,
+    };
+  }
+
   static async finalizeDonorOffer(
     donorOfferId: number,
     parsedFileData: {
@@ -1253,29 +1335,43 @@ export default class DonorOfferService {
       };
     }
 
-    const validItems = validationResults
-      .filter(
-        (r): r is { valid: true; data: FinalizeDonorOfferItem } => r.valid
-      )
-      .map((r) => r.data);
+    const validRows: ValidFinalizeRow[] = validationResults.flatMap(
+      (result, index) => {
+        if (!result.valid || !result.data) return [];
+        const source = jsonData[index];
+        const excelRow = source.__excelRow;
+        return [
+          {
+            row: typeof excelRow === "number" ? excelRow : index + 1,
+            item: result.data,
+          },
+        ];
+      }
+    );
+
+    const priceChecked = await DonorOfferService.priceCheckFinalizeRows(
+      validRows
+    );
 
     if (preview) {
-      const previewItems = validItems.slice(0, 8).map((item) => {
-        const resolved = resolveFinalizedNdc(item.ndc, item.additionalInfo);
-        return {
-          ...item,
-          ndc: resolved.ndc ?? undefined,
-          additionalInfo: resolved.additionalInfo,
-        };
-      });
-
       return {
         success: true,
         donorOfferId,
-        createdCount: previewItems.length,
-        donorOfferItems: previewItems,
+        createdCount: priceChecked.items.length,
+        donorOfferItems: priceChecked.items,
+        canFinalize: priceChecked.canFinalize,
       };
     }
+
+    if (!priceChecked.canFinalize) {
+      return {
+        success: false,
+        errors: priceChecked.blockingErrors,
+        canFinalize: false,
+      };
+    }
+
+    const validItems = validRows.map((row) => row.item);
 
     const updatedOffer = await db.donorOffer.update({
       where: { id: donorOfferId },

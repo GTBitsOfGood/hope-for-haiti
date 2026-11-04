@@ -41,6 +41,8 @@ const finalizedPermanentKeys = new Map<string, string>([
   ["NDC Code", "ndc"],
   ["NDC Number", "ndc"],
   ["National Drug Code", "ndc"],
+  ["NDC/UPC", "ndc"],
+  ["UPC", "ndc"],
 ]);
 
 const finalizedRequiredKeys = new Set([

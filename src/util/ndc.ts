@@ -108,8 +108,77 @@ export function normalizeNdc(
 }
 
 /**
+ * UPC-A check digit: odd-position digits (1-indexed) * 3, plus even-position
+ * digits excluding the last, then the last digit must make the total a
+ * multiple of 10.
+ */
+export function isValidUpcCheckDigit(digits: string): boolean {
+  if (!/^\d{12}$/.test(digits)) return false;
+  let sum = 0;
+  for (let i = 0; i < 11; i++) {
+    const n = digits.charCodeAt(i) - 48;
+    sum += i % 2 === 0 ? n * 3 : n;
+  }
+  const check = (10 - (sum % 10)) % 10;
+  return check === digits.charCodeAt(11) - 48;
+}
+
+export type NormalizeUpcResult =
+  | { status: "normalized"; value: string }
+  | { status: "unreadable" }
+  | { status: "empty" };
+
+/**
+ * A UPC is exactly 12 digits after stripping spaces and dashes, with a valid
+ * check digit. Anything else is unreadable. Blank is empty.
+ */
+export function normalizeUpc(
+  raw: string | null | undefined
+): NormalizeUpcResult {
+  if (isBlank(raw)) {
+    return { status: "empty" };
+  }
+
+  const digits = raw!.replace(/[\s-]/g, "");
+  if (!/^\d{12}$/.test(digits) || !isValidUpcCheckDigit(digits)) {
+    return { status: "unreadable" };
+  }
+
+  return { status: "normalized", value: digits };
+}
+
+export type ParseItemCodeResult =
+  | { status: "normalized"; type: "NDC" | "UPC"; value: string }
+  | { status: "unreadable" }
+  | { status: "empty" };
+
+/**
+ * Read a cell that may hold an NDC or a UPC. Try NDC first (unchanged rules),
+ * then UPC. Never guess an ambiguous 10-digit NDC or an 11-digit value that
+ * might be a UPC with a dropped leading zero.
+ */
+export function parseItemCode(
+  raw: string | null | undefined
+): ParseItemCodeResult {
+  const ndc = normalizeNdc(raw);
+  if (ndc.status === "empty") {
+    return { status: "empty" };
+  }
+  if (ndc.status === "normalized") {
+    return { status: "normalized", type: "NDC", value: ndc.value };
+  }
+
+  const upc = normalizeUpc(raw);
+  if (upc.status === "normalized") {
+    return { status: "normalized", type: "UPC", value: upc.value };
+  }
+
+  return { status: "unreadable" };
+}
+
+/**
  * Decide what to persist on a finalized offer line item.
- * Readable codes become the standard 11-digit form. Unreadable codes stay
+ * Readable NDC/UPC codes are stored on `ndc`. Unreadable codes stay
  * out of `ndc` and keep the original value in additionalInfo so the upload
  * is never blocked.
  */
@@ -118,7 +187,7 @@ export function resolveFinalizedNdc(
   additionalInfo: Record<string, unknown> = {}
 ): { ndc: string | null; additionalInfo: Record<string, unknown> } {
   const info = { ...additionalInfo };
-  const result = normalizeNdc(raw);
+  const result = parseItemCode(raw);
 
   if (result.status === "normalized") {
     return { ndc: result.value, additionalInfo: info };

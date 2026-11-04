@@ -1,12 +1,18 @@
 import { z } from "zod";
 import { isValidMoneyString } from "@/util/itemPrice";
-import { normalizeNdc } from "@/util/ndc";
+import { parseItemCode } from "@/util/ndc";
 
 export const itemPriceInputSchema = z.object({
   ndc: z.string().transform((value, ctx) => {
-    const result = normalizeNdc(value);
+    const result = parseItemCode(value);
     if (result.status === "normalized") return result.value;
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.status === "empty" ? "NDC is required." : "Enter a recognizable NDC format; ambiguous 10-digit undashed values are not accepted." });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        result.status === "empty"
+          ? "NDC or UPC is required."
+          : "Enter a recognizable NDC or UPC; ambiguous 10-digit undashed values are not accepted.",
+    });
     return z.NEVER;
   }),
   name: z
