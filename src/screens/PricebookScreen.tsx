@@ -70,7 +70,7 @@ export default function PricebookScreen() {
     else await apiClient.post("/api/itemPrices", { body: JSON.stringify(value) });
     setEntry(null);
     table.current?.reload();
-    toast.success(item ? "Price updated" : "Price added. It may not appear while an NDC filter is active.");
+    toast.success(item ? "Price updated" : "Price added. It may not appear while a code filter is active.");
   };
 
   const remove = async (item: ItemPriceResponse) => {
@@ -140,7 +140,7 @@ export default function PricebookScreen() {
   };
 
   const columns: ColumnDefinition<ItemPriceResponse>[] = [
-    { id: "ndc", header: "NDC", filterType: "string", cell: row => row.ndc },
+    { id: "ndc", header: "Code", filterType: "string", cell: row => row.ndc },
     { id: "name", header: "Name", filterable: false, cell: row => row.name ?? "" },
     { id: "unitPrice", header: "Unit price", filterable: false, cell: row => currency(row.unitPrice) },
     { id: "updatedAt", header: "Last updated", filterable: false, cell: row => <time dateTime={row.updatedAt}>{dateLabel(row.updatedAt)}</time> },
@@ -167,7 +167,7 @@ export default function PricebookScreen() {
     <main className="text-gray-primary">
       <h1 className="text-2xl font-semibold text-gray-primary m-0">Pricebook</h1>
       <p className="mt-1 mb-6 text-sm text-gray-600">
-        Search by NDC using the table filter. Using Excel? Format the Code
+        Search by code (NDC or UPC) using the table filter. Using Excel? Format the Code
         column in your file as Text before typing codes, and upload it as
         .xlsx.{" "}
         <button
