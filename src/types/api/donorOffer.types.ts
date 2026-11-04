@@ -100,9 +100,6 @@ export interface FinalizeDetailsResult {
   partners: { id: number; name: string }[];
 }
 
-// TEMP (#380): mirrors the shape the backend ticket (price-check preview)
-// is adding to this same file. Delete this block and import the real
-// types once that ticket merges — see the issue for the agreed shape.
 export type PriceCheckStatus =
   | "no-code"
   | "unreadable"
@@ -112,16 +109,16 @@ export type PriceCheckStatus =
 
 export interface PriceCheck {
   status: PriceCheckStatus;
-  code: string | null;
+  code: string | null; // cleaned-up code, or what the donor typed if unreadable
   codeType: "NDC" | "UPC" | null;
-  itemPriceId: number | null;
-  price: string | null;
-  priceSetOn: string | null;
-  value: string | null;
+  itemPriceId: number | null; // pricebook entry id, needed to update an expired price
+  price: string | null; // our price as text, like "12.00"
+  priceSetOn: string | null; // date only, YYYY-MM-DD
+  value: string | null; // # of containers × price, only for priced rows
 }
 
 export interface PriceCheckedItem {
-  row: number;
+  row: number; // same row number the upload errors use
   title: string;
   priceCheck: PriceCheck;
 }
@@ -132,7 +129,7 @@ export interface FinalizeDonorOfferResult {
   donorOfferId?: number;
   createdCount?: number;
   donorOfferItems?: Record<string, unknown>[];
-  canFinalize?: boolean;
+  canFinalize?: boolean; // false while any row is expired or missing
 }
 
 export interface DonorOfferUpdateParams {

@@ -47,10 +47,6 @@ export default function PriceCheckStepperModal({
   };
 
   const save = async () => {
-    if (current.priceCheck.codeType === "UPC") {
-      setError("UPC codes aren't supported in the pricebook yet — ask the team to add this price by NDC instead.");
-      return;
-    }
     if (!isValidMoneyString(price)) {
       setError(
         "Enter a non-negative price without leading zeros, with up to two decimal places and within the supported money range."
@@ -70,7 +66,7 @@ export default function PriceCheckStepperModal({
     setError("");
     try {
       const body = JSON.stringify({ ndc: current.priceCheck.code, unitPrice: price });
-      if (current.priceCheck.status === "expired" && current.priceCheck.itemPriceId) {
+      if (current.priceCheck.itemPriceId) {
         await apiClient.patch(`/api/itemPrices/${current.priceCheck.itemPriceId}`, { body });
       } else {
         await apiClient.post("/api/itemPrices", { body });
@@ -125,6 +121,14 @@ export default function PriceCheckStepperModal({
             </p>
           )}
           <div className="mt-5 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={close}
+              disabled={pending}
+              className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+            >
+              Close
+            </button>
             <button
               type="button"
               onClick={advance}

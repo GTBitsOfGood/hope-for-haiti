@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import BaseTable, {extendTableHeader} from "../baseTable/BaseTable";
 import type { PriceCheck } from "@/types/api/donorOffer.types";
 import PriceCheckBadge from "./PriceCheckBadge";
-import { isBlockingStatus } from "@/util/priceCheck";
+import { doesPriceCheckBlockFinalize } from "@/util/priceCheck";
 
 // Define donor offer item data type based on schema
 export type DonorOfferItem = {
@@ -154,7 +154,7 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
         ]}
         rows={data.map((item, index) => {
           const priceCheck = item.priceCheck;
-          const canAct = priceCheck && isBlockingStatus(priceCheck.status) && onPriceAction;
+          const canAct = priceCheck && doesPriceCheckBlockFinalize(priceCheck.status) && onPriceAction;
 
           return {
             cells: [

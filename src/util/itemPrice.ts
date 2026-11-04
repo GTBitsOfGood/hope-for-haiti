@@ -1,4 +1,4 @@
-import { normalizeNdc } from "@/util/ndc";
+import { parseItemCode } from "@/util/ndc";
 
 export const ITEM_PRICE_RECHECK_DAYS = 365;
 
@@ -44,8 +44,8 @@ export function parseItemPriceListQuery(params: URLSearchParams): ItemPriceListQ
       }
       const value = (ndc as { value: string }).value.trim();
       if (value) {
-        const normalized = normalizeNdc(value);
-        ndcFilter = normalized.status === "normalized" ? normalized.value : value;
+        const parsed = parseItemCode(value);
+        ndcFilter = parsed.status === "normalized" ? parsed.value : value;
       }
     }
   }
@@ -57,6 +57,18 @@ export function isValidMoneyString(value: string): boolean {
   const [whole, fraction = ""] = value.split(".");
   const cents = BigInt(whole) * BigInt(100) + BigInt(fraction.padEnd(2, "0"));
   return cents <= MAX_ITEM_PRICE_CENTS;
+}
+
+export function formatItemPriceMoney(value: string): string {
+  if (!isValidMoneyString(value)) throw new Error("Invalid item price.");
+  const [whole, fraction = ""] = value.split(".");
+  return `${whole}.${fraction.padEnd(2, "0")}`;
+}
+
+export function isPositiveMoneyString(value: string): boolean {
+  if (!isValidMoneyString(value)) return false;
+  const [whole, fraction = ""] = value.split(".");
+  return BigInt(whole) !== BigInt(0) || BigInt(fraction.padEnd(2, "0")) !== BigInt(0);
 }
 
 export function needsItemPriceRecheck(updatedAt: Date | string, referenceDate = new Date()): boolean {

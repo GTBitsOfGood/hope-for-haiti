@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { PreviewTable, PriceCheckSummary, PriceCheckStepperModal } from "@/components/DonorOffers";
 import { priceCheckFixture } from "@/components/DonorOffers/priceCheckFixtures";
 import type { PriceCheckedItem } from "@/types/api/donorOffer.types";
-import { isBlockingStatus } from "@/util/priceCheck";
+import { itemsNeedingPrice } from "@/util/priceCheck";
 
 // Permanent sandbox: renders the price-check screen's components against
 // fixture data (src/components/DonorOffers/priceCheckFixtures.ts), so every
@@ -28,7 +28,7 @@ export default function PriceCheckPreviewHarness() {
     unitPrice: 20,
   }));
 
-  const blocking = priceCheckFixture.filter((item) => isBlockingStatus(item.priceCheck.status));
+  const blocking = itemsNeedingPrice(priceCheckFixture);
 
   return (
     <main className="px-10 py-5">

@@ -10,8 +10,10 @@ const STYLES: Record<PriceCheckStatus, { label: string; className: string }> = {
   priced: { label: "Priced", className: "bg-green-100 text-green-800" },
 };
 
+const UNKNOWN_STYLE = { label: "Unknown", className: "bg-gray-100 text-gray-700" };
+
 export default function PriceCheckBadge({ status }: { status: PriceCheckStatus }) {
-  const { label, className } = STYLES[status];
+  const { label, className } = STYLES[status] ?? UNKNOWN_STYLE;
   return (
     <span className={`rounded-full px-2 py-1 text-sm font-medium whitespace-nowrap ${className}`}>
       {label}

@@ -26,7 +26,7 @@ import type { PriceCheckedItem } from "@/types/api/donorOffer.types";
 import {
   canFinalize as derivePriceCheckCanFinalize,
   codesNeedingPrice,
-  isBlockingStatus,
+  itemsNeedingPrice,
   summarize as summarizePriceCheck,
 } from "@/util/priceCheck";
 import Papa from "papaparse";
@@ -115,7 +115,7 @@ export default function FinalizeDonorOfferPage() {
       title: item.title,
       priceCheck: item.priceCheck,
     }));
-  const blockingItems = priceCheckedItems.filter((item) => isBlockingStatus(item.priceCheck.status));
+  const blockingItems = itemsNeedingPrice(priceCheckedItems);
   const canFinalizeNow = backendCanFinalize ?? derivePriceCheckCanFinalize(priceCheckedItems);
   const priceCheckSummary = summarizePriceCheck(priceCheckedItems);
 
@@ -133,9 +133,10 @@ export default function FinalizeDonorOfferPage() {
       Code: r.code,
       Name: r.name,
       Price: r.price,
+      "Old price": r.oldPrice,
     }));
     // BOM prefix so Excel detects UTF-8 correctly (same as donorOfferService.ts's CSV export).
-    const csv = String.fromCharCode(0xfeff) + Papa.unparse(rows, { columns: ["Code", "Name", "Price"] });
+    const csv = String.fromCharCode(0xfeff) + Papa.unparse(rows, { columns: ["Code", "Name", "Price", "Old price"] });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -321,7 +322,7 @@ export default function FinalizeDonorOfferPage() {
         {preview && !canFinalizeNow && (
           <p className="text-sm text-red-600 mb-1">
             {priceCheckSummary.needsPriceCount} row
-            {priceCheckSummary.needsPriceCount === 1 ? "" : "s"} need a price before you can finalize
+            {priceCheckSummary.needsPriceCount === 1 ? " needs" : "s need"} a price before you can finalize
           </p>
         )}
         <div className="flex">

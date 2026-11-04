@@ -13,15 +13,17 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
   const selected = item === "new" ? null : item;
   const isOpen = item !== null;
   const [ndc, setNdc] = useState(selected?.ndc ?? "");
+  const [name, setName] = useState(selected?.name ?? "");
   const [price, setPrice] = useState(selected?.unitPrice ?? "");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
     setNdc(selected?.ndc ?? "");
+    setName(selected?.name ?? "");
     setPrice(selected?.unitPrice ?? "");
     setError("");
-  }, [isOpen, selected?.id, selected?.ndc, selected?.unitPrice]);
+  }, [isOpen, selected?.id, selected?.ndc, selected?.name, selected?.unitPrice]);
 
   if (item === null) return null;
   const normalizedNdc = normalizeNdc(ndc);
@@ -43,7 +45,7 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
     setPending(true);
     setError("");
     try {
-      await onSave({ ndc: normalizedNdc.value, unitPrice: price }, selected);
+      await onSave({ ndc: normalizedNdc.value, name: name.trim() || null, unitPrice: price }, selected);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save price.");
     } finally {
@@ -76,6 +78,16 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <p id="ndc-guidance" className="mt-1 text-sm text-gray-600">Use a recognized dashed 4-4-2, 5-3-2, 5-4-1, or 5-4-2 format, or 11 undashed digits. Ambiguous 10-digit undashed values are not accepted.{ndc.trim() && normalizedNdc.status === "normalized" ? ` Will save as ${normalizedNdc.value}.` : ""}</p>
+            </div>
+            <div>
+              <label htmlFor="price-name" className="mb-1 block text-sm font-medium text-gray-700">Name (optional)</label>
+              <input
+                id="price-name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Medication or item name"
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
             </div>
             <div>
               <label htmlFor="price-unit" className="mb-1 block text-sm font-medium text-gray-700">Unit price</label>
