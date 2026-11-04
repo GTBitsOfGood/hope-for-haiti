@@ -8,13 +8,26 @@ import {
 } from "../../src/util/ndc";
 import {
   buildPriceCheck,
+  canFinalize,
   centsToMoneyString,
+  codesNeedingPrice,
   doesPriceCheckBlockFinalize,
+  itemsNeedingPrice,
   moneyStringToCents,
   priceCheckErrorMessage,
+  summarize,
 } from "../../src/util/priceCheck";
 import { itemPriceInputSchema } from "../../src/schema/itemPrice";
 import { ITEM_PRICE_RECHECK_DAYS } from "../../src/util/itemPrice";
+import {
+  priceCheckFixture,
+  priceCheckDuplicateCodeFixture,
+  priceCheckBlockingWithoutCodeFixture,
+  priceCheckMalformedValueFixture,
+  makeLargePriceCheckFixture,
+  makePriceCheckedItem,
+} from "../../src/components/DonorOffers/priceCheckFixtures";
+const item = makePriceCheckedItem;
 
 const VALID_UPC = "012345678905";
 const VALID_NDC = "00093-4155-73";
@@ -209,5 +222,169 @@ test("only missing and expired block Finalize", () => {
   assert.equal(
     priceCheckErrorMessage(2, "missing"),
     "Row 2: price is missing from the pricebook"
+  );
+});
+
+test("canFinalize is false only when a blocking row is present", () => {
+  assert.equal(canFinalize([item("priced"), item("no-code"), item("unreadable")]), true);
+  assert.equal(canFinalize([item("priced"), item("missing")]), false);
+  assert.equal(canFinalize([item("expired")]), false);
+  assert.equal(canFinalize([]), true);
+});
+
+test("sheets with no codes at all can still be finalized", () => {
+  assert.equal(canFinalize([item("no-code"), item("no-code")]), true);
+});
+
+test("summarize sums value, counts needs-price and warning rows", () => {
+  const summary = summarize(priceCheckFixture);
+  assert.equal(summary.valueSoFar, 480);
+  assert.equal(summary.needsPriceCount, 2);
+  assert.equal(summary.warningCount, 2);
+});
+
+test("codesNeedingPrice dedupes by code, only expired/missing, Price always blank", () => {
+  const rows = codesNeedingPrice([
+    item("expired", { code: "12345-0002-01", price: "9.50", itemPriceId: 42 }),
+    item("missing", { code: "036000291452" }),
+    item("missing", { code: "036000291452" }), // duplicate code, one line expected
+    item("priced", { code: "12345-0001-01", price: "12.00" }), // excluded, not blocking
+    item("no-code"), // excluded, no code
+  ]);
+
+  assert.deepEqual(rows, [
+    { code: "12345-0002-01", name: "", price: "", oldPrice: "9.50" },
+    { code: "036000291452", name: "Test item", price: "", oldPrice: "" },
+  ]);
+});
+
+test("codes already in the pricebook get a blank Name and Price, with the current price under Old price", () => {
+  const rows = codesNeedingPrice([
+    item("expired", { code: "12345-0002-01", price: "9.50", itemPriceId: 42 }, { title: "Amoxicillin (pallet A)" }),
+    item("missing", { code: "12345-0003-01", price: "0.00", itemPriceId: 43 }, { title: "Gauze pads" }),
+    item("missing", { code: "12345-0004-01" }, { title: "Bandages 2x2" }),
+  ]);
+  assert.deepEqual(rows, [
+    { code: "12345-0002-01", name: "", price: "", oldPrice: "9.50" },
+    { code: "12345-0003-01", name: "", price: "", oldPrice: "0.00" },
+    { code: "12345-0004-01", name: "Bandages 2x2", price: "", oldPrice: "" },
+  ]);
+});
+
+test("the issue's own example payload produces the expected summary", () => {
+  const summary = summarize([
+    item("priced", { code: "12345-0001-01", price: "12.00", value: "480.00" }),
+    item("expired", { code: "12345-0002-01", price: "9.50", value: null }),
+  ]);
+  assert.equal(summary.valueSoFar, 480);
+  assert.equal(summary.needsPriceCount, 1);
+  assert.equal(summary.warningCount, 0);
+});
+
+test("empty array is a no-op for every function", () => {
+  assert.deepEqual(summarize([]), { valueSoFar: 0, needsPriceCount: 0, warningCount: 0 });
+  assert.deepEqual(codesNeedingPrice([]), []);
+  assert.equal(canFinalize([]), true);
+});
+
+test("summarize ignores a malformed value string instead of letting it poison the whole total", () => {
+  // priceCheckMalformedValueFixture: one priced row with value "not-a-number"
+  // ($12.00 x some quantity would normally produce a numeric value string),
+  // one normal priced row worth 50.00. Without the Number.isFinite guard in
+  // summarize(), NaN + 50 === NaN would wipe out the entire running total.
+  const summary = summarize(priceCheckMalformedValueFixture);
+  assert.equal(summary.valueSoFar, 50);
+  assert.equal(Number.isNaN(summary.valueSoFar), false);
+});
+
+test("summarize treats a negative-looking value string as plain arithmetic, not a crash", () => {
+  const summary = summarize([
+    item("priced", { value: "-5.00" }),
+    item("priced", { value: "10.00" }),
+  ]);
+  assert.equal(summary.valueSoFar, 5);
+});
+
+test("codesNeedingPrice skips a blocking row with no usable code", () => {
+  // Shouldn't happen per the shared type's contract (code is null only for
+  // no-code/unreadable), but codesNeedingPrice guards against it so a
+  // malformed backend row can't produce a blank/undefined CSV line.
+  assert.deepEqual(codesNeedingPrice(priceCheckBlockingWithoutCodeFixture), []);
+  assert.deepEqual(
+    codesNeedingPrice([...priceCheckBlockingWithoutCodeFixture, item("missing", { code: "1" })]),
+    [{ code: "1", name: "Test item", price: "", oldPrice: "" }]
+  );
+});
+
+test("codesNeedingPrice dedupes real fixture rows that share one NDC across two pallets", () => {
+  const rows = codesNeedingPrice(priceCheckDuplicateCodeFixture);
+  assert.deepEqual(rows, [
+    { code: "99999-0001-01", name: "Amoxicillin 500 mg capsules (pallet A)", price: "", oldPrice: "" },
+  ]);
+});
+
+test("codesNeedingPrice keeps the first occurrence's name/price when the same code appears under different statuses", () => {
+  // Shouldn't happen in real data (the same code should resolve to one
+  // status per Preview run), but documents the current first-wins behavior
+  // rather than leaving it undefined.
+  const rows = codesNeedingPrice([
+    item("expired", { code: "X", price: "9.50", itemPriceId: 42 }, { title: "First seen" }),
+    item("missing", { code: "X" }, { title: "Second seen" }),
+  ]);
+  assert.deepEqual(rows, [{ code: "X", name: "", price: "", oldPrice: "9.50" }]);
+});
+
+test("codesNeedingPrice passes the old price through unchanged, including whitespace/odd formatting", () => {
+  const rows = codesNeedingPrice([item("expired", { code: "X", price: " 9.50 ", itemPriceId: 42 })]);
+  assert.deepEqual(rows, [{ code: "X", name: "", price: "", oldPrice: " 9.50 " }]);
+});
+
+test("the Download list writes UPCs with spaces so Excel keeps the leading zero, and the upload reads them back", () => {
+  const rows = codesNeedingPrice([
+    item("missing", { code: "12345-0002-01", codeType: "NDC" }),
+    item("missing", { code: "036000291452", codeType: "UPC" }),
+  ]);
+  assert.deepEqual(rows.map((row) => row.code), ["12345-0002-01", "0 36000 29145 2"]);
+  assert.deepEqual(parseItemCode("0 36000 29145 2"), {
+    status: "normalized",
+    type: "UPC",
+    value: "036000291452",
+  });
+});
+
+test("a large, mixed-status sheet dedupes correctly and stays finite", () => {
+  const large = makeLargePriceCheckFixture(500, 2);
+  assert.equal(large.length, 1000);
+
+  const summary = summarize(large);
+  // statuses rotate evenly across 5 buckets over 500 unique codes, each
+  // repeated twice: 100 missing codes + 100 expired codes => 200 unique
+  // codes x 2 rows = 400 blocking rows.
+  assert.equal(summary.needsPriceCount, 400);
+  assert.equal(summary.warningCount, 400); // 100 no-code + 100 unreadable, x2
+  assert.equal(canFinalize(large), false);
+
+  const rows = codesNeedingPrice(large);
+  assert.equal(rows.length, 200); // deduped: one line per unique missing/expired code
+  assert.ok(rows.every((r) => r.code.startsWith("77777-")));
+});
+
+test("the Add prices form and the Download list ask about the same codes, once each", () => {
+  const items = [
+    item("priced", { code: "12345-0001-01", price: "12.00", itemPriceId: 41 }, { row: 1 }),
+    item("expired", { code: "12345-0002-01", price: "9.50", itemPriceId: 42 }, { row: 2 }),
+    item("missing", { code: "036000291452" }, { row: 3 }),
+    item("expired", { code: "12345-0002-01", price: "9.50", itemPriceId: 42 }, { row: 4 }),
+    item("missing", { code: "036000291452" }, { row: 5 }),
+    item("no-code", {}, { row: 6 }),
+    item("unreadable", { code: "0093415573" }, { row: 7 }),
+  ];
+  const steps = itemsNeedingPrice(items);
+
+  assert.deepEqual(steps.map((step) => step.row), [2, 3]);
+  assert.equal(steps[0], items[1]);
+  assert.deepEqual(
+    codesNeedingPrice(items).map((line) => line.code),
+    steps.map((step) => step.priceCheck.code)
   );
 });

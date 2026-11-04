@@ -7,3 +7,6 @@ export type { Partner } from "./PartnerSearch";
 export { default as DonorOfferSuccessModal } from "./DonorOfferSuccessModal";
 export { default as DonorOfferErrorModal } from "./DonorOfferErrorModal";
 export { default as PartnerRequestChipGroup } from "../chips/PartnerRequestChipGroup";
+export { default as PriceCheckBadge } from "./PriceCheckBadge";
+export { default as PriceCheckSummary } from "./PriceCheckSummary";
+export { default as PriceCheckStepperModal } from "./PriceCheckStepperModal";

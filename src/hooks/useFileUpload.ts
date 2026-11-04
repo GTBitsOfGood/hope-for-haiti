@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface UseFileUploadOptions<T> {
   previewEndpoint: string;
@@ -20,6 +20,8 @@ interface UseFileUploadResult {
   errors: string[];
   uploadedFile: File | undefined;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  /** Re-runs preview against the already-selected file, without a new file pick. */
+  rerunPreview: () => Promise<void>;
   resetUpload: () => void;
 }
 
@@ -33,25 +35,17 @@ export function useFileUpload<T>(
   const [fileLoading, setFileLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File>();
+  // Guards against two overlapping Preview requests (e.g. rerunPreview()
+  // from the price-check stepper closing while a handleFileChange() pick is
+  // still in flight, or vice versa) writing their results out of order. Only
+  // the response for the most recently started request is applied; an
+  // older request that resolves later is ignored instead of clobbering
+  // state with stale data.
+  const requestIdRef = useRef(0);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (options.validateBeforeUpload) {
-      const validationErrors = options.validateBeforeUpload();
-      if (validationErrors && validationErrors.length > 0) {
-        setFileErrorMessage(null);
-        setErrors(validationErrors);
-        e.target.value = "";
-        return;
-      }
-    }
-    
-    setUploadedFile(file);
+  const runPreview = async (file: File) => {
+    const requestId = ++requestIdRef.current;
     setFileLoading(true);
-    setFileName(file.name);
-    setFileSize(file.size);
     setFileErrorMessage(null);
     setErrors([]);
 
@@ -59,7 +53,7 @@ export function useFileUpload<T>(
       const formData = new FormData();
       formData.append("file", file);
 
-      const finalFormData = options.buildFormData 
+      const finalFormData = options.buildFormData
         ? options.buildFormData(file, formData)
         : formData;
 
@@ -67,6 +61,8 @@ export function useFileUpload<T>(
         method: options.previewEndpointMethod,
         body: finalFormData,
       });
+
+      if (requestIdRef.current !== requestId) return; // superseded by a newer request
 
       if (!response.ok) {
         let errorMessages: string[] = [];
@@ -83,6 +79,7 @@ export function useFileUpload<T>(
         if (errorMessages.length === 0) {
           errorMessages = ["An error occurred while processing the file. Please try again."];
         }
+        if (requestIdRef.current !== requestId) return; // superseded while reading the error body
         setErrors(errorMessages);
         setFileErrorMessage(errorMessages[0]);
         setFileUploaded(false);
@@ -91,10 +88,12 @@ export function useFileUpload<T>(
       }
 
       const result = await response.json();
+      if (requestIdRef.current !== requestId) return; // superseded while reading the response body
       options.onSuccess(result);
       setFileUploaded(true);
       setFileLoading(false);
     } catch (error) {
+      if (requestIdRef.current !== requestId) return; // superseded request failed; newer one owns state
       console.error("File processing error:", error);
       const message = "An error occurred while processing the file. Please try again.";
       setFileErrorMessage(message);
@@ -103,7 +102,35 @@ export function useFileUpload<T>(
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (options.validateBeforeUpload) {
+      const validationErrors = options.validateBeforeUpload();
+      if (validationErrors && validationErrors.length > 0) {
+        setFileErrorMessage(null);
+        setErrors(validationErrors);
+        e.target.value = "";
+        return;
+      }
+    }
+
+    setUploadedFile(file);
+    setFileName(file.name);
+    setFileSize(file.size);
+    await runPreview(file);
+  };
+
+  const rerunPreview = async () => {
+    if (!uploadedFile) return;
+    await runPreview(uploadedFile);
+  };
+
   const resetUpload = () => {
+    // Invalidate any Preview request still in flight so its eventual
+    // response can't repopulate state the user just reset.
+    requestIdRef.current++;
     setFileUploaded(false);
     setFileErrorMessage(null);
     setFileName("");
@@ -122,6 +149,7 @@ export function useFileUpload<T>(
     errors,
     uploadedFile,
     handleFileChange,
+    rerunPreview,
     resetUpload,
   };
 }
