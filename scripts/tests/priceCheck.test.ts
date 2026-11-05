@@ -7,6 +7,7 @@ import {
   parseItemCode,
 } from "../../src/util/ndc";
 import {
+  applyCodeOverrides,
   buildPriceCheck,
   canFinalize,
   centsToMoneyString,
@@ -16,6 +17,7 @@ import {
   moneyStringToCents,
   priceCheckErrorMessage,
   summarize,
+  validateCodeOverride,
 } from "../../src/util/priceCheck";
 import { itemPriceInputSchema } from "../../src/schema/itemPrice";
 import { ITEM_PRICE_RECHECK_DAYS } from "../../src/util/itemPrice";
@@ -108,6 +110,88 @@ test("pricebook schema accepts a UPC and still rejects empty or unreadable codes
       .success,
     false
   );
+});
+
+test("typed code overrides accept NDC and UPC and reject ambiguous or unreadable values", () => {
+  assert.deepEqual(validateCodeOverride(null, "00093-4155-73"), {
+    status: "valid",
+    value: VALID_NDC,
+    type: "NDC",
+  });
+  assert.deepEqual(validateCodeOverride("0093415573", "0 36000 29145 2"), {
+    status: "valid",
+    value: "036000291452",
+    type: "UPC",
+  });
+  assert.deepEqual(validateCodeOverride("0093415573", "012345-678905"), {
+    status: "valid",
+    value: VALID_UPC,
+    type: "UPC",
+  });
+  assert.equal(validateCodeOverride(null, "   ").status, "error");
+  assert.match(
+    (validateCodeOverride("0093415573", "0093415573") as { message: string }).message,
+    /10-digit/
+  );
+  assert.match(
+    (validateCodeOverride(VALID_NDC, VALID_UPC) as { message: string }).message,
+    /already has a readable code/i
+  );
+});
+
+test("code overrides apply only to blank or unreadable physical rows", () => {
+  const rows = [
+    { __excelRow: 2, ndc: "", title: "Blank" },
+    { __excelRow: 3, ndc: "0093415573", title: "Unreadable" },
+    { __excelRow: 4, ndc: "00093-4155-73", title: "Readable" },
+  ];
+
+  const applied = applyCodeOverrides(rows, [
+    { row: 2, code: "00093-4155-73" },
+    { row: 3, code: "0 36000 29145 2" },
+  ]);
+  assert.equal(applied.ok, true);
+  if (!applied.ok) return;
+
+  assert.deepEqual(rows, [
+    { __excelRow: 2, ndc: "", title: "Blank" },
+    { __excelRow: 3, ndc: "0093415573", title: "Unreadable" },
+    { __excelRow: 4, ndc: "00093-4155-73", title: "Readable" },
+  ]);
+  assert.equal(applied.rows[0].ndc, VALID_NDC);
+  assert.equal(applied.rows[1].ndc, "036000291452");
+  assert.equal(applied.rows[2].ndc, VALID_NDC);
+});
+
+test("code overrides reject duplicate, unknown, readable, and invalid rows without partial application", () => {
+  const rows = [
+    { __excelRow: 2, ndc: "", title: "Blank" },
+    { __excelRow: 3, ndc: "0093415573", title: "Unreadable" },
+    { __excelRow: 4, ndc: "00093-4155-73", title: "Readable" },
+  ];
+
+  const duplicate = applyCodeOverrides(rows, [
+    { row: 2, code: "00093-4155-73" },
+    { row: 2, code: "036000291452" },
+  ]);
+  assert.equal(duplicate.ok, false);
+  if (!duplicate.ok) assert.match(duplicate.errors[0], /more than once/);
+
+  const unknown = applyCodeOverrides(rows, [{ row: 99, code: "00093-4155-73" }]);
+  assert.equal(unknown.ok, false);
+  if (!unknown.ok) assert.match(unknown.errors[0], /not found/);
+
+  const readable = applyCodeOverrides(rows, [{ row: 4, code: "036000291452" }]);
+  assert.equal(readable.ok, false);
+  if (!readable.ok) assert.match(readable.errors[0], /already has a readable code/);
+
+  const invalid = applyCodeOverrides(rows, [
+    { row: 2, code: "00093-4155-73" },
+    { row: 3, code: "0093415573" },
+  ]);
+  assert.equal(invalid.ok, false);
+  if (!invalid.ok) assert.match(invalid.errors[0], /10-digit/);
+  assert.deepEqual(rows[1].ndc, "0093415573");
 });
 
 test("money helpers keep exact cents", () => {

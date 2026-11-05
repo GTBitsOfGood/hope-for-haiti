@@ -15,6 +15,7 @@ import { $Enums } from "@prisma/client";
 import { tableParamsSchema } from "@/schema/tableParams";
 import { formDataToObject } from "@/util/formData";
 import type { EmbeddingCache } from "@/services/matchingService";
+import type { PriceCheckCodeOverride } from "@/types/api/donorOffer.types";
 
 /**
  * Schema for getting offer ID from URL params
@@ -35,6 +36,49 @@ const requestParamSchema = z.object({
 const previewParamSchema = z.object({
   preview: z.coerce.boolean().optional().nullable(),
 });
+
+const codeOverridesSchema = z
+  .array(
+    z.object({
+      row: z.number().int().positive("Code override row must be a positive integer"),
+      code: z.string().trim().min(1, "Code override cannot be empty").max(128),
+    })
+  )
+  .superRefine((overrides, ctx) => {
+    const rows = new Set<number>();
+    for (const override of overrides) {
+      if (rows.has(override.row)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Row ${override.row}: code was provided more than once.`,
+        });
+      }
+      rows.add(override.row);
+    }
+  });
+
+function parseCodeOverrides(value: unknown): PriceCheckCodeOverride[] {
+  if (value == null || value === "") return [];
+  if (typeof value !== "string") {
+    throw new ArgumentError("codeOverrides must be a JSON string");
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(value);
+  } catch {
+    throw new ArgumentError("codeOverrides must be valid JSON");
+  }
+
+  const parsed = codeOverridesSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new ArgumentError(
+      parsed.error.issues[0]?.message ??
+        "codeOverrides must be an array of { row, code }"
+    );
+  }
+  return parsed.data;
+}
 
 const updateSchema = z.object({
   offerName: z.string().min(1, "Offer name is required").optional(),
@@ -213,6 +257,7 @@ export async function PATCH(
 
     if (file && file instanceof File) {
       const parsedFileData = await FileService.parseFinalizedFile(file);
+      const codeOverrides = parseCodeOverrides(formData.get("codeOverrides"));
 
       const embeddingCache: EmbeddingCache = new Map();
 
@@ -220,7 +265,8 @@ export async function PATCH(
         parsed.data.donorOfferId,
         parsedFileData,
         preview ?? false,
-        embeddingCache
+        embeddingCache,
+        codeOverrides
       );
 
       return NextResponse.json(result, {

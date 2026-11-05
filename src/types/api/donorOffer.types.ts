@@ -123,6 +123,11 @@ export interface PriceCheckedItem {
   priceCheck: PriceCheck;
 }
 
+export interface PriceCheckCodeOverride {
+  row: number; // physical sheet row, matching __excelRow
+  code: string;
+}
+
 export interface FinalizeDonorOfferResult {
   success: boolean;
   errors?: string[];
