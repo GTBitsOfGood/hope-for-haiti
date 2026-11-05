@@ -1,6 +1,11 @@
-import { type ParseItemCodeResult } from "@/util/ndc";
+import { parseItemCode, type ParseItemCodeResult } from "@/util/ndc";
 import { needsItemPriceRecheck } from "@/util/itemPrice";
-import type { PriceCheck, PriceCheckedItem, PriceCheckStatus } from "@/types/api/donorOffer.types";
+import type {
+  PriceCheck,
+  PriceCheckedItem,
+  PriceCheckCodeOverride,
+  PriceCheckStatus,
+} from "@/types/api/donorOffer.types";
 
 export type PriceBookEntry = {
   id: number;
@@ -14,6 +19,110 @@ const BLOCKING_STATUSES = new Set<PriceCheckStatus>(["missing", "expired"]);
 /** Single place that decides whether a status blocks Finalize. */
 export function doesPriceCheckBlockFinalize(status: PriceCheckStatus): boolean {
   return BLOCKING_STATUSES.has(status);
+}
+
+export const CODE_OVERRIDE_REQUIRED_MESSAGE = "Enter a code.";
+export const CODE_OVERRIDE_UNREADABLE_MESSAGE =
+  "Enter a recognizable NDC or 12-digit UPC. A 10-digit code without dashes is ambiguous.";
+export const CODE_OVERRIDE_READABLE_MESSAGE =
+  "This row already has a readable code and cannot be changed.";
+
+export type CodeOverrideValidation =
+  | { status: "valid"; value: string; type: "NDC" | "UPC" }
+  | { status: "error"; message: string };
+
+/**
+ * Validate a code typed for one price-check row. The original value is kept
+ * separate so a caller cannot use this path to replace a code that already
+ * parsed successfully.
+ */
+export function validateCodeOverride(
+  originalCode: unknown,
+  typedCode: string
+): CodeOverrideValidation {
+  const typed = String(typedCode ?? "").trim();
+  if (!typed) {
+    return { status: "error", message: CODE_OVERRIDE_REQUIRED_MESSAGE };
+  }
+
+  const original = originalCode == null ? "" : String(originalCode);
+  if (parseItemCode(original).status === "normalized") {
+    return { status: "error", message: CODE_OVERRIDE_READABLE_MESSAGE };
+  }
+
+  const parsed = parseItemCode(typed);
+  if (parsed.status === "normalized") {
+    return { status: "valid", value: parsed.value, type: parsed.type };
+  }
+  if (parsed.status === "empty") {
+    return { status: "error", message: CODE_OVERRIDE_REQUIRED_MESSAGE };
+  }
+  return { status: "error", message: CODE_OVERRIDE_UNREADABLE_MESSAGE };
+}
+
+export type ApplyCodeOverridesResult =
+  | { ok: true; rows: Record<string, unknown>[] }
+  | { ok: false; errors: string[] };
+
+/**
+ * Apply typed codes to parsed sheet rows by physical sheet row. All overrides
+ * are validated before any row is changed, so an invalid value cannot leave a
+ * partially-applied request behind.
+ */
+export function applyCodeOverrides(
+  rows: Record<string, unknown>[],
+  overrides: PriceCheckCodeOverride[]
+): ApplyCodeOverridesResult {
+  if (overrides.length === 0) {
+    return { ok: true, rows };
+  }
+
+  const rowsBySheetRow = new Map<number, Record<string, unknown>>();
+  for (const row of rows) {
+    if (typeof row.__excelRow === "number") {
+      rowsBySheetRow.set(row.__excelRow, row);
+    }
+  }
+
+  const overridesByRow = new Map<number, string>();
+  const errors: string[] = [];
+
+  for (const override of overrides) {
+    if (overridesByRow.has(override.row)) {
+      errors.push(`Row ${override.row}: code was provided more than once.`);
+      continue;
+    }
+    overridesByRow.set(override.row, override.code);
+  }
+
+  const replacements = new Map<number, string>();
+  for (const [row, typedCode] of overridesByRow) {
+    const sheetRow = rowsBySheetRow.get(row);
+    if (!sheetRow) {
+      errors.push(`Row ${row}: uploaded row was not found.`);
+      continue;
+    }
+
+    const validation = validateCodeOverride(sheetRow.ndc, typedCode);
+    if (validation.status === "error") {
+      errors.push(`Row ${row}: ${validation.message}`);
+      continue;
+    }
+    replacements.set(row, validation.value);
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+
+  return {
+    ok: true,
+    rows: rows.map((row) => {
+      if (typeof row.__excelRow !== "number") return row;
+      const replacement = replacements.get(row.__excelRow);
+      return replacement === undefined ? row : { ...row, ndc: replacement };
+    }),
+  };
 }
 
 export function moneyStringToCents(value: string): bigint {

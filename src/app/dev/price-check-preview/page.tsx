@@ -51,6 +51,7 @@ export default function PriceCheckPreviewHarness() {
         final
         data={data}
         onPriceAction={(item) => item.priceCheck && setStepperItems([{ row: item.row ?? 0, title: item.title, priceCheck: item.priceCheck }])}
+        onCodeCheck={async () => "This dev harness cannot re-run Preview."}
       />
       {stepperItems && (
         <PriceCheckStepperModal

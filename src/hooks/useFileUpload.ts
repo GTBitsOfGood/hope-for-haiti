@@ -10,6 +10,8 @@ interface UseFileUploadOptions<T> {
   buildFormData?: (file: File, formData: FormData) => FormData; // Custom form data builder
 }
 
+export type PreviewRunResult = "success" | "error" | "superseded";
+
 interface UseFileUploadResult {
   fileName: string;
   fileSize: number;
@@ -21,7 +23,7 @@ interface UseFileUploadResult {
   uploadedFile: File | undefined;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   /** Re-runs preview against the already-selected file, without a new file pick. */
-  rerunPreview: () => Promise<void>;
+  rerunPreview: () => Promise<PreviewRunResult>;
   resetUpload: () => void;
 }
 
@@ -43,7 +45,7 @@ export function useFileUpload<T>(
   // state with stale data.
   const requestIdRef = useRef(0);
 
-  const runPreview = async (file: File) => {
+  const runPreview = async (file: File): Promise<PreviewRunResult> => {
     const requestId = ++requestIdRef.current;
     setFileLoading(true);
     setFileErrorMessage(null);
@@ -62,7 +64,7 @@ export function useFileUpload<T>(
         body: finalFormData,
       });
 
-      if (requestIdRef.current !== requestId) return; // superseded by a newer request
+      if (requestIdRef.current !== requestId) return "superseded"; // superseded by a newer request
 
       if (!response.ok) {
         let errorMessages: string[] = [];
@@ -79,26 +81,28 @@ export function useFileUpload<T>(
         if (errorMessages.length === 0) {
           errorMessages = ["An error occurred while processing the file. Please try again."];
         }
-        if (requestIdRef.current !== requestId) return; // superseded while reading the error body
+        if (requestIdRef.current !== requestId) return "superseded"; // superseded while reading the error body
         setErrors(errorMessages);
         setFileErrorMessage(errorMessages[0]);
         setFileUploaded(false);
         setFileLoading(false);
-        return;
+        return "error";
       }
 
       const result = await response.json();
-      if (requestIdRef.current !== requestId) return; // superseded while reading the response body
+      if (requestIdRef.current !== requestId) return "superseded"; // superseded while reading the response body
       options.onSuccess(result);
       setFileUploaded(true);
       setFileLoading(false);
+      return "success";
     } catch (error) {
-      if (requestIdRef.current !== requestId) return; // superseded request failed; newer one owns state
+      if (requestIdRef.current !== requestId) return "superseded"; // superseded request failed; newer one owns state
       console.error("File processing error:", error);
       const message = "An error occurred while processing the file. Please try again.";
       setFileErrorMessage(message);
       setFileLoading(false);
       setErrors([message]);
+      return "error";
     }
   };
 
@@ -122,9 +126,9 @@ export function useFileUpload<T>(
     await runPreview(file);
   };
 
-  const rerunPreview = async () => {
-    if (!uploadedFile) return;
-    await runPreview(uploadedFile);
+  const rerunPreview = async (): Promise<PreviewRunResult> => {
+    if (!uploadedFile) return "error";
+    return runPreview(uploadedFile);
   };
 
   const resetUpload = () => {
