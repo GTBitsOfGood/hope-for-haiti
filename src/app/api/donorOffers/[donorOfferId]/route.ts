@@ -16,6 +16,7 @@ import { tableParamsSchema } from "@/schema/tableParams";
 import { formDataToObject } from "@/util/formData";
 import type { EmbeddingCache } from "@/services/matchingService";
 import type { PriceCheckCodeOverride } from "@/types/api/donorOffer.types";
+import { codeOverridesSchema } from "@/schema/donorOfferCodeOverrides";
 
 /**
  * Schema for getting offer ID from URL params
@@ -36,26 +37,6 @@ const requestParamSchema = z.object({
 const previewParamSchema = z.object({
   preview: z.coerce.boolean().optional().nullable(),
 });
-
-const codeOverridesSchema = z
-  .array(
-    z.object({
-      row: z.number().int().positive("Code override row must be a positive integer"),
-      code: z.string().trim().min(1, "Code override cannot be empty").max(128),
-    })
-  )
-  .superRefine((overrides, ctx) => {
-    const rows = new Set<number>();
-    for (const override of overrides) {
-      if (rows.has(override.row)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Row ${override.row}: code was provided more than once.`,
-        });
-      }
-      rows.add(override.row);
-    }
-  });
 
 function parseCodeOverrides(value: unknown): PriceCheckCodeOverride[] {
   if (value == null || value === "") return [];

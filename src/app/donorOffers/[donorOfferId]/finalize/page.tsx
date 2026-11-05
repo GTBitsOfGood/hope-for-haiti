@@ -135,6 +135,7 @@ export default function FinalizeDonorOfferPage() {
     }));
   const blockingItems = itemsNeedingPrice(priceCheckedItems);
   const canFinalizeNow = backendCanFinalize ?? derivePriceCheckCanFinalize(priceCheckedItems);
+  const finalizeDisabled = !canFinalizeNow || fileLoading;
   const priceCheckSummary = summarizePriceCheck(priceCheckedItems);
 
   const openPriceAction = (item: DonorOfferItem) => {
@@ -239,7 +240,7 @@ export default function FinalizeDonorOfferPage() {
   };
 
   const handleSubmit = async () => {
-    if (!uploadedFile) {
+    if (!uploadedFile || finalizeDisabled || checkInFlightRef.current) {
       return;
     }
 
@@ -408,15 +409,15 @@ export default function FinalizeDonorOfferPage() {
         </button>
         {preview ? (
           <button
-            disabled={!canFinalizeNow}
+            disabled={finalizeDisabled}
             onClick={handleSubmit}
             className={
-              canFinalizeNow
-                ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
-                : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+              finalizeDisabled
+                ? "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+                : "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
             }
           >
-            Finalize Offer
+            {fileLoading ? "Checking..." : "Finalize Offer"}
           </button>
         ) : (
           <button

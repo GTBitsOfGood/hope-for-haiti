@@ -48,7 +48,7 @@ export default function PriceCheckCodeCell({
   const isDisabled = disabled || pending;
 
   return (
-    <div className="min-w-56">
+    <div className="flex min-w-56 flex-col gap-1">
       <div className="flex items-start gap-2">
         <input
           id={inputId}
@@ -74,7 +74,7 @@ export default function PriceCheckCodeCell({
         </button>
       </div>
       {error && (
-        <p id={errorId} role="alert" aria-live="assertive" className="mt-1 text-xs text-red-700">
+        <p id={errorId} role="alert" aria-live="assertive" className="text-xs text-red-700">
           {error}
         </p>
       )}

@@ -20,6 +20,7 @@ import {
   validateCodeOverride,
 } from "../../src/util/priceCheck";
 import { itemPriceInputSchema } from "../../src/schema/itemPrice";
+import { codeOverridesSchema } from "../../src/schema/donorOfferCodeOverrides";
 import { ITEM_PRICE_RECHECK_DAYS } from "../../src/util/itemPrice";
 import {
   priceCheckFixture,
@@ -192,6 +193,30 @@ test("code overrides reject duplicate, unknown, readable, and invalid rows witho
   assert.equal(invalid.ok, false);
   if (!invalid.ok) assert.match(invalid.errors[0], /10-digit/);
   assert.deepEqual(rows[1].ndc, "0093415573");
+});
+
+test("code override schema is strict and rejects duplicate or invalid rows", () => {
+  assert.equal(
+    codeOverridesSchema.safeParse([{ row: 2, code: "00093-4155-73" }]).success,
+    true
+  );
+  assert.equal(
+    codeOverridesSchema.safeParse([
+      { row: 2, code: "00093-4155-73", extra: "ignored before strict" },
+    ]).success,
+    false
+  );
+  assert.equal(
+    codeOverridesSchema.safeParse([
+      { row: 2, code: "00093-4155-73" },
+      { row: 2, code: "036000291452" },
+    ]).success,
+    false
+  );
+  assert.equal(
+    codeOverridesSchema.safeParse([{ row: 2, code: "   " }]).success,
+    false
+  );
 });
 
 test("money helpers keep exact cents", () => {
