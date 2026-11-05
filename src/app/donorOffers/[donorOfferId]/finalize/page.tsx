@@ -57,7 +57,8 @@ export default function FinalizeDonorOfferPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const codeOverridesRef = useRef<Record<number, string>>({});
-  const checkInFlightRef = useRef(false);
+  const uploadGenerationRef = useRef(0);
+  const checkInFlightRef = useRef<number | null>(null);
 
   const [previewData, setPreviewData] = useState<DonorOfferItem[]>([]);
   const [preview, setPreview] = useState(false);
@@ -148,12 +149,15 @@ export default function FinalizeDonorOfferPage() {
   };
 
   const handleFileSelection = async (event: ChangeEvent<HTMLInputElement>) => {
+    uploadGenerationRef.current += 1;
+    checkInFlightRef.current = null;
     codeOverridesRef.current = {};
     await handleFileChange(event);
   };
 
   const handleCodeCheck = async (row: number, code: string): Promise<string | null> => {
-    if (checkInFlightRef.current) {
+    const generation = uploadGenerationRef.current;
+    if (checkInFlightRef.current === generation) {
       return "Please wait for the current check to finish.";
     }
 
@@ -170,18 +174,20 @@ export default function FinalizeDonorOfferPage() {
       return validation.message;
     }
 
-    checkInFlightRef.current = true;
+    checkInFlightRef.current = generation;
     const previousValue = codeOverridesRef.current[row];
     codeOverridesRef.current = { ...codeOverridesRef.current, [row]: validation.value };
     try {
       const checked = await rerunPreview();
       if (checked === "error") {
-        const current = codeOverridesRef.current;
-        if (current[row] === validation.value) {
-          const next = { ...current };
-          if (previousValue === undefined) delete next[row];
-          else next[row] = previousValue;
-          codeOverridesRef.current = next;
+        if (uploadGenerationRef.current === generation) {
+          const current = codeOverridesRef.current;
+          if (current[row] === validation.value) {
+            const next = { ...current };
+            if (previousValue === undefined) delete next[row];
+            else next[row] = previousValue;
+            codeOverridesRef.current = next;
+          }
         }
         return "Unable to check this code. Please try again.";
       }
@@ -189,7 +195,9 @@ export default function FinalizeDonorOfferPage() {
       // row override instead of restoring a stale snapshot.
       return null;
     } finally {
-      checkInFlightRef.current = false;
+      if (checkInFlightRef.current === generation) {
+        checkInFlightRef.current = null;
+      }
     }
   };
 
@@ -225,6 +233,8 @@ export default function FinalizeDonorOfferPage() {
 
   const resetUpload = () => {
     resetFileUpload();
+    uploadGenerationRef.current += 1;
+    checkInFlightRef.current = null;
     codeOverridesRef.current = {};
     setPreview(false);
     setPreviewData([]);
@@ -240,7 +250,11 @@ export default function FinalizeDonorOfferPage() {
   };
 
   const handleSubmit = async () => {
-    if (!uploadedFile || finalizeDisabled || checkInFlightRef.current) {
+    if (
+      !uploadedFile ||
+      finalizeDisabled ||
+      checkInFlightRef.current === uploadGenerationRef.current
+    ) {
       return;
     }
 
