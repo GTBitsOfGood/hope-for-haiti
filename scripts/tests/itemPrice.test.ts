@@ -32,11 +32,11 @@ test("price resource IDs require positive signed 32-bit integers", () => {
 test("list query has stable defaults, validates ranges, filters and safe offsets", () => {
   assert.deepEqual(parseItemPriceListQuery(new URLSearchParams()), { page: 1, pageSize: 10, ndcFilter: undefined });
   assert.deepEqual(parseItemPriceListQuery(new URLSearchParams("filters={}")), { page: 1, pageSize: 10, ndcFilter: undefined });
-  for (const [raw, expected] of [["0093-4155-73", "00093-4155-73"], ["00093-415-573", "00093-415-573"], ["00093-4155-7", "00093-4155-07"], ["12345-678-90", "12345-0678-90"], ["12345-6789-0", "12345-6789-00"], ["00093415573", "00093-4155-73"], ["00093-4155-73", "00093-4155-73"], [" 00093-4155-73 ", "00093-4155-73"]]) {
+  for (const [raw, expected] of [["0093-4155-73", "00093-4155-73"], ["00093-415-573", "00093-415-573"], ["00093-4155-7", "00093-4155-07"], ["12345-678-90", "12345-0678-90"], ["12345-6789-0", "12345-6789-00"], ["00093415573", "00093-4155-73"], ["00093-4155-73", "00093-4155-73"], [" 00093-4155-73 ", "00093-4155-73"], ["0 36000 29145 2", "036000291452"]]) {
     const filters = JSON.stringify({ ndc: { type: "string", value: raw } });
     assert.equal(parseItemPriceListQuery(new URLSearchParams(`filters=${encodeURIComponent(filters)}`)).ndcFilter, expected);
   }
-  for (const raw of ["abc", "0093", "0009341557"]) {
+  for (const raw of ["abc", "0093", "0009341557", "036000"]) {
     const filters = JSON.stringify({ ndc: { type: "string", value: raw } });
     assert.equal(parseItemPriceListQuery(new URLSearchParams(`filters=${encodeURIComponent(filters)}`)).ndcFilter, raw);
   }
@@ -75,6 +75,18 @@ test("NDC schema safely normalizes recognized formats and rejects empty or unrea
     assert.doesNotThrow(() => itemPriceInputSchema.safeParse({ ndc, unitPrice: "1" }));
     assert.equal(itemPriceInputSchema.safeParse({ ndc, unitPrice: "1" }).success, false);
   }
+});
+
+test("pricebook schema accepts UPCs and rejects an invalid UPC check digit", () => {
+  for (const raw of ["036000291452", "0 36000 29145 2", "0-36000-29145-2"]) {
+    const result = itemPriceInputSchema.safeParse(validInput(raw, "1"));
+    assert.equal(result.success, true, raw);
+    if (result.success) assert.equal(result.data.ndc, "036000291452");
+  }
+  assert.equal(
+    itemPriceInputSchema.safeParse(validInput("036000291453", "1")).success,
+    false
+  );
 });
 
 test("optional names trim, clear on blank, and reject non-string values", () => {
@@ -197,6 +209,40 @@ test("upload review sorts new, changed, same, skipped, duplicate, and problem li
     { lineNumber: 2, code: "0093-4155-73", name: undefined, price: "1" },
     { lineNumber: 3, code: "00093415573", name: undefined, price: "1" },
   ]), ["00093-4155-73"]);
+});
+
+test("upload review accepts spaced UPCs, flags invalid UPCs, and dedupes UPC formats", () => {
+  const review = buildItemPriceUploadReview(
+    [
+      { lineNumber: 2, code: "0 36000 29145 2", name: "Bandages", price: "1.00" },
+      { lineNumber: 3, code: "012345678905", name: "Tape", price: "2.00" },
+      { lineNumber: 4, code: "036000291453", name: "Bad check", price: "3.00" },
+      { lineNumber: 5, code: "036000291452", name: "Duplicate", price: "4.00" },
+    ],
+    []
+  );
+  assert.deepEqual(review.counts, {
+    new: 1,
+    changed: 0,
+    same: 0,
+    problems: 3,
+    skipped: 0,
+  });
+  assert.equal(review.groups.new[0].code, "012345678905");
+  assert.deepEqual(
+    review.groups.problems.map((line) => line.lineNumber),
+    [2, 4, 5]
+  );
+  assert.ok(
+    review.groups.problems
+      .find((line) => line.lineNumber === 2)
+      ?.reasons.some((reason) => reason.includes("appears more than once"))
+  );
+  assert.ok(
+    review.groups.problems
+      .find((line) => line.lineNumber === 4)
+      ?.reasons.some((reason) => reason.includes("NDC or UPC"))
+  );
 });
 
 test("pricebook parser accepts loose CSV headers, ignores extras, and keeps line numbers", async () => {

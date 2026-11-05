@@ -66,7 +66,7 @@ function serialize(row: {
 
 function dbError(error: unknown): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === "P2002") throw new ConflictError("A price already exists for this NDC.");
+    if (error.code === "P2002") throw new ConflictError("A price already exists for this code.");
     if (error.code === "P2025") throw new NotFoundError("Item price not found");
   }
   throw error;

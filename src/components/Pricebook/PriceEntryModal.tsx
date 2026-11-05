@@ -2,7 +2,7 @@ import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { useEffect, useState } from "react";
 import type { ItemPriceInput, ItemPriceResponse } from "@/types/api/itemPrice.types";
 import { isValidMoneyString } from "@/util/itemPrice";
-import { normalizeNdc } from "@/util/ndc";
+import { parseItemCode } from "@/util/ndc";
 
 export default function PriceEntryModal({ item, onClose, onSave }: {
   item: ItemPriceResponse | null | "new";
@@ -26,16 +26,16 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
   }, [isOpen, selected?.id, selected?.ndc, selected?.name, selected?.unitPrice]);
 
   if (item === null) return null;
-  const normalizedNdc = normalizeNdc(ndc);
+  const parsedCode = parseItemCode(ndc);
   const close = () => { if (!pending) onClose(); };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (normalizedNdc.status === "empty") {
-      setError("NDC is required.");
+    if (parsedCode.status === "empty") {
+      setError("NDC or UPC is required.");
       return;
     }
-    if (normalizedNdc.status === "unreadable") {
-      setError("Enter a recognizable NDC format; ambiguous 10-digit undashed values are not accepted.");
+    if (parsedCode.status === "unreadable") {
+      setError("Enter a recognizable NDC or 12-digit UPC; ambiguous 10-digit undashed codes are not accepted.");
       return;
     }
     if (!isValidMoneyString(price)) {
@@ -45,7 +45,7 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
     setPending(true);
     setError("");
     try {
-      await onSave({ ndc: normalizedNdc.value, name: name.trim() || null, unitPrice: price }, selected);
+      await onSave({ ndc: parsedCode.value, name: name.trim() || null, unitPrice: price }, selected);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save price.");
     } finally {
@@ -66,18 +66,18 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
               Saving confirms this price as current, updates its timestamp, and records you as the latest saver.
             </p>
             <div>
-              <label htmlFor="price-ndc" className="mb-1 block text-sm font-medium text-gray-700">NDC</label>
+              <label htmlFor="price-ndc" className="mb-1 block text-sm font-medium text-gray-700">Code (NDC or UPC)</label>
               <input
                 id="price-ndc"
                 required
                 autoFocus
                 value={ndc}
                 onChange={e => setNdc(e.target.value)}
-                placeholder="00093-4155-73"
+                placeholder="00093-4155-73 or 036000291452"
                 aria-describedby="ndc-guidance"
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
-              <p id="ndc-guidance" className="mt-1 text-sm text-gray-600">Use a recognized dashed 4-4-2, 5-3-2, 5-4-1, or 5-4-2 format, or 11 undashed digits. Ambiguous 10-digit undashed values are not accepted.{ndc.trim() && normalizedNdc.status === "normalized" ? ` Will save as ${normalizedNdc.value}.` : ""}</p>
+              <p id="ndc-guidance" className="mt-1 text-sm text-gray-600">Use a recognized NDC format or a 12-digit UPC. Ambiguous 10-digit undashed codes are not accepted.{ndc.trim() && parsedCode.status === "normalized" ? ` Will save as ${parsedCode.value}.` : ""}</p>
             </div>
             <div>
               <label htmlFor="price-name" className="mb-1 block text-sm font-medium text-gray-700">Name (optional)</label>
