@@ -231,7 +231,15 @@ export async function PATCH(
     const formObj = formDataToObject(formData) as typeof updateSchema._input;
 
     if ("partners" in formObj) {
-      formObj.partners = formObj.partners?.map(partnerId => Number(partnerId));
+      const rawPartners = formObj.partners;
+      const list = Array.isArray(rawPartners)
+        ? rawPartners
+        : rawPartners != null
+          ? [rawPartners]
+          : [];
+      formObj.partners = list
+        .map((partnerId) => Number(partnerId))
+        .filter((id) => Number.isInteger(id) && id > 0);
     }
 
     const updateParsed = updateSchema.safeParse(formObj);
