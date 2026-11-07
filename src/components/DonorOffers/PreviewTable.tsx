@@ -132,24 +132,24 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
       <BaseTable
         pagination={false}
         headers={[
+          extendTableHeader("Description", "min-w-64"),
+          extendTableHeader("Cost Per Piece (Donor)", "min-w-28"),
+          extendTableHeader("Status", "min-w-32"),
+          extendTableHeader("Our Price", "min-w-24"),
+          extendTableHeader("Value", "min-w-24"),
+          extendTableHeader("Actions", "min-w-28"),
+          extendTableHeader("Code", "min-w-32"),
           extendTableHeader("Pallet #", "min-w-24"),
           extendTableHeader("Box #", "min-w-20"),
-          extendTableHeader("Description", "min-w-64"),
           extendTableHeader("Donor", "min-w-32"),
           extendTableHeader("Lot #", "min-w-24"),
           extendTableHeader("Expiration Date", "min-w-32"),
           extendTableHeader("Container Type", "min-w-28"),
           extendTableHeader("# of Containers", "min-w-28"),
-          extendTableHeader("Cost Per Piece (Donor)", "min-w-28"),
-          extendTableHeader("Status", "min-w-32"),
-          extendTableHeader("Code", "min-w-32"),
-          extendTableHeader("Our Price", "min-w-24"),
           extendTableHeader("Price Set", "min-w-28"),
-          extendTableHeader("Value", "min-w-24"),
           extendTableHeader("Category", "min-w-24"),
           extendTableHeader("Type", "min-w-20"),
           extendTableHeader("NDC", "min-w-32"),
-          extendTableHeader("Actions", "min-w-28"),
           extendTableHeader("Additional Info", "min-w-24 text-center"),
         ]}
         rows={data.map((item, index) => {
@@ -158,29 +158,13 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
 
           return {
             cells: [
-              item.palletNumber || "-",
-              item.boxNumber || "-",
               item.title,
-              item.donorName || "-",
-              item.lotNumber || "-",
-              item.expirationDate
-                ? new Date(item.expirationDate).toLocaleDateString()
-                : "-",
-              item.unitType,
-              item.quantity ?? 0,
               item.unitPrice != null
                 ? `$${Number(item.unitPrice).toFixed(2)}`
                 : "-",
               priceCheck ? <PriceCheckBadge key={`status-${index}`} status={priceCheck.status} /> : "-",
-              priceCheck?.code
-                ? `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
-                : "-",
               priceCheck?.price != null ? `$${Number(priceCheck.price).toFixed(2)}` : "-",
-              priceCheck?.priceSetOn ?? "-",
               priceCheck?.value != null ? `$${Number(priceCheck.value).toFixed(2)}` : "-",
-              item.category || "-",
-              item.type || "-",
-              item.ndc || "-",
               canAct ? (
                 <button
                   key={`action-${index}`}
@@ -193,6 +177,22 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
               ) : (
                 "-"
               ),
+              priceCheck?.code
+                ? `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
+                : "-",
+              item.palletNumber || "-",
+              item.boxNumber || "-",
+              item.donorName || "-",
+              item.lotNumber || "-",
+              item.expirationDate
+                ? new Date(item.expirationDate).toLocaleDateString()
+                : "-",
+              item.unitType,
+              item.quantity ?? 0,
+              priceCheck?.priceSetOn ?? "-",
+              item.category || "-",
+              item.type || "-",
+              item.ndc || "-",
               <AdditionalInfoTooltip
                 key={`info-${index}`}
                 info={item.additionalInfo || {}}
