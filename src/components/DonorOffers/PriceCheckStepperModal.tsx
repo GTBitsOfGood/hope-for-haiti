@@ -1,5 +1,5 @@
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PriceCheckedItem } from "@/types/api/donorOffer.types";
 import { useApiClient } from "@/hooks/useApiClient";
 import { isValidMoneyString } from "@/util/itemPrice";
@@ -24,6 +24,12 @@ export default function PriceCheckStepperModal({
   const [price, setPrice] = useState(current.priceCheck.price ?? "");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [index]);
 
   const advance = () => {
     if (index + 1 >= items.length) {
@@ -47,6 +53,7 @@ export default function PriceCheckStepperModal({
   };
 
   const save = async () => {
+    if (pending) return;
     if (!isValidMoneyString(price)) {
       setError(
         "Enter a non-negative price without leading zeros, with up to two decimal places and within the supported money range."
@@ -79,6 +86,11 @@ export default function PriceCheckStepperModal({
     }
   };
 
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void save();
+  };
+
   return (
     <Dialog open onClose={close} className="relative z-50">
       <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
@@ -87,65 +99,67 @@ export default function PriceCheckStepperModal({
           <DialogTitle className="text-xl font-semibold text-gray-900">
             Add prices — {index + 1} of {items.length}
           </DialogTitle>
-          <div className="mt-4 space-y-1">
-            <p className="text-sm text-gray-600">Item</p>
-            <p className="font-medium text-gray-900">{current.title}</p>
-            <p className="mt-2 text-sm text-gray-600">Code</p>
-            <p className="font-medium text-gray-900">{current.priceCheck.code ?? "—"}</p>
-          </div>
-          <div className="mt-4">
-            <label
-              htmlFor="price-check-stepper-price"
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Our price
-            </label>
-            <div className="flex items-center rounded-lg border border-gray-300 bg-gray-50 px-3 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500">
-              <span aria-hidden="true" className="text-gray-700">
-                $
-              </span>
-              <input
-                id="price-check-stepper-price"
-                autoFocus
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00"
-                className="w-full border-0 bg-transparent px-2 py-2 text-gray-900 outline-none focus:ring-0"
-              />
+          <form onSubmit={submit} className="mt-4">
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">Item</p>
+              <p className="font-medium text-gray-900">{current.title}</p>
+              <p className="mt-2 text-sm text-gray-600">Code</p>
+              <p className="font-medium text-gray-900">{current.priceCheck.code ?? "—"}</p>
             </div>
-          </div>
-          {error && (
-            <p role="alert" aria-live="assertive" className="mt-2 text-red-700">
-              {error}
-            </p>
-          )}
-          <div className="mt-5 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={close}
-              disabled={pending}
-              className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={advance}
-              disabled={pending}
-              className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-            >
-              Skip for now
-            </button>
-            <button
-              type="button"
-              onClick={save}
-              disabled={pending}
-              className="rounded-md border border-red-primary bg-red-500 px-3 py-1.5 text-white transition hover:bg-red-600 disabled:opacity-50"
-            >
-              {pending ? "Saving…" : "Save and next"}
-            </button>
-          </div>
+            <div className="mt-4">
+              <label
+                htmlFor="price-check-stepper-price"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Our price
+              </label>
+              <div className="flex items-center rounded-lg border border-gray-300 bg-gray-50 px-3 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500">
+                <span aria-hidden="true" className="text-gray-700">
+                  $
+                </span>
+                <input
+                  id="price-check-stepper-price"
+                  ref={inputRef}
+                  autoFocus
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full border-0 bg-transparent px-2 py-2 text-gray-900 outline-none focus:ring-0"
+                />
+              </div>
+            </div>
+            {error && (
+              <p role="alert" aria-live="assertive" className="mt-2 text-red-700">
+                {error}
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={close}
+                disabled={pending}
+                className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={advance}
+                disabled={pending}
+                className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                Skip for now
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="rounded-md border border-red-primary bg-red-500 px-3 py-1.5 text-white transition hover:bg-red-600 disabled:opacity-50"
+              >
+                {pending ? "Saving…" : "Save and next"}
+              </button>
+            </div>
+          </form>
         </DialogPanel>
       </div>
     </Dialog>
