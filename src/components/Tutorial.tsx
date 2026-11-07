@@ -31,6 +31,17 @@ interface TutorialProps {
   type: keyof typeof nameMap;
   onStepChange?: (stepIndex: number) => void;
   onTutorialEnd?: () => void;
+  // Fires once completion status is known, before it's decided whether a
+  // tour will run — lets callers hold off rendering tutorial-gated content
+  // (e.g. a fake sample row) until that's actually settled.
+  onStatusResolved?: () => void;
+  // Opt-in: also fire `onTutorialEnd` deterministically as soon as it's known
+  // no tour will run (already completed, or zero steps), instead of only on
+  // an actual Joyride completion. Defaults to false so existing consumers'
+  // `onTutorialEnd` keeps firing only after a real run — some of them trigger
+  // side effects (table reloads, closing open modals) that shouldn't run on
+  // every mount for an already-completed user.
+  notifyEndWhenAlreadyCompleted?: boolean;
   repeatOnRefresh?: boolean;
   disableAutoScroll?: boolean;
 }
@@ -83,6 +94,8 @@ export default function Tutorial({
   type,
   onStepChange,
   onTutorialEnd,
+  onStatusResolved,
+  notifyEndWhenAlreadyCompleted = false,
   repeatOnRefresh = false,
   disableAutoScroll = false,
 }: TutorialProps) {
@@ -97,6 +110,7 @@ export default function Tutorial({
   const [localTutorialCompleted, setLocalTutorialCompleted] = useState(false);
   const [isCompletionSynced, setIsCompletionSynced] = useState(repeatOnRefresh);
   const hasFinishedRef = useRef(false);
+  const hasNotifiedNoRunRef = useRef(false);
   const hasFetchedCompletionRef = useRef(false);
   const joyrideHelpersRef = useRef<StoreHelpers | null>(null);
   const refreshRafRef = useRef<number | null>(null);
@@ -205,6 +219,7 @@ export default function Tutorial({
     useRef<ResponsiveTutorialEntry[]>(responsiveTutorialEntries);
   const onStepChangeRef = useRef(onStepChange);
   const onTutorialEndRef = useRef(onTutorialEnd);
+  const onStatusResolvedRef = useRef(onStatusResolved);
 
   const getVisibleIndexForOriginalIndex = useCallback(
     (originalIndex: number) => {
@@ -246,6 +261,10 @@ export default function Tutorial({
   useEffect(() => {
     onTutorialEndRef.current = onTutorialEnd;
   }, [onTutorialEnd]);
+
+  useEffect(() => {
+    onStatusResolvedRef.current = onStatusResolved;
+  }, [onStatusResolved]);
 
   const notifyStepChange = useCallback((originalIndex: number) => {
     if (lastNotifiedStepIndexRef.current === originalIndex) {
@@ -312,6 +331,7 @@ export default function Tutorial({
 
   useEffect(() => {
     hasFetchedCompletionRef.current = false;
+    hasNotifiedNoRunRef.current = false;
     lastNotifiedStepIndexRef.current = null;
     setIsCompletionSynced(false);
     setServerTutorialCompleted(null);
@@ -388,6 +408,12 @@ export default function Tutorial({
 
     return () => {
       cancelled = true;
+      // Reset so a StrictMode dev double-invoke (or any other re-run of this
+      // effect) retries the fetch instead of permanently skipping it — the
+      // first invocation's result is discarded via `cancelled` above, so
+      // without this the guard can get stuck true with isCompletionSynced
+      // never actually resolving.
+      hasFetchedCompletionRef.current = false;
     };
   }, [
     repeatOnRefresh,
@@ -419,6 +445,36 @@ export default function Tutorial({
     setRun(true);
     notifyStepChange(initialOriginalIndex);
   }, [isCompletionSynced, isTutorialCompleted, notifyStepChange, tutorialSteps, user]);
+
+  useEffect(() => {
+    if (!user || !isCompletionSynced) {
+      return; // not yet resolved — don't emit a false "ended" signal early
+    }
+
+    if (isTutorialCompleted || tutorialSteps.length === 0) {
+      if (notifyEndWhenAlreadyCompleted && !hasNotifiedNoRunRef.current) {
+        hasNotifiedNoRunRef.current = true;
+        onTutorialEndRef.current?.();
+      }
+      return;
+    }
+
+    hasNotifiedNoRunRef.current = false;
+  }, [
+    user,
+    isCompletionSynced,
+    isTutorialCompleted,
+    tutorialSteps,
+    notifyEndWhenAlreadyCompleted,
+  ]);
+
+  useEffect(() => {
+    if (!user || !isCompletionSynced) {
+      return;
+    }
+
+    onStatusResolvedRef.current?.();
+  }, [user, isCompletionSynced]);
 
   useEffect(() => {
     if (!run || responsiveTutorialEntries.length === 0) {
