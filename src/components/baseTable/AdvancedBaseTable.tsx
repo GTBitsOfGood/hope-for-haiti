@@ -488,7 +488,7 @@ function AdvancedBaseTableInner<T extends object>(
           <tbody className="overflow-visible">
             {isLoading ? (
               <tr>
-                <td colSpan={normalizedColumns.length} className="py-10">
+                <td colSpan={normalizedColumns.length + selectionColumnCount} className="py-10">
                   <div className="flex justify-center">
                     <CgSpinner className="w-16 h-16 animate-spin opacity-50" />
                   </div>

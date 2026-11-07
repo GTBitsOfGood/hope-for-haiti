@@ -9,6 +9,8 @@ export default function BulkDeletePriceModal({ count, open, onClose, onDelete }:
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  // The toolbar only renders this while a selection exists, so a null count
+  // here would mean a stale open state; render nothing in that case.
   if (!open || !count) return null;
 
   const close = () => {
