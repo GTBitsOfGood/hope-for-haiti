@@ -23,6 +23,10 @@ const DISTRIBUTIONS_TUTORIAL_TOOLTIP_SELECTOR = '[data-tutorial-tooltip="true"]'
 const DISTRIBUTIONS_SIGNOFFS_TAB_TUTORIAL_ID = "distributions-signoffs-tab";
 const DISTRIBUTIONS_SIGNOFFS_TAB_HIGHLIGHT_CLASS =
   "distributions-tutorial-signoffs-tab-highlight";
+// Joyride tooltips unmount/remount between tutorial steps, so this must stay
+// generous enough to outlast that gap — otherwise this safety net mistakes a
+// normal step transition for "no tutorial is running" and force-ends it.
+const DISTRIBUTIONS_TUTORIAL_CLEANUP_QUIET_MS = 1500;
 
 export default function AdminDistributionsScreen() {
   const { user } = useUser();
@@ -46,6 +50,11 @@ export default function AdminDistributionsScreen() {
   const [isDistributionsTutorialActive, setIsDistributionsTutorialActive] =
     useState(true);
   const [hasDistributionsTutorialEnded, setHasDistributionsTutorialEnded] =
+    useState(false);
+  // Until this is true, we don't yet know whether the tutorial needs to run —
+  // hold off rendering any tutorial-gated table content (fake sample data OR
+  // a premature real fetch) until Tutorial reports its completion status.
+  const [isDistributionsTutorialStatusResolved, setIsDistributionsTutorialStatusResolved] =
     useState(false);
   const [activeTutorialStep, setActiveTutorialStep] = useState<number | null>(
     null
@@ -213,6 +222,10 @@ export default function AdminDistributionsScreen() {
     clearDistributionsTutorialHighlights();
   }, [clearDistributionsTutorialHighlights]);
 
+  const handleTutorialStatusResolved = useCallback(() => {
+    setIsDistributionsTutorialStatusResolved(true);
+  }, []);
+
   useEffect(() => {
     if (!hasDistributionsTutorialEnded) {
       return;
@@ -257,7 +270,7 @@ export default function AdminDistributionsScreen() {
           setActiveTutorialStep(null);
           clearDistributionsTutorialHighlights();
         }
-      }, 200);
+      }, DISTRIBUTIONS_TUTORIAL_CLEANUP_QUIET_MS);
     };
 
     maybeScheduleCleanup();
@@ -295,6 +308,8 @@ export default function AdminDistributionsScreen() {
         disableAutoScroll={shouldDisableDistributionsTutorialAutoScroll}
         onStepChange={handleTutorialStepChange}
         onTutorialEnd={handleTutorialEnd}
+        onStatusResolved={handleTutorialStatusResolved}
+        notifyEndWhenAlreadyCompleted
       />
       <h1 className="text-2xl font-semibold text-gray-primary">Distributions</h1>
 
@@ -316,23 +331,31 @@ export default function AdminDistributionsScreen() {
         ))}
       </div>
 
-      {activeTab === DistributionTab.DISTRIBUTIONS && canViewDistributions && (
-        <DistributionTable
-          tutorialMode={isDistributionsTutorialSampleMode}
-          tutorialStep={activeTutorialStep}
-        />
-      )}
-      {activeTab === DistributionTab.SHIPMENTS && canViewShipments && (
-        <ShipmentsTable
-          tutorialMode={isDistributionsTutorialSampleMode}
-          tutorialStep={activeTutorialStep}
-        />
-      )}
-      {activeTab === DistributionTab.SIGNOFFS && canViewSignOffs && (
-        <SignOffsTable
-          tutorialMode={isDistributionsTutorialSampleMode}
-          tutorialStep={activeTutorialStep}
-        />
+      {!isDistributionsTutorialStatusResolved ? (
+        <div className="flex justify-center py-10">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500" />
+        </div>
+      ) : (
+        <>
+          {activeTab === DistributionTab.DISTRIBUTIONS && canViewDistributions && (
+            <DistributionTable
+              tutorialMode={isDistributionsTutorialSampleMode}
+              tutorialStep={activeTutorialStep}
+            />
+          )}
+          {activeTab === DistributionTab.SHIPMENTS && canViewShipments && (
+            <ShipmentsTable
+              tutorialMode={isDistributionsTutorialSampleMode}
+              tutorialStep={activeTutorialStep}
+            />
+          )}
+          {activeTab === DistributionTab.SIGNOFFS && canViewSignOffs && (
+            <SignOffsTable
+              tutorialMode={isDistributionsTutorialSampleMode}
+              tutorialStep={activeTutorialStep}
+            />
+          )}
+        </>
       )}
     </>
   );
