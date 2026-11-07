@@ -366,7 +366,7 @@ export default function FinalizeDonorOfferPage() {
 
       {isSubmitting && <BulkAddLoadingModal />}
 
-      {isSuccess && <DonorOfferSuccessModal />}
+      {isSuccess && <DonorOfferSuccessModal mode="finalize" />}
 
       {isError && (
         <DonorOfferErrorModal

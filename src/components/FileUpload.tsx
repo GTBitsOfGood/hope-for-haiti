@@ -10,10 +10,28 @@ interface FileUploadProps {
 
 const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
   ({ handleFileChange, fileLoading, resetUpload }, ref) => {
+    const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+      e.preventDefault();
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+      e.preventDefault();
+      if (fileLoading) return;
+
+      const file = e.dataTransfer.files?.[0];
+      if (!file) return;
+
+      handleFileChange({
+        target: { files: e.dataTransfer.files, value: "" },
+      } as unknown as React.ChangeEvent<HTMLInputElement>);
+    };
+
     return (
       <div className="flex items-center justify-center w-full">
         <label
           htmlFor="dropzone-file"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
           className="flex flex-col items-center justify-center w-full h-80 bg-zinc-50 appearance-none border border-gray-200 rounded cursor-pointer hover:bg-zinc-100"
         >
           {fileLoading ? (
