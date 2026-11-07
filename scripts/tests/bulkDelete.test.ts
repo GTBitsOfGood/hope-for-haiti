@@ -34,3 +34,90 @@ test("removeMany validates ids and caps the batch before touching the database",
     /Cannot delete more than 500/
   );
 });
+
+test("bulk delete route deletes only requested rows and rejects bad requests", async () => {
+  const { mock } = (await import("node:test")) as unknown as {
+    mock: { module?: unknown } & Record<string, unknown>;
+  };
+  if (typeof mock.module !== "function") {
+    // Older Node without mock.module: route-level coverage comes from the
+    // real browser E2E instead (evidence/issue-393/results/e2e.json).
+    assert.ok(true);
+    return;
+  }
+  const mockModule = mock.module as unknown as (
+    specifier: string,
+    options: { namedExports: Record<string, unknown> }
+  ) => void;
+
+  let deletedIds: number[] = [];
+  let authorized = false;
+
+  mockModule("@/auth", {
+    namedExports: {
+      auth: async () => (authorized ? { user: { id: "1", type: "STAFF" } } : null),
+    },
+  });
+  mockModule("@/db", {
+    namedExports: {
+      db: {
+        itemPrice: {
+          deleteMany: async ({ where }: { where: { id: { in: number[] } } }) => {
+            deletedIds = where.id.in;
+            return { count: where.id.in.length };
+          },
+        },
+      },
+    },
+  });
+  mockModule("@/services/userService", {
+    namedExports: {
+      default: {
+        checkStaff: () => {},
+        checkPermission: () => {},
+      },
+    },
+  });
+
+  const route = await import("../../src/app/api/itemPrices/bulkDelete/route");
+  const POST = route.POST as unknown as (
+    request: Request,
+    context: unknown
+  ) => Promise<Response>;
+
+  const makeRequest = (body: unknown) =>
+    new Request("http://localhost/api/itemPrices/bulkDelete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    }) as unknown as Parameters<typeof POST>[0];
+
+  authorized = true;
+  const ok = (await POST(
+    makeRequest({ ids: [3, 1, 3] }),
+    {} as never
+  )) as unknown as Response;
+  assert.equal(ok.status, 200);
+  assert.deepEqual(await ok.json(), { count: 2 });
+  assert.deepEqual([...deletedIds].sort(), [1, 3]);
+
+  authorized = false;
+  const unauth = (await POST(
+    makeRequest({ ids: [1] }),
+    {} as never
+  )) as unknown as Response;
+  assert.equal(unauth.status, 401);
+
+  authorized = true;
+  const badJson = (await POST(
+    makeRequest("not-json"),
+    {} as never
+  )) as unknown as Response;
+  assert.equal(badJson.status, 400);
+
+  const badIds = (await POST(
+    makeRequest({ ids: [0] }),
+    {} as never
+  )) as unknown as Response;
+  assert.equal(badIds.status, 400);
+});

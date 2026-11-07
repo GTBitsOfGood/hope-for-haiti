@@ -154,6 +154,10 @@ function AdvancedBaseTableInner<T extends object>(
     setSelection(next);
   }, [selectionEnabled, selectedIds, items, resolveRowId, setSelection]);
 
+  // While a page loads, `items` still holds the previous page's rows. Keep
+  // selection disabled so stale rows can never be selected and bulk-acted on.
+  const selectionDisabled = !selectionEnabled || isLoading;
+
   useEffect(() => {
     setFilterableColumns((previous) => {
       const previousMap = new Map(
@@ -465,11 +469,12 @@ function AdvancedBaseTableInner<T extends object>(
                     type="checkbox"
                     aria-label={allPageSelected ? "Deselect page" : "Select page"}
                     checked={allPageSelected}
+                    disabled={selectionDisabled}
                     ref={(el) => {
                       if (el) el.indeterminate = somePageSelected;
                     }}
                     onChange={togglePage}
-                    className="cursor-pointer accent-red-500"
+                    className="cursor-pointer accent-red-500 disabled:opacity-50"
                   />
                 </th>
               )}
@@ -563,8 +568,9 @@ function AdvancedBaseTableInner<T extends object>(
                             type="checkbox"
                             aria-label={`Select row ${rowIdString}`}
                             checked={selectedIds?.has(resolvedRowId) ?? false}
+                            disabled={selectionDisabled}
                             onChange={() => toggleRow(resolvedRowId)}
-                            className="cursor-pointer accent-red-500"
+                            className="cursor-pointer accent-red-500 disabled:opacity-50"
                           />
                         </td>
                       )}

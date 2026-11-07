@@ -91,7 +91,20 @@ export default function PricebookScreen() {
     const result = await apiClient.post<{ count: number }>("/api/itemPrices/bulkDelete", { body });
     setBulkDeleting(false);
     setSelectedIds(new Set());
-    table.current?.reload();
+
+    // If every row on the current page was deleted, moving back a page avoids
+    // landing on an empty "No results found" view (same adjustment the
+    // table's removeItemById makes for single deletes).
+    const pageItems = table.current?.getAllItems() ?? [];
+    const idSet = new Set(ids);
+    const currentPage = table.current?.getPage() ?? 1;
+    const allPageDeleted =
+      pageItems.length > 0 && pageItems.every((item) => idSet.has(item.id));
+    if (allPageDeleted && currentPage > 1) {
+      table.current?.setPage(currentPage - 1);
+    } else {
+      table.current?.reload();
+    }
     toast.success(
       `Deleted ${result.count} price${result.count === 1 ? "" : "s"}`
     );
