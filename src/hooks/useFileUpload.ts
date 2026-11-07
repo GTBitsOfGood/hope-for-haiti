@@ -113,6 +113,13 @@ export function useFileUpload<T>(
       if (validationErrors && validationErrors.length > 0) {
         setFileErrorMessage(null);
         setErrors(validationErrors);
+        // The pick was rejected, so nothing is kept: drop any previously
+        // selected file too. Otherwise stale uploadedFile state would make
+        // callers treat the field-validation errors as kept-file errors.
+        setUploadedFile(undefined);
+        setFileName("");
+        setFileSize(0);
+        setFileUploaded(false);
         e.target.value = "";
         return;
       }
