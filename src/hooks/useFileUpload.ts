@@ -22,6 +22,8 @@ interface UseFileUploadResult {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   /** Re-runs preview against the already-selected file, without a new file pick. */
   rerunPreview: () => Promise<void>;
+  /** Clears validation/API error messages without discarding the selected file. */
+  clearErrors: () => void;
   resetUpload: () => void;
 }
 
@@ -127,6 +129,11 @@ export function useFileUpload<T>(
     await runPreview(uploadedFile);
   };
 
+  const clearErrors = () => {
+    setFileErrorMessage(null);
+    setErrors([]);
+  };
+
   const resetUpload = () => {
     // Invalidate any Preview request still in flight so its eventual
     // response can't repopulate state the user just reset.
@@ -150,6 +157,7 @@ export function useFileUpload<T>(
     uploadedFile,
     handleFileChange,
     rerunPreview,
+    clearErrors,
     resetUpload,
   };
 }
