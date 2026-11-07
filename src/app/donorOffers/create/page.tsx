@@ -291,7 +291,7 @@ export default function CreateDonorOfferPage() {
 
       {isSubmitting && <BulkAddLoadingModal />}
 
-      {isSuccess && <DonorOfferSuccessModal />}
+      {isSuccess && <DonorOfferSuccessModal mode="create" />}
 
       {isError && (
         <DonorOfferErrorModal
