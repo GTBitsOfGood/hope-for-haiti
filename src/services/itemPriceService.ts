@@ -12,6 +12,8 @@ import {
   buildItemPriceUploadReview,
   getItemPriceUploadCodes,
 } from "@/util/itemPriceUpload";
+const MAX_BULK_DELETE = 500;
+
 import type {
   ItemPriceInput,
   ItemPriceResponse,
@@ -228,6 +230,26 @@ export class ItemPriceService {
     assertPriceId(id);
     try {
       await db.itemPrice.delete({ where: { id } });
+    } catch (error) {
+      return dbError(error);
+    }
+  }
+
+  static async removeMany(ids: number[]): Promise<number> {
+    const unique = [...new Set(ids)];
+    if (unique.length > MAX_BULK_DELETE) {
+      throw new ArgumentError(
+        `Cannot delete more than ${MAX_BULK_DELETE} prices at once.`
+      );
+    }
+    for (const id of unique) {
+      assertPriceId(id);
+    }
+    try {
+      const result = await db.itemPrice.deleteMany({
+        where: { id: { in: unique } },
+      });
+      return result.count;
     } catch (error) {
       return dbError(error);
     }

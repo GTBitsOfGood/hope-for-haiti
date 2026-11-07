@@ -61,6 +61,10 @@ interface AdvancedBaseTableProps<T extends object> {
   disableFilters?: boolean;
   filterButtonAttributes?: DataAttributes;
   getRowAttributes?: (item: T, index: number) => DataAttributes | undefined;
+  /** Opt-in row selection. When provided, a checkbox column renders first
+   * and the table clears the selection whenever page or filters change. */
+  selectedIds?: Set<string | number>;
+  onSelectedIdsChange?: (ids: Set<string | number>) => void;
 }
 
 function AdvancedBaseTableInner<T extends object>(
@@ -81,6 +85,8 @@ function AdvancedBaseTableInner<T extends object>(
     disableFilters = false,
     filterButtonAttributes,
     getRowAttributes,
+    selectedIds,
+    onSelectedIdsChange,
   }: AdvancedBaseTableProps<T>,
   ref: ForwardedRef<AdvancedBaseTableHandle<T>>
 ) {
@@ -106,6 +112,47 @@ function AdvancedBaseTableInner<T extends object>(
     return (item: T) =>
       (item as Record<string, unknown>)[rowId as string] as string | number;
   }, [rowId]);
+
+  const selectionEnabled = Boolean(selectedIds && onSelectedIdsChange);
+
+  const setSelection = useCallback(
+    (ids: Set<string | number>) => {
+      onSelectedIdsChange?.(ids);
+    },
+    [onSelectedIdsChange]
+  );
+
+  // Selection is scoped to what the user can currently see: any page or
+  // filter change clears it so bulk actions can never hit unseen rows.
+  useEffect(() => {
+    if (selectionEnabled) {
+      onSelectedIdsChange?.(new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filters]);
+
+  const toggleRow = useCallback(
+    (id: string | number) => {
+      if (!selectionEnabled || !selectedIds) return;
+      const next = new Set(selectedIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      setSelection(next);
+    },
+    [selectionEnabled, selectedIds, setSelection]
+  );
+
+  const togglePage = useCallback(() => {
+    if (!selectionEnabled || !selectedIds) return;
+    const pageIds = items.map((item) => resolveRowId(item));
+    const allSelected = pageIds.every((id) => selectedIds.has(id));
+    const next = new Set(selectedIds);
+    for (const id of pageIds) {
+      if (allSelected) next.delete(id);
+      else next.add(id);
+    }
+    setSelection(next);
+  }, [selectionEnabled, selectedIds, items, resolveRowId, setSelection]);
 
   useEffect(() => {
     setFilterableColumns((previous) => {
@@ -361,6 +408,19 @@ function AdvancedBaseTableInner<T extends object>(
   const canGoPrevious = page > 1;
   const canGoNext = page < totalPages;
 
+  const pageIds = useMemo(
+    () => (selectionEnabled ? items.map((item) => resolveRowId(item)) : []),
+    [selectionEnabled, items, resolveRowId]
+  );
+  const allPageSelected =
+    selectionEnabled &&
+    pageIds.length > 0 &&
+    pageIds.every((id) => selectedIds?.has(id));
+  const somePageSelected =
+    selectionEnabled && !allPageSelected && pageIds.some((id) => selectedIds?.has(id));
+
+  const selectionColumnCount = selectionEnabled ? 1 : 0;
+
   const showEmptyState = !isLoading && !items.length && !error;
 
   return (
@@ -396,6 +456,23 @@ function AdvancedBaseTableInner<T extends object>(
                 headerClassName ? headerClassName : ""
               }`}
             >
+              {selectionEnabled && (
+                <th
+                  key="selection"
+                  className="px-4 py-4 first:rounded-tl-lg w-10"
+                >
+                  <input
+                    type="checkbox"
+                    aria-label={allPageSelected ? "Deselect page" : "Select page"}
+                    checked={allPageSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = somePageSelected;
+                    }}
+                    onChange={togglePage}
+                    className="cursor-pointer accent-red-500"
+                  />
+                </th>
+              )}
               {normalizedColumns.filter((column) => !column.hidden).map((column) => (
                 <th
                   key={column.id}
@@ -420,7 +497,7 @@ function AdvancedBaseTableInner<T extends object>(
             ) : error ? (
               <tr>
                 <td
-                  colSpan={normalizedColumns.length}
+                  colSpan={normalizedColumns.length + selectionColumnCount}
                   className="py-6 text-center text-sm text-red-600"
                 >
                   {error}
@@ -429,7 +506,7 @@ function AdvancedBaseTableInner<T extends object>(
             ) : showEmptyState ? (
               <tr>
                 <td
-                  colSpan={normalizedColumns.length}
+                  colSpan={normalizedColumns.length + selectionColumnCount}
                   className="py-6 text-center text-gray-primary/70"
                 >
                   {emptyState ?? "No results found."}
@@ -480,6 +557,17 @@ function AdvancedBaseTableInner<T extends object>(
                         }
                       }}
                     >
+                      {selectionEnabled && (
+                        <td className="px-4 py-4 whitespace-nowrap overflow-visible">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select row ${rowIdString}`}
+                            checked={selectedIds?.has(resolvedRowId) ?? false}
+                            onChange={() => toggleRow(resolvedRowId)}
+                            className="cursor-pointer accent-red-500"
+                          />
+                        </td>
+                      )}
                       {normalizedColumns.filter((column) => !column.hidden).map((column) => {
                         const rawContent = column.render(
                           item,
