@@ -1597,8 +1597,16 @@ export default class DonorOfferService {
       existingOffer.partnerVisibilities.map((partner) => partner.id)
     );
 
+    const nextPartnerIds =
+      updateData.partners !== undefined
+        ? [...new Set(updateData.partners)]
+        : undefined;
     const addedPartnerIds =
-      updateData.partners?.filter((id) => !existingPartnerIds.has(id)) ?? [];
+      nextPartnerIds?.filter((id) => !existingPartnerIds.has(id)) ?? [];
+    const removedPartnerIds =
+      nextPartnerIds !== undefined
+        ? [...existingPartnerIds].filter((id) => !nextPartnerIds.includes(id))
+        : [];
 
     let newPartners: { id: number; name: string; email: string }[] = [];
 
@@ -1632,19 +1640,32 @@ export default class DonorOfferService {
       donorName: updateData.donorName,
       partnerResponseDeadline: updateData.partnerResponseDeadline,
       donorResponseDeadline: updateData.donorResponseDeadline,
-      ...(addedPartnerIds !== undefined
+      ...(nextPartnerIds !== undefined
         ? {
             partnerVisibilities: {
-              connect: addedPartnerIds.map((partnerId) => ({ id: partnerId })),
+              set: nextPartnerIds.map((partnerId) => ({ id: partnerId })),
             },
           }
         : {}),
       state: updateData.state,
     };
 
-    const updatedOffer = await db.donorOffer.update({
-      where: { id: donorOfferId },
-      data: update,
+    const updatedOffer = await db.$transaction(async (tx) => {
+      const offer = await tx.donorOffer.update({
+        where: { id: donorOfferId },
+        data: update,
+      });
+
+      if (removedPartnerIds.length > 0) {
+        await tx.generalItemRequest.deleteMany({
+          where: {
+            partnerId: { in: removedPartnerIds },
+            generalItem: { donorOfferId },
+          },
+        });
+      }
+
+      return offer;
     });
 
     if (addedPartnerIds.length > 0) {

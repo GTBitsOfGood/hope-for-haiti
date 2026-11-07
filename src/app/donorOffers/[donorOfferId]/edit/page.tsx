@@ -75,9 +75,15 @@ export default function EditDonorOfferPage() {
       formData.append("partnerResponseDeadline", partnerResponseDeadline);
       formData.append("donorResponseDeadline", donorResponseDeadline);
 
-      selectedPartners.forEach((partner) => {
-        formData.append("partners[]", partner.id.toString());
-      });
+      if (selectedPartners.length === 0) {
+        // Explicit empty list so the API replaces visibilities instead of
+        // treating a missing field as "leave partners unchanged".
+        formData.append("partners[]", "");
+      } else {
+        selectedPartners.forEach((partner) => {
+          formData.append("partners[]", partner.id.toString());
+        });
+      }
 
       await apiClient.patch(`/api/donorOffers/${donorOfferId}`, {
         body: formData
