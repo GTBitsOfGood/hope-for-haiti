@@ -1,20 +1,26 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
-import AllocationTable from "@/components/allocationTable/AllocationTable";
+import AllocationTable, {
+  buildDefaultColumns,
+} from "@/components/allocationTable/AllocationTable";
 import {
   AllocationChange,
   AllocationTableItem,
   AllocationTableMeta,
 } from "@/components/allocationTable/types";
-import type { FilterList } from "@/components/baseTable/AdvancedBaseTable";
+import type {
+  ColumnDefinition,
+  FilterList,
+} from "@/components/baseTable/AdvancedBaseTable";
 import type { PartnerDistributionSummary } from "@/components/chips/LineItemChipGroup";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useFetch } from "@/hooks/useFetch";
 import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
+import { formatCurrency, getMockPriceInfo } from "@/util/mockPrices";
 
 type AllocationResponse = {
   items: AllocationTableItem[];
@@ -75,6 +81,70 @@ export default function AdminAllocateDonorOfferScreen() {
       distributionsRef.current = normalized;
     },
   });
+
+  // Separate, unpaginated fetch of every item on the offer so "Value at
+  // Finalize" reflects the whole offer, not just the table's current page.
+  // TEMP (#387): pageSize=1000 is a client-side "fetch all" workaround since
+  // there's no dedicated totals endpoint yet — fine for realistic offer
+  // sizes today, but would silently undercount past 1000 general items on
+  // one offer. Revisit once the backend ticket adds a real aggregate.
+  const { data: allItemsData, isLoading: isLoadingAllItems } = useFetch<{
+    items: AllocationTableItem[];
+  }>(
+    `/api/donorOffers/${donorOfferId}/allocationItems?page=1&pageSize=1000&filters=${encodeURIComponent("{}")}`,
+    { conditionalFetch: isValidDonorOfferId }
+  );
+
+  const valueAtFinalize = (() => {
+    const items = allItemsData?.items ?? [];
+    const itemsWithSavedPrice = items.filter(
+      (item) => getMockPriceInfo(item).savedPrice !== null
+    );
+
+    if (itemsWithSavedPrice.length === 0) {
+      return null;
+    }
+
+    return itemsWithSavedPrice.reduce((sum, item) => {
+      const { savedPrice } = getMockPriceInfo(item);
+      return sum + (savedPrice ?? 0) * item.quantity;
+    }, 0);
+  })();
+
+  const allocationColumns: ColumnDefinition<AllocationTableItem>[] = useMemo(
+    () => [
+      ...buildDefaultColumns(),
+      {
+        id: "donorPrice",
+        header: "Donor Price",
+        cell: (item) => formatCurrency(getMockPriceInfo(item).donorPrice),
+        filterable: false,
+      },
+      {
+        id: "savedPrice",
+        header: "Saved Price",
+        cell: (item) => {
+          const { savedPrice } = getMockPriceInfo(item);
+          return savedPrice === null
+            ? "No saved price"
+            : formatCurrency(savedPrice);
+        },
+        filterable: false,
+      },
+      {
+        id: "value",
+        header: "Value",
+        cell: (item) => {
+          const { savedPrice } = getMockPriceInfo(item);
+          return savedPrice === null
+            ? "No saved price"
+            : formatCurrency(savedPrice * item.quantity);
+        },
+        filterable: false,
+      },
+    ],
+    []
+  );
 
   const fetchTableData = useCallback(
     async (
@@ -265,6 +335,19 @@ export default function AdminAllocateDonorOfferScreen() {
     <>
       <DonorOfferHeader donorOfferId={params.donorOfferId} />
 
+      <div className="mt-2 mb-4 p-4 rounded-lg border border-blue-200 bg-white inline-block">
+        <p className="text-sm font-medium text-black mb-1">
+          Value at Finalize
+        </p>
+        <p className="text-2xl font-bold text-blue-primary">
+          {isLoadingAllItems
+            ? "Loading..."
+            : valueAtFinalize === null
+              ? "No saved price"
+              : formatCurrency(valueAtFinalize)}
+        </p>
+      </div>
+
       {modifiedPagesCount > 0 && (
         <div className="mb-4 mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
@@ -278,6 +361,7 @@ export default function AdminAllocateDonorOfferScreen() {
 
       <AllocationTable
         fetchFn={fetchTableData}
+        columns={allocationColumns}
         ensureDistributionForPartner={ensureDistributionForPartner}
         onDistributionRemoved={handleDistributionRemoved}
         suggestionConfig={{
