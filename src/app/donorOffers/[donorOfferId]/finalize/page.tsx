@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import FileUpload from "@/components/FileUpload";
 import { DonorOffer, GeneralItem, GeneralItemRequest } from "@prisma/client";
 import {
@@ -28,8 +28,17 @@ import {
   codesNeedingPrice,
   itemsNeedingPrice,
   summarize as summarizePriceCheck,
+  validateCodeOverride,
 } from "@/util/priceCheck";
 import Papa from "papaparse";
+
+function serializeCodeOverrides(overrides: Record<number, string>): string {
+  return JSON.stringify(
+    Object.entries(overrides)
+      .map(([row, code]) => ({ row: Number(row), code }))
+      .sort((left, right) => left.row - right.row)
+  );
+}
 
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
@@ -47,6 +56,9 @@ export default function FinalizeDonorOfferPage() {
   }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const codeOverridesRef = useRef<Record<number, string>>({});
+  const uploadGenerationRef = useRef(0);
+  const checkInFlightRef = useRef<number | null>(null);
 
   const [previewData, setPreviewData] = useState<DonorOfferItem[]>([]);
   const [preview, setPreview] = useState(false);
@@ -97,6 +109,13 @@ export default function FinalizeDonorOfferPage() {
       setPreviewData(result.donorOfferItems);
       setBackendCanFinalize(result.canFinalize);
     },
+    buildFormData: (_, formData) => {
+      const overrides = codeOverridesRef.current;
+      if (Object.keys(overrides).length > 0) {
+        formData.append("codeOverrides", serializeCodeOverrides(overrides));
+      }
+      return formData;
+    },
   });
 
   const { isLoading: isSubmitting, apiClient } = useApiClient();
@@ -117,6 +136,7 @@ export default function FinalizeDonorOfferPage() {
     }));
   const blockingItems = itemsNeedingPrice(priceCheckedItems);
   const canFinalizeNow = backendCanFinalize ?? derivePriceCheckCanFinalize(priceCheckedItems);
+  const finalizeDisabled = !canFinalizeNow || fileLoading;
   const priceCheckSummary = summarizePriceCheck(priceCheckedItems);
 
   const openPriceAction = (item: DonorOfferItem) => {
@@ -126,6 +146,59 @@ export default function FinalizeDonorOfferPage() {
 
   const handleStepperSaved = async () => {
     if (uploadedFile) await rerunPreview();
+  };
+
+  const handleFileSelection = async (event: ChangeEvent<HTMLInputElement>) => {
+    uploadGenerationRef.current += 1;
+    checkInFlightRef.current = null;
+    codeOverridesRef.current = {};
+    await handleFileChange(event);
+  };
+
+  const handleCodeCheck = async (row: number, code: string): Promise<string | null> => {
+    const generation = uploadGenerationRef.current;
+    if (checkInFlightRef.current === generation) {
+      return "Please wait for the current check to finish.";
+    }
+
+    const item = previewData.find((entry, index) => (entry.row ?? index + 1) === row);
+    if (!item?.priceCheck) {
+      return "This row is no longer available. Refresh Preview and try again.";
+    }
+    if (!uploadedFile) {
+      return "Upload a file before checking a code.";
+    }
+
+    const validation = validateCodeOverride(item.priceCheck.code, code);
+    if (validation.status === "error") {
+      return validation.message;
+    }
+
+    checkInFlightRef.current = generation;
+    const previousValue = codeOverridesRef.current[row];
+    codeOverridesRef.current = { ...codeOverridesRef.current, [row]: validation.value };
+    try {
+      const checked = await rerunPreview();
+      if (checked === "error") {
+        if (uploadGenerationRef.current === generation) {
+          const current = codeOverridesRef.current;
+          if (current[row] === validation.value) {
+            const next = { ...current };
+            if (previousValue === undefined) delete next[row];
+            else next[row] = previousValue;
+            codeOverridesRef.current = next;
+          }
+        }
+        return "Unable to check this code. Please try again.";
+      }
+      // "superseded" means a newer Preview already owns the result. Keep the
+      // row override instead of restoring a stale snapshot.
+      return null;
+    } finally {
+      if (checkInFlightRef.current === generation) {
+        checkInFlightRef.current = null;
+      }
+    }
   };
 
   const downloadPriceList = () => {
@@ -160,6 +233,9 @@ export default function FinalizeDonorOfferPage() {
 
   const resetUpload = () => {
     resetFileUpload();
+    uploadGenerationRef.current += 1;
+    checkInFlightRef.current = null;
+    codeOverridesRef.current = {};
     setPreview(false);
     setPreviewData([]);
     setBackendCanFinalize(undefined);
@@ -174,12 +250,19 @@ export default function FinalizeDonorOfferPage() {
   };
 
   const handleSubmit = async () => {
-    if (!uploadedFile) {
+    if (
+      !uploadedFile ||
+      finalizeDisabled ||
+      checkInFlightRef.current === uploadGenerationRef.current
+    ) {
       return;
     }
 
     const formData = new FormData();
     formData.append("file", uploadedFile);
+    if (Object.keys(codeOverridesRef.current).length > 0) {
+      formData.append("codeOverrides", serializeCodeOverrides(codeOverridesRef.current));
+    }
 
     try {
       await apiClient.patch(`/api/donorOffers/${donorOfferId}`, {
@@ -275,7 +358,7 @@ export default function FinalizeDonorOfferPage() {
           <FileUpload
             resetUpload={resetUpload}
             fileLoading={fileLoading}
-            handleFileChange={handleFileChange}
+            handleFileChange={handleFileSelection}
             ref={fileInputRef}
           />
         </div>
@@ -314,7 +397,13 @@ export default function FinalizeDonorOfferPage() {
               </button>
             )}
           </div>
-          <PreviewTable final={true} data={previewData} onPriceAction={openPriceAction} />
+          <PreviewTable
+            final={true}
+            data={previewData}
+            onPriceAction={openPriceAction}
+            onCodeCheck={handleCodeCheck}
+            checking={fileLoading}
+          />
         </>
       )}
 
@@ -334,15 +423,15 @@ export default function FinalizeDonorOfferPage() {
         </button>
         {preview ? (
           <button
-            disabled={!canFinalizeNow}
+            disabled={finalizeDisabled}
             onClick={handleSubmit}
             className={
-              canFinalizeNow
-                ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
-                : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+              finalizeDisabled
+                ? "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+                : "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
             }
           >
-            Finalize Offer
+            {fileLoading ? "Checking..." : "Finalize Offer"}
           </button>
         ) : (
           <button

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import BaseTable, {extendTableHeader} from "../baseTable/BaseTable";
 import type { PriceCheck } from "@/types/api/donorOffer.types";
 import PriceCheckBadge from "./PriceCheckBadge";
+import PriceCheckCodeCell from "./PriceCheckCodeCell";
 import { doesPriceCheckBlockFinalize } from "@/util/priceCheck";
 
 // Define donor offer item data type based on schema
@@ -37,6 +38,10 @@ interface PreviewTableProps {
   final: boolean;
   /** Called when a row's "Add price"/"Re-check" button is clicked. */
   onPriceAction?: (item: DonorOfferItem) => void;
+  /** Called when a warning row's typed code is checked. Returns a row error or null. */
+  onCodeCheck?: (row: number, code: string) => Promise<string | null>;
+  /** Disables code checks while a Preview request is in flight. */
+  checking?: boolean;
 }
 
 const MagnifyingGlassIcon = () => (
@@ -91,7 +96,13 @@ const AdditionalInfoTooltip = ({ info }: { info: Record<string, unknown> }) => {
   );
 };
 
-export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) => {
+export const PreviewTable = ({
+  data,
+  final,
+  onPriceAction,
+  onCodeCheck,
+  checking = false,
+}: PreviewTableProps) => {
   useEffect(() => {
     console.log(data, final);
   }, [data, final]);
@@ -142,7 +153,7 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
           extendTableHeader("# of Containers", "min-w-28"),
           extendTableHeader("Cost Per Piece (Donor)", "min-w-28"),
           extendTableHeader("Status", "min-w-32"),
-          extendTableHeader("Code", "min-w-32"),
+          extendTableHeader("Code", "min-w-64"),
           extendTableHeader("Our Price", "min-w-24"),
           extendTableHeader("Price Set", "min-w-28"),
           extendTableHeader("Value", "min-w-24"),
@@ -172,9 +183,22 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
                 ? `$${Number(item.unitPrice).toFixed(2)}`
                 : "-",
               priceCheck ? <PriceCheckBadge key={`status-${index}`} status={priceCheck.status} /> : "-",
-              priceCheck?.code
-                ? `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
-                : "-",
+              priceCheck &&
+              (priceCheck.status === "no-code" || priceCheck.status === "unreadable") &&
+              onCodeCheck ? (
+                <PriceCheckCodeCell
+                  key={`code-${item.row ?? index}`}
+                  row={item.row ?? index + 1}
+                  title={item.title}
+                  initialCode={priceCheck.code}
+                  disabled={checking}
+                  onCheck={onCodeCheck}
+                />
+              ) : priceCheck?.code ? (
+                `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
+              ) : (
+                "-"
+              ),
               priceCheck?.price != null ? `$${Number(priceCheck.price).toFixed(2)}` : "-",
               priceCheck?.priceSetOn ?? "-",
               priceCheck?.value != null ? `$${Number(priceCheck.value).toFixed(2)}` : "-",
