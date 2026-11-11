@@ -74,6 +74,7 @@ export type AllocationTableProps = {
     partnerName: string
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
+  onAllocationChange?: () => void;
   suggestionConfig?: SuggestionConfig;
   toolBarExtras?: React.ReactNode;
   emptyState?: React.ReactNode;
@@ -134,6 +135,7 @@ export default function AllocationTable({
   pageSize = 20,
   ensureDistributionForPartner,
   onDistributionRemoved,
+  onAllocationChange,
   suggestionConfig,
   toolBarExtras,
   emptyState,
@@ -342,8 +344,9 @@ export default function AllocationTable({
             : request
         ),
       }));
+      onAllocationChange?.();
     },
-    [updateItemById]
+    [onAllocationChange, updateItemById]
   );
 
   const fetchAllItems = useCallback(async (): Promise<

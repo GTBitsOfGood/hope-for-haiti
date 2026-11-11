@@ -11,15 +11,18 @@ import {
 } from "@/components/allocationTable/types";
 import type { FilterList } from "@/components/baseTable/AdvancedBaseTable";
 import type { PartnerDistributionSummary } from "@/components/chips/LineItemChipGroup";
+import ValueByPartnerSummary from "@/components/DonorOffers/ValueByPartnerSummary";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useFetch } from "@/hooks/useFetch";
 import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
+import type { AllocationValueSummary } from "@/util/allocationValue";
 
 type AllocationResponse = {
   items: AllocationTableItem[];
   total: number;
   savedTotal: string | null;
+  valueByPartner: AllocationValueSummary;
   orphanedRequests: AllocationTableMeta["orphanedRequests"];
   generalItemOptions: AllocationTableMeta["generalItemOptions"];
 };
@@ -43,6 +46,12 @@ export default function AdminAllocateDonorOfferScreen() {
   const donorOfferId = Number(params?.donorOfferId);
   const isValidDonorOfferId = Number.isFinite(donorOfferId);
   const [modifiedPagesCount, setModifiedPagesCount] = useState(0);
+  const [valueByPartner, setValueByPartner] =
+    useState<AllocationValueSummary | null>(null);
+  const [savedTotal, setSavedTotal] = useState<string | null>(null);
+  const valueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const distributionsRef = useRef<
     Record<number, PartnerDistributionSummary | undefined>
@@ -77,6 +86,37 @@ export default function AdminAllocateDonorOfferScreen() {
     },
   });
 
+  const refreshValueByPartner = useCallback(async () => {
+    if (!isValidDonorOfferId) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      page: "1",
+      pageSize: "1",
+      filters: JSON.stringify({}),
+    });
+
+    const response = await apiClient.get<AllocationResponse>(
+      `/api/donorOffers/${donorOfferId}/allocationItems?${params}`,
+      { cache: "no-store" }
+    );
+
+    setValueByPartner(response.valueByPartner);
+    setSavedTotal(response.savedTotal);
+  }, [apiClient, donorOfferId, isValidDonorOfferId]);
+
+  const scheduleValueByPartnerRefresh = useCallback(() => {
+    if (valueRefreshTimerRef.current) {
+      clearTimeout(valueRefreshTimerRef.current);
+    }
+    valueRefreshTimerRef.current = setTimeout(() => {
+      void refreshValueByPartner().catch((error) => {
+        console.warn("Failed to refresh value by partner:", error);
+      });
+    }, 150);
+  }, [refreshValueByPartner]);
+
   const fetchTableData = useCallback(
     async (
       pageSize: number,
@@ -97,6 +137,9 @@ export default function AdminAllocateDonorOfferScreen() {
         `/api/donorOffers/${donorOfferId}/allocationItems?${params}`,
         { cache: "no-store" }
       );
+
+      setValueByPartner(response.valueByPartner);
+      setSavedTotal(response.savedTotal);
 
       const items = response.items.map((item) => ({
         ...item,
@@ -277,15 +320,24 @@ export default function AdminAllocateDonorOfferScreen() {
         </div>
       )}
 
+      <ValueByPartnerSummary
+        summary={valueByPartner}
+        savedTotal={savedTotal}
+      />
+
       <AllocationTable
         fetchFn={fetchTableData}
         ensureDistributionForPartner={ensureDistributionForPartner}
         onDistributionRemoved={handleDistributionRemoved}
+        onAllocationChange={scheduleValueByPartnerRefresh}
         suggestionConfig={{
           onSuggest: handleSuggestAllocations,
           onApply: handleApplySuggestions,
           onAfterApply: () => {
             refetchDistributions();
+            void refreshValueByPartner().catch((error) => {
+              console.warn("Failed to refresh value by partner:", error);
+            });
           },
           onModifiedPagesChange: setModifiedPagesCount,
         }}
