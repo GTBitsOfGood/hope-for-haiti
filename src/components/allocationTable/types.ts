@@ -23,6 +23,8 @@ export type AllocationLineItem = {
   lotNumber: string | null;
   palletNumber: string | null;
   boxNumber: string | null;
+  savedUnitPrice: string | null;
+  priceSetOn: string | null;
   allocation: {
     id: number;
     partner: {

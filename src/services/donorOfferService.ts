@@ -17,11 +17,16 @@ import { ArgumentError, NotFoundError } from "@/util/errors";
 import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
 import {
   buildPriceCheck,
+  centsToMoneyString,
   doesPriceCheckBlockFinalize,
+  moneyStringToCents,
   priceCheckErrorMessage,
   type PriceBookEntry,
 } from "@/util/priceCheck";
-import type { PriceCheckStatus } from "@/types/api/donorOffer.types";
+import type {
+  PriceCheck,
+  PriceCheckStatus,
+} from "@/types/api/donorOffer.types";
 import {
   PartnerDonorOffer,
   AdminDonorOffer,
@@ -232,10 +237,40 @@ const FinalizeDonorOfferItemSchema = z.object({
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
+type FinalizeDonorOfferItemWithPrice = FinalizeDonorOfferItem & {
+  priceCheck: PriceCheck;
+};
 type ValidFinalizeRow = {
   row: number;
   item: FinalizeDonorOfferItem;
 };
+
+function snapshotFromPriceCheck(priceCheck: PriceCheck): {
+  savedUnitPrice: string | null;
+  priceSetOn: Date | null;
+} {
+  if (priceCheck.status !== "priced" || !priceCheck.price) {
+    return { savedUnitPrice: null, priceSetOn: null };
+  }
+  return {
+    savedUnitPrice: priceCheck.price,
+    priceSetOn: priceCheck.priceSetOn
+      ? new Date(`${priceCheck.priceSetOn}T00:00:00.000Z`)
+      : null,
+  };
+}
+
+function savedTotalFromPriceChecks(
+  items: { priceCheck: PriceCheck }[]
+): string {
+  let cents = BigInt(0);
+  for (const item of items) {
+    if (item.priceCheck.value) {
+      cents += moneyStringToCents(item.priceCheck.value);
+    }
+  }
+  return centsToMoneyString(cents);
+}
 type GeneralItemWithRequests = GeneralItem & {
   requests: (GeneralItemRequest & {
     partner: { id: number; name: string };
@@ -1371,15 +1406,24 @@ export default class DonorOfferService {
       };
     }
 
-    const validItems = validRows.map((row) => row.item);
+    const pricedItems: FinalizeDonorOfferItemWithPrice[] = validRows.map(
+      (row, index) => ({
+        ...row.item,
+        priceCheck: priceChecked.items[index].priceCheck,
+      })
+    );
+    const savedTotal = savedTotalFromPriceChecks(pricedItems);
 
     const updatedOffer = await db.donorOffer.update({
       where: { id: donorOfferId },
-      data: { state: $Enums.DonorOfferState.FINALIZED },
+      data: {
+        state: $Enums.DonorOfferState.FINALIZED,
+        savedTotal,
+      },
       include: { items: true },
     });
 
-    if (validItems.length > 0) {
+    if (pricedItems.length > 0) {
       try {
         await MatchingService.loadDonorOfferEmbeddings(
           donorOfferId,
@@ -1394,10 +1438,10 @@ export default class DonorOfferService {
 
       const lineItemsByGeneralItem = new Map<
         string,
-        FinalizeDonorOfferItem[]
+        FinalizeDonorOfferItemWithPrice[]
       >();
 
-      for (const item of validItems) {
+      for (const item of pricedItems) {
         const normalizedExpiration = DonorOfferService.normalizeExpirationDate(
           item.expirationDate
         );
@@ -1530,6 +1574,7 @@ export default class DonorOfferService {
         const lineItemsToCreate: Prisma.LineItemCreateManyInput[] =
           lineItems.map((item) => {
             const resolved = resolveFinalizedNdc(item.ndc, item.additionalInfo);
+            const snapshot = snapshotFromPriceCheck(item.priceCheck);
             return {
               allowAllocations: item.allowAllocations ?? true,
               visible: item.visible ?? true,
@@ -1540,6 +1585,8 @@ export default class DonorOfferService {
               palletNumber: item.palletNumber,
               boxNumber: item.boxNumber,
               unitPrice: item.unitPrice,
+              savedUnitPrice: snapshot.savedUnitPrice,
+              priceSetOn: snapshot.priceSetOn,
               ndc: resolved.ndc,
               notes: null,
               additionalInfo:
@@ -1562,7 +1609,7 @@ export default class DonorOfferService {
       },
     });
 
-    return { success: true, donorOfferId, createdCount: validItems.length };
+    return { success: true, donorOfferId, createdCount: pricedItems.length };
   }
 
   static async updateDonorOffer(
@@ -1763,7 +1810,7 @@ export default class DonorOfferService {
 
     buildQueryWithPagination(query, page, pageSize);
 
-    const [items, total, orphanedGeneralItems, targetOptions] =
+    const [items, total, orphanedGeneralItems, targetOptions, donorOffer] =
       await Promise.all([
         db.generalItem.findMany(query),
         db.generalItem.count({ where }),
@@ -1816,6 +1863,10 @@ export default class DonorOfferService {
           },
           orderBy: { title: "asc" },
         }),
+        db.donorOffer.findUnique({
+          where: { id: donorOfferId },
+          select: { savedTotal: true },
+        }),
       ]);
 
     type ItemWithItems = Prisma.GeneralItemGetPayload<{
@@ -1841,9 +1892,23 @@ export default class DonorOfferService {
         return {
           ...item,
           quantity,
+          items: item.items.map((lineItem) => ({
+            ...lineItem,
+            savedUnitPrice:
+              lineItem.savedUnitPrice != null
+                ? lineItem.savedUnitPrice.toFixed(2)
+                : null,
+            priceSetOn: lineItem.priceSetOn
+              ? lineItem.priceSetOn.toISOString().split("T")[0]
+              : null,
+          })),
         };
       }),
       total,
+      savedTotal:
+        donorOffer?.savedTotal != null
+          ? donorOffer.savedTotal.toFixed(2)
+          : null,
       orphanedRequests: orphanedGeneralItems.flatMap((generalItem) =>
         generalItem.requests.map((request) => ({
           requestId: request.id,

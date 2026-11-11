@@ -178,6 +178,7 @@ model DonorOffer {
   partnerResponseDeadline DateTime
   donorResponseDeadline   DateTime
   archivedAt              DateTime?
+  savedTotal              Decimal?  @db.Money
 
   partnerVisibilities User[]
   items               GeneralItem[]
@@ -226,6 +227,8 @@ model LineItem {
   palletNumber        String
   boxNumber           String
   unitPrice           Decimal   @db.Money
+  savedUnitPrice      Decimal?  @db.Money
+  priceSetOn          DateTime?
   maxRequestLimit     String?
   donorShippingNumber String?
   hfhShippingNumber   String?
@@ -245,8 +248,8 @@ model LineItem {
 }
 
 // Pricebook: one row per item code (NDC) holding the price entered by a staff
-// member, when it was entered, and who entered it. No price history is kept
-// (offers store their own copy of the price they used via LineItem.unitPrice).
+// member, when it was entered, and who entered it. No price history is kept.
+// Finalized offers snapshot the price they used onto LineItem.savedUnitPrice.
 model ItemPrice {
   id Int @id @default(autoincrement())
 
