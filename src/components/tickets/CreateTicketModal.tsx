@@ -9,7 +9,7 @@ import {
 } from "@/lib/userUtils";
 import ConfiguredSelect from "@/components/ConfiguredSelect";
 import { useApiClient } from "@/hooks/useApiClient";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Pencil } from "@phosphor-icons/react";
 
@@ -44,6 +44,8 @@ export default function CreateTicketModal({
 
   const [ticketName, setTicketName] = useState("");
   const [selectedPartner, setSelectedPartner] = useState<Partner>();
+  // Blocks a second create while one is running (double-click, or Enter twice).
+  const isCreatingRef = useRef(false);
 
   useEffect(() => {
     if (!apiClient || !isStaffUser) return;
@@ -56,6 +58,8 @@ export default function CreateTicketModal({
   }, [apiClient, isStaffUser]);
 
   async function createTicket() {
+    if (isCreatingRef.current) return;
+
     if (!apiClient) {
       toast.error("API client not available");
       return;
@@ -76,27 +80,32 @@ export default function CreateTicketModal({
       return;
     }
 
-    const promise = apiClient.post<{ channelId: string }>("/api/tickets", {
-      body: JSON.stringify({
-        ticketName: ticketName.trim(),
-        partnerId: selectedPartner?.id,
-      }),
-    });
+    isCreatingRef.current = true;
+    try {
+      const promise = apiClient.post<{ channelId: string }>("/api/tickets", {
+        body: JSON.stringify({
+          ticketName: ticketName.trim(),
+          partnerId: selectedPartner?.id,
+        }),
+      });
 
-    toast.promise(promise, {
-      loading: "Creating ticket...",
-      success: "Ticket created successfully!",
-      error: "Failed to create ticket.",
-    });
+      toast.promise(promise, {
+        loading: "Creating ticket...",
+        success: "Ticket created successfully!",
+        error: "Failed to create ticket.",
+      });
 
-    const response = await promise;
+      const response = await promise;
 
-    setTicketName("");
-    setSelectedPartner(undefined);
-    setIsOpen(false);
+      setTicketName("");
+      setSelectedPartner(undefined);
+      setIsOpen(false);
 
-    if (response.channelId && onTicketCreated) {
-      onTicketCreated(response.channelId);
+      if (response.channelId && onTicketCreated) {
+        onTicketCreated(response.channelId);
+      }
+    } finally {
+      isCreatingRef.current = false;
     }
   }
 
@@ -124,6 +133,14 @@ export default function CreateTicketModal({
             className="w-full p-2 border border-gray-primary/20 rounded mb-4"
             value={ticketName}
             onChange={(e) => setTicketName(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter creates the ticket, like Confirm. Skip held-down keys and
+              // IME typing (e.g. Chinese/Japanese), where Enter confirms a word.
+              if (e.key === "Enter" && !e.repeat && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                void createTicket();
+              }
+            }}
           />
           {isStaffUser && (
             <ConfiguredSelect
