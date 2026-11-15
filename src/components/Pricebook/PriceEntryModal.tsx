@@ -1,8 +1,8 @@
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { useEffect, useState } from "react";
 import type { ItemPriceInput, ItemPriceResponse } from "@/types/api/itemPrice.types";
-import { isValidMoneyString } from "@/util/itemPrice";
-import { parseItemCode } from "@/util/ndc";
+import { PRICE_FORMAT_MESSAGE, isValidMoneyString } from "@/util/itemPrice";
+import { parseItemCode, unreadableCodeMessage } from "@/util/ndc";
 
 export default function PriceEntryModal({ item, onClose, onSave }: {
   item: ItemPriceResponse | null | "new";
@@ -35,11 +35,11 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
       return;
     }
     if (parsedCode.status === "unreadable") {
-      setError("Enter a recognizable NDC or 12-digit UPC; ambiguous 10-digit undashed codes are not accepted.");
+      setError(unreadableCodeMessage(ndc));
       return;
     }
     if (!isValidMoneyString(price)) {
-      setError("Enter a non-negative price without leading zeros, with up to two decimal places and within the supported money range.");
+      setError(PRICE_FORMAT_MESSAGE);
       return;
     }
     setPending(true);
@@ -77,7 +77,7 @@ export default function PriceEntryModal({ item, onClose, onSave }: {
                 aria-describedby="ndc-guidance"
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
-              <p id="ndc-guidance" className="mt-1 text-sm text-gray-600">Use a recognized NDC format or a 12-digit UPC. Ambiguous 10-digit undashed codes are not accepted.{ndc.trim() && parsedCode.status === "normalized" ? ` Will save as ${parsedCode.value}.` : ""}</p>
+              <p id="ndc-guidance" className="mt-1 text-sm text-gray-600">Use an NDC (like 00093-4155-73) or a 12-digit UPC. A 10-digit code needs its dashes.{ndc.trim() && parsedCode.status === "normalized" ? ` Will save as ${parsedCode.value}.` : ""}</p>
             </div>
             <div>
               <label htmlFor="price-name" className="mb-1 block text-sm font-medium text-gray-700">Name (optional)</label>

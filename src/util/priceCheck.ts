@@ -1,4 +1,9 @@
-import { parseItemCode, resolveFinalizedNdc, type ParseItemCodeResult } from "@/util/ndc";
+import {
+  parseItemCode,
+  resolveFinalizedNdc,
+  unreadableCodeMessage,
+  type ParseItemCodeResult,
+} from "@/util/ndc";
 import { needsItemPriceRecheck } from "@/util/itemPrice";
 import type {
   PriceCheck,
@@ -22,8 +27,6 @@ export function doesPriceCheckBlockFinalize(status: PriceCheckStatus): boolean {
 }
 
 export const CODE_OVERRIDE_REQUIRED_MESSAGE = "Enter a code.";
-export const CODE_OVERRIDE_UNREADABLE_MESSAGE =
-  "Enter a recognizable NDC or 12-digit UPC. A 10-digit code without dashes is ambiguous.";
 export const CODE_OVERRIDE_READABLE_MESSAGE =
   "This row already has a readable code and cannot be changed.";
 
@@ -57,7 +60,7 @@ export function validateCodeOverride(
   if (parsed.status === "empty") {
     return { status: "error", message: CODE_OVERRIDE_REQUIRED_MESSAGE };
   }
-  return { status: "error", message: CODE_OVERRIDE_UNREADABLE_MESSAGE };
+  return { status: "error", message: unreadableCodeMessage(typed) };
 }
 
 export type ApplyCodeOverridesResult =
@@ -199,19 +202,8 @@ export function buildPriceCheck(
 
   const price = entry.unitPrice;
   const priceSetOn = formatPriceSetOn(entry.updatedAt);
+  // A $0.00 price is a real price (for example, a free item), not a missing one.
   const cents = moneyStringToCents(price);
-
-  if (cents === BigInt(0)) {
-    return {
-      status: "missing",
-      code,
-      codeType,
-      itemPriceId: entry.id,
-      price,
-      priceSetOn,
-      value: null,
-    };
-  }
 
   if (needsItemPriceRecheck(entry.updatedAt, referenceDate)) {
     return {

@@ -9,6 +9,7 @@ import {
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { WishlistService } from "./wishlistService";
+import { finalQuantityAfterPartnerEdit } from "@/util/requestQuantity";
 
 export class GeneralItemRequestService {
   static async getById(id: number) {
@@ -183,9 +184,24 @@ export class GeneralItemRequestService {
         }
       }
 
-      const updatedRequest = await db.generalItemRequest.update({
-        where: { id },
-        data
+      const updatedRequest = await db.$transaction(async (tx) => {
+        // Lock the row, then read its current numbers. Overlapping saves (a
+        // second click, another tab, or a staff revision) wait their turn, so
+        // the decision below always uses the latest values.
+        await tx.$queryRaw`SELECT id FROM "GeneralItemRequest" WHERE id = ${id} FOR UPDATE`;
+        const current = await tx.generalItemRequest.findUniqueOrThrow({
+          where: { id },
+          select: { quantity: true, finalQuantity: true },
+        });
+
+        // Staff's revised number follows the partner's edit only while staff
+        // haven't revised it. No wishlist entry here: the partner changed
+        // their own ask, so nothing was refused.
+        const finalQuantity = finalQuantityAfterPartnerEdit(current, data.quantity);
+        return tx.generalItemRequest.update({
+          where: { id },
+          data: finalQuantity === undefined ? data : { ...data, finalQuantity },
+        });
       });
 
       return updatedRequest;
@@ -200,33 +216,36 @@ export class GeneralItemRequestService {
   }
 
   static async updateWishlist(requestId: number, newFinalQuantity: number) {
-    const existingRequest = await db.generalItemRequest.findUnique({
-      where: { id: requestId },
-      select: { finalQuantity: true, id: true }
-    });
-
-    if (!existingRequest) throw new NotFoundError("Request not found");
-
-    const oldFinalQuantity = existingRequest.finalQuantity ?? 0;
-    const unfulfilledDelta = oldFinalQuantity - newFinalQuantity;
-
-    return await db.$transaction(async (tx) => {
-      const updated = await tx.generalItemRequest.update({
+    const { updated, newWishlistEntries } = await db.$transaction(async (tx) => {
+      // Lock the request first, then read it. A concurrent save waits, so the
+      // wishlist difference is always computed from the current value.
+      await tx.$queryRaw`SELECT id FROM "GeneralItemRequest" WHERE id = ${requestId} FOR UPDATE`;
+      const existingRequest = await tx.generalItemRequest.findUnique({
         where: { id: requestId },
-        data: { finalQuantity: newFinalQuantity }
+        select: { finalQuantity: true, id: true },
       });
 
-      if (unfulfilledDelta !== 0) {
-        await WishlistService.createUnfulfilledWishlistEntries([
-          {
-            requestId: requestId,
-            unfulfilledQuantity: unfulfilledDelta,
-          },
-        ]);
-      }
+      if (!existingRequest) throw new NotFoundError("Request not found");
 
-      return updated;
+      const unfulfilledDelta = (existingRequest.finalQuantity ?? 0) - newFinalQuantity;
+
+      const updated = await tx.generalItemRequest.update({
+        where: { id: requestId },
+        data: { finalQuantity: newFinalQuantity },
+      });
+
+      const newWishlistEntries =
+        unfulfilledDelta !== 0
+          ? await WishlistService.applyUnfulfilledWishlistDeltas(tx, [
+              { requestId, unfulfilledQuantity: unfulfilledDelta },
+            ])
+          : [];
+
+      return { updated, newWishlistEntries };
     });
+
+    await WishlistService.indexNewWishlistEntries(newWishlistEntries);
+    return updated;
   }
 
   static async bulkUpdateRequests(
@@ -272,19 +291,26 @@ export class GeneralItemRequestService {
       throw new ArgumentError("Cannot update requests after the partner response deadline has passed.");
     }
 
-    const wishlistDeltas = updates.map(u => {
-      const existingRequest = requests.find(r => r.id === u.requestId);
-      if (!existingRequest) return null;
+    if (updates.length === 0) return [];
 
-      const delta = (existingRequest.finalQuantity ?? 0) - u.finalQuantity;
-      
-      return delta !== 0 
-        ? { requestId: u.requestId, unfulfilledQuantity: delta } 
-        : null;
-    }).filter((update): update is { requestId: number; unfulfilledQuantity: number } => update !== null);
+    const { results, newWishlistEntries } = await db.$transaction(async (tx) => {
+      // Lock every request (in id order, so two bulk saves can't deadlock),
+      // then read their current revised numbers. The wishlist differences are
+      // computed from values nobody can change until this save commits.
+      const lockIds = [...new Set(requestIds)].sort((a, b) => a - b);
+      await tx.$queryRaw`SELECT id FROM "GeneralItemRequest" WHERE id IN (${Prisma.join(lockIds)}) ORDER BY id FOR UPDATE`;
+      const current = await tx.generalItemRequest.findMany({
+        where: { id: { in: lockIds } },
+        select: { id: true, finalQuantity: true },
+      });
 
-    const results = await db.$transaction(async (tx) => {
-      // Execute the request updates
+      const wishlistDeltas = updates.flatMap((u) => {
+        const existingRequest = current.find((r) => r.id === u.requestId);
+        if (!existingRequest) return [];
+        const delta = (existingRequest.finalQuantity ?? 0) - u.finalQuantity;
+        return delta !== 0 ? [{ requestId: u.requestId, unfulfilledQuantity: delta }] : [];
+      });
+
       const updateResults = await Promise.all(
         updates.map(({ requestId, finalQuantity }) =>
           tx.generalItemRequest.update({
@@ -294,14 +320,15 @@ export class GeneralItemRequestService {
         )
       );
 
-      // 3. Sync the wishlists using the deltas
-      if (wishlistDeltas.length > 0) {
-        await WishlistService.createUnfulfilledWishlistEntries(wishlistDeltas);
-      }
+      const newWishlistEntries = await WishlistService.applyUnfulfilledWishlistDeltas(
+        tx,
+        wishlistDeltas
+      );
 
-      return updateResults;
+      return { results: updateResults, newWishlistEntries };
     });
 
+    await WishlistService.indexNewWishlistEntries(newWishlistEntries);
     return results;
   }
 
@@ -310,6 +337,29 @@ export class GeneralItemRequestService {
     targetGeneralItemId: number
   ) {
     return db.$transaction(async (tx) => {
+      // Lock the moved request and, if the partner already has a request on
+      // the target item, that one too (in id order, so two merges can't
+      // deadlock). Both are read again below, inside the lock, so an edit
+      // saved meanwhile is part of the merge instead of being overwritten.
+      const moving = await tx.generalItemRequest.findUnique({
+        where: { id: requestId },
+        select: { partnerId: true },
+      });
+      if (!moving) {
+        throw new NotFoundError("Request not found");
+      }
+      const target = await tx.generalItemRequest.findUnique({
+        where: {
+          generalItemId_partnerId: {
+            generalItemId: targetGeneralItemId,
+            partnerId: moving.partnerId,
+          },
+        },
+        select: { id: true },
+      });
+      const lockIds = [...new Set([requestId, target?.id ?? requestId])].sort((a, b) => a - b);
+      await tx.$queryRaw`SELECT id FROM "GeneralItemRequest" WHERE id IN (${Prisma.join(lockIds)}) ORDER BY id FOR UPDATE`;
+
       const existingRequest = await tx.generalItemRequest.findUnique({
         where: { id: requestId },
         include: {

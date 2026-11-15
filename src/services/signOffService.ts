@@ -5,7 +5,7 @@ import {
   SignOffSummaryResponse,
   SignOffDetails,
 } from "@/types/api/signOff.types";
-import { NotFoundError, ArgumentError } from "@/util/errors";
+import { NotFoundError, ArgumentError, ConflictError } from "@/util/errors";
 import { Prisma, ShipmentStatus } from "@prisma/client";
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
@@ -60,21 +60,52 @@ export class SignOffService {
       data.staffUserId
     );
 
+    // Lock the allocations, then check none is already signed off, so two
+    // sign-offs saved at the same time can't both claim the same items.
+    const allocationIds = [...new Set(data.allocations)].sort((a, b) => a - b);
+    try {
+      return await db.$transaction(async (tx) => {
+        if (allocationIds.length > 0) {
+          await tx.$queryRaw`SELECT id FROM "Allocation" WHERE id IN (${Prisma.join(allocationIds)}) ORDER BY id FOR UPDATE`;
+          const alreadySigned = await tx.allocation.count({
+            where: { id: { in: allocationIds }, signOffId: { not: null } },
+          });
+          if (alreadySigned > 0) {
+            throw new ConflictError(
+              "Some of these items were already signed off. Refresh the page and try again."
+            );
+          }
+        }
 
-    return db.signOff.create({
-      data: {
-        staffMemberName: data.staffName,
-        partnerName: data.partnerName,
-        partnerSignerName: data.partnerSignerName,
-        date: data.date,
-        partnerId: data.partnerId,
-        signatureUrl: signatureUrl,
-        partnerSignatureUrl: partnerSignatureUrl,
-        allocations: {
-          connect: data.allocations.map((id) => ({ id })),
-        },
-      },
-    });
+        return tx.signOff.create({
+          data: {
+            staffMemberName: data.staffName,
+            partnerName: data.partnerName,
+            partnerSignerName: data.partnerSignerName,
+            date: data.date,
+            partnerId: data.partnerId,
+            signatureUrl: signatureUrl,
+            partnerSignatureUrl: partnerSignatureUrl,
+            allocations: {
+              connect: allocationIds.map((id) => ({ id })),
+            },
+          },
+        });
+      });
+    } catch (error) {
+      // Don't leave just-uploaded signature images behind when the save fails.
+      for (const [uploaded, original] of [
+        [signatureUrl, data.signatureUrl],
+        [partnerSignatureUrl, data.partnerSignatureUrl],
+      ]) {
+        if (uploaded && uploaded !== original) {
+          await FileService.deleteSignature(uploaded).catch((deleteError) =>
+            console.warn("Failed to delete signature after a failed sign-off:", deleteError)
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   static async updateSignOff(

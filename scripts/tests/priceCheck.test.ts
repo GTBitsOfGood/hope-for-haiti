@@ -296,16 +296,16 @@ test("each price-check status follows the ticket table, in order", () => {
     }
   );
 
-  assert.equal(
-    buildPriceCheck(
-      parsedNdc,
-      VALID_NDC,
-      40,
-      { id: 7, ndc: VALID_NDC, unitPrice: "0.00", updatedAt: fresh },
-      reference
-    ).status,
-    "missing"
+  // $0.00 is a real price (for example, a free item), not a missing one.
+  const free = buildPriceCheck(
+    parsedNdc,
+    VALID_NDC,
+    40,
+    { id: 7, ndc: VALID_NDC, unitPrice: "0.00", updatedAt: fresh },
+    reference
   );
+  assert.equal(free.status, "priced");
+  assert.equal(free.value, "0.00");
 
   const expired = buildPriceCheck(
     parsedNdc,
@@ -389,12 +389,10 @@ test("codesNeedingPrice dedupes by code, only expired/missing, Price always blan
 test("codes already in the pricebook get a blank Name and Price, with the current price under Old price", () => {
   const rows = codesNeedingPrice([
     item("expired", { code: "12345-0002-01", price: "9.50", itemPriceId: 42 }, { title: "Amoxicillin (pallet A)" }),
-    item("missing", { code: "12345-0003-01", price: "0.00", itemPriceId: 43 }, { title: "Gauze pads" }),
     item("missing", { code: "12345-0004-01" }, { title: "Bandages 2x2" }),
   ]);
   assert.deepEqual(rows, [
     { code: "12345-0002-01", name: "", price: "", oldPrice: "9.50" },
-    { code: "12345-0003-01", name: "", price: "", oldPrice: "0.00" },
     { code: "12345-0004-01", name: "Bandages 2x2", price: "", oldPrice: "" },
   ]);
 });

@@ -68,19 +68,20 @@ export default function CreateDonorOfferPage() {
       const today = getTodayDateString();
       const validationErrors: string[] = [];
 
+      // Same order and names as the form fields below.
       if (!offerName) validationErrors.push("Donor offer name is required.");
       if (!donorName) validationErrors.push("Donor name is required.");
-      if (!partnerRequestDeadline)
-        validationErrors.push("Partner request deadline is required.");
       if (!donorRequestDeadline)
-        validationErrors.push("Donor request deadline is required.");
+        validationErrors.push("Donor response deadline is required.");
+      if (!partnerRequestDeadline)
+        validationErrors.push("Partner response deadline is required.");
 
       if (donorRequestDeadline && donorRequestDeadline < today) {
-        validationErrors.push("Donor Request Deadline cannot be in the past.");
+        validationErrors.push("Donor response deadline cannot be in the past.");
       }
 
       if (partnerRequestDeadline && partnerRequestDeadline < today) {
-        validationErrors.push("Partner Request Deadline cannot be in the past.");
+        validationErrors.push("Partner response deadline cannot be in the past.");
       }
       return validationErrors.length > 0 ? validationErrors : null;
     },
@@ -132,6 +133,21 @@ export default function CreateDonorOfferPage() {
   // failures set both, so fileErrorMessage is covered by the array. Nothing is
   // sliced or dropped.
   const uploadErrors = errors;
+
+  // Cancel leaves the page. Ask first when anything typed or uploaded would
+  // be lost.
+  const handleCancel = () => {
+    const hasUnsavedWork =
+      Boolean(offerName || donorName || donorRequestDeadline || partnerRequestDeadline || fileName) ||
+      selectedPartners.length > 0;
+    if (
+      hasUnsavedWork &&
+      !window.confirm("Leave this page? The offer details and file you added will be lost.")
+    ) {
+      return;
+    }
+    router.push("/donorOffers");
+  };
 
   const resetUpload = () => {
     resetFileUpload();
@@ -211,7 +227,7 @@ export default function CreateDonorOfferPage() {
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Donor Request Deadline<span className="text-red-500">*</span>
+            Donor Response Deadline<span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -223,7 +239,7 @@ export default function CreateDonorOfferPage() {
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Partner Request Deadline<span className="text-red-500">*</span>
+            Partner Response Deadline<span className="text-red-500">*</span>
           </label>
           <input
             type="date"
@@ -265,10 +281,10 @@ export default function CreateDonorOfferPage() {
 
       <div className="flex justify-end mt-4">
         <button
-          onClick={() => router.push("/donorOffers")}
+          onClick={handleCancel}
           className="bg-white hover:bg-gray-100 w-48 text-red-500 border border-red-500 py-1 px-4 mt-1 mb-6 rounded text-sm"
         >
-          Cancel Upload
+          Cancel
         </button>
         {preview ? (
           <button

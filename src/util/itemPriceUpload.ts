@@ -1,5 +1,9 @@
 import { itemPriceInputSchema } from "@/schema/itemPrice";
-import { formatItemPriceMoney, isPositiveMoneyString } from "@/util/itemPrice";
+import {
+  PRICE_FORMAT_MESSAGE,
+  formatItemPriceMoney,
+  isValidMoneyString,
+} from "@/util/itemPrice";
 import type {
   ItemPriceUploadLine,
   ItemPriceUploadReview,
@@ -101,10 +105,8 @@ function parseRows(rows: ParsedPricebookRow[]): {
     }
 
     if (priceCell.valid && priceCell.text) {
-      if (!isPositiveMoneyString(priceCell.text)) {
-        reasons.push(
-          "Price must be greater than zero, with up to two decimal places and within the supported range."
-        );
+      if (!isValidMoneyString(priceCell.text)) {
+        reasons.push(PRICE_FORMAT_MESSAGE);
       } else {
         line.price = formatItemPriceMoney(priceCell.text);
       }

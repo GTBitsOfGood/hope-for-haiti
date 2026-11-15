@@ -15,6 +15,7 @@ import { format, isAfter } from "date-fns";
 import { z } from "zod";
 import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
 import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
+import { describeRowIssues } from "@/services/fileService";
 import {
   applyCodeOverrides,
   buildPriceCheck,
@@ -760,14 +761,13 @@ export default class DonorOfferService {
     jsonData.forEach((row, index) => {
       const parsed = DonorOfferItemSchema.safeParse(row);
       if (!parsed.success) {
-        const errorMessages = parsed.error.issues
-          .map((issue) => {
-            const field = issue.path.join(".");
-            return `Column '${field}': ${issue.message}`;
-          })
-          .join("; ");
         errors.push(
-          `Error validating donor offer item on row ${(row.__excelRow as number | undefined) ?? index + 1}: ${errorMessages}`
+          describeRowIssues(
+            "unfinalized",
+            (row.__excelRow as number | undefined) ?? index + 1,
+            row,
+            parsed.error.issues
+          )
         );
       } else {
         validDonorOfferItems.push(parsed.data);
@@ -1365,11 +1365,17 @@ export default class DonorOfferService {
     const validationResults = jsonData.map((row, index) => {
       const result = FinalizeDonorOfferItemSchema.safeParse(row);
       if (!result.success) {
-        const errorMessages = result.error.issues.map((issue) => {
-          const field = issue.path.join(".");
-          return `Row ${(row.__excelRow as number | undefined) ?? index + 1}, Field '${field}': ${issue.message}`;
-        });
-        return { valid: false, errors: errorMessages };
+        return {
+          valid: false,
+          errors: [
+            describeRowIssues(
+              "finalized",
+              (row.__excelRow as number | undefined) ?? index + 1,
+              row,
+              result.error.issues
+            ),
+          ],
+        };
       }
       return { valid: true, data: result.data };
     });

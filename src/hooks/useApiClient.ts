@@ -57,8 +57,10 @@ export async function apiRequest<T = unknown>(
       // If response body is not JSON, use status + statusText
     }
 
-    const err = new Error(errorMessage) as Error & { errors?: string[] };
+    const err = new Error(errorMessage) as Error & { errors?: string[]; status?: number };
     if (errorsList) err.errors = errorsList;
+    // Lets callers react to a specific code (like 409) without parsing the message.
+    err.status = response.status;
     throw err;
   }
 

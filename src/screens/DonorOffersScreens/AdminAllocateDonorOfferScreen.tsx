@@ -27,6 +27,7 @@ import {
   NO_SAVED_PRICE,
 } from "@/util/allocationPrices";
 import { formatMoney } from "@/util/format";
+import { createSingleFlight } from "@/util/singleFlight";
 import type { AllocationValueSummary } from "@/util/allocationValue";
 
 type AllocationResponse = {
@@ -212,6 +213,13 @@ export default function AdminAllocateDonorOfferScreen() {
     [apiClient, donorOfferId, isValidDonorOfferId]
   );
 
+  // One distribution create per partner at a time: allocations made while it
+  // is still saving share it, so a partner never gets two new pending
+  // distributions on this offer.
+  const [createDistributionOnce] = useState(() =>
+    createSingleFlight<number, PartnerDistributionSummary>()
+  );
+
   const ensureDistributionForPartner = useCallback(
     async (partnerId: number, partnerName: string) => {
       const existingDistribution = distributionsRef.current[partnerId] ?? null;
@@ -219,33 +227,35 @@ export default function AdminAllocateDonorOfferScreen() {
         return existingDistribution;
       }
 
-      const body = new FormData();
-      body.set("partnerId", partnerId.toString());
-      body.set("pending", "true");
+      return createDistributionOnce(partnerId, async () => {
+        const body = new FormData();
+        body.set("partnerId", partnerId.toString());
+        body.set("pending", "true");
 
-      const distribution = await apiClient.post<{
-        id: number;
-        partnerId: number;
-        pending: boolean;
-      }>("/api/distributions", {
-        body,
+        const distribution = await apiClient.post<{
+          id: number;
+          partnerId: number;
+          pending: boolean;
+        }>("/api/distributions", {
+          body,
+        });
+
+        const summary: PartnerDistributionSummary = {
+          id: distribution.id,
+          partnerId: distribution.partnerId,
+          partnerName,
+          pending: distribution.pending,
+        };
+
+        distributionsRef.current = {
+          ...distributionsRef.current,
+          [partnerId]: summary,
+        };
+
+        return summary;
       });
-
-      const summary: PartnerDistributionSummary = {
-        id: distribution.id,
-        partnerId: distribution.partnerId,
-        partnerName,
-        pending: distribution.pending,
-      };
-
-      distributionsRef.current = {
-        ...distributionsRef.current,
-        [partnerId]: summary,
-      };
-
-      return summary;
     },
-    [apiClient]
+    [apiClient, createDistributionOnce]
   );
 
   const handleDistributionRemoved = useCallback((partnerId: number) => {

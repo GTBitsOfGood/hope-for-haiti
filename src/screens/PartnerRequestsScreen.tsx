@@ -398,17 +398,20 @@ export default function PartnerRequestsScreen() {
       formData.append("priority", requestData.priority);
       formData.append("comments", requestData.comments);
 
-      await apiClient.patch(
-        `/api/generalItems/${request.generalItem.id}/requests/${request.id}`,
-        {
-          body: formData,
-        }
-      );
+      // The server sends back the saved request, including staff's revised
+      // quantity, so the row shows what was actually saved.
+      const saved = await apiClient.patch<{
+        quantity?: number;
+        finalQuantity?: number | null;
+      }>(`/api/generalItems/${request.generalItem.id}/requests/${request.id}`, {
+        body: formData,
+      });
 
       tableRef.current?.updateItemById(request.id, {
-        quantity: requestData.quantity,
+        quantity: saved?.quantity ?? requestData.quantity,
         priority: requestData.priority,
         comments: requestData.comments,
+        finalQuantity: saved?.finalQuantity ?? request.finalQuantity,
       });
 
       toast.success("Request updated successfully!");
