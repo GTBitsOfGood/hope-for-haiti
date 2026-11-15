@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, type ChangeEvent } from "react";
 import FileUpload from "@/components/FileUpload";
 import { DonorOffer, GeneralItem, GeneralItemRequest } from "@prisma/client";
 import {
@@ -28,8 +28,28 @@ import {
   codesNeedingPrice,
   itemsNeedingPrice,
   summarize as summarizePriceCheck,
+  validateCodeOverride,
 } from "@/util/priceCheck";
 import Papa from "papaparse";
+
+function serializeCodeOverrides(overrides: Record<number, string>): string {
+  return JSON.stringify(
+    Object.entries(overrides)
+      .map(([row, code]) => ({ row: Number(row), code }))
+      .sort((left, right) => left.row - right.row)
+  );
+}
+
+function withOverride(
+  overrides: Record<number, string>,
+  row: number,
+  code: string | undefined
+): Record<number, string> {
+  const next = { ...overrides };
+  if (code === undefined) delete next[row];
+  else next[row] = code;
+  return next;
+}
 
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
@@ -47,6 +67,27 @@ export default function FinalizeDonorOfferPage() {
   }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const codeOverridesRef = useRef<Record<number, string>>({});
+  const uploadGenerationRef = useRef(0);
+  const checkInFlightRef = useRef<number | null>(null);
+  const submitInFlightRef = useRef(false);
+  const [codeOverrides, setCodeOverrides] = useState<Record<number, string>>({});
+  const [draftCodeRows, setDraftCodeRows] = useState<ReadonlySet<number>>(() => new Set());
+
+  const updateCodeOverrides = (next: Record<number, string>) => {
+    codeOverridesRef.current = next;
+    setCodeOverrides(next);
+  };
+
+  const handleCodeDraftChange = useCallback((row: number, hasDraft: boolean) => {
+    setDraftCodeRows((current) => {
+      if (current.has(row) === hasDraft) return current;
+      const next = new Set(current);
+      if (hasDraft) next.add(row);
+      else next.delete(row);
+      return next;
+    });
+  }, []);
 
   const [previewData, setPreviewData] = useState<DonorOfferItem[]>([]);
   const [preview, setPreview] = useState(false);
@@ -97,6 +138,13 @@ export default function FinalizeDonorOfferPage() {
       setPreviewData(result.donorOfferItems);
       setBackendCanFinalize(result.canFinalize);
     },
+    buildFormData: (_, formData) => {
+      const overrides = codeOverridesRef.current;
+      if (Object.keys(overrides).length > 0) {
+        formData.append("codeOverrides", serializeCodeOverrides(overrides));
+      }
+      return formData;
+    },
   });
 
   const { isLoading: isSubmitting, apiClient } = useApiClient();
@@ -117,6 +165,9 @@ export default function FinalizeDonorOfferPage() {
     }));
   const blockingItems = itemsNeedingPrice(priceCheckedItems);
   const canFinalizeNow = backendCanFinalize ?? derivePriceCheckCanFinalize(priceCheckedItems);
+  const hasUncheckedCodes = draftCodeRows.size > 0;
+  const finalizeDisabled =
+    !canFinalizeNow || fileLoading || isSubmitting || isSuccess || hasUncheckedCodes;
   const priceCheckSummary = summarizePriceCheck(priceCheckedItems);
 
   const openPriceAction = (item: DonorOfferItem) => {
@@ -126,6 +177,64 @@ export default function FinalizeDonorOfferPage() {
 
   const handleStepperSaved = async () => {
     if (uploadedFile) await rerunPreview();
+  };
+
+  const handleFileSelection = async (event: ChangeEvent<HTMLInputElement>) => {
+    uploadGenerationRef.current += 1;
+    checkInFlightRef.current = null;
+    updateCodeOverrides({});
+    setDraftCodeRows(new Set());
+    await handleFileChange(event);
+  };
+
+  const handleCodeCheck = async (row: number, code: string): Promise<string | null> => {
+    const generation = uploadGenerationRef.current;
+    if (checkInFlightRef.current === generation) {
+      return "Please wait for the current check to finish.";
+    }
+
+    const item = previewData.find((entry, index) => (entry.row ?? index + 1) === row);
+    if (!item?.priceCheck) {
+      return "This row is no longer available. Refresh Preview and try again.";
+    }
+    if (!uploadedFile) {
+      return "Upload a file before checking a code.";
+    }
+
+    const previousValue = codeOverridesRef.current[row];
+    const isOverride = previousValue !== undefined;
+    let nextValue: string | undefined;
+    if (isOverride && !code.trim()) {
+      nextValue = undefined;
+    } else {
+      const validation = validateCodeOverride(isOverride ? null : item.priceCheck.code, code);
+      if (validation.status === "error") {
+        return validation.message;
+      }
+      nextValue = validation.value;
+    }
+
+    checkInFlightRef.current = generation;
+    updateCodeOverrides(withOverride(codeOverridesRef.current, row, nextValue));
+    try {
+      const checked = await rerunPreview();
+      if (checked === "error") {
+        if (
+          uploadGenerationRef.current === generation &&
+          codeOverridesRef.current[row] === nextValue
+        ) {
+          updateCodeOverrides(withOverride(codeOverridesRef.current, row, previousValue));
+        }
+        return "Unable to check this code. Please try again.";
+      }
+      // "superseded" means a newer Preview already owns the result. Keep the
+      // row override instead of restoring a stale snapshot.
+      return null;
+    } finally {
+      if (checkInFlightRef.current === generation) {
+        checkInFlightRef.current = null;
+      }
+    }
   };
 
   const downloadPriceList = () => {
@@ -160,6 +269,10 @@ export default function FinalizeDonorOfferPage() {
 
   const resetUpload = () => {
     resetFileUpload();
+    uploadGenerationRef.current += 1;
+    checkInFlightRef.current = null;
+    updateCodeOverrides({});
+    setDraftCodeRows(new Set());
     setPreview(false);
     setPreviewData([]);
     setBackendCanFinalize(undefined);
@@ -174,12 +287,21 @@ export default function FinalizeDonorOfferPage() {
   };
 
   const handleSubmit = async () => {
-    if (!uploadedFile) {
+    if (
+      !uploadedFile ||
+      finalizeDisabled ||
+      submitInFlightRef.current ||
+      checkInFlightRef.current === uploadGenerationRef.current
+    ) {
       return;
     }
 
+    submitInFlightRef.current = true;
     const formData = new FormData();
     formData.append("file", uploadedFile);
+    if (Object.keys(codeOverridesRef.current).length > 0) {
+      formData.append("codeOverrides", serializeCodeOverrides(codeOverridesRef.current));
+    }
 
     try {
       await apiClient.patch(`/api/donorOffers/${donorOfferId}`, {
@@ -195,6 +317,8 @@ export default function FinalizeDonorOfferPage() {
         )
       );
       setIsError(true);
+    } finally {
+      submitInFlightRef.current = false;
     }
   };
 
@@ -275,7 +399,7 @@ export default function FinalizeDonorOfferPage() {
           <FileUpload
             resetUpload={resetUpload}
             fileLoading={fileLoading}
-            handleFileChange={handleFileChange}
+            handleFileChange={handleFileSelection}
             ref={fileInputRef}
           />
         </div>
@@ -314,7 +438,15 @@ export default function FinalizeDonorOfferPage() {
               </button>
             )}
           </div>
-          <PreviewTable final={true} data={previewData} onPriceAction={openPriceAction} />
+          <PreviewTable
+            final={true}
+            data={previewData}
+            onPriceAction={openPriceAction}
+            onCodeCheck={handleCodeCheck}
+            checking={fileLoading}
+            codeOverrides={codeOverrides}
+            onCodeDraftChange={handleCodeDraftChange}
+          />
         </>
       )}
 
@@ -323,6 +455,11 @@ export default function FinalizeDonorOfferPage() {
           <p className="text-sm text-red-600 mb-1">
             {priceCheckSummary.needsPriceCount} row
             {priceCheckSummary.needsPriceCount === 1 ? " needs" : "s need"} a price before you can finalize
+          </p>
+        )}
+        {preview && hasUncheckedCodes && (
+          <p className="text-sm text-red-600 mb-1">
+            You typed a code but didn&apos;t click Check. Click Check, or clear the box.
           </p>
         )}
         <div className="flex">
@@ -334,15 +471,15 @@ export default function FinalizeDonorOfferPage() {
         </button>
         {preview ? (
           <button
-            disabled={!canFinalizeNow}
+            disabled={finalizeDisabled}
             onClick={handleSubmit}
             className={
-              canFinalizeNow
-                ? "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
-                : "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+              finalizeDisabled
+                ? "bg-red-500 opacity-50 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
+                : "bg-red-500 hover:bg-red-700 w-52 ml-4 text-white py-1 px-4 mt-1 mb-6 rounded text-sm"
             }
           >
-            Finalize Offer
+            {fileLoading ? "Checking..." : "Finalize Offer"}
           </button>
         ) : (
           <button
