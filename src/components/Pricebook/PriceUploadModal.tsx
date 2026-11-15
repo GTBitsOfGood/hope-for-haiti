@@ -131,7 +131,7 @@ export default function PriceUploadModal({
                   {review.counts.same} same
                 </span>
                 <span className="rounded-full bg-red-100 px-3 py-1 font-medium text-red-800">
-                  {review.counts.problems} problems
+                  {review.counts.problems} {review.counts.problems === 1 ? "problem" : "problems"}
                 </span>
                 {review.counts.skipped > 0 && (
                   <span className="rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-700">
@@ -219,7 +219,7 @@ export default function PriceUploadModal({
                             <td className="px-3 py-3 text-gray-primary/60">
                               {line.lineNumber}
                             </td>
-                            <td className="px-3 py-3 font-medium text-gray-primary">
+                            <td className="whitespace-nowrap px-3 py-3 font-medium text-gray-primary">
                               {line.code ?? line.rawCode ?? ""}
                             </td>
                             <td className="px-3 py-3 text-gray-primary">

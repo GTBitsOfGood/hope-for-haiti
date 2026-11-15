@@ -2,7 +2,7 @@ import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { useEffect, useRef, useState } from "react";
 import type { PriceCheckedItem } from "@/types/api/donorOffer.types";
 import { useApiClient } from "@/hooks/useApiClient";
-import { isValidMoneyString } from "@/util/itemPrice";
+import { PRICE_FORMAT_MESSAGE, isValidMoneyString } from "@/util/itemPrice";
 
 interface PriceCheckStepperModalProps {
   /** Only the blocking (missing/expired) rows, in the order to step through. */
@@ -55,13 +55,7 @@ export default function PriceCheckStepperModal({
   const save = async () => {
     if (pending) return;
     if (!isValidMoneyString(price)) {
-      setError(
-        "Enter a non-negative price without leading zeros, with up to two decimal places and within the supported money range."
-      );
-      return;
-    }
-    if (Number(price) === 0) {
-      setError("A $0 price isn't allowed here — it would still count as missing.");
+      setError(PRICE_FORMAT_MESSAGE);
       return;
     }
     if (!current.priceCheck.code) {

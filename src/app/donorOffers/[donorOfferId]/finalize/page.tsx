@@ -5,7 +5,6 @@ import FileUpload from "@/components/FileUpload";
 import { DonorOffer, GeneralItem, GeneralItemRequest } from "@prisma/client";
 import {
   FileInfoDisplay,
-  ErrorDisplay,
   PreviewTable,
   DonorOfferItem,
   DonorOfferSuccessModal,
@@ -262,10 +261,17 @@ export default function FinalizeDonorOfferPage() {
     setPreview(true);
   };
 
-  // fileErrorMessage duplicates errors[0] only when they were set together (API/network failures);
-  // don't assume that invariant holds for every errors-setting path.
-  const additionalErrors =
-    fileErrorMessage && errors[0] === fileErrorMessage ? errors.slice(1) : errors;
+  // Cancel leaves the page. Ask first when an uploaded file (and any codes
+  // typed for it) would be lost.
+  const handleCancel = () => {
+    if (
+      fileName &&
+      !window.confirm("Leave this page? The uploaded file and any codes you typed will be lost.")
+    ) {
+      return;
+    }
+    router.push("/donorOffers");
+  };
 
   const resetUpload = () => {
     resetFileUpload();
@@ -366,22 +372,22 @@ export default function FinalizeDonorOfferPage() {
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Partner Request Deadline
+            Donor Response Deadline
           </label>
           <input
             type="date"
-            value={formatDate(data?.donorOffer.partnerResponseDeadline)}
+            value={formatDate(data?.donorOffer.donorResponseDeadline)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             disabled
           />
         </div>
         <div>
           <label className="block text-sm font-light text-black mb-1">
-            Donor Request Deadline
+            Partner Response Deadline
           </label>
           <input
             type="date"
-            value={formatDate(data?.donorOffer.donorResponseDeadline)}
+            value={formatDate(data?.donorOffer.partnerResponseDeadline)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             disabled
           />
@@ -410,10 +416,9 @@ export default function FinalizeDonorOfferPage() {
         fileName={fileName}
         fileSize={fileSize}
         fileErrorMessage={fileErrorMessage}
+        errorMessages={errors}
         onReset={resetUpload}
       />
-
-      {additionalErrors.length > 0 && <ErrorDisplay errors={additionalErrors} />}
 
       {preview && (
         <>
@@ -464,7 +469,7 @@ export default function FinalizeDonorOfferPage() {
         )}
         <div className="flex">
         <button
-          onClick={() => router.push("/donorOffers")}
+          onClick={handleCancel}
           className="bg-white hover:bg-gray-100 w-48 text-red-500 border border-red-500 py-1 px-4 mt-1 mb-6 rounded text-sm"
         >
           Cancel

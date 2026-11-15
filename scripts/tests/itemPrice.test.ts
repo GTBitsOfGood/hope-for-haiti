@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  PRICE_FORMAT_MESSAGE,
   formatItemPriceMoney,
-  isPositiveMoneyString,
   isValidMoneyString,
   needsItemPriceRecheck,
   parseItemPriceListQuery,
@@ -15,7 +15,7 @@ import {
   getItemPriceUploadCodes,
 } from "../../src/util/itemPriceUpload";
 import { itemPriceInputSchema } from "../../src/schema/itemPrice";
-import { normalizeNdc } from "../../src/util/ndc";
+import { normalizeNdc, unreadableCodeMessage } from "../../src/util/ndc";
 import FileService from "../../src/services/fileService";
 import * as XLSX from "xlsx";
 
@@ -156,10 +156,10 @@ test("upload review sorts new, changed, same, skipped, duplicate, and problem li
   );
 
   assert.deepEqual(viewer.counts, {
-    new: 1,
+    new: 2,
     changed: 1,
     same: 1,
-    problems: 5,
+    problems: 4,
     skipped: 1,
   });
   assert.equal(viewer.totalRows, 9);
@@ -190,6 +190,10 @@ test("upload review sorts new, changed, same, skipped, duplicate, and problem li
   assert.equal(viewer.groups.new[0].code, "00002-8215-01");
   assert.equal(viewer.groups.new[0].name, "Amoxicillin");
   assert.equal(viewer.groups.new[0].price, "2.00");
+  // $0.00 is a real price (for example, a free item), so line 7 is new.
+  assert.equal(viewer.groups.new[1].lineNumber, 7);
+  assert.equal(viewer.groups.new[1].name, "Free");
+  assert.equal(viewer.groups.new[1].price, "0.00");
 
   const duplicateLines = viewer.groups.problems
     .filter((line) => line.lineNumber === 8 || line.lineNumber === 9)
@@ -199,11 +203,6 @@ test("upload review sorts new, changed, same, skipped, duplicate, and problem li
     viewer.groups.problems
       .find((line) => line.lineNumber === 8)
       ?.reasons.some((reason) => reason.includes("appears more than once"))
-  );
-  assert.ok(
-    viewer.groups.problems
-      .find((line) => line.lineNumber === 7)
-      ?.reasons.some((reason) => reason.includes("greater than zero"))
   );
   assert.deepEqual(getItemPriceUploadCodes([
     { lineNumber: 2, code: "0093-4155-73", name: undefined, price: "1" },
@@ -241,7 +240,7 @@ test("upload review accepts spaced UPCs, flags invalid UPCs, and dedupes UPC for
   assert.ok(
     review.groups.problems
       .find((line) => line.lineNumber === 4)
-      ?.reasons.some((reason) => reason.includes("NDC or UPC"))
+      ?.reasons.some((reason) => reason === unreadableCodeMessage("036000291453"))
   );
 });
 
@@ -392,13 +391,24 @@ test("upload review flags Excel codes stored as numbers, since Excel drops leadi
   assert.match(review.groups.problems[0].reasons.join(" "), /stored as a number/);
 });
 
-test("money formatting and positive-only checks use exact cents", () => {
+test("money formatting uses exact cents", () => {
   assert.equal(formatItemPriceMoney("12.5"), "12.50");
   assert.equal(formatItemPriceMoney("0"), "0.00");
-  assert.equal(isPositiveMoneyString("0.00"), false);
-  assert.equal(isPositiveMoneyString("0.01"), true);
-  assert.equal(isPositiveMoneyString("92233720368547758.07"), true);
   assert.throws(() => formatItemPriceMoney("1.234"));
+});
+
+test("$0.00 is accepted wherever a price is entered, and bad prices share one message", () => {
+  assert.equal(isValidMoneyString("0"), true);
+  assert.equal(isValidMoneyString("0.00"), true);
+  const review = buildItemPriceUploadReview(
+    [
+      { lineNumber: 2, code: "00093-4155-73", name: "Free sample", price: "0.00" },
+      { lineNumber: 3, code: "00002-8215-01", name: "Typo", price: "1.234" },
+    ],
+    []
+  );
+  assert.equal(review.groups.new[0].price, "0.00");
+  assert.deepEqual(review.groups.problems[0].reasons, [PRICE_FORMAT_MESSAGE]);
 });
 
 test("staleness uses updatedAt and strict elapsed-day cutoff across dates and zones", () => {

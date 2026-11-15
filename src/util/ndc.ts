@@ -177,6 +177,17 @@ export function parseItemCode(
 }
 
 /**
+ * What to tell someone whose code didn't parse. A 10-digit code without dashes
+ * is a real NDC shape that can be read more than one way, so it gets its own
+ * hint. Anything else gets the general one.
+ */
+export function unreadableCodeMessage(raw: string | null | undefined): string {
+  return /^\d{10}$/.test(String(raw ?? "").trim())
+    ? "This 10-digit code can be read more than one way. Type it with its dashes, as printed on the package."
+    : "Enter an NDC (like 00093-4155-73) or a 12-digit UPC.";
+}
+
+/**
  * Decide what to persist on a finalized offer line item.
  * Readable NDC/UPC codes are stored on `ndc`. Unreadable codes stay
  * out of `ndc` and keep the original value in additionalInfo so the upload

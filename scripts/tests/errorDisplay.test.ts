@@ -8,7 +8,6 @@ import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { FileInfoDisplay } from "../../src/components/DonorOffers/FileInfoDisplay";
-import { ErrorDisplay } from "../../src/components/DonorOffers/ErrorDisplay";
 
 const ERRORS = [
   "Error validating donor offer item on row 4: Column 'weight': Expected number, received nan",
@@ -40,9 +39,6 @@ const card = (overrides: Partial<Parameters<typeof FileInfoDisplay>[0]> = {}) =>
     })
   );
 
-const list = (errors: string[]) =>
-  renderToStaticMarkup(React.createElement(ErrorDisplay, { errors }));
-
 test("single fileErrorMessage keeps the inline error detail", () => {
   const html = card();
   assert.match(html, /inline mr-1/);
@@ -59,16 +55,16 @@ test("no-file card renders validation errors in the No File Uploaded branch", ()
     errorMessages: [
       "Donor offer name is required.",
       "Donor name is required.",
-      "Partner request deadline is required.",
-      "Donor request deadline is required.",
+      "Donor response deadline is required.",
+      "Partner response deadline is required.",
     ],
   });
   assert.match(html, /No File Uploaded/);
   for (const message of [
     "Donor offer name is required.",
     "Donor name is required.",
-    "Partner request deadline is required.",
-    "Donor request deadline is required.",
+    "Donor response deadline is required.",
+    "Partner response deadline is required.",
   ]) {
     assert.equal(countOccurrences(html, escapeHtml(message)), 1, message);
   }
@@ -92,27 +88,12 @@ test("errorMessages renders every line inside the card, once, in order", () => {
   assert.doesNotMatch(html, /kb/);
 });
 
+// Create and Finalize both pass the hook's fileErrorMessage (errors[0] after a
+// failed preview) together with the full errors list.
 test("errorMessages takes precedence over fileErrorMessage to avoid duplicates", () => {
   const html = card({ errorMessages: ERRORS });
   for (const error of ERRORS) {
     assert.equal(countOccurrences(html, escapeHtml(error)), 1, error);
   }
-});
-
-test("finalize-page composition (single line) is unchanged", () => {
-  const html = card() + list(ERRORS.slice(1));
-  assert.equal(countOccurrences(html, escapeHtml(ERRORS[0])), 1);
-  assert.equal(countOccurrences(html, escapeHtml(ERRORS[1])), 1);
-  assert.equal(countOccurrences(html, escapeHtml(ERRORS[2])), 1);
-});
-
-test("ErrorDisplay still renders its own list when used directly", () => {
-  const html = list(ERRORS);
-  for (const error of ERRORS) {
-    assert.equal(countOccurrences(html, escapeHtml(error)), 1, error);
-  }
-  assert.equal(
-    (html.match(/bg-red-50 border font-light border-red-500/g) || []).length,
-    ERRORS.length
-  );
+  assert.equal((html.match(/inline mr-1/g) || []).length, ERRORS.length);
 });

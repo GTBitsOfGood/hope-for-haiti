@@ -8,6 +8,7 @@ import {
 import { NotFoundError, ArgumentError, InternalError } from "@/util/errors";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
+import type { ZodIssue } from "zod";
 import {
   UploadUrlResult,
   RecentFileResult,
@@ -80,10 +81,6 @@ const unfinalizedRequiredCanonicalMap = buildCanonicalMap(
 const finalizedPermanentCanonicalMap = buildCanonicalMap(
   finalizedPermanentKeys
 );
-
-const canonicalRequiredKeys = {
-  unfinalized: Array.from(unfinalizedRequiredCanonicalMap.keys()),
-};
 
 const normalizeRowKeys = (row: Record<string, unknown>) => {
   const normalized: Record<string, unknown> = {};
@@ -223,31 +220,86 @@ const skipEmptyRows = (text: string): { text: string; skipped: number } => {
 const getSheetStartRowOffset = (sheet: XLSX.WorkSheet): number =>
   sheet["!ref"] ? XLSX.utils.decode_range(sheet["!ref"]).s.r : 0;
 
+// Missing columns are reported by the header names people see in the
+// template ("Generic Description"), not the squashed keys used for matching.
 const containsRequiredKeys = (
   type: "unfinalized" | "finalized",
   fields?: string[]
 ): { valid: boolean; missingKeys: string[] } => {
   if (!fields) return { valid: false, missingKeys: [] };
   const canonicalFields = new Set(fields.map((key) => canonicalizeHeader(key)));
-
-  if (type === "finalized") {
-    const missingDisplayNames: string[] = [];
-    for (const displayName of finalizedRequiredKeys) {
-      const canonicalKey = canonicalizeHeader(displayName);
-      if (!canonicalFields.has(canonicalKey)) {
-        missingDisplayNames.push(displayName);
-      }
-    }
-    return {
-      valid: missingDisplayNames.length === 0,
-      missingKeys: missingDisplayNames,
-    };
-  }
-
-  const missingKeys = canonicalRequiredKeys.unfinalized.filter(
-    (key) => !canonicalFields.has(key)
+  const requiredHeaders =
+    type === "finalized"
+      ? Array.from(finalizedRequiredKeys)
+      : Array.from(unfinalizedRequiredKeys.keys());
+  const missingKeys = requiredHeaders.filter(
+    (header) => !canonicalFields.has(canonicalizeHeader(header))
   );
   return { valid: missingKeys.length === 0, missingKeys };
+};
+
+// One wording for every upload screen (Create, Finalize and Pricebook).
+const missingColumnsMessage = (missing: string[]) =>
+  missing.length > 0
+    ? `This file is missing required columns: ${missing.join(", ")}.`
+    : "This file has no column headers.";
+
+/**
+ * The header people see in the templates for a parsed field, for error
+ * messages. When several headers map to one field (NDC, UPC, ...), the first
+ * one is used.
+ */
+export const headerForField = (
+  type: "unfinalized" | "finalized",
+  field: string
+): string | undefined => {
+  const entries = type === "finalized" ? finalizedPermanentKeys : unfinalizedRequiredKeys;
+  // Create renames the Quantity column to initialQuantity after reading the file.
+  const key = type === "unfinalized" && field === "initialQuantity" ? "quantity" : field;
+  for (const [header, mappedKey] of entries) {
+    if (mappedKey === key) return header;
+  }
+  return undefined;
+};
+
+const describeIssue = (issue: ZodIssue, entered: string): string => {
+  switch (issue.code) {
+    case "invalid_type":
+      // Number parsing turns text like "six" into nothing, so a filled cell can
+      // still arrive here looking empty. The raw cell tells the two apart.
+      if (!entered) return "is required";
+      if (issue.expected === "number") return `must be a number (you entered "${entered}")`;
+      if (issue.expected === "integer") return `must be a whole number (you entered "${entered}")`;
+      if (issue.expected === "string") return `must be text (you entered "${entered}")`;
+      return `is not valid (you entered "${entered}")`;
+    case "too_small":
+      if (issue.type === "string") return "is required";
+      return issue.minimum === 0 ? "can't be negative" : `must be at least ${issue.minimum}`;
+    default:
+      // Custom schema messages are already phrased as "must be ..." or "is not ...".
+      return /^[a-z]/.test(issue.message) ? issue.message : `is not valid (${issue.message})`;
+  }
+};
+
+/**
+ * One readable sentence for a bad row, naming each column the way the file
+ * does, e.g. Row 4: "UOM Weight Lb" must be a number (you entered "abc").
+ */
+export const describeRowIssues = (
+  type: "unfinalized" | "finalized",
+  rowNumber: number,
+  row: Record<string, unknown>,
+  issues: ZodIssue[]
+): string => {
+  const parts = issues.map((issue) => {
+    const field = String(issue.path[0] ?? "");
+    const column = headerForField(type, field) ?? (field || "This row");
+    const raw = row[field];
+    const entered =
+      typeof raw === "string" ? raw.trim() : typeof raw === "number" ? String(raw) : "";
+    return `"${column}" ${describeIssue(issue, entered)}`;
+  });
+  return `Row ${rowNumber}: ${parts.join("; ")}.`;
 };
 
 const hasValue = (value: unknown) => {
@@ -578,10 +630,7 @@ export default class FileService {
 
       const validationResult = containsRequiredKeys("unfinalized", fields);
       if (!fields || !validationResult.valid) {
-        const missingKeysList = validationResult.missingKeys.join(", ");
-        throw new ArgumentError(
-          `File does not contain required keys. Missing: ${missingKeysList || "unknown"}`
-        );
+        throw new ArgumentError(missingColumnsMessage(validationResult.missingKeys));
       }
 
       const transformedData = jsonData.map(transformDonorOfferRow);
@@ -681,9 +730,7 @@ export default class FileService {
         (label) => !fields.includes(canonicalizeHeader(label))
       );
       if (missing.length > 0) {
-        throw new ArgumentError(
-          `File does not contain required columns. Missing: ${missing.join(", ")}`
-        );
+        throw new ArgumentError(missingColumnsMessage(missing));
       }
 
       return { rows, fields };
@@ -735,10 +782,7 @@ export default class FileService {
 
       const validationResult = containsRequiredKeys("finalized", fields);
       if (!fields || !validationResult.valid) {
-        const missingKeysList = validationResult.missingKeys.join(", ");
-        throw new ArgumentError(
-          `File does not contain required keys. Missing: ${missingKeysList || "unknown"}`
-        );
+        throw new ArgumentError(missingColumnsMessage(validationResult.missingKeys));
       }
 
       return { data: jsonData, fields };

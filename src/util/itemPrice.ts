@@ -89,6 +89,10 @@ export function parseItemPriceListQuery(params: URLSearchParams): ItemPriceListQ
   return { page, pageSize, ndcFilter };
 }
 
+/** One wording for every place a price is typed or uploaded. $0.00 is allowed. */
+export const PRICE_FORMAT_MESSAGE =
+  "Enter a price like 7.50 (numbers only, up to 2 decimal places, no leading zeros).";
+
 export function isValidMoneyString(value: string): boolean {
   if (value.length > MAX_PRICE_LENGTH || value !== value.trim() || !/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(value)) return false;
   const [whole, fraction = ""] = value.split(".");
@@ -100,12 +104,6 @@ export function formatItemPriceMoney(value: string): string {
   if (!isValidMoneyString(value)) throw new Error("Invalid item price.");
   const [whole, fraction = ""] = value.split(".");
   return `${whole}.${fraction.padEnd(2, "0")}`;
-}
-
-export function isPositiveMoneyString(value: string): boolean {
-  if (!isValidMoneyString(value)) return false;
-  const [whole, fraction = ""] = value.split(".");
-  return BigInt(whole) !== BigInt(0) || BigInt(fraction.padEnd(2, "0")) !== BigInt(0);
 }
 
 export function needsItemPriceRecheck(updatedAt: Date | string, referenceDate = new Date()): boolean {

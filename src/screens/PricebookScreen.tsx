@@ -235,9 +235,12 @@ export default function PricebookScreen() {
         </button>
       </p>
       {(fileErrorMessage || errors.length > 0) && (
-        <p role="alert" className="mb-4 text-sm text-red-700">
-          {fileErrorMessage ?? errors[0]}
-        </p>
+        // Show every message. When both are set, fileErrorMessage is errors[0].
+        <div role="alert" className="mb-4 space-y-1 text-sm text-red-700">
+          {(errors.length > 0 ? errors : [fileErrorMessage]).map((message, index) => (
+            <p key={index}>{message}</p>
+          ))}
+        </div>
       )}
       <input
         ref={fileInput}
