@@ -73,12 +73,14 @@ export async function PATCH(
         throw new ArgumentError(updateParsed.error.message);
       }
 
-      await GeneralItemRequestService.updateRequest(
+      const updatedRequest = await GeneralItemRequestService.updateRequest(
         parsed.data.requestId,
         updateParsed.data
       );
 
-      return NextResponse.json(ok());
+      // Send back the saved row, so the page shows what was actually saved
+      // (including staff's revised quantity) instead of guessing.
+      return NextResponse.json(updatedRequest);
     } else {
       UserService.checkPermission(session.user, "requestWrite");
       if (isFormData) {

@@ -10,7 +10,6 @@ import {
   PartnerRequestsResponse,
 } from "@/types/api/generalItem.types";
 import { useApiClient } from "@/hooks/useApiClient";
-import { finalQuantityAfterPartnerEdit } from "@/util/requestQuantity";
 import AdvancedBaseTable, {
   AdvancedBaseTableHandle,
   ColumnDefinition,
@@ -399,22 +398,20 @@ export default function PartnerRequestsScreen() {
       formData.append("priority", requestData.priority);
       formData.append("comments", requestData.comments);
 
-      await apiClient.patch(
-        `/api/generalItems/${request.generalItem.id}/requests/${request.id}`,
-        {
-          body: formData,
-        }
-      );
+      // The server sends back the saved request, including staff's revised
+      // quantity, so the row shows what was actually saved.
+      const saved = await apiClient.patch<{
+        quantity?: number;
+        finalQuantity?: number | null;
+      }>(`/api/generalItems/${request.generalItem.id}/requests/${request.id}`, {
+        body: formData,
+      });
 
       tableRef.current?.updateItemById(request.id, {
-        quantity: requestData.quantity,
+        quantity: saved?.quantity ?? requestData.quantity,
         priority: requestData.priority,
         comments: requestData.comments,
-        // Mirror the server: the revised number follows the new quantity only
-        // while staff haven't changed it.
-        finalQuantity:
-          finalQuantityAfterPartnerEdit(request, requestData.quantity) ??
-          request.finalQuantity,
+        finalQuantity: saved?.finalQuantity ?? request.finalQuantity,
       });
 
       toast.success("Request updated successfully!");

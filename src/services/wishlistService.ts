@@ -45,65 +45,80 @@ export class WishlistService {
   }
 
   /**
-   * For each request where finalQuantity < quantity, automatically creates or
-   * updates a wishlist entry for the partner with the unfulfilled quantity.
-   * If an entry with the same name already exists for the partner, the
-   * unfulfilled quantity is added to it.
+   * Adds each request's unfulfilled quantity to the partner's auto-created
+   * wishlist entry for that item, creating or removing the entry as needed.
+   *
+   * Runs inside the caller's transaction, which must already hold a row lock
+   * on each request. Requests are unique per partner and item, so that lock
+   * also serializes the matching wishlist entry: no addition is lost and no
+   * duplicate entry is created. Returns the new entries; pass them to
+   * indexNewWishlistEntries after the transaction commits.
    */
-  static async createUnfulfilledWishlistEntries(updates: { requestId: number; unfulfilledQuantity: number }[]) {
-  const fullRequests = await db.generalItemRequest.findMany({
-    where: { id: { in: updates.map(u => u.requestId) } },
-    include: { partner: true, generalItem: true }
-  });
+  static async applyUnfulfilledWishlistDeltas(
+    tx: Prisma.TransactionClient,
+    updates: { requestId: number; unfulfilledQuantity: number }[]
+  ) {
+    const created: { id: number; name: string }[] = [];
+    if (updates.length === 0) return created;
 
-  for (const update of updates) {
-    const request = fullRequests.find((r) => r.id === update.requestId);
-    if (!request || !request.partner.enabled || request.partner.pending) continue;
-
-    // Use the delta (unfulfilledQuantity) passed from the service
-    const delta = update.unfulfilledQuantity;
-
-    // IMPORTANT: Search by generalItemId to avoid duplicates
-    const existing = await db.wishlist.findFirst({
-      where: {
-        partnerId: request.partnerId,
-        generalItemId: request.generalItemId,
-      }
+    const fullRequests = await tx.generalItemRequest.findMany({
+      where: { id: { in: updates.map((u) => u.requestId) } },
+      include: { partner: true, generalItem: true },
     });
 
-    if (existing) {
-      const newQty = (existing.quantity ?? 0) + delta;
-      if (newQty <= 0) {
-        await db.wishlist.delete({ where: { id: existing.id } });
-      } else {
-        await db.wishlist.update({
-          where: { id: existing.id },
-          data: { quantity: newQty },
-        });
-      }
-    } else if (delta > 0) {
-      const wishlist = await db.wishlist.create({
-        data: {
-          name: request.generalItem.title,
-          quantity: delta,
-          priority: request.priority ?? "LOW",
-          comments: AUTO_GENERATED_COMMENT,
+    for (const update of updates) {
+      const request = fullRequests.find((r) => r.id === update.requestId);
+      if (!request || !request.partner.enabled || request.partner.pending) continue;
+
+      const delta = update.unfulfilledQuantity;
+
+      // Search by generalItemId to avoid duplicates.
+      const existing = await tx.wishlist.findFirst({
+        where: {
           partnerId: request.partnerId,
-          generalItemId: request.generalItemId, // KEY: Link it!
+          generalItemId: request.generalItemId,
         },
       });
 
-        try {
-          await MatchingService.add({
-            wishlistId: wishlist.id,
-            title: wishlist.name,
+      if (existing) {
+        const newQty = (existing.quantity ?? 0) + delta;
+        if (newQty <= 0) {
+          await tx.wishlist.delete({ where: { id: existing.id } });
+        } else {
+          await tx.wishlist.update({
+            where: { id: existing.id },
+            data: { quantity: newQty },
           });
-        } catch (error) {
-          console.warn(
-            "Failed to generate embedding for auto-created wishlist entry:",
-            error
-          );
         }
+      } else if (delta > 0) {
+        const wishlist = await tx.wishlist.create({
+          data: {
+            name: request.generalItem.title,
+            quantity: delta,
+            priority: request.priority ?? "LOW",
+            comments: AUTO_GENERATED_COMMENT,
+            partnerId: request.partnerId,
+            generalItemId: request.generalItemId,
+          },
+        });
+        created.push({ id: wishlist.id, name: wishlist.name });
+      }
+    }
+
+    return created;
+  }
+
+  /**
+   * Generates matching embeddings for new auto-created entries. Call it after
+   * the transaction commits: it calls Azure, which is too slow to run while
+   * rows are locked.
+   */
+  static async indexNewWishlistEntries(entries: { id: number; name: string }[]) {
+    for (const entry of entries) {
+      try {
+        await MatchingService.add({ wishlistId: entry.id, title: entry.name });
+      } catch (error) {
+        console.warn("Failed to generate embedding for auto-created wishlist entry:", error);
       }
     }
   }
