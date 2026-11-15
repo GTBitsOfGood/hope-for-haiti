@@ -9,6 +9,7 @@ import {
 import { Filters } from "@/types/api/filter.types";
 import { buildQueryWithPagination, buildWhereFromFilters } from "@/util/table";
 import { WishlistService } from "./wishlistService";
+import { finalQuantityAfterPartnerEdit } from "@/util/requestQuantity";
 
 export class GeneralItemRequestService {
   static async getById(id: number) {
@@ -183,9 +184,13 @@ export class GeneralItemRequestService {
         }
       }
 
+      // Staff's revised number follows the partner's edit only while staff
+      // haven't revised it. No wishlist entry here: the partner changed their
+      // own ask, so nothing was refused.
+      const finalQuantity = finalQuantityAfterPartnerEdit(request, data.quantity);
       const updatedRequest = await db.generalItemRequest.update({
         where: { id },
-        data
+        data: finalQuantity === undefined ? data : { ...data, finalQuantity },
       });
 
       return updatedRequest;

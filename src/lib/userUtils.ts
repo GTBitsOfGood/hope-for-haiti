@@ -74,7 +74,9 @@ export function groupUsersByTagForSelect(users: SelectUser[]): {
   > = {};
 
   users.forEach((user) => {
-    const tagNames = user.tags?.map((t) => t.name) || ["Untagged"];
+    // An empty tags list is truthy, so check its length: a partner with no
+    // tags must still appear, under "Untagged".
+    const tagNames = user.tags?.length ? user.tags.map((t) => t.name) : ["Untagged"];
     tagNames.forEach((tagName) => {
       if (!grouped[tagName]) {
         grouped[tagName] = { label: tagName, options: [] };

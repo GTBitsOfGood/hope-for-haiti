@@ -30,6 +30,8 @@ export default function PricebookScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [modifyQueue, setModifyQueue] = useState<ItemPriceResponse[] | null>(null);
+  // How many rows the current bulk edit started with, for the cancel summary.
+  const modifyTotalRef = useRef(0);
   const [review, setReview] = useState<ItemPriceUploadReview | null>(null);
   const [reviewKey, setReviewKey] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -110,6 +112,7 @@ export default function PricebookScreen() {
       ?.getAllItems()
       .filter((item) => selectedIds.has(item.id));
     if (!selected || selected.length === 0) return;
+    modifyTotalRef.current = selected.length;
     setModifyQueue(selected);
   };
 
@@ -122,8 +125,8 @@ export default function PricebookScreen() {
     const finishedId = modifyQueue?.[0]?.id;
     const remaining = modifyQueue ? modifyQueue.slice(1) : null;
     setModifyQueue(remaining && remaining.length > 0 ? remaining : null);
-    // Drop each id as its edit saves, so the selection only reflects
-    // rows that were not modified (e.g. a row the user cancels on).
+    // Drop each id as its edit saves. Cancelling ends the whole bulk edit and
+    // clears the selection (see the queue modal's onClose).
     if (finishedId !== undefined) {
       setSelectedIds((current) => {
         const next = new Set(current);
@@ -307,7 +310,14 @@ export default function PricebookScreen() {
           key={modifyQueue[0].id}
           item={modifyQueue[0]}
           onClose={() => {
+            // Cancel ends the whole bulk edit: say what already saved, and clear
+            // the selection so no row carries into the next bulk action unnoticed.
+            const saved = modifyTotalRef.current - modifyQueue.length;
+            if (saved > 0) {
+              toast.success(`Updated ${saved} of ${modifyTotalRef.current} prices`);
+            }
             setModifyQueue(null);
+            setSelectedIds(new Set());
             table.current?.reload();
           }}
           onSave={async (value, item) => {
