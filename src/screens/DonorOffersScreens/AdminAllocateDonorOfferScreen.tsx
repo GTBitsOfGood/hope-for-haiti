@@ -1,21 +1,32 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
-import AllocationTable from "@/components/allocationTable/AllocationTable";
+import AllocationTable, {
+  buildDefaultColumns,
+} from "@/components/allocationTable/AllocationTable";
 import {
   AllocationChange,
   AllocationTableItem,
   AllocationTableMeta,
 } from "@/components/allocationTable/types";
-import type { FilterList } from "@/components/baseTable/AdvancedBaseTable";
+import type {
+  ColumnDefinition,
+  FilterList,
+} from "@/components/baseTable/AdvancedBaseTable";
 import type { PartnerDistributionSummary } from "@/components/chips/LineItemChipGroup";
 import ValueByPartnerSummary from "@/components/DonorOffers/ValueByPartnerSummary";
 import { useApiClient } from "@/hooks/useApiClient";
 import { useFetch } from "@/hooks/useFetch";
 import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
+import {
+  describeLinePrices,
+  describeSavedValue,
+  NO_SAVED_PRICE,
+} from "@/util/allocationPrices";
+import { formatMoney } from "@/util/format";
 import type { AllocationValueSummary } from "@/util/allocationValue";
 
 type AllocationResponse = {
@@ -48,10 +59,12 @@ export default function AdminAllocateDonorOfferScreen() {
   const [modifiedPagesCount, setModifiedPagesCount] = useState(0);
   const [valueByPartner, setValueByPartner] =
     useState<AllocationValueSummary | null>(null);
-  const [savedTotal, setSavedTotal] = useState<string | null>(null);
   const valueRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  // Numbers each value-by-partner request, so a slow older answer can't
+  // overwrite a newer one (Greptile: out-of-order responses).
+  const valueRequestIdRef = useRef(0);
 
   const distributionsRef = useRef<
     Record<number, PartnerDistributionSummary | undefined>
@@ -86,6 +99,40 @@ export default function AdminAllocateDonorOfferScreen() {
     },
   });
 
+  // The offer's total saved at Finalize; every page of table data carries it.
+  // undefined = not loaded (or the load failed), null = nothing was saved.
+  const [savedTotal, setSavedTotal] = useState<string | null | undefined>(
+    undefined
+  );
+
+  const allocationColumns: ColumnDefinition<AllocationTableItem>[] = useMemo(
+    () => [
+      ...buildDefaultColumns(),
+      {
+        id: "donorPrice",
+        header: "Donor Price",
+        cell: (item) =>
+          describeLinePrices(item.items.map((line) => line.unitPrice)) ?? "-",
+        filterable: false,
+      },
+      {
+        id: "savedPrice",
+        header: "Saved Price",
+        cell: (item) =>
+          describeLinePrices(item.items.map((line) => line.savedUnitPrice)) ??
+          NO_SAVED_PRICE,
+        filterable: false,
+      },
+      {
+        id: "value",
+        header: "Value",
+        cell: (item) => describeSavedValue(item.items) ?? NO_SAVED_PRICE,
+        filterable: false,
+      },
+    ],
+    []
+  );
+
   const refreshValueByPartner = useCallback(async () => {
     if (!isValidDonorOfferId) {
       return;
@@ -97,13 +144,15 @@ export default function AdminAllocateDonorOfferScreen() {
       filters: JSON.stringify({}),
     });
 
+    const requestId = ++valueRequestIdRef.current;
     const response = await apiClient.get<AllocationResponse>(
       `/api/donorOffers/${donorOfferId}/allocationItems?${params}`,
       { cache: "no-store" }
     );
+    if (requestId !== valueRequestIdRef.current) return; // a newer request owns the box
 
     setValueByPartner(response.valueByPartner);
-    setSavedTotal(response.savedTotal);
+    setSavedTotal(response.savedTotal ?? null);
   }, [apiClient, donorOfferId, isValidDonorOfferId]);
 
   const scheduleValueByPartnerRefresh = useCallback(() => {
@@ -133,13 +182,15 @@ export default function AdminAllocateDonorOfferScreen() {
         return { data: [], total: 0 };
       }
 
+      const requestId = ++valueRequestIdRef.current;
       const response = await apiClient.get<AllocationResponse>(
         `/api/donorOffers/${donorOfferId}/allocationItems?${params}`,
         { cache: "no-store" }
       );
-
-      setValueByPartner(response.valueByPartner);
-      setSavedTotal(response.savedTotal);
+      if (requestId === valueRequestIdRef.current) {
+        setValueByPartner(response.valueByPartner);
+        setSavedTotal(response.savedTotal ?? null);
+      }
 
       const items = response.items.map((item) => ({
         ...item,
@@ -309,6 +360,19 @@ export default function AdminAllocateDonorOfferScreen() {
     <>
       <DonorOfferHeader donorOfferId={params.donorOfferId} />
 
+      <div className="mt-2 mb-4 p-4 rounded-lg border border-blue-200 bg-white inline-block">
+        <p className="text-sm font-medium text-black mb-1">
+          Value at Finalize
+        </p>
+        <p className="text-2xl font-bold text-blue-primary">
+          {savedTotal === undefined
+            ? "-"
+            : savedTotal === null
+              ? NO_SAVED_PRICE
+              : formatMoney(savedTotal)}
+        </p>
+      </div>
+
       {modifiedPagesCount > 0 && (
         <div className="mb-4 mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
@@ -322,11 +386,12 @@ export default function AdminAllocateDonorOfferScreen() {
 
       <ValueByPartnerSummary
         summary={valueByPartner}
-        savedTotal={savedTotal}
+        savedTotal={savedTotal ?? null}
       />
 
       <AllocationTable
         fetchFn={fetchTableData}
+        columns={allocationColumns}
         ensureDistributionForPartner={ensureDistributionForPartner}
         onDistributionRemoved={handleDistributionRemoved}
         onAllocationChange={scheduleValueByPartnerRefresh}

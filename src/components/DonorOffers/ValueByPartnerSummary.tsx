@@ -1,15 +1,6 @@
 import type { AllocationValueSummary } from "@/util/allocationValue";
+import { formatMoney } from "@/util/format";
 
-function currency(value: string) {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) {
-    return `$${value}`;
-  }
-  return `$${amount.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
 
 function unpricedNote(count: number) {
   if (count <= 0) return null;
@@ -51,8 +42,8 @@ export default function ValueByPartnerSummary({
         {summary.unpricedCount > 0 && (
           <p className="text-xs text-amber-700">
             {summary.unpricedCount} item
-            {summary.unpricedCount === 1 ? "" : "s"} missing a saved price — not
-            included in totals
+            {summary.unpricedCount === 1 ? "" : "s"} missing a saved price (not
+            included in totals)
           </p>
         )}
       </div>
@@ -68,7 +59,7 @@ export default function ValueByPartnerSummary({
               {unpricedNote(partner.unpricedCount)}
             </dt>
             <dd className="shrink-0 font-medium text-gray-900">
-              {currency(partner.value)}
+              {formatMoney(partner.value)}
             </dd>
           </div>
         ))}
@@ -79,14 +70,14 @@ export default function ValueByPartnerSummary({
             {unpricedNote(summary.notAllocated.unpricedCount)}
           </dt>
           <dd className="shrink-0 font-medium text-gray-900">
-            {currency(summary.notAllocated.value)}
+            {formatMoney(summary.notAllocated.value)}
           </dd>
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-2 text-sm">
           <dt className="font-semibold text-gray-900">Total</dt>
           <dd className="shrink-0 font-semibold text-gray-900">
-            {currency(offerTotal)}
+            {formatMoney(offerTotal)}
           </dd>
         </div>
       </dl>

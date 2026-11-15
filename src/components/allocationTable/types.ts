@@ -23,8 +23,11 @@ export type AllocationLineItem = {
   lotNumber: string | null;
   palletNumber: string | null;
   boxNumber: string | null;
-  savedUnitPrice: string | null;
-  priceSetOn: string | null;
+  // Donor's cost per piece. The allocation API sends every line item field.
+  unitPrice?: string;
+  // Only sent with finalized offers' allocation data (saved at finalize).
+  savedUnitPrice?: string | null;
+  priceSetOn?: string | null;
   allocation: {
     id: number;
     partner: {

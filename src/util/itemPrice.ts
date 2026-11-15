@@ -12,6 +12,43 @@ export function parsePositivePriceId(value: string): number | null {
   return Number.isSafeInteger(id) && id > 0 && id <= MAX_INT32_ID ? id : null;
 }
 
+export const MAX_BULK_DELETE_IDS = 500;
+
+/** Validate a bulk-delete payload: an ids array of positive 32-bit integer
+ * ids, deduplicated, capped at MAX_BULK_DELETE_IDS. */
+export function parseBulkDeleteIds(body: unknown): number[] {
+  if (
+    body === null ||
+    typeof body !== "object" ||
+    !("ids" in body) ||
+    !Array.isArray((body as { ids: unknown }).ids)
+  ) {
+    throw new Error("Request body must contain an ids array.");
+  }
+
+  const parsed = (body as { ids: unknown[] }).ids.map((value) => {
+    if (typeof value !== "number" && typeof value !== "string") {
+      throw new Error("Item price IDs must be positive 32-bit integers.");
+    }
+    const id = parsePositivePriceId(String(value));
+    if (id === null) {
+      throw new Error("Item price IDs must be positive 32-bit integers.");
+    }
+    return id;
+  });
+
+  const unique = [...new Set(parsed)];
+  if (unique.length === 0) {
+    throw new Error("At least one item price ID is required.");
+  }
+  if (unique.length > MAX_BULK_DELETE_IDS) {
+    throw new Error(
+      `Cannot delete more than ${MAX_BULK_DELETE_IDS} prices at once.`
+    );
+  }
+  return unique;
+}
+
 export function parsePositivePriceInteger(value: string | null, fallback: number, label: string): number {
   if (value === null) return fallback;
   if (!/^\d+$/.test(value)) throw new Error(`${label} must be a positive integer.`);

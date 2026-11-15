@@ -81,7 +81,7 @@ export type AllocationTableProps = {
   requestsHeaderTutorialId?: string;
 };
 
-function buildDefaultColumns(
+export function buildDefaultColumns(
   requestsHeaderTutorialId?: string
 ): ColumnDefinition<AllocationTableItem>[] {
   return [
@@ -812,6 +812,7 @@ export default function AllocationTable({
             updateItemsAllocated={updateItemsAllocated}
             ensureDistributionForPartner={ensureDistributionForPartner}
             onDistributionRemoved={onDistributionRemoved}
+            onLinesChanged={onAllocationChange}
             isInteractionMode={isInteractionMode}
           />
         );
@@ -841,6 +842,7 @@ export default function AllocationTable({
       activeView,
       ensureDistributionForPartner,
       isInteractionMode,
+      onAllocationChange,
       onDistributionRemoved,
       updateItemById,
       updateItemsAllocated,
