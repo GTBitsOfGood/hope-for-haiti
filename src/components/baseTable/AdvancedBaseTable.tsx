@@ -563,7 +563,10 @@ function AdvancedBaseTableInner<T extends object>(
                       }}
                     >
                       {selectionEnabled && (
-                        <td className="px-4 py-4 whitespace-nowrap overflow-visible">
+                        <td
+                          key="selection"
+                          className="px-4 py-4 whitespace-nowrap overflow-visible"
+                        >
                           <input
                             type="checkbox"
                             aria-label={`Select row ${rowIdString}`}

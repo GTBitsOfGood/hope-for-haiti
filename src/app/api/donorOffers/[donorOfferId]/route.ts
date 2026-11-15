@@ -271,7 +271,9 @@ export async function PATCH(
 
     const updateParsed = updateSchema.safeParse(formObj);
     if (!updateParsed.success) {
-      throw new ArgumentError(updateParsed.error.message);
+      throw new ArgumentError(
+        updateParsed.error.issues.map((issue) => issue.message).join("; ")
+      );
     }
 
     const { file: _, ...updateData } = updateParsed.data; // eslint-disable-line @typescript-eslint/no-unused-vars

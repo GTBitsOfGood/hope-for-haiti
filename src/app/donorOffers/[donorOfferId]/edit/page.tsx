@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   PartnerSearch,
   Partner,
@@ -25,6 +25,9 @@ export default function EditDonorOfferPage() {
   const [partnerResponseDeadline, setPartnerResponseDeadline] = useState("");
   const [donorResponseDeadline, setDonorResponseDeadline] = useState("");
   const [selectedPartners, setSelectedPartners] = useState<Partner[]>([]);
+  // The partner list as last saved on the server. A ref, not state,
+  // because the page never renders it directly.
+  const savedPartnersRef = useRef<Partner[]>([]);
   const [isArchived, setIsArchived] = useState(false);
   const canManageOffers = hasPermission(user, "offerWrite");
 
@@ -57,6 +60,7 @@ export default function EditDonorOfferPage() {
         new Date(data.donorResponseDeadline).toISOString().substring(0, 10)
       );
       setSelectedPartners(data.partners);
+      savedPartnersRef.current = data.partners;
     },
     onError: (error) => {
       console.error("Error fetching donor offer details:", error);
@@ -88,12 +92,19 @@ export default function EditDonorOfferPage() {
       await apiClient.patch(`/api/donorOffers/${donorOfferId}`, {
         body: formData
       });
+      savedPartnersRef.current = selectedPartners;
       toast.success("Successfully updated donor offer")
     } catch (error) {
       console.error("Error updating donor offer:", error);
       toast.error(
         extractErrorMessages(error, "An error occurred while updating the donor offer").join(" ")
       );
+      // 409 means the server refused to remove a partner who already has
+      // allocations, so nothing was saved. Put the chips back to the saved
+      // list. Other errors keep the form as typed so the user can fix it.
+      if ((error as Error & { status?: number })?.status === 409) {
+        setSelectedPartners(savedPartnersRef.current);
+      }
     }
   };
 
