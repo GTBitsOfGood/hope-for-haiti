@@ -15,6 +15,8 @@ import { $Enums } from "@prisma/client";
 import { tableParamsSchema } from "@/schema/tableParams";
 import { formDataToObject } from "@/util/formData";
 import type { EmbeddingCache } from "@/services/matchingService";
+import type { PriceCheckCodeOverride } from "@/types/api/donorOffer.types";
+import { codeOverridesSchema } from "@/schema/donorOfferCodeOverrides";
 
 /**
  * Schema for getting offer ID from URL params
@@ -35,6 +37,29 @@ const requestParamSchema = z.object({
 const previewParamSchema = z.object({
   preview: z.coerce.boolean().optional().nullable(),
 });
+
+function parseCodeOverrides(value: unknown): PriceCheckCodeOverride[] {
+  if (value == null || value === "") return [];
+  if (typeof value !== "string") {
+    throw new ArgumentError("codeOverrides must be a JSON string");
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(value);
+  } catch {
+    throw new ArgumentError("codeOverrides must be valid JSON");
+  }
+
+  const parsed = codeOverridesSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new ArgumentError(
+      parsed.error.issues[0]?.message ??
+        "codeOverrides must be an array of { row, code }"
+    );
+  }
+  return parsed.data;
+}
 
 const updateSchema = z.object({
   offerName: z.string().min(1, "Offer name is required").optional(),
@@ -213,6 +238,7 @@ export async function PATCH(
 
     if (file && file instanceof File) {
       const parsedFileData = await FileService.parseFinalizedFile(file);
+      const codeOverrides = parseCodeOverrides(formData.get("codeOverrides"));
 
       const embeddingCache: EmbeddingCache = new Map();
 
@@ -220,7 +246,8 @@ export async function PATCH(
         parsed.data.donorOfferId,
         parsedFileData,
         preview ?? false,
-        embeddingCache
+        embeddingCache,
+        codeOverrides
       );
 
       return NextResponse.json(result, {
@@ -231,7 +258,15 @@ export async function PATCH(
     const formObj = formDataToObject(formData) as typeof updateSchema._input;
 
     if ("partners" in formObj) {
-      formObj.partners = formObj.partners?.map(partnerId => Number(partnerId));
+      const rawPartners = formObj.partners;
+      const list: unknown[] = Array.isArray(rawPartners)
+        ? rawPartners
+        : rawPartners != null
+          ? [rawPartners]
+          : [];
+      formObj.partners = list
+        .filter((partnerId) => partnerId !== "")
+        .map((partnerId) => Number(partnerId));
     }
 
     const updateParsed = updateSchema.safeParse(formObj);

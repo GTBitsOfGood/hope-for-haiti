@@ -23,8 +23,9 @@ export type AllocationLineItem = {
   lotNumber: string | null;
   palletNumber: string | null;
   boxNumber: string | null;
-  savedUnitPrice: string | null;
-  priceSetOn: string | null;
+  // Only sent with finalized offers' allocation data (saved at finalize).
+  savedUnitPrice?: string | null;
+  priceSetOn?: string | null;
   allocation: {
     id: number;
     partner: {

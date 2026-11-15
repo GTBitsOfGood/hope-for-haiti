@@ -13,6 +13,7 @@ import { useApiClient } from "@/hooks/useApiClient";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import PriceEntryModal from "@/components/Pricebook/PriceEntryModal";
 import DeletePriceModal from "@/components/Pricebook/DeletePriceModal";
+import BulkDeletePriceModal from "@/components/Pricebook/BulkDeletePriceModal";
 import PriceUploadModal from "@/components/Pricebook/PriceUploadModal";
 
 function currency(value: string) {
@@ -31,6 +32,9 @@ export default function PricebookScreen() {
   const { apiClient } = useApiClient();
   const [entry, setEntry] = useState<ItemPriceResponse | null | "new">(null);
   const [deleting, setDeleting] = useState<ItemPriceResponse | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [modifyQueue, setModifyQueue] = useState<ItemPriceResponse[] | null>(null);
   const [review, setReview] = useState<ItemPriceUploadReview | null>(null);
   const [reviewKey, setReviewKey] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -79,6 +83,63 @@ export default function PricebookScreen() {
     setDeleting(null);
     table.current?.reload();
     toast.success("Price deleted");
+  };
+
+  const removeMany = async () => {
+    const ids = [...selectedIds].map(Number);
+    const body = JSON.stringify({ ids });
+    const result = await apiClient.post<{ count: number }>("/api/itemPrices/bulkDelete", { body });
+    setBulkDeleting(false);
+    setSelectedIds(new Set());
+
+    // If every row on the current page was deleted, moving back a page avoids
+    // landing on an empty "No results found" view (same adjustment the
+    // table's removeItemById makes for single deletes).
+    const pageItems = table.current?.getAllItems() ?? [];
+    const idSet = new Set(ids);
+    const currentPage = table.current?.getPage() ?? 1;
+    const allPageDeleted =
+      pageItems.length > 0 && pageItems.every((item) => idSet.has(item.id));
+    if (allPageDeleted && currentPage > 1) {
+      table.current?.setPage(currentPage - 1);
+    } else {
+      table.current?.reload();
+    }
+    toast.success(
+      `Deleted ${result.count} price${result.count === 1 ? "" : "s"}`
+    );
+  };
+
+  const modifySelected = () => {
+    const selected = table.current
+      ?.getAllItems()
+      .filter((item) => selectedIds.has(item.id));
+    if (!selected || selected.length === 0) return;
+    setModifyQueue(selected);
+  };
+
+  const saveQueuedEntry = async (value: ItemPriceInput, item: ItemPriceResponse | null) => {
+    if (item) await apiClient.patch(`/api/itemPrices/${item.id}`, { body: JSON.stringify(value) });
+    else await apiClient.post("/api/itemPrices", { body: JSON.stringify(value) });
+  };
+
+  const advanceModifyQueue = () => {
+    const finishedId = modifyQueue?.[0]?.id;
+    const remaining = modifyQueue ? modifyQueue.slice(1) : null;
+    setModifyQueue(remaining && remaining.length > 0 ? remaining : null);
+    // Drop each id as its edit saves, so the selection only reflects
+    // rows that were not modified (e.g. a row the user cancels on).
+    if (finishedId !== undefined) {
+      setSelectedIds((current) => {
+        const next = new Set(current);
+        next.delete(finishedId);
+        return next;
+      });
+    }
+    if (!remaining || remaining.length === 0) {
+      table.current?.reload();
+      toast.success("Prices updated");
+    }
   };
 
   const closeUpload = () => {
@@ -196,8 +257,31 @@ export default function PricebookScreen() {
         fetchFn={fetchFn}
         rowId="id"
         pageSize={10}
+        selectedIds={selectedIds}
+        onSelectedIdsChange={setSelectedIds}
         toolBar={(
           <div className="order-1 ml-4 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+            {selectedIds.size > 0 && (
+              <>
+                <span className="self-center whitespace-nowrap text-sm text-gray-600">
+                  {selectedIds.size} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={modifySelected}
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <PencilSimple size={18} /> Modify selected
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkDeleting(true)}
+                  className="flex items-center gap-2 rounded-lg border border-red-500 bg-white px-4 py-2 font-medium text-red-500 transition hover:bg-red-50"
+                >
+                  <Trash size={18} /> Delete selected
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
@@ -217,8 +301,30 @@ export default function PricebookScreen() {
           </div>
         )}
       />
-      <PriceEntryModal item={entry} onClose={() => setEntry(null)} onSave={save} />
+      {entry !== null && (
+        <PriceEntryModal item={entry} onClose={() => setEntry(null)} onSave={save} />
+      )}
+      {modifyQueue && modifyQueue.length > 0 && (
+        <PriceEntryModal
+          key={modifyQueue[0].id}
+          item={modifyQueue[0]}
+          onClose={() => {
+            setModifyQueue(null);
+            table.current?.reload();
+          }}
+          onSave={async (value, item) => {
+            await saveQueuedEntry(value, item);
+            advanceModifyQueue();
+          }}
+        />
+      )}
       <DeletePriceModal item={deleting} onClose={() => setDeleting(null)} onDelete={remove} />
+      <BulkDeletePriceModal
+        count={selectedIds.size}
+        open={bulkDeleting}
+        onClose={() => setBulkDeleting(false)}
+        onDelete={removeMany}
+      />
       {review && (
         <PriceUploadModal
           key={reviewKey}
