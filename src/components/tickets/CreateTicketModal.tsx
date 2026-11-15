@@ -116,7 +116,7 @@ export default function CreateTicketModal({
         onCancel={() => setIsOpen(false)}
         onConfirm={createTicket}
       >
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form>
           <input
             type="text"
             name="title"
