@@ -76,7 +76,9 @@ export default function PriceCheckStepperModal({
       if (current.priceCheck.itemPriceId) {
         await apiClient.patch(`/api/itemPrices/${current.priceCheck.itemPriceId}`, { body });
       } else {
-        await apiClient.post("/api/itemPrices", { body });
+        await apiClient.post("/api/itemPrices", {
+          body: JSON.stringify({ ndc: current.priceCheck.code, name: current.title, unitPrice: price }),
+        });
       }
       advance();
     } catch (e) {
