@@ -9,7 +9,7 @@ import { redirect, useParams, useRouter } from "next/navigation";
 import React from "react";
 import toast from "react-hot-toast";
 import { useFetch } from "@/hooks/useFetch";
-import { useApiClient } from "@/hooks/useApiClient";
+import { useApiClient, extractErrorMessages } from "@/hooks/useApiClient";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 import { DonorOfferState } from "@prisma/client";
 import { hasPermission } from "@/lib/userUtils";
@@ -91,7 +91,9 @@ export default function EditDonorOfferPage() {
       toast.success("Successfully updated donor offer")
     } catch (error) {
       console.error("Error updating donor offer:", error);
-      toast.error("An error occurred while updating the donor offer");
+      toast.error(
+        extractErrorMessages(error, "An error occurred while updating the donor offer").join(" ")
+      );
     }
   };
 

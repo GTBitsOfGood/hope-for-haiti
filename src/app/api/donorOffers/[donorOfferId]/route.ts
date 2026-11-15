@@ -232,14 +232,14 @@ export async function PATCH(
 
     if ("partners" in formObj) {
       const rawPartners = formObj.partners;
-      const list = Array.isArray(rawPartners)
+      const list: unknown[] = Array.isArray(rawPartners)
         ? rawPartners
         : rawPartners != null
           ? [rawPartners]
           : [];
       formObj.partners = list
-        .map((partnerId) => Number(partnerId))
-        .filter((id) => Number.isInteger(id) && id > 0);
+        .filter((partnerId) => partnerId !== "")
+        .map((partnerId) => Number(partnerId));
     }
 
     const updateParsed = updateSchema.safeParse(formObj);

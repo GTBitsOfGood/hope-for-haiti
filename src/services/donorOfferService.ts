@@ -13,7 +13,7 @@ import {
 } from "@prisma/client";
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
-import { ArgumentError, NotFoundError } from "@/util/errors";
+import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
 import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
 import {
   buildPriceCheck,
@@ -1651,6 +1651,27 @@ export default class DonorOfferService {
     };
 
     const updatedOffer = await db.$transaction(async (tx) => {
+      if (removedPartnerIds.length > 0) {
+        const allocated = await tx.allocation.findMany({
+          where: {
+            partnerId: { in: removedPartnerIds },
+            lineItem: { generalItem: { donorOfferId } },
+          },
+          distinct: ["partnerId"],
+          select: { partner: { select: { name: true } } },
+        });
+        if (allocated.length > 0) {
+          const names =
+            allocated
+              .map((allocation) => allocation.partner?.name)
+              .filter((name): name is string => Boolean(name))
+              .join(", ") || "These partners";
+          throw new ConflictError(
+            `Can't remove ${names} from this offer because items are already allocated to them. Remove those allocations first.`
+          );
+        }
+      }
+
       const offer = await tx.donorOffer.update({
         where: { id: donorOfferId },
         data: update,
