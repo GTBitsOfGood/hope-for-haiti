@@ -13,15 +13,19 @@ import {
 } from "@prisma/client";
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
-import { ArgumentError, NotFoundError } from "@/util/errors";
+import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
 import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
 import {
+  applyCodeOverrides,
   buildPriceCheck,
   doesPriceCheckBlockFinalize,
   priceCheckErrorMessage,
   type PriceBookEntry,
 } from "@/util/priceCheck";
-import type { PriceCheckStatus } from "@/types/api/donorOffer.types";
+import type {
+  PriceCheckCodeOverride,
+  PriceCheckStatus,
+} from "@/types/api/donorOffer.types";
 import {
   PartnerDonorOffer,
   AdminDonorOffer,
@@ -1301,7 +1305,8 @@ export default class DonorOfferService {
       fields: string[];
     },
     preview: boolean,
-    embeddingCache: import("./matchingService").EmbeddingCache
+    embeddingCache: import("./matchingService").EmbeddingCache,
+    codeOverrides: PriceCheckCodeOverride[] = []
   ): Promise<FinalizeDonorOfferResult> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
@@ -1314,7 +1319,12 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const { data: jsonData } = parsedFileData;
+    const appliedOverrides = applyCodeOverrides(parsedFileData.data, codeOverrides);
+    if (!appliedOverrides.ok) {
+      return { success: false, errors: appliedOverrides.errors };
+    }
+    const jsonData = appliedOverrides.rows;
+
     const validationResults = jsonData.map((row, index) => {
       const result = FinalizeDonorOfferItemSchema.safeParse(row);
       if (!result.success) {
@@ -1373,9 +1383,16 @@ export default class DonorOfferService {
 
     const validItems = validRows.map((row) => row.item);
 
-    const updatedOffer = await db.donorOffer.update({
-      where: { id: donorOfferId },
+    const { count: finalizedCount } = await db.donorOffer.updateMany({
+      where: { id: donorOfferId, state: $Enums.DonorOfferState.UNFINALIZED },
       data: { state: $Enums.DonorOfferState.FINALIZED },
+    });
+    if (finalizedCount === 0) {
+      throw new ConflictError("This offer has already been finalized.");
+    }
+
+    const updatedOffer = await db.donorOffer.findUniqueOrThrow({
+      where: { id: donorOfferId },
       include: { items: true },
     });
 

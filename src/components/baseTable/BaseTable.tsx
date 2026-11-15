@@ -67,6 +67,7 @@ export default function BaseTable({
   const [currentPage, setCurrentPage] = useState(1);
   const paginationStart = (currentPage - 1) * pageSize;
   const paginationEnd = Math.min(paginationStart + pageSize, rows.length);
+  const visibleRows = pagination ? rows.slice(paginationStart, paginationEnd) : rows;
   const decrementPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
@@ -89,7 +90,7 @@ export default function BaseTable({
             </tr>
           </thead>
           <tbody>
-            {rows.slice(paginationStart, paginationEnd).map((row, rowIndex) => (
+            {visibleRows.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
                 data-odd={rowIndex % 2 !== 0}
