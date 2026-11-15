@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type ChangeEvent } from "react";
+import { useState, useRef, useCallback, type ChangeEvent } from "react";
 import FileUpload from "@/components/FileUpload";
 import { DonorOffer, GeneralItem, GeneralItemRequest } from "@prisma/client";
 import {
@@ -40,6 +40,17 @@ function serializeCodeOverrides(overrides: Record<number, string>): string {
   );
 }
 
+function withOverride(
+  overrides: Record<number, string>,
+  row: number,
+  code: string | undefined
+): Record<number, string> {
+  const next = { ...overrides };
+  if (code === undefined) delete next[row];
+  else next[row] = code;
+  return next;
+}
+
 export default function FinalizeDonorOfferPage() {
   const { data: session } = useSession();
   const params = useParams();
@@ -59,6 +70,24 @@ export default function FinalizeDonorOfferPage() {
   const codeOverridesRef = useRef<Record<number, string>>({});
   const uploadGenerationRef = useRef(0);
   const checkInFlightRef = useRef<number | null>(null);
+  const submitInFlightRef = useRef(false);
+  const [codeOverrides, setCodeOverrides] = useState<Record<number, string>>({});
+  const [draftCodeRows, setDraftCodeRows] = useState<ReadonlySet<number>>(() => new Set());
+
+  const updateCodeOverrides = (next: Record<number, string>) => {
+    codeOverridesRef.current = next;
+    setCodeOverrides(next);
+  };
+
+  const handleCodeDraftChange = useCallback((row: number, hasDraft: boolean) => {
+    setDraftCodeRows((current) => {
+      if (current.has(row) === hasDraft) return current;
+      const next = new Set(current);
+      if (hasDraft) next.add(row);
+      else next.delete(row);
+      return next;
+    });
+  }, []);
 
   const [previewData, setPreviewData] = useState<DonorOfferItem[]>([]);
   const [preview, setPreview] = useState(false);
@@ -136,7 +165,9 @@ export default function FinalizeDonorOfferPage() {
     }));
   const blockingItems = itemsNeedingPrice(priceCheckedItems);
   const canFinalizeNow = backendCanFinalize ?? derivePriceCheckCanFinalize(priceCheckedItems);
-  const finalizeDisabled = !canFinalizeNow || fileLoading;
+  const hasUncheckedCodes = draftCodeRows.size > 0;
+  const finalizeDisabled =
+    !canFinalizeNow || fileLoading || isSubmitting || isSuccess || hasUncheckedCodes;
   const priceCheckSummary = summarizePriceCheck(priceCheckedItems);
 
   const openPriceAction = (item: DonorOfferItem) => {
@@ -151,7 +182,8 @@ export default function FinalizeDonorOfferPage() {
   const handleFileSelection = async (event: ChangeEvent<HTMLInputElement>) => {
     uploadGenerationRef.current += 1;
     checkInFlightRef.current = null;
-    codeOverridesRef.current = {};
+    updateCodeOverrides({});
+    setDraftCodeRows(new Set());
     await handleFileChange(event);
   };
 
@@ -169,25 +201,29 @@ export default function FinalizeDonorOfferPage() {
       return "Upload a file before checking a code.";
     }
 
-    const validation = validateCodeOverride(item.priceCheck.code, code);
-    if (validation.status === "error") {
-      return validation.message;
+    const previousValue = codeOverridesRef.current[row];
+    const isOverride = previousValue !== undefined;
+    let nextValue: string | undefined;
+    if (isOverride && !code.trim()) {
+      nextValue = undefined;
+    } else {
+      const validation = validateCodeOverride(isOverride ? null : item.priceCheck.code, code);
+      if (validation.status === "error") {
+        return validation.message;
+      }
+      nextValue = validation.value;
     }
 
     checkInFlightRef.current = generation;
-    const previousValue = codeOverridesRef.current[row];
-    codeOverridesRef.current = { ...codeOverridesRef.current, [row]: validation.value };
+    updateCodeOverrides(withOverride(codeOverridesRef.current, row, nextValue));
     try {
       const checked = await rerunPreview();
       if (checked === "error") {
-        if (uploadGenerationRef.current === generation) {
-          const current = codeOverridesRef.current;
-          if (current[row] === validation.value) {
-            const next = { ...current };
-            if (previousValue === undefined) delete next[row];
-            else next[row] = previousValue;
-            codeOverridesRef.current = next;
-          }
+        if (
+          uploadGenerationRef.current === generation &&
+          codeOverridesRef.current[row] === nextValue
+        ) {
+          updateCodeOverrides(withOverride(codeOverridesRef.current, row, previousValue));
         }
         return "Unable to check this code. Please try again.";
       }
@@ -235,7 +271,8 @@ export default function FinalizeDonorOfferPage() {
     resetFileUpload();
     uploadGenerationRef.current += 1;
     checkInFlightRef.current = null;
-    codeOverridesRef.current = {};
+    updateCodeOverrides({});
+    setDraftCodeRows(new Set());
     setPreview(false);
     setPreviewData([]);
     setBackendCanFinalize(undefined);
@@ -253,11 +290,13 @@ export default function FinalizeDonorOfferPage() {
     if (
       !uploadedFile ||
       finalizeDisabled ||
+      submitInFlightRef.current ||
       checkInFlightRef.current === uploadGenerationRef.current
     ) {
       return;
     }
 
+    submitInFlightRef.current = true;
     const formData = new FormData();
     formData.append("file", uploadedFile);
     if (Object.keys(codeOverridesRef.current).length > 0) {
@@ -278,6 +317,8 @@ export default function FinalizeDonorOfferPage() {
         )
       );
       setIsError(true);
+    } finally {
+      submitInFlightRef.current = false;
     }
   };
 
@@ -403,6 +444,8 @@ export default function FinalizeDonorOfferPage() {
             onPriceAction={openPriceAction}
             onCodeCheck={handleCodeCheck}
             checking={fileLoading}
+            codeOverrides={codeOverrides}
+            onCodeDraftChange={handleCodeDraftChange}
           />
         </>
       )}
@@ -412,6 +455,11 @@ export default function FinalizeDonorOfferPage() {
           <p className="text-sm text-red-600 mb-1">
             {priceCheckSummary.needsPriceCount} row
             {priceCheckSummary.needsPriceCount === 1 ? " needs" : "s need"} a price before you can finalize
+          </p>
+        )}
+        {preview && hasUncheckedCodes && (
+          <p className="text-sm text-red-600 mb-1">
+            You typed a code but didn&apos;t click Check. Click Check, or clear the box.
           </p>
         )}
         <div className="flex">

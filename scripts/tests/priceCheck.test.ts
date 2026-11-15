@@ -164,6 +164,25 @@ test("code overrides apply only to blank or unreadable physical rows", () => {
   assert.equal(applied.rows[2].ndc, VALID_NDC);
 });
 
+test("code overrides keep the donor's unreadable code in additionalInfo", () => {
+  const applied = applyCodeOverrides(
+    [
+      { __excelRow: 2, ndc: "0093415573", title: "Unreadable", additionalInfo: { Lot: "A1" } },
+      { __excelRow: 3, ndc: "", title: "Blank" },
+    ],
+    [
+      { row: 2, code: "00093-4155-73" },
+      { row: 3, code: "00093-4155-73" },
+    ]
+  );
+  assert.equal(applied.ok, true);
+  if (!applied.ok) return;
+
+  assert.equal(applied.rows[0].ndc, VALID_NDC);
+  assert.deepEqual(applied.rows[0].additionalInfo, { Lot: "A1", NDC: "0093415573" });
+  assert.deepEqual(applied.rows[1].additionalInfo, {});
+});
+
 test("code overrides reject duplicate, unknown, readable, and invalid rows without partial application", () => {
   const rows = [
     { __excelRow: 2, ndc: "", title: "Blank" },

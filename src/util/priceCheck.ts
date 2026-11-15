@@ -1,4 +1,4 @@
-import { parseItemCode, type ParseItemCodeResult } from "@/util/ndc";
+import { parseItemCode, resolveFinalizedNdc, type ParseItemCodeResult } from "@/util/ndc";
 import { needsItemPriceRecheck } from "@/util/itemPrice";
 import type {
   PriceCheck,
@@ -120,7 +120,12 @@ export function applyCodeOverrides(
     rows: rows.map((row) => {
       if (typeof row.__excelRow !== "number") return row;
       const replacement = replacements.get(row.__excelRow);
-      return replacement === undefined ? row : { ...row, ndc: replacement };
+      if (replacement === undefined) return row;
+      const { additionalInfo } = resolveFinalizedNdc(
+        row.ndc == null ? null : String(row.ndc),
+        (row.additionalInfo ?? {}) as Record<string, unknown>
+      );
+      return { ...row, ndc: replacement, additionalInfo };
     }),
   };
 }

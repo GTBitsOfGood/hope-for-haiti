@@ -1,22 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { validateCodeOverride } from "@/util/priceCheck";
 
 interface PriceCheckCodeCellProps {
   row: number;
   title: string;
   initialCode: string | null;
+  isOverride?: boolean;
   disabled: boolean;
   onCheck: (row: number, code: string) => Promise<string | null>;
+  onDraftChange?: (row: number, hasDraft: boolean) => void;
 }
 
 export default function PriceCheckCodeCell({
   row,
   title,
   initialCode,
+  isOverride = false,
   disabled,
   onCheck,
+  onDraftChange,
 }: PriceCheckCodeCellProps) {
   const [value, setValue] = useState(initialCode ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -27,17 +30,22 @@ export default function PriceCheckCodeCell({
     setError(null);
   }, [initialCode]);
 
-  const check = async () => {
-    const validation = validateCodeOverride(initialCode, value);
-    if (validation.status === "error") {
-      setError(validation.message);
-      return;
-    }
+  const typed = value.trim();
+  const hasDraft = typed !== (initialCode ?? "").trim() && (typed !== "" || isOverride);
 
+  useEffect(() => {
+    onDraftChange?.(row, hasDraft);
+  }, [row, hasDraft, onDraftChange]);
+
+  useEffect(() => {
+    return () => onDraftChange?.(row, false);
+  }, [row, onDraftChange]);
+
+  const check = async () => {
     setPending(true);
     setError(null);
     try {
-      setError(await onCheck(row, validation.value));
+      setError(await onCheck(row, value));
     } finally {
       setPending(false);
     }
@@ -56,6 +64,12 @@ export default function PriceCheckCodeCell({
           onChange={(event) => {
             setValue(event.target.value);
             if (error) setError(null);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !isDisabled) {
+              event.preventDefault();
+              void check();
+            }
           }}
           placeholder="NDC or UPC"
           aria-label={`Code for ${title}`}

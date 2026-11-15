@@ -42,6 +42,10 @@ interface PreviewTableProps {
   onCodeCheck?: (row: number, code: string) => Promise<string | null>;
   /** Disables code checks while a Preview request is in flight. */
   checking?: boolean;
+  /** Codes typed by staff, by sheet row. Those rows keep their code box so the code can be corrected. */
+  codeOverrides?: Record<number, string>;
+  /** Called when a code box gains or loses typed text that hasn't been checked yet. */
+  onCodeDraftChange?: (row: number, hasDraft: boolean) => void;
 }
 
 const MagnifyingGlassIcon = () => (
@@ -102,6 +106,8 @@ export const PreviewTable = ({
   onPriceAction,
   onCodeCheck,
   checking = false,
+  codeOverrides = {},
+  onCodeDraftChange,
 }: PreviewTableProps) => {
   useEffect(() => {
     console.log(data, final);
@@ -166,6 +172,8 @@ export const PreviewTable = ({
         rows={data.map((item, index) => {
           const priceCheck = item.priceCheck;
           const canAct = priceCheck && doesPriceCheckBlockFinalize(priceCheck.status) && onPriceAction;
+          const rowNumber = item.row ?? index + 1;
+          const isOverride = codeOverrides[rowNumber] !== undefined;
 
           return {
             cells: [
@@ -184,15 +192,17 @@ export const PreviewTable = ({
                 : "-",
               priceCheck ? <PriceCheckBadge key={`status-${index}`} status={priceCheck.status} /> : "-",
               priceCheck &&
-              (priceCheck.status === "no-code" || priceCheck.status === "unreadable") &&
+              (priceCheck.status === "no-code" || priceCheck.status === "unreadable" || isOverride) &&
               onCodeCheck ? (
                 <PriceCheckCodeCell
-                  key={`code-${item.row ?? index}`}
-                  row={item.row ?? index + 1}
+                  key={`code-${rowNumber}`}
+                  row={rowNumber}
                   title={item.title}
                   initialCode={priceCheck.code}
+                  isOverride={isOverride}
                   disabled={checking}
                   onCheck={onCodeCheck}
+                  onDraftChange={onCodeDraftChange}
                 />
               ) : priceCheck?.code ? (
                 `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`

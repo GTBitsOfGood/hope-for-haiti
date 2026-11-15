@@ -13,7 +13,7 @@ import {
 } from "@prisma/client";
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
-import { ArgumentError, NotFoundError } from "@/util/errors";
+import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
 import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
 import {
   applyCodeOverrides,
@@ -1383,9 +1383,16 @@ export default class DonorOfferService {
 
     const validItems = validRows.map((row) => row.item);
 
-    const updatedOffer = await db.donorOffer.update({
-      where: { id: donorOfferId },
+    const { count: finalizedCount } = await db.donorOffer.updateMany({
+      where: { id: donorOfferId, state: $Enums.DonorOfferState.UNFINALIZED },
       data: { state: $Enums.DonorOfferState.FINALIZED },
+    });
+    if (finalizedCount === 0) {
+      throw new ConflictError("This offer has already been finalized.");
+    }
+
+    const updatedOffer = await db.donorOffer.findUniqueOrThrow({
+      where: { id: donorOfferId },
       include: { items: true },
     });
 
