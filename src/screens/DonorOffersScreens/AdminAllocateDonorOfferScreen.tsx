@@ -19,6 +19,7 @@ import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
 type AllocationResponse = {
   items: AllocationTableItem[];
   total: number;
+  savedTotal: string | null;
   orphanedRequests: AllocationTableMeta["orphanedRequests"];
   generalItemOptions: AllocationTableMeta["generalItemOptions"];
 };
