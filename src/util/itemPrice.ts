@@ -35,12 +35,12 @@ export function parseItemPriceListQuery(params: URLSearchParams): ItemPriceListQ
     let filters: unknown;
     try { filters = JSON.parse(raw); } catch { throw new Error("Filters must be valid JSON."); }
     if (!filters || typeof filters !== "object" || Array.isArray(filters) || Object.keys(filters).some((key) => key !== "ndc")) {
-      throw new Error("Only an NDC filter is supported.");
+      throw new Error("Only a code filter is supported.");
     }
     const ndc = (filters as Record<string, unknown>).ndc;
     if (ndc !== undefined) {
       if (!ndc || typeof ndc !== "object" || Array.isArray(ndc) || Object.keys(ndc).some((key) => key !== "type" && key !== "value") || (ndc as Record<string, unknown>).type !== "string" || typeof (ndc as Record<string, unknown>).value !== "string") {
-        throw new Error("NDC filter must be {type:'string',value:string}.");
+        throw new Error("Code filter must be {type:'string',value:string}.");
       }
       const value = (ndc as { value: string }).value.trim();
       if (value) {
