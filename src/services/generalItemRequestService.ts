@@ -184,20 +184,24 @@ export class GeneralItemRequestService {
         }
       }
 
-      // Staff's revised number follows the partner's edit only while staff
-      // haven't revised it. No wishlist entry here: the partner changed their
-      // own ask, so nothing was refused.
-      const finalQuantity = finalQuantityAfterPartnerEdit(request, data.quantity);
       const updatedRequest = await db.$transaction(async (tx) => {
-        const updated = await tx.generalItemRequest.update({ where: { id }, data });
-        if (finalQuantity === undefined) return updated;
-        // Compare-and-set: move it only if it still holds the value read above,
-        // so a staff revision saved in the meantime is never overwritten.
-        const moved = await tx.generalItemRequest.updateMany({
-          where: { id, finalQuantity: request.finalQuantity },
-          data: { finalQuantity },
+        // Lock the row, then read its current numbers. Overlapping saves (a
+        // second click, another tab, or a staff revision) wait their turn, so
+        // the decision below always uses the latest values.
+        await tx.$queryRaw`SELECT id FROM "GeneralItemRequest" WHERE id = ${id} FOR UPDATE`;
+        const current = await tx.generalItemRequest.findUniqueOrThrow({
+          where: { id },
+          select: { quantity: true, finalQuantity: true },
         });
-        return moved.count === 1 ? { ...updated, finalQuantity } : updated;
+
+        // Staff's revised number follows the partner's edit only while staff
+        // haven't revised it. No wishlist entry here: the partner changed
+        // their own ask, so nothing was refused.
+        const finalQuantity = finalQuantityAfterPartnerEdit(current, data.quantity);
+        return tx.generalItemRequest.update({
+          where: { id },
+          data: finalQuantity === undefined ? data : { ...data, finalQuantity },
+        });
       });
 
       return updatedRequest;
