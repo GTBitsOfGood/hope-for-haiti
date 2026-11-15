@@ -20,6 +20,7 @@ export default function LineItemChipGroup({
   updateItemsAllocated,
   ensureDistributionForPartner,
   onDistributionRemoved,
+  onLinesChanged,
   isInteractionMode = false,
   readOnly = false,
 }: {
@@ -33,6 +34,8 @@ export default function LineItemChipGroup({
     partnerName: string
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
+  /** Called when this item's lines change without an allocation change (a split). */
+  onLinesChanged?: () => void;
   isInteractionMode?: boolean;
   readOnly?: boolean;
 }) {
@@ -61,6 +64,7 @@ export default function LineItemChipGroup({
           }
           ensureDistributionForPartner={ensureDistributionForPartner}
           onDistributionRemoved={onDistributionRemoved}
+          onLinesChanged={onLinesChanged}
           isInteractionMode={isInteractionMode}
           readOnly={readOnly}
         />
@@ -77,6 +81,7 @@ function LineItemChip({
   updateItemsAllocated,
   ensureDistributionForPartner,
   onDistributionRemoved,
+  onLinesChanged,
   isInteractionMode = false,
   readOnly = false,
 }: {
@@ -90,6 +95,8 @@ function LineItemChip({
     partnerName: string
   ) => Promise<PartnerDistributionSummary>;
   onDistributionRemoved?: (partnerId: number) => void;
+  /** Called when this item's lines change without an allocation change (a split). */
+  onLinesChanged?: () => void;
   isInteractionMode?: boolean;
   readOnly?: boolean;
 }) {
@@ -135,6 +142,7 @@ function LineItemChip({
           })))
       }));
 
+      onLinesChanged?.();
       toast.success("Line item split successfully!");
       setIsSplitting(false);
       setNumSplits("");

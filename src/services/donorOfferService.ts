@@ -24,6 +24,7 @@ import {
   priceCheckErrorMessage,
   type PriceBookEntry,
 } from "@/util/priceCheck";
+import { buildAllocationValueSummary } from "@/util/allocationValue";
 import type {
   PriceCheck,
   PriceCheckCodeOverride,
@@ -1875,64 +1876,84 @@ export default class DonorOfferService {
 
     buildQueryWithPagination(query, page, pageSize);
 
-    const [items, total, orphanedGeneralItems, targetOptions, donorOffer] =
-      await Promise.all([
-        db.generalItem.findMany(query),
-        db.generalItem.count({ where }),
-        db.generalItem.findMany({
-          where: {
-            donorOfferId,
-            items: { none: {} },
-            requests: { some: {} },
-          },
-          include: {
-            requests: {
-              include: {
-                partner: {
-                  select: { id: true, name: true },
-                },
-              },
-              orderBy: { id: "asc" },
-            },
-          },
-          orderBy: { id: "asc" },
-        }),
-        db.generalItem.findMany({
-          where: {
-            donorOfferId,
-            items: { some: {} },
-          },
-          select: {
-            id: true,
-            title: true,
-            unitType: true,
-            expirationDate: true,
-            requests: {
-              include: {
-                partner: {
-                  select: { id: true, name: true },
-                },
+    const [
+      items,
+      total,
+      orphanedGeneralItems,
+      targetOptions,
+      donorOffer,
+    ] = await Promise.all([
+      db.generalItem.findMany(query),
+      db.generalItem.count({ where }),
+      db.generalItem.findMany({
+        where: {
+          donorOfferId,
+          items: { none: {} },
+          requests: { some: {} },
+        },
+        include: {
+          requests: {
+            include: {
+              partner: {
+                select: { id: true, name: true },
               },
             },
-            items: {
-              include: {
-                allocation: {
-                  include: {
-                    partner: {
-                      select: { id: true, name: true },
-                    },
+            orderBy: { id: "asc" },
+          },
+        },
+        orderBy: { id: "asc" },
+      }),
+      db.generalItem.findMany({
+        where: {
+          donorOfferId,
+          items: { some: {} },
+        },
+        select: {
+          id: true,
+          title: true,
+          unitType: true,
+          expirationDate: true,
+          requests: {
+            include: {
+              partner: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+          items: {
+            include: {
+              allocation: {
+                include: {
+                  partner: {
+                    select: { id: true, name: true },
                   },
                 },
               },
             },
           },
-          orderBy: { title: "asc" },
-        }),
-        db.donorOffer.findUnique({
-          where: { id: donorOfferId },
-          select: { savedTotal: true },
-        }),
-      ]);
+        },
+        orderBy: { title: "asc" },
+      }),
+      db.donorOffer.findUnique({
+        where: { id: donorOfferId },
+        select: { savedTotal: true },
+      }),
+    ]);
+
+    // targetOptions already loads every line of the offer with its saved price
+    // and partner, so build the summary from it instead of reading the lines again.
+    const valueByPartner = buildAllocationValueSummary(
+      targetOptions.flatMap((option) =>
+        option.items.map((lineItem) => ({
+          quantity: lineItem.quantity,
+          savedUnitPrice:
+            lineItem.savedUnitPrice != null
+              ? lineItem.savedUnitPrice.toFixed(2)
+              : null,
+          partner: lineItem.allocation?.partner ?? null,
+        }))
+      )
+    );
 
     type ItemWithItems = Prisma.GeneralItemGetPayload<{
       include: {
@@ -1974,6 +1995,7 @@ export default class DonorOfferService {
         donorOffer?.savedTotal != null
           ? donorOffer.savedTotal.toFixed(2)
           : null,
+      valueByPartner,
       orphanedRequests: orphanedGeneralItems.flatMap((generalItem) =>
         generalItem.requests.map((request) => ({
           requestId: request.id,
