@@ -5,7 +5,6 @@ import FileUpload from "@/components/FileUpload";
 import { DonorOfferState } from "@prisma/client";
 import {
   FileInfoDisplay,
-  ErrorDisplay,
   PreviewTable,
   DonorOfferItem,
   PartnerSearch,
@@ -57,6 +56,7 @@ export default function CreateDonorOfferPage() {
     errors,
     uploadedFile,
     handleFileChange,
+    clearErrors,
     resetUpload: resetFileUpload,
   } = useFileUpload<{ donorOfferItems: DonorOfferItem[] }>({
     previewEndpoint: "/api/donorOffers?preview=true",
@@ -68,9 +68,12 @@ export default function CreateDonorOfferPage() {
       const today = getTodayDateString();
       const validationErrors: string[] = [];
 
-      if (!offerName || !donorName || !partnerRequestDeadline || !donorRequestDeadline) {
-        validationErrors.push("Please fill out all required fields.");
-      }
+      if (!offerName) validationErrors.push("Donor offer name is required.");
+      if (!donorName) validationErrors.push("Donor name is required.");
+      if (!partnerRequestDeadline)
+        validationErrors.push("Partner request deadline is required.");
+      if (!donorRequestDeadline)
+        validationErrors.push("Donor request deadline is required.");
 
       if (donorRequestDeadline && donorRequestDeadline < today) {
         validationErrors.push("Donor Request Deadline cannot be in the past.");
@@ -98,6 +101,18 @@ export default function CreateDonorOfferPage() {
 
   const { isLoading: isSubmitting, apiClient } = useApiClient();
 
+  // Upload-validation errors name the missing fields, so drop them as soon as
+  // the user edits a field and no file was kept. A kept file with a failed
+  // preview (uploadedFile set, fileUploaded false) keeps its file-level error
+  // so the reason the file was rejected stays visible.
+  const handleFieldChange = (
+    setter: (value: string) => void,
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setter(event.target.value);
+    if (!fileUploaded && !uploadedFile) clearErrors();
+  };
+
   if (session?.user?.type === "PARTNER") {
     redirect("/donorOffers");
   }
@@ -112,10 +127,11 @@ export default function CreateDonorOfferPage() {
     setPreview(true);
   };
 
-  // fileErrorMessage duplicates errors[0] only when FileInfoDisplay/useFileUpload set them together
-  // (API/network failures); validateBeforeUpload sets errors without fileErrorMessage, so don't assume it.
-  const additionalErrors =
-    fileErrorMessage && errors[0] === fileErrorMessage ? errors.slice(1) : errors;
+  // Every preview/validation error is rendered inside the file card, one line
+  // each. Validation errors set errors without fileErrorMessage; API/network
+  // failures set both, so fileErrorMessage is covered by the array. Nothing is
+  // sliced or dropped.
+  const uploadErrors = errors;
 
   const resetUpload = () => {
     resetFileUpload();
@@ -174,7 +190,7 @@ export default function CreateDonorOfferPage() {
           <input
             type="text"
             value={offerName}
-            onChange={(e) => setOfferName(e.target.value)}
+            onChange={(e) => handleFieldChange(setOfferName, e)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             placeholder="Offer name"
             required
@@ -187,7 +203,7 @@ export default function CreateDonorOfferPage() {
           <input
             type="text"
             value={donorName}
-            onChange={(e) => setDonorName(e.target.value)}
+            onChange={(e) => handleFieldChange(setDonorName, e)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             placeholder="Donor name"
             required
@@ -200,7 +216,7 @@ export default function CreateDonorOfferPage() {
           <input
             type="date"
             value={donorRequestDeadline}
-            onChange={(e) => setDonorRequestDeadline(e.target.value)}
+            onChange={(e) => handleFieldChange(setDonorRequestDeadline, e)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             required
           />
@@ -212,7 +228,7 @@ export default function CreateDonorOfferPage() {
           <input
             type="date"
             value={partnerRequestDeadline}
-            onChange={(e) => setPartnerRequestDeadline(e.target.value)}
+            onChange={(e) => handleFieldChange(setPartnerRequestDeadline, e)}
             className="w-full lg:w-1/2 px-3 py-2 border border-gray-300 rounded-md bg-zinc-50 focus:outline-none focus:border-gray-400"
             required
           />
@@ -241,10 +257,9 @@ export default function CreateDonorOfferPage() {
         fileName={fileName}
         fileSize={fileSize}
         fileErrorMessage={fileErrorMessage}
+        errorMessages={uploadErrors}
         onReset={resetUpload}
       />
-
-      {additionalErrors.length > 0 && <ErrorDisplay errors={additionalErrors} />}
 
       {preview && <PreviewTable final={false} data={data} />}
 
