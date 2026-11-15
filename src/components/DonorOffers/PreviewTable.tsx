@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import BaseTable, {extendTableHeader} from "../baseTable/BaseTable";
 import type { PriceCheck } from "@/types/api/donorOffer.types";
 import PriceCheckBadge from "./PriceCheckBadge";
+import PriceCheckCodeCell from "./PriceCheckCodeCell";
 import { doesPriceCheckBlockFinalize } from "@/util/priceCheck";
 
 // Define donor offer item data type based on schema
@@ -37,6 +38,14 @@ interface PreviewTableProps {
   final: boolean;
   /** Called when a row's "Add price"/"Re-check" button is clicked. */
   onPriceAction?: (item: DonorOfferItem) => void;
+  /** Called when a warning row's typed code is checked. Returns a row error or null. */
+  onCodeCheck?: (row: number, code: string) => Promise<string | null>;
+  /** Disables code checks while a Preview request is in flight. */
+  checking?: boolean;
+  /** Codes typed by staff, by sheet row. Those rows keep their code box so the code can be corrected. */
+  codeOverrides?: Record<number, string>;
+  /** Called when a code box gains or loses typed text that hasn't been checked yet. */
+  onCodeDraftChange?: (row: number, hasDraft: boolean) => void;
 }
 
 const MagnifyingGlassIcon = () => (
@@ -91,7 +100,15 @@ const AdditionalInfoTooltip = ({ info }: { info: Record<string, unknown> }) => {
   );
 };
 
-export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) => {
+export const PreviewTable = ({
+  data,
+  final,
+  onPriceAction,
+  onCodeCheck,
+  checking = false,
+  codeOverrides = {},
+  onCodeDraftChange,
+}: PreviewTableProps) => {
   useEffect(() => {
     console.log(data, final);
   }, [data, final]);
@@ -138,7 +155,7 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
           extendTableHeader("Our Price", "min-w-24"),
           extendTableHeader("Value", "min-w-24"),
           extendTableHeader("Actions", "min-w-28"),
-          extendTableHeader("Code", "min-w-32"),
+          extendTableHeader("Code", "min-w-64"),
           extendTableHeader("Pallet #", "min-w-24"),
           extendTableHeader("Box #", "min-w-20"),
           extendTableHeader("Donor", "min-w-32"),
@@ -155,6 +172,8 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
         rows={data.map((item, index) => {
           const priceCheck = item.priceCheck;
           const canAct = priceCheck && doesPriceCheckBlockFinalize(priceCheck.status) && onPriceAction;
+          const rowNumber = item.row ?? index + 1;
+          const isOverride = codeOverrides[rowNumber] !== undefined;
 
           return {
             cells: [
@@ -177,9 +196,24 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
               ) : (
                 "-"
               ),
-              priceCheck?.code
-                ? `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
-                : "-",
+              priceCheck &&
+              (priceCheck.status === "no-code" || priceCheck.status === "unreadable" || isOverride) &&
+              onCodeCheck ? (
+                <PriceCheckCodeCell
+                  key={`code-${rowNumber}`}
+                  row={rowNumber}
+                  title={item.title}
+                  initialCode={priceCheck.code}
+                  isOverride={isOverride}
+                  disabled={checking}
+                  onCheck={onCodeCheck}
+                  onDraftChange={onCodeDraftChange}
+                />
+              ) : priceCheck?.code ? (
+                `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
+              ) : (
+                "-"
+              ),
               item.palletNumber || "-",
               item.boxNumber || "-",
               item.donorName || "-",

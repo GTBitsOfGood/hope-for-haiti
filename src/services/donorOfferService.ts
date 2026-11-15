@@ -13,15 +13,19 @@ import {
 } from "@prisma/client";
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
-import { ArgumentError, NotFoundError } from "@/util/errors";
+import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
 import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
 import {
+  applyCodeOverrides,
   buildPriceCheck,
   doesPriceCheckBlockFinalize,
   priceCheckErrorMessage,
   type PriceBookEntry,
 } from "@/util/priceCheck";
-import type { PriceCheckStatus } from "@/types/api/donorOffer.types";
+import type {
+  PriceCheckCodeOverride,
+  PriceCheckStatus,
+} from "@/types/api/donorOffer.types";
 import {
   PartnerDonorOffer,
   AdminDonorOffer,
@@ -1301,7 +1305,8 @@ export default class DonorOfferService {
       fields: string[];
     },
     preview: boolean,
-    embeddingCache: import("./matchingService").EmbeddingCache
+    embeddingCache: import("./matchingService").EmbeddingCache,
+    codeOverrides: PriceCheckCodeOverride[] = []
   ): Promise<FinalizeDonorOfferResult> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
@@ -1314,7 +1319,12 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const { data: jsonData } = parsedFileData;
+    const appliedOverrides = applyCodeOverrides(parsedFileData.data, codeOverrides);
+    if (!appliedOverrides.ok) {
+      return { success: false, errors: appliedOverrides.errors };
+    }
+    const jsonData = appliedOverrides.rows;
+
     const validationResults = jsonData.map((row, index) => {
       const result = FinalizeDonorOfferItemSchema.safeParse(row);
       if (!result.success) {
@@ -1373,9 +1383,16 @@ export default class DonorOfferService {
 
     const validItems = validRows.map((row) => row.item);
 
-    const updatedOffer = await db.donorOffer.update({
-      where: { id: donorOfferId },
+    const { count: finalizedCount } = await db.donorOffer.updateMany({
+      where: { id: donorOfferId, state: $Enums.DonorOfferState.UNFINALIZED },
       data: { state: $Enums.DonorOfferState.FINALIZED },
+    });
+    if (finalizedCount === 0) {
+      throw new ConflictError("This offer has already been finalized.");
+    }
+
+    const updatedOffer = await db.donorOffer.findUniqueOrThrow({
+      where: { id: donorOfferId },
       include: { items: true },
     });
 
@@ -1597,8 +1614,16 @@ export default class DonorOfferService {
       existingOffer.partnerVisibilities.map((partner) => partner.id)
     );
 
+    const nextPartnerIds =
+      updateData.partners !== undefined
+        ? [...new Set(updateData.partners)]
+        : undefined;
     const addedPartnerIds =
-      updateData.partners?.filter((id) => !existingPartnerIds.has(id)) ?? [];
+      nextPartnerIds?.filter((id) => !existingPartnerIds.has(id)) ?? [];
+    const removedPartnerIds =
+      nextPartnerIds !== undefined
+        ? [...existingPartnerIds].filter((id) => !nextPartnerIds.includes(id))
+        : [];
 
     let newPartners: { id: number; name: string; email: string }[] = [];
 
@@ -1632,19 +1657,53 @@ export default class DonorOfferService {
       donorName: updateData.donorName,
       partnerResponseDeadline: updateData.partnerResponseDeadline,
       donorResponseDeadline: updateData.donorResponseDeadline,
-      ...(addedPartnerIds !== undefined
+      ...(nextPartnerIds !== undefined
         ? {
             partnerVisibilities: {
-              connect: addedPartnerIds.map((partnerId) => ({ id: partnerId })),
+              set: nextPartnerIds.map((partnerId) => ({ id: partnerId })),
             },
           }
         : {}),
       state: updateData.state,
     };
 
-    const updatedOffer = await db.donorOffer.update({
-      where: { id: donorOfferId },
-      data: update,
+    const updatedOffer = await db.$transaction(async (tx) => {
+      if (removedPartnerIds.length > 0) {
+        const allocated = await tx.allocation.findMany({
+          where: {
+            partnerId: { in: removedPartnerIds },
+            lineItem: { generalItem: { donorOfferId } },
+          },
+          distinct: ["partnerId"],
+          select: { partner: { select: { name: true } } },
+        });
+        if (allocated.length > 0) {
+          const names =
+            allocated
+              .map((allocation) => allocation.partner?.name)
+              .filter((name): name is string => Boolean(name))
+              .join(", ") || "These partners";
+          throw new ConflictError(
+            `Can't remove ${names} from this offer because items are already allocated to them. Remove those allocations first.`
+          );
+        }
+      }
+
+      const offer = await tx.donorOffer.update({
+        where: { id: donorOfferId },
+        data: update,
+      });
+
+      if (removedPartnerIds.length > 0) {
+        await tx.generalItemRequest.deleteMany({
+          where: {
+            partnerId: { in: removedPartnerIds },
+            generalItem: { donorOfferId },
+          },
+        });
+      }
+
+      return offer;
     });
 
     if (addedPartnerIds.length > 0) {
