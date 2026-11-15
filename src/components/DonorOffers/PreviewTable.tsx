@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import BaseTable, {extendTableHeader} from "../baseTable/BaseTable";
 import type { PriceCheck } from "@/types/api/donorOffer.types";
 import PriceCheckBadge from "./PriceCheckBadge";
+import PriceCheckCodeCell from "./PriceCheckCodeCell";
 import { doesPriceCheckBlockFinalize } from "@/util/priceCheck";
 
 // Define donor offer item data type based on schema
@@ -37,6 +38,14 @@ interface PreviewTableProps {
   final: boolean;
   /** Called when a row's "Add price"/"Re-check" button is clicked. */
   onPriceAction?: (item: DonorOfferItem) => void;
+  /** Called when a warning row's typed code is checked. Returns a row error or null. */
+  onCodeCheck?: (row: number, code: string) => Promise<string | null>;
+  /** Disables code checks while a Preview request is in flight. */
+  checking?: boolean;
+  /** Codes typed by staff, by sheet row. Those rows keep their code box so the code can be corrected. */
+  codeOverrides?: Record<number, string>;
+  /** Called when a code box gains or loses typed text that hasn't been checked yet. */
+  onCodeDraftChange?: (row: number, hasDraft: boolean) => void;
 }
 
 const MagnifyingGlassIcon = () => (
@@ -91,7 +100,15 @@ const AdditionalInfoTooltip = ({ info }: { info: Record<string, unknown> }) => {
   );
 };
 
-export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) => {
+export const PreviewTable = ({
+  data,
+  final,
+  onPriceAction,
+  onCodeCheck,
+  checking = false,
+  codeOverrides = {},
+  onCodeDraftChange,
+}: PreviewTableProps) => {
   useEffect(() => {
     console.log(data, final);
   }, [data, final]);
@@ -132,55 +149,41 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
       <BaseTable
         pagination={false}
         headers={[
+          extendTableHeader("Description", "min-w-64"),
+          extendTableHeader("Cost Per Piece (Donor)", "min-w-28"),
+          extendTableHeader("Status", "min-w-32"),
+          extendTableHeader("Our Price", "min-w-24"),
+          extendTableHeader("Value", "min-w-24"),
+          extendTableHeader("Actions", "min-w-28"),
+          extendTableHeader("Code", "min-w-64"),
           extendTableHeader("Pallet #", "min-w-24"),
           extendTableHeader("Box #", "min-w-20"),
-          extendTableHeader("Description", "min-w-64"),
           extendTableHeader("Donor", "min-w-32"),
           extendTableHeader("Lot #", "min-w-24"),
           extendTableHeader("Expiration Date", "min-w-32"),
           extendTableHeader("Container Type", "min-w-28"),
           extendTableHeader("# of Containers", "min-w-28"),
-          extendTableHeader("Cost Per Piece (Donor)", "min-w-28"),
-          extendTableHeader("Status", "min-w-32"),
-          extendTableHeader("Code", "min-w-32"),
-          extendTableHeader("Our Price", "min-w-24"),
           extendTableHeader("Price Set", "min-w-28"),
-          extendTableHeader("Value", "min-w-24"),
           extendTableHeader("Category", "min-w-24"),
           extendTableHeader("Type", "min-w-20"),
           extendTableHeader("NDC", "min-w-32"),
-          extendTableHeader("Actions", "min-w-28"),
           extendTableHeader("Additional Info", "min-w-24 text-center"),
         ]}
         rows={data.map((item, index) => {
           const priceCheck = item.priceCheck;
           const canAct = priceCheck && doesPriceCheckBlockFinalize(priceCheck.status) && onPriceAction;
+          const rowNumber = item.row ?? index + 1;
+          const isOverride = codeOverrides[rowNumber] !== undefined;
 
           return {
             cells: [
-              item.palletNumber || "-",
-              item.boxNumber || "-",
               item.title,
-              item.donorName || "-",
-              item.lotNumber || "-",
-              item.expirationDate
-                ? new Date(item.expirationDate).toLocaleDateString()
-                : "-",
-              item.unitType,
-              item.quantity ?? 0,
               item.unitPrice != null
                 ? `$${Number(item.unitPrice).toFixed(2)}`
                 : "-",
               priceCheck ? <PriceCheckBadge key={`status-${index}`} status={priceCheck.status} /> : "-",
-              priceCheck?.code
-                ? `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
-                : "-",
               priceCheck?.price != null ? `$${Number(priceCheck.price).toFixed(2)}` : "-",
-              priceCheck?.priceSetOn ?? "-",
               priceCheck?.value != null ? `$${Number(priceCheck.value).toFixed(2)}` : "-",
-              item.category || "-",
-              item.type || "-",
-              item.ndc || "-",
               canAct ? (
                 <button
                   key={`action-${index}`}
@@ -193,6 +196,37 @@ export const PreviewTable = ({ data, final, onPriceAction }: PreviewTableProps) 
               ) : (
                 "-"
               ),
+              priceCheck &&
+              (priceCheck.status === "no-code" || priceCheck.status === "unreadable" || isOverride) &&
+              onCodeCheck ? (
+                <PriceCheckCodeCell
+                  key={`code-${rowNumber}`}
+                  row={rowNumber}
+                  title={item.title}
+                  initialCode={priceCheck.code}
+                  isOverride={isOverride}
+                  disabled={checking}
+                  onCheck={onCodeCheck}
+                  onDraftChange={onCodeDraftChange}
+                />
+              ) : priceCheck?.code ? (
+                `${priceCheck.code}${priceCheck.codeType ? ` (${priceCheck.codeType})` : ""}`
+              ) : (
+                "-"
+              ),
+              item.palletNumber || "-",
+              item.boxNumber || "-",
+              item.donorName || "-",
+              item.lotNumber || "-",
+              item.expirationDate
+                ? new Date(item.expirationDate).toLocaleDateString()
+                : "-",
+              item.unitType,
+              item.quantity ?? 0,
+              priceCheck?.priceSetOn ?? "-",
+              item.category || "-",
+              item.type || "-",
+              item.ndc || "-",
               <AdditionalInfoTooltip
                 key={`info-${index}`}
                 info={item.additionalInfo || {}}

@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/db";
 import { itemPriceInputSchema } from "@/schema/itemPrice";
-import { MAX_INT32_ID, needsItemPriceRecheck } from "@/util/itemPrice";
+import { MAX_BULK_DELETE_IDS, MAX_INT32_ID, needsItemPriceRecheck } from "@/util/itemPrice";
 import {
   ArgumentError,
   ConflictError,
@@ -228,6 +228,26 @@ export class ItemPriceService {
     assertPriceId(id);
     try {
       await db.itemPrice.delete({ where: { id } });
+    } catch (error) {
+      return dbError(error);
+    }
+  }
+
+  static async removeMany(ids: number[]): Promise<number> {
+    const unique = [...new Set(ids)];
+    if (unique.length > MAX_BULK_DELETE_IDS) {
+      throw new ArgumentError(
+        `Cannot delete more than ${MAX_BULK_DELETE_IDS} prices at once.`
+      );
+    }
+    for (const id of unique) {
+      assertPriceId(id);
+    }
+    try {
+      const result = await db.itemPrice.deleteMany({
+        where: { id: { in: unique } },
+      });
+      return result.count;
     } catch (error) {
       return dbError(error);
     }

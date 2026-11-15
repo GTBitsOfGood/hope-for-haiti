@@ -13,15 +13,22 @@ import {
 } from "@prisma/client";
 import { format, isAfter } from "date-fns";
 import { z } from "zod";
-import { ArgumentError, NotFoundError } from "@/util/errors";
+import { ArgumentError, ConflictError, NotFoundError } from "@/util/errors";
 import { parseItemCode, resolveFinalizedNdc } from "@/util/ndc";
 import {
+  applyCodeOverrides,
   buildPriceCheck,
+  centsToMoneyString,
   doesPriceCheckBlockFinalize,
+  moneyStringToCents,
   priceCheckErrorMessage,
   type PriceBookEntry,
 } from "@/util/priceCheck";
-import type { PriceCheckStatus } from "@/types/api/donorOffer.types";
+import type {
+  PriceCheck,
+  PriceCheckCodeOverride,
+  PriceCheckStatus,
+} from "@/types/api/donorOffer.types";
 import {
   PartnerDonorOffer,
   AdminDonorOffer,
@@ -232,10 +239,43 @@ const FinalizeDonorOfferItemSchema = z.object({
 });
 
 type FinalizeDonorOfferItem = z.infer<typeof FinalizeDonorOfferItemSchema>;
+type FinalizeDonorOfferItemWithPrice = FinalizeDonorOfferItem & {
+  priceCheck: PriceCheck;
+};
 type ValidFinalizeRow = {
   row: number;
   item: FinalizeDonorOfferItem;
 };
+
+function snapshotFromPriceCheck(priceCheck: PriceCheck): {
+  savedUnitPrice: string | null;
+  priceSetOn: Date | null;
+} {
+  if (priceCheck.status !== "priced" || !priceCheck.price) {
+    return { savedUnitPrice: null, priceSetOn: null };
+  }
+  return {
+    savedUnitPrice: priceCheck.price,
+    priceSetOn: priceCheck.priceSetOn
+      ? new Date(`${priceCheck.priceSetOn}T00:00:00.000Z`)
+      : null,
+  };
+}
+
+// Null when no row had a price, so the page shows "No saved price" instead of $0.00.
+function savedTotalFromPriceChecks(
+  items: { priceCheck: PriceCheck }[]
+): string | null {
+  let cents = BigInt(0);
+  let hasValue = false;
+  for (const item of items) {
+    if (item.priceCheck.value) {
+      cents += moneyStringToCents(item.priceCheck.value);
+      hasValue = true;
+    }
+  }
+  return hasValue ? centsToMoneyString(cents) : null;
+}
 type GeneralItemWithRequests = GeneralItem & {
   requests: (GeneralItemRequest & {
     partner: { id: number; name: string };
@@ -1301,7 +1341,8 @@ export default class DonorOfferService {
       fields: string[];
     },
     preview: boolean,
-    embeddingCache: import("./matchingService").EmbeddingCache
+    embeddingCache: import("./matchingService").EmbeddingCache,
+    codeOverrides: PriceCheckCodeOverride[] = []
   ): Promise<FinalizeDonorOfferResult> {
     const donorOffer = await db.donorOffer.findUnique({
       where: { id: donorOfferId },
@@ -1314,7 +1355,12 @@ export default class DonorOfferService {
       throw new NotFoundError("Donor offer not found");
     }
 
-    const { data: jsonData } = parsedFileData;
+    const appliedOverrides = applyCodeOverrides(parsedFileData.data, codeOverrides);
+    if (!appliedOverrides.ok) {
+      return { success: false, errors: appliedOverrides.errors };
+    }
+    const jsonData = appliedOverrides.rows;
+
     const validationResults = jsonData.map((row, index) => {
       const result = FinalizeDonorOfferItemSchema.safeParse(row);
       if (!result.success) {
@@ -1371,15 +1417,28 @@ export default class DonorOfferService {
       };
     }
 
-    const validItems = validRows.map((row) => row.item);
+    const checkedItems: FinalizeDonorOfferItemWithPrice[] = validRows.map(
+      (row, index) => ({
+        ...row.item,
+        priceCheck: priceChecked.items[index].priceCheck,
+      })
+    );
+    const savedTotal = savedTotalFromPriceChecks(checkedItems);
 
-    const updatedOffer = await db.donorOffer.update({
-      where: { id: donorOfferId },
+    const { count: finalizedCount } = await db.donorOffer.updateMany({
+      where: { id: donorOfferId, state: $Enums.DonorOfferState.UNFINALIZED },
       data: { state: $Enums.DonorOfferState.FINALIZED },
+    });
+    if (finalizedCount === 0) {
+      throw new ConflictError("This offer has already been finalized.");
+    }
+
+    const updatedOffer = await db.donorOffer.findUniqueOrThrow({
+      where: { id: donorOfferId },
       include: { items: true },
     });
 
-    if (validItems.length > 0) {
+    if (checkedItems.length > 0) {
       try {
         await MatchingService.loadDonorOfferEmbeddings(
           donorOfferId,
@@ -1394,10 +1453,10 @@ export default class DonorOfferService {
 
       const lineItemsByGeneralItem = new Map<
         string,
-        FinalizeDonorOfferItem[]
+        FinalizeDonorOfferItemWithPrice[]
       >();
 
-      for (const item of validItems) {
+      for (const item of checkedItems) {
         const normalizedExpiration = DonorOfferService.normalizeExpirationDate(
           item.expirationDate
         );
@@ -1530,6 +1589,7 @@ export default class DonorOfferService {
         const lineItemsToCreate: Prisma.LineItemCreateManyInput[] =
           lineItems.map((item) => {
             const resolved = resolveFinalizedNdc(item.ndc, item.additionalInfo);
+            const snapshot = snapshotFromPriceCheck(item.priceCheck);
             return {
               allowAllocations: item.allowAllocations ?? true,
               visible: item.visible ?? true,
@@ -1540,6 +1600,8 @@ export default class DonorOfferService {
               palletNumber: item.palletNumber,
               boxNumber: item.boxNumber,
               unitPrice: item.unitPrice,
+              savedUnitPrice: snapshot.savedUnitPrice,
+              priceSetOn: snapshot.priceSetOn,
               ndc: resolved.ndc,
               notes: null,
               additionalInfo:
@@ -1562,7 +1624,15 @@ export default class DonorOfferService {
       },
     });
 
-    return { success: true, donorOfferId, createdCount: validItems.length };
+    // Saved last, so a total only exists once every line's saved price is written.
+    if (savedTotal !== null) {
+      await db.donorOffer.update({
+        where: { id: donorOfferId },
+        data: { savedTotal },
+      });
+    }
+
+    return { success: true, donorOfferId, createdCount: checkedItems.length };
   }
 
   static async updateDonorOffer(
@@ -1597,8 +1667,16 @@ export default class DonorOfferService {
       existingOffer.partnerVisibilities.map((partner) => partner.id)
     );
 
+    const nextPartnerIds =
+      updateData.partners !== undefined
+        ? [...new Set(updateData.partners)]
+        : undefined;
     const addedPartnerIds =
-      updateData.partners?.filter((id) => !existingPartnerIds.has(id)) ?? [];
+      nextPartnerIds?.filter((id) => !existingPartnerIds.has(id)) ?? [];
+    const removedPartnerIds =
+      nextPartnerIds !== undefined
+        ? [...existingPartnerIds].filter((id) => !nextPartnerIds.includes(id))
+        : [];
 
     let newPartners: { id: number; name: string; email: string }[] = [];
 
@@ -1632,19 +1710,53 @@ export default class DonorOfferService {
       donorName: updateData.donorName,
       partnerResponseDeadline: updateData.partnerResponseDeadline,
       donorResponseDeadline: updateData.donorResponseDeadline,
-      ...(addedPartnerIds !== undefined
+      ...(nextPartnerIds !== undefined
         ? {
             partnerVisibilities: {
-              connect: addedPartnerIds.map((partnerId) => ({ id: partnerId })),
+              set: nextPartnerIds.map((partnerId) => ({ id: partnerId })),
             },
           }
         : {}),
       state: updateData.state,
     };
 
-    const updatedOffer = await db.donorOffer.update({
-      where: { id: donorOfferId },
-      data: update,
+    const updatedOffer = await db.$transaction(async (tx) => {
+      if (removedPartnerIds.length > 0) {
+        const allocated = await tx.allocation.findMany({
+          where: {
+            partnerId: { in: removedPartnerIds },
+            lineItem: { generalItem: { donorOfferId } },
+          },
+          distinct: ["partnerId"],
+          select: { partner: { select: { name: true } } },
+        });
+        if (allocated.length > 0) {
+          const names =
+            allocated
+              .map((allocation) => allocation.partner?.name)
+              .filter((name): name is string => Boolean(name))
+              .join(", ") || "These partners";
+          throw new ConflictError(
+            `Can't remove ${names} from this offer because items are already allocated to them. Remove those allocations first.`
+          );
+        }
+      }
+
+      const offer = await tx.donorOffer.update({
+        where: { id: donorOfferId },
+        data: update,
+      });
+
+      if (removedPartnerIds.length > 0) {
+        await tx.generalItemRequest.deleteMany({
+          where: {
+            partnerId: { in: removedPartnerIds },
+            generalItem: { donorOfferId },
+          },
+        });
+      }
+
+      return offer;
     });
 
     if (addedPartnerIds.length > 0) {
@@ -1763,7 +1875,7 @@ export default class DonorOfferService {
 
     buildQueryWithPagination(query, page, pageSize);
 
-    const [items, total, orphanedGeneralItems, targetOptions] =
+    const [items, total, orphanedGeneralItems, targetOptions, donorOffer] =
       await Promise.all([
         db.generalItem.findMany(query),
         db.generalItem.count({ where }),
@@ -1816,6 +1928,10 @@ export default class DonorOfferService {
           },
           orderBy: { title: "asc" },
         }),
+        db.donorOffer.findUnique({
+          where: { id: donorOfferId },
+          select: { savedTotal: true },
+        }),
       ]);
 
     type ItemWithItems = Prisma.GeneralItemGetPayload<{
@@ -1841,9 +1957,23 @@ export default class DonorOfferService {
         return {
           ...item,
           quantity,
+          items: item.items.map((lineItem) => ({
+            ...lineItem,
+            savedUnitPrice:
+              lineItem.savedUnitPrice != null
+                ? lineItem.savedUnitPrice.toFixed(2)
+                : null,
+            priceSetOn: lineItem.priceSetOn
+              ? lineItem.priceSetOn.toISOString().split("T")[0]
+              : null,
+          })),
         };
       }),
       total,
+      savedTotal:
+        donorOffer?.savedTotal != null
+          ? donorOffer.savedTotal.toFixed(2)
+          : null,
       orphanedRequests: orphanedGeneralItems.flatMap((generalItem) =>
         generalItem.requests.map((request) => ({
           requestId: request.id,

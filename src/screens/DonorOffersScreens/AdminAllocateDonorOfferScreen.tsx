@@ -20,11 +20,17 @@ import { useApiClient } from "@/hooks/useApiClient";
 import { useFetch } from "@/hooks/useFetch";
 import { AllocationSuggestionProgram } from "@/types/ui/allocationSuggestions";
 import { DonorOfferHeader } from "@/components/DonorOffers/DonorOfferHeader";
-import { formatCurrency, getMockPriceInfo } from "@/util/mockPrices";
+import {
+  describeLinePrices,
+  describeSavedValue,
+  NO_SAVED_PRICE,
+} from "@/util/allocationPrices";
+import { formatMoney } from "@/util/format";
 
 type AllocationResponse = {
   items: AllocationTableItem[];
   total: number;
+  savedTotal: string | null;
   orphanedRequests: AllocationTableMeta["orphanedRequests"];
   generalItemOptions: AllocationTableMeta["generalItemOptions"];
 };
@@ -82,34 +88,11 @@ export default function AdminAllocateDonorOfferScreen() {
     },
   });
 
-  // Separate, unpaginated fetch of every item on the offer so "Value at
-  // Finalize" reflects the whole offer, not just the table's current page.
-  // TEMP (#387): pageSize=1000 is a client-side "fetch all" workaround since
-  // there's no dedicated totals endpoint yet — fine for realistic offer
-  // sizes today, but would silently undercount past 1000 general items on
-  // one offer. Revisit once the backend ticket adds a real aggregate.
-  const { data: allItemsData, isLoading: isLoadingAllItems } = useFetch<{
-    items: AllocationTableItem[];
-  }>(
-    `/api/donorOffers/${donorOfferId}/allocationItems?page=1&pageSize=1000&filters=${encodeURIComponent("{}")}`,
-    { conditionalFetch: isValidDonorOfferId }
+  // The offer's total saved at Finalize; every page of table data carries it.
+  // undefined = not loaded (or the load failed), null = nothing was saved.
+  const [savedTotal, setSavedTotal] = useState<string | null | undefined>(
+    undefined
   );
-
-  const valueAtFinalize = (() => {
-    const items = allItemsData?.items ?? [];
-    const itemsWithSavedPrice = items.filter(
-      (item) => getMockPriceInfo(item).savedPrice !== null
-    );
-
-    if (itemsWithSavedPrice.length === 0) {
-      return null;
-    }
-
-    return itemsWithSavedPrice.reduce((sum, item) => {
-      const { savedPrice } = getMockPriceInfo(item);
-      return sum + (savedPrice ?? 0) * item.quantity;
-    }, 0);
-  })();
 
   const allocationColumns: ColumnDefinition<AllocationTableItem>[] = useMemo(
     () => [
@@ -117,29 +100,22 @@ export default function AdminAllocateDonorOfferScreen() {
       {
         id: "donorPrice",
         header: "Donor Price",
-        cell: (item) => formatCurrency(getMockPriceInfo(item).donorPrice),
+        cell: (item) =>
+          describeLinePrices(item.items.map((line) => line.unitPrice)) ?? "-",
         filterable: false,
       },
       {
         id: "savedPrice",
         header: "Saved Price",
-        cell: (item) => {
-          const { savedPrice } = getMockPriceInfo(item);
-          return savedPrice === null
-            ? "No saved price"
-            : formatCurrency(savedPrice);
-        },
+        cell: (item) =>
+          describeLinePrices(item.items.map((line) => line.savedUnitPrice)) ??
+          NO_SAVED_PRICE,
         filterable: false,
       },
       {
         id: "value",
         header: "Value",
-        cell: (item) => {
-          const { savedPrice } = getMockPriceInfo(item);
-          return savedPrice === null
-            ? "No saved price"
-            : formatCurrency(savedPrice * item.quantity);
-        },
+        cell: (item) => describeSavedValue(item.items) ?? NO_SAVED_PRICE,
         filterable: false,
       },
     ],
@@ -166,6 +142,7 @@ export default function AdminAllocateDonorOfferScreen() {
         `/api/donorOffers/${donorOfferId}/allocationItems?${params}`,
         { cache: "no-store" }
       );
+      setSavedTotal(response.savedTotal ?? null);
 
       const items = response.items.map((item) => ({
         ...item,
@@ -340,11 +317,11 @@ export default function AdminAllocateDonorOfferScreen() {
           Value at Finalize
         </p>
         <p className="text-2xl font-bold text-blue-primary">
-          {isLoadingAllItems
-            ? "Loading..."
-            : valueAtFinalize === null
-              ? "No saved price"
-              : formatCurrency(valueAtFinalize)}
+          {savedTotal === undefined
+            ? "-"
+            : savedTotal === null
+              ? NO_SAVED_PRICE
+              : formatMoney(savedTotal)}
         </p>
       </div>
 
