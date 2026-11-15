@@ -80,7 +80,7 @@ export type AllocationTableProps = {
   requestsHeaderTutorialId?: string;
 };
 
-function buildDefaultColumns(
+export function buildDefaultColumns(
   requestsHeaderTutorialId?: string
 ): ColumnDefinition<AllocationTableItem>[] {
   return [

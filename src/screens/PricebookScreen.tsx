@@ -15,12 +15,7 @@ import PriceEntryModal from "@/components/Pricebook/PriceEntryModal";
 import DeletePriceModal from "@/components/Pricebook/DeletePriceModal";
 import BulkDeletePriceModal from "@/components/Pricebook/BulkDeletePriceModal";
 import PriceUploadModal from "@/components/Pricebook/PriceUploadModal";
-
-function currency(value: string) {
-  const [whole, fraction = ""] = value.split(".");
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `$${grouped}${fraction ? `.${fraction.padEnd(2, "0")}` : ".00"}`;
-}
+import { formatMoney } from "@/util/format";
 
 function dateLabel(value: string) {
   const date = new Date(value);
@@ -203,7 +198,7 @@ export default function PricebookScreen() {
   const columns: ColumnDefinition<ItemPriceResponse>[] = [
     { id: "ndc", header: "Code", filterType: "string", cell: row => row.ndc },
     { id: "name", header: "Name", filterable: false, cell: row => row.name ?? "" },
-    { id: "unitPrice", header: "Unit price", filterable: false, cell: row => currency(row.unitPrice) },
+    { id: "unitPrice", header: "Unit price", filterable: false, cell: row => formatMoney(row.unitPrice) },
     { id: "updatedAt", header: "Last updated", filterable: false, cell: row => <time dateTime={row.updatedAt}>{dateLabel(row.updatedAt)}</time> },
     { id: "needsRecheck", header: "Status", filterable: false, cell: row => row.needsRecheck ? <span className="rounded-full bg-amber-100 px-2 py-1 text-sm font-medium text-amber-900">Needs re-check</span> : <span>Current</span> },
     { id: "enteredBy", header: "Entered by", filterable: false, cell: row => row.enteredBy?.name ?? "Unknown" },
