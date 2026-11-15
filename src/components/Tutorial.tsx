@@ -278,6 +278,8 @@ export default function Tutorial({
   const finishTutorial = useCallback(() => {
     if (hasFinishedRef.current) return;
     hasFinishedRef.current = true;
+    // We send the end signal below, so the no-run effect must not send it again.
+    hasNotifiedNoRunRef.current = true;
     lastNotifiedStepIndexRef.current = null;
     setRun(false);
     onTutorialEndRef.current?.();
@@ -353,6 +355,7 @@ export default function Tutorial({
 
     hasFetchedCompletionRef.current = true;
     let cancelled = false;
+    let answered = false;
 
     void (async () => {
       try {
@@ -361,6 +364,7 @@ export default function Tutorial({
         });
         if (!response.ok) {
           if (!cancelled) {
+            answered = true;
             setServerTutorialCompleted(sessionTutorialCompleted);
             setIsCompletionSynced(true);
           }
@@ -373,6 +377,7 @@ export default function Tutorial({
         const latestValue = payload.user?.[tutorialField];
 
         if (!cancelled && typeof latestValue === "boolean") {
+          answered = true;
           if (localCompletionKey) {
             try {
               if (latestValue) {
@@ -401,6 +406,7 @@ export default function Tutorial({
       }
 
       if (!cancelled) {
+        answered = true;
         setServerTutorialCompleted(sessionTutorialCompleted);
         setIsCompletionSynced(true);
       }
@@ -408,12 +414,13 @@ export default function Tutorial({
 
     return () => {
       cancelled = true;
-      // Reset so a StrictMode dev double-invoke (or any other re-run of this
-      // effect) retries the fetch instead of permanently skipping it — the
-      // first invocation's result is discarded via `cancelled` above, so
-      // without this the guard can get stuck true with isCompletionSynced
-      // never actually resolving.
-      hasFetchedCompletionRef.current = false;
+      // A run stopped before its answer arrived throws that answer away, so let
+      // the next run fetch again. Once an answer has been used, keep the guard:
+      // re-fetching on later session changes (like finishing the tutorial) can
+      // race the completion PATCH and reopen the tutorial.
+      if (!answered) {
+        hasFetchedCompletionRef.current = false;
+      }
     };
   }, [
     repeatOnRefresh,

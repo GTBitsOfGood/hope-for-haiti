@@ -237,7 +237,13 @@ export default function AdminDistributionsScreen() {
   }, [clearDistributionsTutorialHighlights, hasDistributionsTutorialEnded]);
 
   useEffect(() => {
-    if (!isDistributionsTutorialActive || hasDistributionsTutorialEnded) {
+    // Before the status is known, "no tooltip" only means it's still loading,
+    // not that the tour ended, so don't start the safety timer yet.
+    if (
+      !isDistributionsTutorialStatusResolved ||
+      !isDistributionsTutorialActive ||
+      hasDistributionsTutorialEnded
+    ) {
       return;
     }
 
@@ -288,6 +294,7 @@ export default function AdminDistributionsScreen() {
     clearDistributionsTutorialHighlights,
     hasDistributionsTutorialEnded,
     isDistributionsTutorialActive,
+    isDistributionsTutorialStatusResolved,
   ]);
 
   useEffect(() => {
@@ -333,7 +340,7 @@ export default function AdminDistributionsScreen() {
 
       {!isDistributionsTutorialStatusResolved ? (
         <div className="flex justify-center py-10">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-primary" />
         </div>
       ) : (
         <>
